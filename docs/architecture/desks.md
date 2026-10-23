@@ -37,8 +37,10 @@ recibe el permiso; el detalle exacto, permiso por permiso, sale de
 | Llegada del paciente                  | sí        | sí      | sí        | sí          | —        | sí             |
 | Anuncio al profesional                | sí        | —       | —         | —           | —        | sí             |
 | Inicio y cierre de la atención        | —         | sí      | sí        | sí          | —        | sí             |
-| Historia clínica y evoluciones        | —         | sí      | sí        | sí          | —        | sí             |
+| Historia clínica y evoluciones        | —         | sí      | sí        | —           | —        | sí             |
 | Registros de especialidad             | —         | sí      | sí        | sí          | —        | sí             |
+| Casos de laboratorio (lectura)        | sí        | sí      | sí        | sí          | —        | sí             |
+| Casos de laboratorio (alta y fases)   | —         | sí      | —         | sí          | —        | sí             |
 | Análisis de IA                        | —         | sí      | —         | —           | —        | sí             |
 | Planes de tratamiento                 | —         | sí      | —         | sí          | —        | sí             |
 | Presupuestos (lectura)                | sí        | sí      | —         | —           | sí       | sí             |
@@ -56,12 +58,14 @@ recibe el permiso; el detalle exacto, permiso por permiso, sale de
 Las rayas no son una decisión de estilo: son la consecuencia del catálogo (#280
 S9 y #296 S2). Recepción no escribe historia clínica por ninguna puerta,
 incluido el cierre; el escritorio de laboratorio no entra al módulo de análisis
-de IA porque un análisis es apoyo a un diagnóstico; y la anulación de una
-transacción queda en administración porque es el único acto del ledger que
-revierte dinero ya registrado. El almacén sigue la misma lógica: consultar stock
-y alertas es parte del trabajo clínico y financiero, pero recibir por compra y
-ajustar por conteo mueve el saldo del que depende el costo del acto, y queda en
-asistente, finanzas y administración.
+de IA porque un análisis es apoyo a un diagnóstico; el escritorio de laboratorio
+no lee la historia clínica ni el acto que la publica, porque su trabajo llega en
+el caso protésico (#285); y la anulación de una transacción queda en
+administración porque es el único acto del ledger que revierte dinero ya
+registrado. El almacén sigue la misma lógica: consultar stock y alertas es parte
+del trabajo clínico y financiero, pero recibir por compra y ajustar por conteo
+mueve el saldo del que depende el costo del acto, y queda en asistente, finanzas
+y administración.
 
 ## Sede y escritorio
 

@@ -48,8 +48,10 @@ class DomainChannelsAuthorizationTest extends TestCase
         $map = [
             'appointments' => $appointmentRoles,
             'reminders' => $appointmentRoles,
+            // F5 (#285): the channel publishes the full evolution, the addenda
+            // and the attachments, so the laboratory desk is out of it.
             'medical-records' => [
-                'administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente',
+                'administrador', 'odontologo', 'implantologo', 'asistente',
             ],
             'specialty-records' => [
                 'administrador', 'odontologo', 'implantologo', 'tecnico_dental',
@@ -64,6 +66,9 @@ class DomainChannelsAuthorizationTest extends TestCase
             'cash-session.7' => ['administrador', 'finanzas', 'recepcionista'],
             'procedure-catalog' => self::ROLES,
             'users' => ['administrador'],
+            // F5 (#285, S4): the laboratory channel carries the case, the
+            // patient and the assigned technician; finance stays out.
+            'lab-cases' => $appointmentRoles,
         ];
 
         $data = [];

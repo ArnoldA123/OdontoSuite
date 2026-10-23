@@ -49,7 +49,7 @@ class BroadcastingAuthController extends Controller
      * @var string[]
      */
     private const MEDICAL_RECORD_ROLES = [
-        'administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente',
+        'administrador', 'odontologo', 'implantologo', 'asistente',
     ];
 
     /**
@@ -78,6 +78,18 @@ class BroadcastingAuthController extends Controller
     ];
 
     /**
+     * Roles with laboratory read access (F5, #285). The case carries the
+     * patient, the work order and the assigned technician, so the desks that
+     * answer for it subscribe; finance stays out.
+     *
+     * @var string[]
+     */
+    private const LABORATORY_ROLES = [
+        'administrador', 'recepcionista', 'odontologo',
+        'implantologo', 'tecnico_dental', 'asistente',
+    ];
+
+    /**
      * Exact channel name => roles allowed to subscribe.
      *
      * @var array<string, string[]>
@@ -97,6 +109,8 @@ class BroadcastingAuthController extends Controller
         'dashboard-updates' => self::ALL_ROLES,
         'quotations' => self::QUOTATION_ROLES,
         'patients' => self::ALL_ROLES,
+        // F5 (#285, S4): the prosthetic case notification.
+        'lab-cases' => self::LABORATORY_ROLES,
     ];
 
     public function __invoke(Request $request): JsonResponse

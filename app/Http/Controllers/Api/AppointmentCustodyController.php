@@ -74,6 +74,8 @@ class AppointmentCustodyController extends Controller
                 'waiting' => AppointmentResource::collection($queue['waiting'])->toArray($request),
                 'attending' => AppointmentResource::collection($queue['attending'])->toArray($request),
                 'upcoming' => AppointmentResource::collection($queue['upcoming'])->toArray($request),
+                // F5 (#285, S6): the workshop returned the work; it is placed today.
+                'ready_lab_cases' => $queue['ready_lab_cases']->toArray(),
             ],
             'meta' => [
                 'date' => now()->toDateString(),
@@ -81,6 +83,7 @@ class AppointmentCustodyController extends Controller
                     'waiting' => $queue['waiting']->count(),
                     'attending' => $queue['attending']->count(),
                     'upcoming' => $queue['upcoming']->count(),
+                    'ready_lab_cases' => $queue['ready_lab_cases']->count(),
                 ],
             ],
         ]);

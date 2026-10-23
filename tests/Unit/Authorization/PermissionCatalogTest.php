@@ -117,17 +117,103 @@ class PermissionCatalogTest extends TestCase
     #[Test]
     public function the_encounter_read_is_clinical_only(): void
     {
-        foreach (['recepcionista', 'finanzas'] as $role) {
+        foreach (['recepcionista', 'finanzas', 'tecnico_dental'] as $role) {
             $this->assertFalse(
                 Permissions::roleHas($role, Permissions::VIEW_ENCOUNTER),
                 "Role [{$role}] holds [view.encounter], but the act carries the clinical record.",
             );
         }
 
-        foreach (['administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente'] as $role) {
+        foreach (['administrador', 'odontologo', 'implantologo', 'asistente'] as $role) {
             $this->assertTrue(
                 Permissions::roleHas($role, Permissions::VIEW_ENCOUNTER),
                 "Role [{$role}] should hold [view.encounter].",
+            );
+        }
+    }
+
+    /**
+     * #285 (S3/S5) — the prosthetic case replaced the clinical record on the
+     * laboratory desk. Reading the history, its evolutions, its attachments
+     * or the act that carries them is not the laboratory's work.
+     */
+    #[Test]
+    public function the_laboratory_desk_does_not_read_the_clinical_record(): void
+    {
+        foreach ([
+            Permissions::MANAGE_MEDICAL_RECORD,
+            Permissions::MANAGE_EVOLUTION,
+            Permissions::MANAGE_ATTACHMENT,
+            Permissions::VIEW_MEDICAL_RECORD_STATS,
+            Permissions::VIEW_ENCOUNTER,
+        ] as $permission) {
+            $this->assertFalse(
+                Permissions::roleHas('tecnico_dental', $permission),
+                "The laboratory holds [{$permission}], but #285 closes the clinical record on that desk.",
+            );
+
+            foreach (['administrador', 'odontologo', 'implantologo', 'asistente'] as $role) {
+                $this->assertTrue(
+                    Permissions::roleHas($role, $permission),
+                    "Role [{$role}] should keep [{$permission}].",
+                );
+            }
+        }
+    }
+
+    /**
+     * #285 closes the read of the record, not the clinical workflow the
+     * laboratory already had (F1/F2). A regression that drops those doors too
+     * fails here instead of passing silently.
+     */
+    #[Test]
+    public function the_laboratory_keeps_its_clinical_workflow_doors(): void
+    {
+        foreach ([
+            Permissions::START_CONSULTATION,
+            Permissions::COMPLETE_APPOINTMENT,
+            Permissions::CREATE_ENCOUNTER,
+            Permissions::CLOSE_ENCOUNTER,
+            Permissions::VIEW_MY_DAY,
+        ] as $permission) {
+            $this->assertTrue(
+                Permissions::roleHas('tecnico_dental', $permission),
+                "The laboratory should keep [{$permission}]: #285 closes the record read, not the workflow.",
+            );
+        }
+    }
+
+    /**
+     * #285 (S1/S3) — the case is the laboratory's work order, not the record.
+     * Reception reads it to answer for the patient, finance is outside, and the
+     * phase stays with the desks that carry the work.
+     */
+    #[Test]
+    public function the_laboratory_case_grants_read_and_write_separately(): void
+    {
+        foreach (['administrador', 'recepcionista', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente'] as $role) {
+            $this->assertTrue(
+                Permissions::roleHas($role, Permissions::VIEW_LAB_CASE),
+                "Role [{$role}] should read the prosthetic case.",
+            );
+        }
+
+        $this->assertFalse(
+            Permissions::roleHas('finanzas', Permissions::VIEW_LAB_CASE),
+            'Finance holds [view.lab_case], but the case is not a financial surface.',
+        );
+
+        foreach (['administrador', 'odontologo', 'implantologo', 'tecnico_dental'] as $role) {
+            $this->assertTrue(
+                Permissions::roleHas($role, Permissions::MANAGE_LAB_CASE),
+                "Role [{$role}] should move the case through its phases.",
+            );
+        }
+
+        foreach (['recepcionista', 'asistente', 'finanzas'] as $role) {
+            $this->assertFalse(
+                Permissions::roleHas($role, Permissions::MANAGE_LAB_CASE),
+                "Role [{$role}] holds [manage.lab_case], but it does not move the phase.",
             );
         }
     }

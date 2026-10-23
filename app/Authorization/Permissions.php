@@ -103,6 +103,16 @@ final class Permissions
 
     public const VIEW_PRODUCT = 'view.product';
 
+    /**
+     * #285 (S1/S3/S6) — the prosthetic laboratory case. Reading the work order
+     * is dispatch work and belongs to the desks that answer for it; moving the
+     * phases is the laboratory's own desk. These two permissions are the only
+     * door to the case, so the laboratory never needs the clinical record.
+     */
+    public const VIEW_LAB_CASE = 'view.lab_case';
+
+    public const MANAGE_LAB_CASE = 'manage.lab_case';
+
     // #295 (S6): the warehouse. Reading what is on the shelf is clinical and
     // financial work; receiving a purchase or counting a shelf is not, so the
     // write capability keeps its own list.
@@ -259,6 +269,41 @@ final class Permissions
         'asistente',
     ];
 
+    /**
+     * #285 (S3/S5) — the clinical record leaves the laboratory desk.
+     *
+     * The prosthetic case is the laboratory's work order, so `tecnico_dental`
+     * no longer reads the history, its evolutions, its attachments, its
+     * statistics or the act that carries them. `MEDICAL_ROLES` stays whole for
+     * the clinical workflow F1/F2 granted — start and close an attention, open
+     * or void an act — because the issue closes the record's read, not the
+     * workflow. Specialty records and treatment plans are the prosthetic
+     * input, not the history, and are untouched.
+     */
+    private const RECORD_ROLES = [
+        'administrador',
+        'odontologo',
+        'implantologo',
+        'asistente',
+    ];
+
+    /**
+     * #285 (S3/S5) — the patient-file export is the record in one call.
+     *
+     * The PDF and the ZIP carry the evolutions, the odontograms, the specialty
+     * records and the attachment binaries, so exporting follows the same
+     * boundary as reading the record. `finanzas` keeps the inert grant it had;
+     * `PatientPolicy::export()` is the effective gate.
+     */
+    private const PATIENT_EXPORT_ROLES = [
+        'administrador',
+        'recepcionista',
+        'odontologo',
+        'implantologo',
+        'asistente',
+        'finanzas',
+    ];
+
     private const TREATMENT_ROLES = [
         'administrador',
         'odontologo',
@@ -276,6 +321,29 @@ final class Permissions
     private const AI_ROLES = ['administrador', 'odontologo', 'implantologo'];
 
     private const CASH_ROLES = ['administrador', 'finanzas', 'recepcionista'];
+
+    /**
+     * #285 (S1/S3): who answers for a prosthetic case.
+     *
+     * Reading the work order is dispatch, reception and clinical work; the
+     * laboratory desk that moves the phases is the same grant that already
+     * writes treatment plans and specialty records. Finance is outside both.
+     */
+    private const LAB_CASE_READERS = [
+        'administrador',
+        'recepcionista',
+        'odontologo',
+        'implantologo',
+        'tecnico_dental',
+        'asistente',
+    ];
+
+    private const LAB_CASE_WRITERS = [
+        'administrador',
+        'odontologo',
+        'implantologo',
+        'tecnico_dental',
+    ];
 
     private const FINANCE_ROLES = ['administrador', 'finanzas'];
 
@@ -305,7 +373,7 @@ final class Permissions
         self::AUTHORIZE_BROADCASTING => self::ALL_ROLES,
         self::VIEW_USER => self::ALL_ROLES,
         self::VIEW_PATIENT => self::ALL_ROLES,
-        self::EXPORT_PATIENT => self::ALL_ROLES,
+        self::EXPORT_PATIENT => self::PATIENT_EXPORT_ROLES,
         self::VIEW_APPOINTMENT_TYPE => self::ALL_ROLES,
         self::VIEW_DENTAL_CHAIR => self::ALL_ROLES,
         self::VIEW_BRANCH => self::ALL_ROLES,
@@ -333,19 +401,21 @@ final class Permissions
         self::CREATE_ENCOUNTER => self::MEDICAL_ROLES,
         self::VOID_ENCOUNTER => self::MEDICAL_ROLES,
         self::CLOSE_ENCOUNTER => self::MEDICAL_ROLES,
-        self::VIEW_ENCOUNTER => self::MEDICAL_ROLES,
+        self::VIEW_ENCOUNTER => self::RECORD_ROLES,
         self::VIEW_DIAGNOSIS_CATALOG => self::MEDICAL_ROLES,
         self::VIEW_PRODUCT => self::APPOINTMENT_ROLES,
+        self::VIEW_LAB_CASE => self::LAB_CASE_READERS,
+        self::MANAGE_LAB_CASE => self::LAB_CASE_WRITERS,
         self::VIEW_INVENTORY => ['administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente', 'finanzas'],
         self::MANAGE_INVENTORY => ['administrador', 'finanzas', 'asistente'],
         self::MANAGE_REMINDER => self::APPOINTMENT_ROLES,
         self::SEND_REMINDER => self::APPOINTMENT_ROLES,
         self::MANAGE_REMINDER_TEMPLATE => ['administrador'],
 
-        self::MANAGE_MEDICAL_RECORD => self::MEDICAL_ROLES,
-        self::MANAGE_EVOLUTION => self::MEDICAL_ROLES,
-        self::MANAGE_ATTACHMENT => self::MEDICAL_ROLES,
-        self::VIEW_MEDICAL_RECORD_STATS => self::MEDICAL_ROLES,
+        self::MANAGE_MEDICAL_RECORD => self::RECORD_ROLES,
+        self::MANAGE_EVOLUTION => self::RECORD_ROLES,
+        self::MANAGE_ATTACHMENT => self::RECORD_ROLES,
+        self::VIEW_MEDICAL_RECORD_STATS => self::RECORD_ROLES,
 
         self::MANAGE_TREATMENT_PLAN => self::TREATMENT_ROLES,
         self::VIEW_QUOTATION => self::QUOTATION_READERS,

@@ -104,8 +104,10 @@ Broadcast::channel('medical-records', function ($user) {
         return false;
     }
 
+    // F5 (#285): the channel publishes the evolution, the addenda and the
+    // attachments, so the laboratory desk is out of it.
     return in_array($user->role ?? null, [
-        'administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente',
+        'administrador', 'odontologo', 'implantologo', 'asistente',
     ], true);
 });
 
@@ -201,4 +203,19 @@ Broadcast::channel('cash-register.{branchId}', function ($user, $branchId) {
     }
 
     return in_array($user->role ?? null, ['administrador', 'finanzas', 'recepcionista'], true);
+});
+
+// Canal privado del laboratorio protésico (F5, #285): LabCaseReady publica el
+// caso entregado con paciente, profesional y técnico asignado. La suscripción
+// exige el handshake de /api/broadcasting/auth y los mismos roles que autorizan
+// la lectura del caso en routes/api.php; finanzas queda fuera.
+Broadcast::channel('lab-cases', function ($user) {
+    if ($user === null) {
+        return false;
+    }
+
+    return in_array($user->role ?? null, [
+        'administrador', 'recepcionista', 'odontologo',
+        'implantologo', 'tecnico_dental', 'asistente',
+    ], true);
 });

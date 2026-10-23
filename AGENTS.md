@@ -96,12 +96,12 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 42 controllers API (41 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 43 controllers API (42 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 66 modelos Eloquent
+  Models/                  # 67 modelos Eloquent
   Services/                # 30 services + Reports/ (8 report services)
-  Events/                  # 35 eventos (10 listener classes, 13 cableos en AppServiceProvider)
+  Events/                  # 36 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
   Jobs/                    # ExportPatientFileJob, ClearDashboardCache
@@ -119,7 +119,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 147 migraciones
+  migrations/              # 148 migraciones
   seeders/                 # 17 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, DiagnosisCatalogSeeder,
                            #   AppointmentTypeSeeder, EnvironmentSeeder, ProcedureCatalogSeeder,
@@ -128,7 +128,7 @@ database/
                            #   ToothSurfaceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 244 rutas API (medido con php artisan route:list --json: uris api/…; 257 totales con web)
+  api.php                  # 249 rutas API (medido con php artisan route:list --json: uris api/…; 262 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -146,29 +146,29 @@ docs/
 
 ## 5. Módulos del frontend (19 módulos, 21 páginas)
 
-| Módulo                    | Ruta                        | Roles                            |
-| ------------------------- | --------------------------- | -------------------------------- |
-| Dashboard                 | `/dashboard`                | todos                            |
-| Mi día                    | `/my-day`                   | admin, todos los clínicos        |
-| Calendario                | `/calendar`                 | todos los clínicos               |
-| Pacientes                 | `/patients`                 | todos                            |
-| Profesionales             | `/professionals`            | admin                            |
-| Ambientes                 | `/environments`             | admin                            |
-| Tipos de cita             | `/appointment-types`        | admin                            |
-| Especialidades (catálogo) | `/specialties`              | admin                            |
-| Sucursales                | `/settings/branches`        | admin                            |
-| Métodos de pago           | `/settings/payment-methods` | admin                            |
-| Caja                      | `/cash-register`            | admin, finanzas, recep           |
-| BI                        | `/business-intelligence`    | admin, finanzas                  |
-| Planes de tratamiento     | `/treatment-plans`          | clínicos                         |
-| Presupuestos              | `/quotations`               | admin, finanzas, odonto, implant |
-| Historias clínicas        | `/medical-records`          | clínicos                         |
-| Registros especialidad    | `/specialty-records`        | clínicos                         |
-| Análisis IA               | `/ai-analysis`              | admin, odonto, implantólogo      |
-| Catálogo procedimientos   | `/procedure-catalog`        | admin                            |
-| Mis procedimientos        | `/my-procedures`            | clínicos (favoritos)             |
-| Recepción procedimientos  | `/reception-procedures`     | recep                            |
-| Estadísticas catálogo     | `/procedure-stats`          | admin, finanzas                  |
+| Módulo                    | Ruta                        | Roles                                 |
+| ------------------------- | --------------------------- | ------------------------------------- |
+| Dashboard                 | `/dashboard`                | todos                                 |
+| Mi día                    | `/my-day`                   | admin, todos los clínicos             |
+| Calendario                | `/calendar`                 | todos los clínicos                    |
+| Pacientes                 | `/patients`                 | todos                                 |
+| Profesionales             | `/professionals`            | admin                                 |
+| Ambientes                 | `/environments`             | admin                                 |
+| Tipos de cita             | `/appointment-types`        | admin                                 |
+| Especialidades (catálogo) | `/specialties`              | admin                                 |
+| Sucursales                | `/settings/branches`        | admin                                 |
+| Métodos de pago           | `/settings/payment-methods` | admin                                 |
+| Caja                      | `/cash-register`            | admin, finanzas, recep                |
+| BI                        | `/business-intelligence`    | admin, finanzas                       |
+| Planes de tratamiento     | `/treatment-plans`          | clínicos                              |
+| Presupuestos              | `/quotations`               | admin, finanzas, odonto, implant      |
+| Historias clínicas        | `/medical-records`          | odontólogos, implantólogos, asistente |
+| Registros especialidad    | `/specialty-records`        | clínicos                              |
+| Análisis IA               | `/ai-analysis`              | admin, odonto, implantólogo           |
+| Catálogo procedimientos   | `/procedure-catalog`        | admin                                 |
+| Mis procedimientos        | `/my-procedures`            | clínicos (favoritos)                  |
+| Recepción procedimientos  | `/reception-procedures`     | recep                                 |
+| Estadísticas catálogo     | `/procedure-stats`          | admin, finanzas                       |
 
 **Auth frontend**: el router NO tiene `meta.roles`. La API rechaza con 403 y el
 frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
@@ -184,7 +184,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 66 modelos, 42 controllers API, 35 eventos (10 listener classes / 13 cableos
+- 67 modelos, 43 controllers API, 36 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 13 modelos con SoftDeletes (la historia clínica y sus evoluciones ya no lo
   usan: #292)
@@ -278,6 +278,12 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 - Superficies dentales con datos: `ToothSurfaceSeeder` da las cinco superficies
   canónicas (V/L/M/D/O) a cada pieza activa y `GET /api/dental-pieces` las
   publica, así que un procedimiento de superficie tiene dónde cumplirse.
+- Laboratorio protésico propio (#285): `lab_cases` es la orden de trabajo del
+  taller (paciente, pieza, trabajo, material, fecha de envío, fecha prometida y
+  técnico asignado) con cinco fases que sólo avanzan; entrar en `delivered`
+  emite `LabCaseReady` y el caso aparece en `GET /api/my-day` bajo
+  `ready_lab_cases`. El escritorio de laboratorio ya no lee la historia clínica
+  ni el acto clínico, y sus registros de especialidad y planes siguen intactos.
 
 ### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
 
@@ -484,7 +490,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 42 controllers API, 66
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 43 controllers API, 67
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -496,6 +502,50 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-23 (laboratorio protésico: casos, fases y entregas, #285)** — El
+  trabajo de laboratorio deja de vivir en la historia clínica. `lab_cases`
+  guarda la orden del taller —paciente, pieza, trabajo, material, `sent_at`,
+  `promised_at`, `professional_id` que prescribe y `technician_id` asignado— y
+  `status` recorre las cinco fases del issue
+  (`in_preparation → in_laboratory → try_in → delivered → placed`). La máquina
+  sólo avanza: una fase posterior se acepta (un trabajo simple salta la prueba),
+  la misma o una anterior responde 422 nombrando la fase actual y la pedida, y
+  `status` no se escribe por `POST`/`PUT`: la única puerta es
+  `POST /api/lab-cases/{id}/phase`. Entrar en `delivered` marca `delivered_at` y
+  emite `LabCaseReady` (`caso_laboratorio_listo`) por el canal privado
+  `lab-cases` y por `user.{professional_id}`; `placed` marca `placed_at` y no
+  notifica. `GET /api/my-day` publica `ready_lab_cases` del profesional
+  autenticado y su conteo, y el escritorio del profesional escucha el evento,
+  avisa y refresca. **Alcance del escritorio**: `tecnico_dental` deja de leer la
+  historia clínica y el acto clínico (`manage.medical_record`,
+  `manage.evolution`, `manage.attachment`, `view.medical_record_stats` y
+  `view.encounter`), no exporta la ficha del paciente (`export.patient`, cuyo
+  PDF/ZIP lleva evoluciones, odontogramas, registros de especialidad y los
+  binarios de los adjuntos) y deja de suscribirse al canal privado
+  `medical-records`, que publica la evolución, los addenda y los adjuntos, con
+  `TechnicianClinicalRecordScopeTest` cubriendo el criterio de aceptación;
+  conserva el flujo clínico que fijaron F1/F2 (iniciar y cerrar la atención,
+  abrir o anular un acto) y sus registros de especialidad y planes de
+  tratamiento. Catálogo: `view.lab_case` (administrador, recepción, odontólogo,
+  implantólogo, técnico, asistente) y `manage.lab_case` (administrador,
+  odontólogo, implantólogo, técnico). Puertas: `GET /api/lab-cases`,
+  `GET /api/lab-cases/{id}`, `POST /api/lab-cases`, `PUT /api/lab-cases/{id}` y
+  `POST /api/lab-cases/{id}/phase`. La sede sigue siendo dimensión de
+  autorización (`ScopesToBranch`: estampado en el alta, 403 en sede ajena, 404
+  en binding). §4 sincronizado con valores medidos: 42 controllers API, 65
+  modelos, 146 migraciones, 36 eventos, 246 rutas API y 259 totales con web.
+  Tests: `LabCaseDomainTest` (2), `LabCasePhaseMachineTest` (12),
+  `LabCaseApiTest` (16), `TechnicianClinicalRecordScopeTest` (2),
+  `MyDayQueueTest` extendido (3 casos nuevos), `DomainChannelsPrivateTest`,
+  `DomainChannelsAuthorizationTest`, `BroadcastingAuthChannelsTest`,
+  `PermissionCatalogTest` y el smoke unitario `myDay`. Fuera de alcance,
+  declarado: la pantalla del módulo (la issue es `area:backend`);
+  `appointments.treatment_notes`, que el cierre copia del `plan` de la evolución
+  y que la agenda publica desde F2 a todo el que lee citas —recepción incluida—,
+  porque es la conducta de la cita y no la lectura del registro; y
+  `MedicalRecordCreated`, que desde #249 publica el modelo completo en
+  `dashboard-updates`, canal abierto a todos los roles.
 
 - **2026-10-22 (cumplimiento NTS 139 y NTS 188: registro firmado, CIE-10 y
   motivo de consulta, #286)** — El acto clínico pasa a ser un documento firmado.

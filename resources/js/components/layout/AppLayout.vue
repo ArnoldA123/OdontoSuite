@@ -955,10 +955,12 @@ const navigation = computed(() => {
       badge: null
     },
     {
+      // F5 (#285): the laboratory desk left the clinical record; the prosthetic
+      // case is its surface. The API answers 403, so the entry is not offered.
       name: 'Historias Clínicas',
       to: '/medical-records',
       icon: HeartIcon,
-      roles: ['administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente'],
+      roles: ['administrador', 'odontologo', 'implantologo', 'asistente'],
       badge: null
     },
     {

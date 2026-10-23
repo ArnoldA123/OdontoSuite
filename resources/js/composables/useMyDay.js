@@ -107,6 +107,16 @@ export function useMyDay() {
     load()
   }
 
+  // F5 (#285): the prosthetic case came back from the workshop. The API
+  // publishes the ready cases of this professional under `ready_lab_cases`, so
+  // announcing it and refreshing is enough for the desk to show the work.
+  const handleLabCaseReady = event => {
+    const toast = useToast()
+    const work = event?.case?.work
+    toast.info(work ? `Caso de laboratorio listo: ${work}` : 'Caso de laboratorio listo')
+    load()
+  }
+
   // Echo registers private channels with the `private-` prefix on the wire, so
   // leaving `user.{id}` is inert: the teardown must name the wire channel.
   const unsubscribe = userId => {
@@ -122,9 +132,10 @@ export function useMyDay() {
   }
 
   /**
-   * `PatientReady` travels on the professional's private channel `user.{id}`.
-   * Reverb is often down in local dev, so an unavailable transport leaves the
-   * desk usable (manual refresh) instead of throwing during mount.
+   * `PatientReady` and `LabCaseReady` travel on the professional's private
+   * channel `user.{id}`. Reverb is often down in local dev, so an unavailable
+   * transport leaves the desk usable (manual refresh) instead of throwing
+   * during mount.
    */
   const subscribe = userId => {
     if (!userId || (subscribedUserId === userId && channel)) return
@@ -135,6 +146,7 @@ export function useMyDay() {
       if (!nextChannel) return
       channel = nextChannel
       channel.listen('.paciente_listo', handlePatientReady)
+      channel.listen('.caso_laboratorio_listo', handleLabCaseReady)
       subscribedUserId = userId
     } catch (thrown) {
       channel = null

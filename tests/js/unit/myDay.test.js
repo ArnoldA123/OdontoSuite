@@ -169,6 +169,31 @@ describe('useMyDay realtime', () => {
     expect(echoMock.echo.leave).toHaveBeenCalledWith('private-user.7')
   })
 
+  // F5 (#285): the ready prosthetic case travels on the same private channel
+  // as `paciente_listo`. The desk announces it and refreshes, so the case the
+  // API already publishes under `ready_lab_cases` shows up without a reload.
+  it('listens for the ready laboratory case and refreshes the desk', async () => {
+    api.get.mockResolvedValue(payload())
+
+    const { subscribe } = useMyDay()
+    subscribe(7)
+
+    expect(echoMock.channelStub.listen).toHaveBeenCalledWith(
+      '.caso_laboratorio_listo',
+      expect.any(Function)
+    )
+
+    const handler = echoMock.channelStub.listen.mock.calls.find(
+      ([eventName]) => eventName === '.caso_laboratorio_listo'
+    )[1]
+    api.get.mockClear()
+    handler({ case: { work: 'Corona metal-cerámica' }, patient: { full_name: 'Ana Torres' } })
+    await flushPromises()
+
+    expect(toastMock.info).toHaveBeenCalledWith('Caso de laboratorio listo: Corona metal-cerámica')
+    expect(api.get).toHaveBeenCalledWith('/api/my-day')
+  })
+
   it('stays quiet when the realtime transport is unavailable', () => {
     echoMock.privateChannel.mockImplementation(() => null)
 
