@@ -39,6 +39,8 @@ class CashReportPopulationTest extends TestCase
 
     private PaymentMethod $cashMethod;
 
+    private Patient $patient;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -49,6 +51,7 @@ class CashReportPopulationTest extends TestCase
         ]);
         $this->branch = Branch::factory()->create();
         $this->cashMethod = PaymentMethod::factory()->create(['name' => 'Efectivo']);
+        $this->patient = Patient::factory()->create();
 
         $this->actingAs($this->admin, 'sanctum');
     }
@@ -63,11 +66,12 @@ class CashReportPopulationTest extends TestCase
     private function register(float $amount, string $type = 'payment'): Transaction
     {
         return app(TransactionService::class)->createTransaction([
-            'patient_id' => Patient::factory()->create()->id,
+            'patient_id' => $this->patient->id,
             'payment_method_id' => $this->cashMethod->id,
             'amount' => $amount,
             'type' => $type,
             'description' => 'Reporte de caja',
+            ...($type === 'refund' ? ['authorization_reason' => 'Devolución de prueba'] : []),
         ]);
     }
 

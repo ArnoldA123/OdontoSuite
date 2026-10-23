@@ -452,19 +452,23 @@ Route::middleware('auth:sanctum')->group(function () {
     // stays routed (RoutePermissionMatrixTest). The OR is inert today, because
     // both permissions are administrator-only, and the guard remains the only
     // place that decides whether a lock can be overridden.
+    // #287, D7 — only a payment and its refund need an open drawer, and the
+    // rule lives in TransactionService: a write-off or an adjustment is a
+    // ledger entry and cannot demand a session it never writes to. A void keeps
+    // its own drawer guard in the service (the session of the transaction must
+    // still be open).
     Route::post('transactions/{transaction}/void', [TransactionController::class, 'void'])
-        ->middleware([
-            'permission:'.Permissions::VOID_TRANSACTION.','.Permissions::OVERRIDE_ACCOUNTING_LOCK,
-            'cash.session',
-        ]);
+        ->middleware('permission:'.Permissions::VOID_TRANSACTION.','.Permissions::OVERRIDE_ACCOUNTING_LOCK);
 
-    // Transactions require an open cash session (slice 01 / T-01.1 registers
-    // `transactions/list` and `receipt` BEFORE apiResource so the fixed
-    // segments are not swallowed by `{transaction}` model binding).
+    // `receipt` keeps the drawer gate: it is a cash-register operation over a
+    // transaction that already belongs to a session (slice 01 / T-01.1
+    // registers it BEFORE apiResource so the fixed segment is not swallowed by
+    // `{transaction}` model binding).
     Route::middleware(['permission:'.Permissions::CREATE_TRANSACTION, 'cash.session'])->group(function () {
         Route::post('transactions/{transaction}/receipt', [TransactionController::class, 'generateReceipt']);
-        Route::post('transactions', [TransactionController::class, 'store']);
     });
+    Route::post('transactions', [TransactionController::class, 'store'])
+        ->middleware('permission:'.Permissions::CREATE_TRANSACTION);
     Route::middleware(['permission:'.Permissions::MANAGE_TRANSACTION, 'cash.session'])->group(function () {
         Route::get('transactions/list', [TransactionController::class, 'list']);
         Route::get('transactions', [TransactionController::class, 'index']);

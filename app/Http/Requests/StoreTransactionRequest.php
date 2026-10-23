@@ -4,9 +4,11 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\LocalizedErrors;
 use App\Models\CashRegisterSession;
+use App\Support\MoneyVocabulary;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /**
  * FormRequest for creating a Transaction.
@@ -15,6 +17,11 @@ use Illuminate\Support\Str;
  * via exists:payment_methods,id. (The frontend's PaymentModal already supplies
  * this value; the field was also declared in the original FormRequest, but
  * the slice explicitly re-affirms the rule and provides a clear es message.)
+ *
+ * #287, D4/D7/D8 — the rules follow the money vocabulary: the type decides
+ * whether a method is required or prohibited, whether a discount belongs to
+ * the row, whether the drawer has to be open and whether an administrator must
+ * be registered behind it. `discount` is not a writable type anymore.
  *
  * @see openspec/changes/bugfix-2026-08/specs/02-form-requests.md
  */
@@ -52,6 +59,16 @@ class StoreTransactionRequest extends FormRequest
                 'reference_number' => Str::limit(strip_tags($this->reference_number), 100),
             ]);
         }
+
+        if ($this->has('authorization_reason')) {
+            $this->merge([
+                'authorization_reason' => Str::limit(
+                    strip_tags((string) $this->authorization_reason),
+                    255,
+                    ''
+                ),
+            ]);
+        }
     }
 
     /**
@@ -76,18 +93,42 @@ class StoreTransactionRequest extends FormRequest
                 'exists:treatment_plans,id',
             ],
             'payment_method_id' => [
-                'required',
+                'required_if:type,'.implode(',', [...MoneyVocabulary::CASH_IN, ...MoneyVocabulary::CASH_OUT]),
+                'prohibited_unless:type,'.implode(',', [...MoneyVocabulary::CASH_IN, ...MoneyVocabulary::CASH_OUT]),
                 'integer',
                 'exists:payment_methods,id',
             ],
             'type' => [
                 'required',
-                'in:payment,refund,discount,adjustment',
+                'in:'.implode(',', MoneyVocabulary::CREATABLE),
             ],
             'amount' => [
                 'required',
                 'numeric',
-                'min:0.01',
+                // #287, D3: the adjustment is signed, so only zero is refused;
+                // every other type is an amount of money greater than zero.
+                Rule::when(
+                    $this->input('type') === MoneyVocabulary::ADJUSTMENT,
+                    ['not_in:0'],
+                    ['min:0.01'],
+                ),
+            ],
+            'authorized_by' => [
+                'nullable',
+                'integer',
+                'exists:users,id',
+            ],
+            'authorization_reason' => [
+                'nullable',
+                'required_if:type,'.implode(',', MoneyVocabulary::REQUIRES_AUTHORIZATION),
+                'string',
+                'max:255',
+            ],
+            'parent_transaction_id' => [
+                'nullable',
+                'integer',
+                'exists:transactions,id',
+                'prohibited_unless:type,'.MoneyVocabulary::REFUND,
             ],
             'subtotal' => [
                 'nullable',
@@ -97,17 +138,20 @@ class StoreTransactionRequest extends FormRequest
             'discount_type' => [
                 'nullable',
                 'in:percentage,fixed',
+                'prohibited_unless:type,'.MoneyVocabulary::PAYMENT,
             ],
             'discount_amount' => [
                 'nullable',
                 'numeric',
                 'min:0',
                 'lte:amount',
+                'prohibited_unless:type,'.MoneyVocabulary::PAYMENT,
             ],
             'discount_authorized_by' => [
                 'nullable',
                 'integer',
                 'exists:users,id',
+                'prohibited_unless:type,'.MoneyVocabulary::PAYMENT,
             ],
             'description' => [
                 'required',
@@ -142,16 +186,27 @@ class StoreTransactionRequest extends FormRequest
             'appointment_id.exists' => 'La cita seleccionada no existe.',
             'treatment_plan_id.exists' => 'El plan de tratamiento seleccionado no existe.',
             'payment_method_id.required' => 'El método de pago es requerido.',
+            'payment_method_id.required_if' => 'El método de pago es requerido para un pago o una devolución.',
+            'payment_method_id.prohibited_unless' => 'Sólo el pago y la devolución llevan método de pago.',
             'payment_method_id.exists' => 'El método de pago seleccionado no existe.',
             'type.required' => 'El tipo de transacción es requerido.',
-            'type.in' => 'El tipo de transacción debe ser payment, refund, discount o adjustment.',
+            'type.in' => 'El tipo de transacción debe ser payment, refund, write_off o adjustment.',
             'amount.required' => 'El monto es requerido.',
             'amount.numeric' => 'El monto debe ser un número.',
             'amount.min' => 'El monto debe ser mayor a 0.',
+            'amount.not_in' => 'El ajuste no puede ser cero.',
+            'authorized_by.exists' => 'El usuario autorizador no existe.',
+            'authorization_reason.required_if' => 'El motivo de la autorización es requerido.',
+            'authorization_reason.max' => 'El motivo de la autorización no puede exceder los 255 caracteres.',
+            'parent_transaction_id.exists' => 'El pago de origen no existe.',
+            'parent_transaction_id.prohibited_unless' => 'Sólo una devolución puede referirse a un pago de origen.',
             'discount_type.in' => 'El tipo de descuento debe ser porcentaje o fijo.',
+            'discount_type.prohibited_unless' => 'El descuento es un campo del cobro: no aplica a este tipo de transacción.',
             'discount_amount.numeric' => 'El monto de descuento debe ser un número.',
             'discount_amount.min' => 'El monto de descuento debe ser mayor o igual a 0.',
+            'discount_amount.prohibited_unless' => 'El descuento es un campo del cobro: no aplica a este tipo de transacción.',
             'discount_authorized_by.exists' => 'El usuario autorizador no existe.',
+            'discount_authorized_by.prohibited_unless' => 'El descuento es un campo del cobro: no aplica a este tipo de transacción.',
             'description.required' => 'La descripción es requerida.',
             'description.max' => 'La descripción no puede exceder los 255 caracteres.',
             'notes.max' => 'Las notas no pueden exceder los 500 caracteres.',
@@ -166,22 +221,33 @@ class StoreTransactionRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            // Check if there's an active cash session
-            $activeSession = CashRegisterSession::where('user_id', Auth::id())
-                ->where('status', 'open')
-                ->first();
+            $type = (string) $this->input('type');
 
-            if (! $activeSession) {
-                $validator->errors()->add(
-                    'session',
-                    'No hay una sesión de caja abierta. Debe abrir la caja antes de registrar transacciones.'
-                );
+            // #287, D7: only a payment and its refund need the drawer open. A
+            // write-off or an adjustment is a ledger entry and cannot demand a
+            // session it never writes to.
+            if (MoneyVocabulary::movesCash($type)) {
+                $activeSession = CashRegisterSession::where('user_id', Auth::id())
+                    ->where('status', 'open')
+                    ->first();
+
+                if (! $activeSession) {
+                    $validator->errors()->add(
+                        'session',
+                        'No hay una sesión de caja abierta. Debe abrir la caja antes de registrar transacciones.'
+                    );
+                }
             }
 
-            // Validate discount authorization
-            $discountAmount = $this->input('discount_amount', 0);
-            $amount = $this->input('amount', 0);
+            // The discount is a field of the charge, so only a payment has one.
+            if ($type !== MoneyVocabulary::PAYMENT) {
+                return;
+            }
 
+            $discountAmount = (float) $this->input('discount_amount', 0);
+            $amount = (float) $this->input('amount', 0);
+
+            // Validate discount authorization
             if ($discountAmount > 0 && $amount > 0) {
                 $discountPercentage = ($discountAmount / $amount) * 100;
 
@@ -192,9 +258,6 @@ class StoreTransactionRequest extends FormRequest
                     );
                 }
             }
-
-            // Los campos appointment_id y treatment_plan_id son opcionales
-            // No se requiere validación adicional aquí
 
             // Validate that discount doesn't exceed amount
             if ($discountAmount > $amount) {

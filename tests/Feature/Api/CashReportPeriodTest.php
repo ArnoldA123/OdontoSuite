@@ -37,6 +37,8 @@ class CashReportPeriodTest extends TestCase
 
     private PaymentMethod $cashMethod;
 
+    private Patient $patient;
+
     private PaymentMethod $cardMethod;
 
     private CashRegisterSession $session;
@@ -62,6 +64,7 @@ class CashReportPeriodTest extends TestCase
 
         $this->cashMethod = PaymentMethod::factory()->create(['name' => 'Efectivo']);
         $this->cardMethod = PaymentMethod::factory()->create(['name' => 'Tarjeta']);
+        $this->patient = Patient::factory()->create();
 
         $this->register(100.0, $this->cashMethod, 'payment');
         $this->register(50.0, $this->cardMethod, 'payment');
@@ -77,11 +80,12 @@ class CashReportPeriodTest extends TestCase
     private function register(float $amount, PaymentMethod $method, string $type): Transaction
     {
         return app(TransactionService::class)->createTransaction([
-            'patient_id' => Patient::factory()->create()->id,
+            'patient_id' => $this->patient->id,
             'payment_method_id' => $method->id,
             'amount' => $amount,
             'type' => $type,
             'description' => 'Reporte de caja',
+            ...($type === 'refund' ? ['authorization_reason' => 'Devolución de prueba'] : []),
         ]);
     }
 
