@@ -156,6 +156,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // administrator sees the requests enter and leave but never decides them.
     Route::middleware('permission:'.Permissions::REQUEST_BRANCH_TRANSFER)->group(function () {
         Route::get('branch-transfers', [BranchTransferController::class, 'index']);
+        // Fixed segment before the binding: `destinations` is a catalogue, not
+        // a request id.
+        Route::get('branch-transfers/destinations', [BranchTransferController::class, 'destinations']);
         Route::get('branch-transfers/{branchTransfer}', [BranchTransferController::class, 'show']);
         Route::post('branch-transfers', [BranchTransferController::class, 'store']);
         Route::post('branch-transfers/{branchTransfer}/cancel', [BranchTransferController::class, 'cancel']);

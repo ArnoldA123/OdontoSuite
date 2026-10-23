@@ -385,4 +385,83 @@ class BranchTransferRequestTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $pending->id);
     }
+
+    #[Test]
+    public function the_destinations_list_every_active_branch_for_a_restricted_user(): void
+    {
+        $origin = Branch::factory()->create(['name' => 'Sede Alfa', 'code' => 'SD-ALFA']);
+        $destination = Branch::factory()->create(['name' => 'Sede Bravo', 'code' => 'SD-BRAVO']);
+        $inactive = Branch::factory()->create([
+            'name' => 'Sede Zulu',
+            'code' => 'SD-ZULU',
+            'is_active' => false,
+        ]);
+        $professional = $this->staff($origin);
+
+        // The defect this pins: `GET /api/branches/active` answers only the
+        // actor's own sede to a restricted user, so the transfer form had no
+        // destination for the population the feature exists for.
+        $this->actingAs($professional, 'sanctum')
+            ->getJson('/api/branches/active')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $origin->id);
+
+        $response = $this->actingAs($professional, 'sanctum')
+            ->getJson('/api/branch-transfers/destinations')
+            ->assertOk()
+            ->assertJsonPath('meta.message', 'Sedes disponibles para el traslado');
+
+        $ids = array_map(
+            static fn (array $branch): int => (int) $branch['id'],
+            $response->json('data'),
+        );
+
+        $this->assertSame([$origin->id, $destination->id], $ids);
+        $this->assertContains($destination->id, $ids);
+        $this->assertNotContains($inactive->id, $ids);
+
+        $response
+            ->assertJsonPath('data.1.code', 'SD-BRAVO')
+            ->assertJsonPath('data.1.name', 'Sede Bravo')
+            ->assertJsonPath('data.1.is_active', true)
+            ->assertJsonStructure(['data' => [['id', 'code', 'name', 'is_active']]]);
+    }
+
+    #[Test]
+    public function the_destinations_list_the_active_catalog_to_a_group_scope_user(): void
+    {
+        $first = Branch::factory()->create(['name' => 'Sede Centro']);
+        $second = Branch::factory()->create(['name' => 'Sede Norte']);
+        Branch::factory()->create(['name' => 'Sede Antigua', 'is_active' => false]);
+        $manager = $this->staff(null, 'administrador');
+
+        $response = $this->actingAs($manager, 'sanctum')
+            ->getJson('/api/branch-transfers/destinations')
+            ->assertOk();
+
+        $this->assertSame(
+            [$first->id, $second->id],
+            array_map(static fn (array $branch): int => (int) $branch['id'], $response->json('data')),
+        );
+    }
+
+    #[Test]
+    public function the_destinations_are_ordered_by_name(): void
+    {
+        Branch::factory()->create(['name' => 'Sede Sur']);
+        $centro = Branch::factory()->create(['name' => 'Sede Centro']);
+        Branch::factory()->create(['name' => 'Sede Norte']);
+        $professional = $this->staff($centro);
+
+        $names = array_column(
+            $this->actingAs($professional, 'sanctum')
+                ->getJson('/api/branch-transfers/destinations')
+                ->assertOk()
+                ->json('data'),
+            'name',
+        );
+
+        $this->assertSame(['Sede Centro', 'Sede Norte', 'Sede Sur'], $names);
+    }
 }

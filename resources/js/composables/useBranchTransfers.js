@@ -38,7 +38,7 @@ export function useBranchTransfers() {
   const pagination = ref(emptyPagination())
   const loading = ref(false)
   const error = ref(null)
-  const branches = ref([])
+  const destinations = ref([])
   const submitting = ref(false)
 
   const fetchRequests = async (filters = {}) => {
@@ -58,14 +58,17 @@ export function useBranchTransfers() {
     }
   }
 
-  // The lookup returns the actor's reach: a restricted user receives only their
-  // own sede, gerencia receives the whole catalog.
-  const fetchActiveBranches = async () => {
+  // The destination catalog is the module's own door: it answers every ACTIVE
+  // sede regardless of the actor's affiliation. The branch lookup
+  // (`GET /api/branches/active`) is branch-scoped on the server, so a user
+  // affiliated to a sede would only ever receive their own and could not ask
+  // for a transfer at all.
+  const fetchDestinations = async () => {
     const { get } = useApi()
     try {
-      const response = await get('/api/branches/active')
-      branches.value = asList(response?.data)
-      return branches.value
+      const response = await get('/api/branch-transfers/destinations')
+      destinations.value = asList(response?.data)
+      return destinations.value
     } catch (thrown) {
       error.value = messageFor(thrown, 'No se pudieron cargar las sedes')
       throw thrown
@@ -103,10 +106,10 @@ export function useBranchTransfers() {
     pagination,
     loading,
     error,
-    branches,
+    destinations,
     submitting,
     fetchRequests,
-    fetchActiveBranches,
+    fetchDestinations,
     requestTransfer,
     cancelRequest,
     approveRequest,

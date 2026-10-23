@@ -345,10 +345,10 @@ const {
   pagination,
   loading,
   error,
-  branches,
+  destinations,
   submitting,
   fetchRequests,
-  fetchActiveBranches,
+  fetchDestinations,
   requestTransfer,
   cancelRequest,
   approveRequest,
@@ -393,16 +393,26 @@ const isOwnRequest = row =>
   row?.user_id !== undefined &&
   String(row.user_id) === String(user.value?.id)
 
+// The current sede comes from the same destination list the form offers: it is
+// active, so the module door publishes it. A sede that is missing (inactive, or
+// a session without affiliation) falls back to group scope instead of inventing
+// a name.
 const currentBranch = computed(
-  () => branches.value.find(branch => sameBranch(branch.id, userBranchId.value)) || null
+  () => destinations.value.find(branch => sameBranch(branch.id, userBranchId.value)) || null
 )
-const currentBranchLabel = computed(() => currentBranch.value?.name || 'Alcance de grupo')
+// An affiliation whose sede is missing from the active catalog (retired sede)
+// is not group scope: saying so would tell a restricted user they operate on
+// every sede.
+const currentBranchLabel = computed(() => {
+  if (currentBranch.value) return currentBranch.value.name
+  return userBranchId.value === null ? 'Alcance de grupo' : 'Sede no disponible'
+})
 
 // Asking for the sede you already belong to is not a transfer, and an inactive
 // sede is not a destination (S4). Group scope has no sede to exclude, so every
 // active sede is a valid destination for it (D1).
 const branchOptions = computed(() =>
-  branches.value
+  destinations.value
     .filter(branch => branch.is_active !== false && !sameBranch(branch.id, userBranchId.value))
     .map(branch => ({ value: branch.id, label: branch.name }))
 )
@@ -461,7 +471,7 @@ const load = async () => {
   loadFailed.value = false
   resetError()
   try {
-    await Promise.all([fetchActiveBranches(), fetchRequests()])
+    await Promise.all([fetchDestinations(), fetchRequests()])
   } catch {
     // The composable already recorded the server message in `error`; the page
     // only flips its own flag so the ladder shows the retry surface.

@@ -99,6 +99,22 @@ propia solicitud…») viven en la excepción y en los tests, no en el cuerpo de
 respuesta. Cambiar el renderer afectaría a toda la API y queda fuera de esta
 entrega.
 
+D11. **La unicidad de la solicitud abierta no tiene test concurrente.** La
+garantía es transacción + bloqueo de la fila del usuario antes del conteo; un
+test de dos POST simultáneos exige dos conexiones y la suite usa una. Queda como
+límite declarado: el mecanismo está en el código y el 409 secuencial está
+cubierto.
+
+D10. **Los destinos del formulario son una puerta del módulo.** La verificación
+independiente encontró que `GET /api/branches/active` aplica el filtro de sede
+(`BranchAccess::effectiveFilter`), de modo que un profesional afiliado recibía
+sólo su propia sede y el formulario se quedaba sin destinos —justo la población
+que pide el traslado—. `GET /api/branch-transfers/destinations` publica las sedes
+activas del catálogo bajo `request.branch_transfer`: sin conocer las sedes no se
+puede pedir un traslado, el nombre de la sede no es un dato sensible y la sede
+sigue autorizando operaciones (el POST revalida el destino). No se relaja
+`/api/branches/active`, que guarda `BranchScopeReadGuardTest`.
+
 D9. **La sesión publica `branch_id`.** `POST /api/auth/login` y
 `GET /api/auth/me` suman `branch_id` (aditivo) porque el SPA distingue gerencia
 de administrador de sede por ese campo y excluye la sede actual de los destinos
@@ -169,3 +185,10 @@ comportamiento no se puede partir más pequeño: el guard
 L8. Decisión registrada: `docs/architecture/decisions/0016-branch-transfer-request.md`
 (la solicitud aprobada como segunda puerta de la afiliación), con la nota de
 actualización en ADR-0010 que cerraba la postergación.
+
+L9. Verificación independiente (`gentle-ai-verify`), 9/9 reclamaciones PASS con
+evidencia de archivo y línea, 26 + 17 tests ejecutados verdes. Encontró un
+defecto funcional alto en la superficie —destinos vacíos para todo usuario con
+sede, porque `/api/branches/active` filtra por sede— y una observación baja: no
+hay test de concurrencia real para la solicitud abierta (D11). El defecto se
+corrige con la puerta de destinos (D10) y su caso de regresión en el smoke.

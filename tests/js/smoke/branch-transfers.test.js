@@ -137,17 +137,26 @@ const asGerencia = () => {
   harness.can = { request: true, decide: true }
 }
 
-const mockApi = ({ transfers = TRANSFERS(), branches = BRANCHES } = {}) => {
+const mockApi = ({ transfers = TRANSFERS(), destinations = BRANCHES } = {}) => {
   harness.get.mockImplementation(async url => {
     const target = String(url)
-    if (target.startsWith('/api/branches/active')) {
-      return { data: branches, meta: { message: 'Sucursales cargadas exitosamente' } }
+    // #305: the module owns its destination door, which answers every ACTIVE
+    // sede regardless of the actor's affiliation.
+    if (target.startsWith('/api/branch-transfers/destinations')) {
+      return { data: destinations, meta: { message: 'Sedes de destino cargadas exitosamente' } }
     }
     if (target.startsWith('/api/branch-transfers')) {
       return {
         data: transfers,
         meta: { current_page: 1, last_page: 1, per_page: 15, total: transfers.length }
       }
+    }
+    // The branch catalog lookup is branch-scoped on the server: a user
+    // affiliated to sede 1 receives only sede 1. Serving that truth keeps the
+    // trap honest — a page that goes back to that lookup renders an empty
+    // destination list for exactly the user who must ask for a transfer.
+    if (target.startsWith('/api/branches/active')) {
+      return { data: BRANCHES.slice(0, 1), meta: { message: 'Sucursales cargadas exitosamente' } }
     }
     return { data: [] }
   })
@@ -175,7 +184,12 @@ const mountPage = async options => {
 }
 
 const transferFetches = () =>
-  harness.get.mock.calls.filter(([url]) => String(url).startsWith('/api/branch-transfers')).length
+  harness.get.mock.calls.filter(([url]) => {
+    const target = String(url)
+    return target.startsWith('/api/branch-transfers') && !target.includes('/destinations')
+  }).length
+
+const requestedUrls = () => harness.get.mock.calls.map(([url]) => String(url))
 
 const tableRows = wrapper => wrapper.findAll('[data-transfers-table] tbody tr')
 
@@ -284,6 +298,20 @@ describe('branch transfers surface', () => {
     wrapper.unmount()
   })
 
+  it('does not call a retired sede group scope', async () => {
+    // An affiliation whose sede left the active catalog is still an
+    // affiliation: the copy must not tell a restricted user they operate on
+    // every sede.
+    harness.user = { id: 7, name: 'Dra. Elsa Pérez', role: 'odontologo', branch_id: 99 }
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-branch-current]').text()).toContain('Sede no disponible')
+    expect(wrapper.find('[data-branch-current]').text()).not.toContain('Alcance de grupo')
+
+    wrapper.unmount()
+  })
+
   it('renders every row the API scoped, with the applicant of each one', async () => {
     asSedeAdministrator()
     const wrapper = await mountPage()
@@ -375,6 +403,23 @@ describe('branch transfers surface', () => {
     expect(transferFetches()).toBe(2)
     expect(wrapper.find('[data-transfer-reason]').element.value).toBe('')
     expect(wrapper.find('[data-transfer-submit]').attributes('disabled')).toBeDefined()
+
+    wrapper.unmount()
+  })
+
+  it('offers the destination catalog of the module, not the branch-scoped lookup', async () => {
+    // Regression: `GET /api/branches/active` applies BranchAccess on the server,
+    // so a professional affiliated to sede 1 received only sede 1 and — once the
+    // current sede is excluded — had no destination to choose at all. The page
+    // must read the module's own door, which answers every active sede.
+    const wrapper = await mountPage()
+
+    expect(requestedUrls().some(url => url.startsWith('/api/branch-transfers/destinations'))).toBe(
+      true
+    )
+    expect(requestedUrls().some(url => url.startsWith('/api/branches/active'))).toBe(false)
+
+    expect(await branchOptionLabels(wrapper)).toEqual(['Sucursal Arequipa', 'Sucursal San Isidro'])
 
     wrapper.unmount()
   })

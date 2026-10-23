@@ -6,6 +6,7 @@ use App\Exceptions\Transfer\BranchTransferException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DecideBranchTransferRequest;
 use App\Http\Requests\StoreBranchTransferRequest;
+use App\Models\Branch;
 use App\Models\BranchTransferRequest;
 use App\Services\BranchTransferService;
 use App\Support\PerPage;
@@ -88,6 +89,39 @@ class BranchTransferController extends Controller
             Log::error('BranchTransferController@show: '.$e->getMessage(), ['exception' => $e]);
 
             return response()->json(['message' => 'Error al obtener la solicitud de traslado'], 500);
+        }
+    }
+
+    /**
+     * The catalogue of destinations of the transfer form.
+     *
+     * `GET /api/branches/active` applies `BranchAccess::effectiveFilter`, so a
+     * user affiliated to a sede receives only their own sede — the exact
+     * population this feature exists for would open a form with no destination
+     * while `POST /api/branch-transfers` would accept the same sede. A user
+     * cannot ask for a transfer without knowing which sedes exist, and the
+     * name of a sede is not sensitive: this door publishes the active catalog
+     * of the group and leaves `BranchController@index` untouched. The sede
+     * dimension still authorizes operations, and the store revalidates the
+     * destination (active and different from the current one).
+     */
+    public function destinations(): JsonResponse
+    {
+        try {
+            $branches = Branch::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->orderBy('id')
+                ->get(['id', 'code', 'name', 'is_active']);
+
+            return response()->json([
+                'data' => $branches,
+                'meta' => ['message' => 'Sedes disponibles para el traslado'],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('BranchTransferController@destinations: '.$e->getMessage(), ['exception' => $e]);
+
+            return response()->json(['message' => 'Error al listar las sedes de destino'], 500);
         }
     }
 

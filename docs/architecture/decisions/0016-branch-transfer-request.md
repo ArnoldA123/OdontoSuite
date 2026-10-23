@@ -90,6 +90,10 @@ commitea mientras otra puerta espera no puede terminar aprobado.
   que ya tiene y ninguna respuesta de alcance cambia por pedir.
 - El administrador de sede gana lectura sobre traslados que entran o salen, sin
   ganar la decisión.
+- `GET /api/branch-transfers/destinations` publica el catálogo de sedes activas
+  a todo rol bajo `request.branch_transfer`: sin saber qué sedes existen no se
+  puede pedir un traslado, el nombre de la sede no es un dato sensible y el
+  `POST` revalida el destino. `/api/branches/active` conserva su filtro de sede.
 - `POST /api/auth/login` y `GET /api/auth/me` publican `branch_id`, porque el
   SPA necesita distinguir gerencia de administrador de sede sin repetir la
   matriz.

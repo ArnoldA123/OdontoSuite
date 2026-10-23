@@ -128,7 +128,7 @@ database/
                            #   ToothSurfaceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 259 rutas API (medido con php artisan route:list --json: uris api/…; 272 totales con web)
+  api.php                  # 260 rutas API (medido con php artisan route:list --json: uris api/…; 273 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -557,7 +557,10 @@ documentada y no bloquea producción.
   sólo en `pending`), `POST .../{id}/approve` y `.../reject` (gerencia:
   `decide.branch_transfer` + `branch.global`, así que el administrador de sede
   ve entrar y salir pero no decide), más `GET /api/branch-transfers` y
-  `GET /api/branch-transfers/{id}`. Reglas: una sola solicitud abierta (409;
+  `GET /api/branch-transfers/{id}`, más
+  `GET /api/branch-transfers/destinations`, que publica las sedes activas del
+  catálogo porque `/api/branches/active` filtra por sede y dejaba sin destinos
+  al profesional que pide el traslado. Reglas: una sola solicitud abierta (409;
   transacción con bloqueo de la fila del usuario antes de contar), nadie decide
   su propia solicitud (403: el solicitante cancela, no rechaza), origen que ya
   no coincide con la afiliación (409) y destino desactivado (409). **Una sola
