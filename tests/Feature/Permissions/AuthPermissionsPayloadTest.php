@@ -47,4 +47,27 @@ class AuthPermissionsPayloadTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.permissions', []);
     }
+
+    #[Test]
+    public function me_publishes_the_branch_affiliation(): void
+    {
+        // #305: the branch dimension travels with the session. The SPA tells a
+        // sede administrator from gerencia by this field, which is also the
+        // sede it excludes from the transfer destinations.
+        Sanctum::actingAs(new User(['name' => 'Sede', 'role' => 'administrador', 'branch_id' => 4]));
+
+        $this->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonPath('data.branch_id', 4);
+    }
+
+    #[Test]
+    public function group_scope_is_published_as_a_null_branch(): void
+    {
+        Sanctum::actingAs(new User(['name' => 'Gerencia', 'role' => 'administrador', 'branch_id' => null]));
+
+        $this->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonPath('data.branch_id', null);
+    }
 }
