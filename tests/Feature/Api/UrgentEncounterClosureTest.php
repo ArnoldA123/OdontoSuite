@@ -9,6 +9,7 @@ use App\Models\Patient;
 use App\Models\Quotation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\ClinicalCompliancePayload;
 use Tests\TestCase;
 
 /**
@@ -21,6 +22,7 @@ use Tests\TestCase;
  */
 class UrgentEncounterClosureTest extends TestCase
 {
+    use ClinicalCompliancePayload;
     use RefreshDatabase;
 
     private function professional(): User
@@ -45,6 +47,7 @@ class UrgentEncounterClosureTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return array_merge([
+            ...$this->compliancePayload(),
             'mode' => 'execution',
             'evolution' => [
                 'subjective' => 'Traumatismo en incisivo central superior.',

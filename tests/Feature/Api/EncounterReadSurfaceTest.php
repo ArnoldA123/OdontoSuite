@@ -17,6 +17,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\ClinicalCompliancePayload;
 use Tests\TestCase;
 
 /**
@@ -29,6 +30,7 @@ use Tests\TestCase;
  */
 class EncounterReadSurfaceTest extends TestCase
 {
+    use ClinicalCompliancePayload;
     use RefreshDatabase;
 
     private function staff(string $role): User
@@ -53,6 +55,7 @@ class EncounterReadSurfaceTest extends TestCase
     private function closurePayload(array $overrides = []): array
     {
         return array_merge([
+            ...$this->compliancePayload(),
             'mode' => 'execution',
             'evolution' => [
                 'subjective' => 'Dolor en pieza 16 desde hace tres días.',
