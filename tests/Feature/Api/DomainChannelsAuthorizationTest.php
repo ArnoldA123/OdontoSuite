@@ -64,6 +64,9 @@ class DomainChannelsAuthorizationTest extends TestCase
             'cash-session.7' => ['administrador', 'finanzas', 'recepcionista'],
             'procedure-catalog' => self::ROLES,
             'users' => ['administrador'],
+            // F5 (#285, S4): the laboratory channel carries the case, the
+            // patient and the assigned technician; finance stays out.
+            'lab-cases' => $appointmentRoles,
         ];
 
         $data = [];

@@ -131,6 +131,34 @@ class BroadcastingAuthChannelsTest extends TestCase
         }
     }
 
+    public function test_every_role_with_laboratory_read_access_is_authorized_on_the_private_lab_cases_channel(): void
+    {
+        foreach ([
+            'administrador', 'recepcionista', 'odontologo',
+            'implantologo', 'tecnico_dental', 'asistente',
+        ] as $role) {
+            $this->authRequest($this->userWithRole($role), 'private-lab-cases')
+                ->assertOk()
+                ->assertJsonStructure(['auth']);
+        }
+    }
+
+    public function test_private_lab_cases_channel_rejects_roles_without_laboratory_read_access(): void
+    {
+        foreach (['finanzas', 'auditor'] as $role) {
+            $this->authRequest($this->userWithRole($role), 'private-lab-cases')
+                ->assertForbidden();
+        }
+    }
+
+    public function test_private_lab_cases_channel_rejects_an_unauthenticated_request(): void
+    {
+        $this->postJson('/api/broadcasting/auth', [
+            'socket_id' => '1.1',
+            'channel_name' => 'private-lab-cases',
+        ])->assertUnauthorized();
+    }
+
     public function test_events_emit_de_doubled_private_channel_names(): void
     {
         $appointment = new Appointment;
