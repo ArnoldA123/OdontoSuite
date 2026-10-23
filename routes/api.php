@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DentalChairController;
 use App\Http\Controllers\Api\DentalPieceController;
+use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\MedicalRecordController;
 use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\PatientController;
@@ -231,6 +232,23 @@ Route::middleware('auth:sanctum')->group(function () {
     // Product catalog (material autocomplete in the consultation wizard).
     Route::get('products/search', [ProductController::class, 'search'])
         ->middleware('permission:'.Permissions::VIEW_PRODUCT);
+
+    // Warehouse (#295 S6): the read surface. `products.stock_quantity` is the
+    // only truth of current stock and `stock_movements` is the ledger behind
+    // it. Reception and the count adjustment write the ledger and arrive with
+    // their own door.
+    Route::middleware('permission:'.Permissions::VIEW_INVENTORY)->group(function () {
+        Route::get('inventory/products', [InventoryController::class, 'products']);
+        Route::get('inventory/products/{product}', [InventoryController::class, 'showProduct']);
+        Route::get('inventory/movements', [InventoryController::class, 'movements']);
+        Route::get('inventory/alerts', [InventoryController::class, 'alerts']);
+    });
+    // #295 S6: receiving a purchase and counting a shelf move stock and money,
+    // so they are warehouse work and not clinical writing.
+    Route::middleware('permission:'.Permissions::MANAGE_INVENTORY)->group(function () {
+        Route::post('inventory/receipts', [InventoryController::class, 'storeReceipt']);
+        Route::post('inventory/adjustments', [InventoryController::class, 'storeAdjustment']);
+    });
 
     // Procedure catalog (every role reads; administrator edits).
     Route::middleware('permission:'.Permissions::VIEW_PROCEDURE_CATALOG)->group(function () {

@@ -14,4 +14,14 @@ use App\Exceptions\Consultation\ConsultationException;
  * registrar un renderer propio: un insumo que no alcanza es un rechazo del acto
  * —con su código legible y su metadata— y no un fallo del servidor.
  */
-class InventoryException extends ConsultationException {}
+class InventoryException extends ConsultationException
+{
+    /**
+     * Cantidad legible en un mensaje de rechazo: hasta tres decimales y sin
+     * ceros de cola (2, 12.5, 0.25).
+     */
+    protected static function quantity(float $value): string
+    {
+        return rtrim(rtrim(number_format(round($value, 3), 3, '.', ''), '0'), '.');
+    }
+}

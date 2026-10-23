@@ -31,12 +31,4 @@ class InsufficientStockException extends InventoryException
             ],
         );
     }
-
-    /**
-     * Hasta tres decimales y sin ceros de cola: 2, 12.5, 0.25.
-     */
-    private static function quantity(float $value): string
-    {
-        return rtrim(rtrim(number_format(round($value, 3), 3, '.', ''), '0'), '.');
-    }
 }

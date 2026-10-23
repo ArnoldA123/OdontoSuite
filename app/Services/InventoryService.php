@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\Inventory\InsufficientStockException;
+use App\Exceptions\Inventory\NoAdjustmentException;
 use App\Exceptions\Inventory\UnknownProductException;
 use App\Models\ClinicalEncounter;
 use App\Models\ProcedureMaterial;
@@ -12,7 +13,8 @@ use App\Models\TreatmentPlanItem;
 use Illuminate\Support\Collection;
 
 /**
- * #295 (S1, S3, S5) — el movimiento de almacén que produce el acto clínico.
+ * #295 (S1, S3, S5, S6) — el libro de almacén y sus tres formas de mover el
+ * saldo: el consumo de un acto, la recepción por compra y el ajuste por conteo.
  *
  * Consumir un material son dos hechos escritos juntos: el material del acto
  * (`procedure_materials`, con el costo unitario congelado en ese momento) y su
@@ -25,11 +27,105 @@ use Illuminate\Support\Collection;
  * productos se bloquean en orden de `id` para que dos cierres simultáneos hagan
  * cola en vez de interbloquearse.
  *
- * El servicio no abre transacción: quien lo llama (el cierre de la atención) es
- * dueño de la suya, y el bloqueo de fila solo tiene sentido dentro de ella.
+ * El servicio no abre transacción: quien lo llama (el cierre de la atención, la
+ * recepción por compra, el ajuste por conteo) es dueño de la suya, y el bloqueo
+ * de fila solo tiene sentido dentro de ella.
  */
 class InventoryService
 {
+    /**
+     * Recepción por compra (S6): el lote entra al almacén.
+     *
+     * Suma lo recibido al saldo y lo deja escrito como movimiento `in`. El
+     * costo del lote es el que declara la recepción o, si no lo declara, el del
+     * catálogo; en ningún caso la recepción reprecifica el catálogo, porque el
+     * costo de compra de un lote no es el costo vigente del insumo.
+     *
+     * @param  array<string, mixed>                             $data quantity, unit_cost, batch_number, expiry_date, reference, movement_date, notes
+     * @return array{product: Product, movement: StockMovement}
+     */
+    public function receive(array $data, ?int $userId, ?int $branchId): array
+    {
+        $product = $this->lockProduct((int) $data['product_id']);
+
+        $quantity = round((float) $data['quantity'], 3);
+        $previous = (float) $product->stock_quantity;
+        $new = round($previous + $quantity, 3);
+        $unitCost = isset($data['unit_cost'])
+            ? (float) $data['unit_cost']
+            : (float) $product->cost_price;
+
+        $movement = StockMovement::create([
+            'product_id' => $product->id,
+            'branch_id' => $branchId,
+            'created_by' => $userId,
+            'type' => 'in',
+            'quantity' => $quantity,
+            'previous_stock' => $previous,
+            'new_stock' => $new,
+            'unit_cost' => $unitCost,
+            'total_cost' => round($quantity * $unitCost, 2),
+            'reference' => $data['reference'] ?? null,
+            'reason' => 'Recepción por compra',
+            'notes' => $data['notes'] ?? null,
+            'movement_date' => $data['movement_date'] ?? now()->toDateString(),
+            'expiry_date' => $data['expiry_date'] ?? null,
+            'batch_number' => $data['batch_number'] ?? null,
+        ]);
+
+        $product->forceFill(['stock_quantity' => $new])->save();
+
+        return ['product' => $product, 'movement' => $movement];
+    }
+
+    /**
+     * Ajuste por conteo (S6): el saldo queda fijado en lo contado.
+     *
+     * La diferencia se escribe en magnitud positiva aunque el conteo baje el
+     * saldo: la dirección del movimiento se lee de `previous_stock` y
+     * `new_stock`, no del signo de la cantidad, que es lo que el libro ya hace
+     * en el consumo. Un conteo que coincide no es un ajuste cero: es un rechazo
+     * y no se escribe nada.
+     *
+     * @param  array<string, mixed>                             $data counted_quantity, reason, notes, movement_date
+     * @return array{product: Product, movement: StockMovement}
+     *
+     * @throws NoAdjustmentException cuando no hay diferencia que registrar
+     */
+    public function adjust(array $data, ?int $userId, ?int $branchId): array
+    {
+        $product = $this->lockProduct((int) $data['product_id']);
+
+        $previous = (float) $product->stock_quantity;
+        $counted = round((float) $data['counted_quantity'], 3);
+        $delta = round($counted - $previous, 3);
+
+        if ($delta === 0.0) {
+            throw NoAdjustmentException::forCount($counted);
+        }
+
+        $unitCost = (float) $product->cost_price;
+
+        $movement = StockMovement::create([
+            'product_id' => $product->id,
+            'branch_id' => $branchId,
+            'created_by' => $userId,
+            'type' => 'adjustment',
+            'quantity' => abs($delta),
+            'previous_stock' => $previous,
+            'new_stock' => $counted,
+            'unit_cost' => $unitCost,
+            'total_cost' => round(abs($delta) * $unitCost, 2),
+            'reason' => $data['reason'],
+            'notes' => $data['notes'] ?? null,
+            'movement_date' => $data['movement_date'] ?? now()->toDateString(),
+        ]);
+
+        $product->forceFill(['stock_quantity' => $counted])->save();
+
+        return ['product' => $product, 'movement' => $movement];
+    }
+
     /**
      * Consume los materiales de un acto.
      *
@@ -105,6 +201,25 @@ class InventoryService
         }
 
         return ['materials' => $materials, 'movements' => $movements];
+    }
+
+    /**
+     * Un solo producto bloqueado para una escritura de almacén.
+     *
+     * @throws UnknownProductException
+     */
+    private function lockProduct(int $productId): Product
+    {
+        $product = Product::query()
+            ->whereKey($productId)
+            ->lockForUpdate()
+            ->first();
+
+        if ($product === null) {
+            throw UnknownProductException::forProduct($productId);
+        }
+
+        return $product;
     }
 
     /**

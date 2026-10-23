@@ -74,7 +74,10 @@ del login es el `username`** (no el email, no el nombre).
 > inicia la atención desde su cola, y cada traspaso queda con autor, hora y
 > puerta. Desde #282 el acto clínico es una entidad propia
 > (`clinical_encounters`): abrirlo, cerrarlo y anularlo son actos clínicos, y la
-> atención de urgencia existe sin cita.
+> atención de urgencia existe sin cita. Desde #295 el cierre descuenta stock
+> real: un material sin stock suficiente responde 422 con el nombre del insumo y
+> la transacción no escribe nada; el inventario se recibe por compra y se ajusta
+> por conteo.
 
 | Funcionalidad                       | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
 | ----------------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
@@ -124,6 +127,9 @@ del login es el `username`** (no el email, no el nombre).
 | Análisis IA                         | ✅            | ❌            | ✅         | ✅           | ❌      | ❌        | ❌       |
 | Interconsultas                      | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Favoritos de catálogo               | ❌            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| **Inventario**                      |
+| Ver inventario y alertas            | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ✅       |
+| Recibir y ajustar stock             | ✅            | ❌            | ❌         | ❌           | ❌      | ✅        | ✅       |
 
 ¹ Sólo el administrador **sin sede asignada** (gerencia) crea, renombra o retira
 sedes. Un administrador con `branch_id` es administrador de esa sede: administra
