@@ -78,6 +78,19 @@ class BranchTransferRequest extends Model
         return $this->belongsTo(User::class, 'decided_by');
     }
 
+    /**
+     * The decision actor as the payload publishes it.
+     *
+     * Eloquent serialises a relation under the snake_case of its name, so
+     * loading `decidedBy` would overwrite the `decided_by` column with the
+     * actor object. This alias keeps the identifier in `decided_by` and
+     * publishes the actor next to it as `decider`.
+     */
+    public function decider(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'decided_by');
+    }
+
     public function isPending(): bool
     {
         return $this->status === self::STATUS_PENDING;

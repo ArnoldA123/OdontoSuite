@@ -131,6 +131,8 @@ del login es el `username`** (no el email, no el nombre).
 | Tarifario por sede                  | ✅²           | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | Fijar bloqueo contable              | ✅²           | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | Autorizar edición antes del bloqueo | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Pedir traslado de sede              | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ✅       |
+| Decidir traslado de sede            | ✅³           | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | **Clínica**                         |
 | Historias clínicas                  | ✅            | ❌            | ✅         | ✅           | ❌      | ✅        | ❌       |
 | Casos de laboratorio (lectura)      | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
@@ -153,6 +155,14 @@ fila de bloqueo global (`branch_id` nulo) es sólo de gerencia. Editar dinero co
 fecha anterior al bloqueo exige `lock_override_reason` (mínimo 10 caracteres) y
 queda en `audit_logs` como `accounting_lock_overridden`; sin él la respuesta es
 403 con `accounting_lock_blocked`.
+
+³ Pedir el traslado es autoservicio: cada usuario solicita el suyo con motivo, y
+sólo una solicitud abierta a la vez. Decidirlo exige alcance de grupo: un
+administrador con sede ve las solicitudes que entran o salen de su sede pero no
+las aprueba ni las rechaza. La aprobación es la única escritura de
+`users.branch_id` fuera de la edición administrativa, ocurre en la misma
+transacción que el cambio de estado y deja `user_branch_assigned` con el valor
+anterior y el nuevo. Una solicitud pendiente no habilita nada.
 
 ---
 

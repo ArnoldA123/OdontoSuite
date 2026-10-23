@@ -40,6 +40,10 @@ const PERMISSION_BY_KEY = {
   manageAppointmentTypes: 'manage.appointment_type',
   manageEnvironments: 'manage.dental_chair',
   manageBranches: 'manage.branch',
+  // #305: asking for a branch transfer is self-service; deciding it is group
+  // scope, so the two flags are distinct.
+  requestBranchTransfer: 'request.branch_transfer',
+  decideBranchTransfer: 'decide.branch_transfer',
   manageConfig: 'manage.config',
   viewAuditLogs: 'view.audit_log',
 

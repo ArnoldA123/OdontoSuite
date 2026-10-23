@@ -56,6 +56,8 @@ recibe el permiso; el detalle exacto, permiso por permiso, sale de
 | Inventario (consulta y alertas)       | —         | sí      | sí        | sí          | sí       | sí             |
 | Inventario (recepción y ajuste)       | —         | —       | sí        | —           | sí       | sí             |
 | Reportes y exportación                | —         | —       | —         | —           | sí       | sí             |
+| Traslado de sede (solicitud)          | sí        | sí      | sí        | sí          | sí       | sí             |
+| Traslado de sede (decisión)           | —         | —       | —         | —           | —        | sí             |
 | Usuarios, sedes, configuración        | —         | —       | —         | —           | —        | sí             |
 
 Las rayas no son una decisión de estilo: son la consecuencia del catálogo (#280
@@ -70,7 +72,11 @@ realmente tiene; y la anulación de una transacción queda en administración
 porque es el único acto del ledger que revierte dinero ya registrado. El almacén
 sigue la misma lógica: consultar stock y alertas es parte del trabajo clínico y
 financiero, pero recibir por compra y ajustar por conteo mueve el saldo del que
-depende el costo del acto, y queda en asistente, finanzas y administración.
+depende el costo del acto, y queda en asistente, finanzas y administración. El
+traslado de sede (#305) separa el gesto del permiso: pedirlo es autoservicio de
+cualquier rol, y decidirlo queda en administración con alcance de grupo —un
+administrador con sede ve entrar y salir las solicitudes de la suya, y no las
+decide.
 
 ## Sede y escritorio
 
