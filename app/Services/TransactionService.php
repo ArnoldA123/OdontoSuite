@@ -25,6 +25,7 @@ class TransactionService
     public function __construct(
         private readonly AccountingLockService $accountingLocks,
         private readonly PatientStatementService $statements,
+        private readonly PatientChargeAllocationService $allocations,
     ) {}
 
     /**
@@ -66,6 +67,25 @@ class TransactionService
         DB::beginTransaction();
 
         try {
+            // #323 (S7) — every drawer writer locks the session row before it
+            // reads or writes cash: the deposit, the closure and this payment
+            // or refund now serialize on the same row, so a deposit can never
+            // take out cash a concurrent refund is about to return.
+            if ($cashSession instanceof CashRegisterSession) {
+                $lockedSession = CashRegisterSession::query()
+                    ->whereKey($cashSession->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $lockedSession instanceof CashRegisterSession || $lockedSession->status !== 'open') {
+                    throw ValidationException::withMessages([
+                        'session' => ['No hay una sesión de caja abierta. Debe abrir la caja antes de registrar transacciones.'],
+                    ]);
+                }
+
+                $cashSession = $lockedSession;
+            }
+
             // Two refunds of the same patient can never pass the cap together:
             // the patient row serializes the calculation with the insert, so
             // the amount the second one can return excludes the first one's.
@@ -112,6 +132,13 @@ class TransactionService
                 'processed_at' => now(),
             ]);
 
+            // #321 (S1): the payment may declare the charges it settles. The
+            // rows are written in the same transaction as the payment, so a
+            // refused imputation leaves neither the money nor the view.
+            if (! empty($data['allocations'])) {
+                $this->allocations->allocate($transaction, $data['allocations']);
+            }
+
             // Only the cash types write a movement, and only when the method is
             // physical cash: a card, transfer or wallet sale is money collected
             // for the patient but it never enters the drawer, so counting it in
@@ -127,6 +154,10 @@ class TransactionService
             DB::commit();
 
             $transaction->load(['patient', 'appointment', 'treatmentPlan', 'paymentMethod', 'createdBy', 'authorizedBy']);
+
+            if (! empty($data['allocations'])) {
+                $transaction->load('chargeAllocations.patientCharge');
+            }
 
             // Emitir eventos de WebSocket
             if ($cashMovement instanceof CashMovement) {
@@ -191,6 +222,23 @@ class TransactionService
         DB::beginTransaction();
 
         try {
+            // #323 (S7) — the void is the last drawer writer: taking the same
+            // session lock keeps a closure from computing the arqueo while the
+            // reversal is half written, and re-checks the drawer it already
+            // validated outside the transaction.
+            if ($transaction->cash_register_session_id) {
+                $lockedSession = CashRegisterSession::query()
+                    ->whereKey($transaction->cash_register_session_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $lockedSession instanceof CashRegisterSession || $lockedSession->status !== 'open') {
+                    throw ValidationException::withMessages([
+                        'transaction' => ['No se puede anular una transacción de una sesión de caja cerrada.'],
+                    ]);
+                }
+            }
+
             $transaction->update([
                 'status' => 'voided',
                 'notes' => $transaction->notes."\n\nANULADA: ".$reason.' - '.now()->format('d/m/Y H:i:s'),

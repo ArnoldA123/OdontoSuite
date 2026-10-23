@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\LabCaseController;
 use App\Http\Controllers\Api\MedicalRecordController;
 use App\Http\Controllers\Api\MercadoPagoController;
+use App\Http\Controllers\Api\PatientChargeAllocationController;
 use App\Http\Controllers\Api\PatientChargeController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientRecallController;
@@ -520,6 +521,13 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::post('transactions', [TransactionController::class, 'store'])
         ->middleware('permission:'.Permissions::CREATE_TRANSACTION);
+
+    // #321 (S1-S4) — imputing a payment to the charges it paid. The payment is
+    // collected before or after the charges it settles, so the imputation has
+    // its own door; it is patient-ledger work, not a drawer operation, so it
+    // carries no `cash.session` and no branch scope (ADR-0010).
+    Route::post('transactions/{transaction}/allocations', [PatientChargeAllocationController::class, 'store'])
+        ->middleware('permission:'.Permissions::MANAGE_PATIENT_CHARGE);
     Route::middleware(['permission:'.Permissions::MANAGE_TRANSACTION, 'cash.session'])->group(function () {
         Route::get('transactions/list', [TransactionController::class, 'list']);
         Route::get('transactions', [TransactionController::class, 'index']);
