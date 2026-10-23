@@ -522,7 +522,7 @@ documentada y no bloquea producción.
   borrar y recrear, con lo que los consumos sobreviven a la edición. §4
   sincronizado con valores medidos: 41 controllers API, 64 modelos, 30 services,
   145 migraciones, 241 rutas API y 254 totales con web. ADR-0013. Tests:
-  `RecallServiceTest` (11), `ContinuityTest` (6), `PlanSessionConsumptionTest`
+  `RecallServiceTest` (11), `ContinuityTest` (9), `PlanSessionConsumptionTest`
   (9), `TreatmentPlanPriorityTest` (4), `TreatmentPlanVersioningTest` (9),
   `TreatmentPlanAlternativesTest` (6), más el fixture de permisos regenerado y
   los smokes JS del modal, detalle y lista de planes. Follow-up declarado: la
