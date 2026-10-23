@@ -107,3 +107,13 @@ El corte sigue la costura real: reglas y contrato primero, superficie después.
   `reviewDue: false` (`under_budget`) y sin escalamiento; la revisión nativa no
   procede y el plan deja la autoverificación del escritor sin verificación
   independiente.
+- L6 (integración con `main`): el merge de `origin/main` (PR #334) tocó las
+  mismas dos superficies de este trabajo. En `AGENTS.md` §12 se conservan las
+  dos entradas del changelog, la de esta entrega arriba. En
+  `PatientDetailPage.vue` la pestaña del taller se compone con la regla de #313
+  en `visibleTabs`: «Especialidades» sigue filtrada por `viewSpecialtyRecord` y
+  «Laboratorio» se inserta antes de «Historial» cuando hay `view.lab_case`. Los
+  dos smokes heredados se ajustaron a la convivencia: el perfil de finanzas no
+  tiene ninguno de los dos permisos (cinco pestañas) y el técnico ve Laboratorio
+  pero no Especialidades. Suite completa después del merge: 123 archivos, 1049
+  pruebas en verde; `doc-drift` sigue en 14/14.
