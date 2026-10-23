@@ -13,38 +13,43 @@ use Illuminate\Support\Facades\Schema;
  * ledger could not represent what the shelf actually holds. `decimal(12,3)`
  * keeps sub-unit quantities exact: 0.5 syringe, 12.5 ml, 1.250 kg.
  *
- * `down()` truncates to whole units, which is the precision the old schema had:
- * a rollback is a data-lossy operation and is documented as such.
+ * MySQL widens INT to DECIMAL(12,3) without touching the stored values, so this
+ * direction loses nothing. `down()` truncates to whole units, which is the
+ * precision the old schema had: a rollback is a data-lossy operation and is
+ * documented as such.
  */
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            $table->decimal('stock_quantity', 12, 3)->default(0)->change();
-            $table->decimal('minimum_stock', 12, 3)->default(0)->change();
-            $table->decimal('maximum_stock', 12, 3)->nullable()->change();
-        });
+        // `->change()` compiles to ALTER TABLE ... MODIFY COLUMN, which SQLite
+        // does not speak; the test env has no schema to widen (#79) and stays
+        // out of this migration.
+        if (DB::getDriverName() !== 'sqlite') {
+            Schema::table('products', function (Blueprint $table) {
+                $table->decimal('stock_quantity', 12, 3)->default(0)->change();
+                $table->decimal('minimum_stock', 12, 3)->default(0)->change();
+                $table->decimal('maximum_stock', 12, 3)->nullable()->change();
+            });
 
-        Schema::table('stock_movements', function (Blueprint $table) {
-            $table->decimal('quantity', 12, 3)->change();
-            $table->decimal('previous_stock', 12, 3)->change();
-            $table->decimal('new_stock', 12, 3)->change();
-        });
+            Schema::table('stock_movements', function (Blueprint $table) {
+                $table->decimal('quantity', 12, 3)->change();
+                $table->decimal('previous_stock', 12, 3)->change();
+                $table->decimal('new_stock', 12, 3)->change();
+            });
 
-        Schema::table('procedure_materials', function (Blueprint $table) {
-            $table->decimal('quantity_used', 12, 3)->change();
-        });
-
-        // MySQL keeps the stored integers on widening, and MariaDB does too;
-        // the explicit cast documents that nothing is lost in this direction.
-        if (in_array(DB::getDriverName(), ['mysql', 'mariadb'], true)) {
-            DB::statement('UPDATE products SET stock_quantity = CAST(stock_quantity AS DECIMAL(12,3))');
+            Schema::table('procedure_materials', function (Blueprint $table) {
+                $table->decimal('quantity_used', 12, 3)->change();
+            });
         }
     }
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         Schema::table('products', function (Blueprint $table) {
             $table->integer('stock_quantity')->default(0)->change();
             $table->integer('minimum_stock')->default(0)->change();
