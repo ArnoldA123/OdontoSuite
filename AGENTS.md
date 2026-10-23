@@ -543,6 +543,20 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-23 (asistente de cierre: el formulario se rearma entre atenciones,
+  #311)** — `ConsultationWizard` vive montado en `/my-day` y `/calendar` y sólo
+  alterna su visibilidad, así que su `payload` local sobrevivía entre una cita y
+  la siguiente: el motivo de consulta, la evolución SOAP, los diagnósticos
+  CIE-10, los materiales y los ítems del plan de la atención anterior seguían
+  editables y viajaban al firmar el acto de otro paciente. El payload se
+  construye ahora desde `createInitialPayload()` y `resetForm()` lo rearma
+  completo —paso inicial, firma, ítems y búsquedas en vuelo— cuando cambia la
+  cita y en cada apertura del asistente (`openForAppointment()`), no sólo la
+  contraseña de firma. Sin rutas, modelos, migraciones ni primitivas UI nuevas:
+  los conteos de §4 no cambian. Tests: `consultation-wizard-reset.test.js` (2) y
+  el caso de firma de `consultation-closure-nts139.test.js` ajustado al paso
+  inicial.
+
 - **2026-10-23 (caja: vocabulario del dinero y estado de cuenta del paciente,
   #287)** — La caja y la deuda del paciente dejan de compartir un solo
   vocabulario. `App\Support\MoneyVocabulary` es la única fuente de los cuatro

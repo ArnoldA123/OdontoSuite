@@ -279,10 +279,13 @@ describe('consultation closure NTS 139 smoke (#286)', () => {
     expect(element('#cw-signature').value).toBe(PASSWORD)
 
     // F6 (#286): la firma es del acto que se cierra. Otra cita es otra
-    // re-autenticación, aunque el asistente siga montado.
+    // re-autenticación, aunque el asistente siga montado. #311: el formulario
+    // se rearma en la primera sección del acto nuevo, así que se vuelve a
+    // entrar al paso de firma para leer el campo.
     await wrapper.setProps({ appointment: { ...APPOINTMENT, id: 502 } })
     await flushPromises()
 
+    await goToStep('signature')
     expect(element('#cw-signature').value).toBe('')
 
     wrapper.unmount()
