@@ -79,11 +79,46 @@ const URLS = {
   quotations: '/api/quotations?patient_id=7',
   medical: '/api/medical-records?patient_id=7',
   specialty: '/api/specialty-records/patient/7/all',
+  statement: '/api/patients/7/statement',
   audit: '/api/audit-logs/patient/7'
 }
 
+// #320: the statement tab reads the period's ledger. One charge keeps the
+// panel out of its empty state, so the tab anatomy assertions stay meaningful.
+const statement = {
+  patient: { id: 7, first_name: 'Ana', last_name: 'Torres', document_number: '45678912' },
+  period: { date_from: '2026-10-01', date_to: '2026-10-25' },
+  opening_balance: 0,
+  closing_balance: 120,
+  summary: {
+    charges: 120,
+    discounts: 0,
+    payments: 0,
+    refunds: 0,
+    write_offs: 0,
+    adjustments: 0,
+    collected: 0,
+    forgiven: 0,
+    balance: 120
+  },
+  entries: [
+    {
+      kind: 'charge',
+      date: '2026-10-02T10:00:00-05:00',
+      reference: 'CHG-000001',
+      description: 'Corona metal-cerámica',
+      amount: 120,
+      effect: 120,
+      balance: 120
+    }
+  ]
+}
+
+const isStatementUrl = url => String(url).startsWith(URLS.statement)
+
 const happyGet = async url => {
   if (url === URLS.patient) return { data: patient }
+  if (isStatementUrl(url)) return { data: statement }
   return { data: [] }
 }
 
@@ -128,6 +163,7 @@ const TAB_IDS = [
   'medical-records',
   'specialties',
   'laboratorio',
+  'cuenta',
   'audit'
 ]
 
@@ -218,7 +254,7 @@ describe('patient detail hero band (login language)', () => {
     const hero = wrapper.find('[data-patient-detail-hero]')
     const actions = hero.get('[data-hero-actions]')
     const buttons = actions.findAll('button')
-    expect(buttons).toHaveLength(2)
+    expect(buttons).toHaveLength(3)
 
     const primaries = actions.findAll('button[data-variant="primary"]')
     expect(primaries).toHaveLength(1)
@@ -228,6 +264,11 @@ describe('patient detail hero band (login language)', () => {
     const exportButton = actions.get('[data-export-button]')
     expect(exportButton.text().trim()).toBe('Exportar')
     expect(exportButton.attributes('data-variant')).toBe('secondary')
+
+    // #320: the manual charge is the second secondary action of the hero.
+    const chargeButton = actions.get('[data-charge-patient-button]')
+    expect(chargeButton.text().trim()).toBe('Registrar cargo')
+    expect(chargeButton.attributes('data-variant')).toBe('secondary')
 
     // Hero action buttons keep their natural width with unwrappable labels
     // at xs; the row wraps instead of squeezing the buttons into two lines.
@@ -307,7 +348,7 @@ describe('patient detail tab anatomy (one shared PatientTabPanel)', () => {
     document.body.innerHTML = ''
   })
 
-  it('renders the seven UiTabs panels through ONE shared component', async () => {
+  it('renders the eight UiTabs panels through ONE shared component', async () => {
     const wrapper = await mountPage()
 
     // UiTabs is resolved as a real component (not an unknown element).
@@ -320,6 +361,7 @@ describe('patient detail tab anatomy (one shared PatientTabPanel)', () => {
       'Historia Clínica',
       'Especialidades',
       'Laboratorio',
+      'Cuenta',
       'Historial'
     ])
 
@@ -329,7 +371,7 @@ describe('patient detail tab anatomy (one shared PatientTabPanel)', () => {
     // The page renders the shared component exactly once per tab and
     // never writes the panel hook itself (the component owns it).
     expect(pageSource).toContain("import PatientTabPanel from './PatientTabPanel.vue'")
-    expect(pageSource.match(/<PatientTabPanel/g) || []).toHaveLength(7)
+    expect(pageSource.match(/<PatientTabPanel/g) || []).toHaveLength(8)
     expect(pageSource.match(/data-patient-tab-panel/g) || []).toHaveLength(0)
 
     wrapper.unmount()
@@ -407,6 +449,10 @@ describe('patient detail tab anatomy (one shared PatientTabPanel)', () => {
     await settle(pending, URLS.quotations, { data: [] })
     await settle(pending, URLS.medical, { data: [] })
     await settle(pending, URLS.specialty, { data: [] })
+    // #320: the statement panel mounted with the patient and streams its own
+    // load through its own spinner.
+    const statementUrl = [...pending.keys()].find(url => isStatementUrl(url))
+    await settle(pending, statementUrl, { data: statement })
 
     expect(wrapper.findComponent(LoadingSpinner).exists()).toBe(false)
     expect(wrapper.find('.animate-spin').exists()).toBe(false)
@@ -566,11 +612,12 @@ describe('patient detail motion + icon budget', () => {
     expect(pageSource.match(/template:\s*`/g) || []).toHaveLength(0)
     expect(wrapper.find('.animate-spin').exists()).toBe(false)
 
-    // The icons actually render: hero actions + the six tab buttons.
+    // The icons actually render: hero actions + the eight tab buttons.
     const hero = wrapper.find('[data-patient-detail-hero]')
     expect(hero.find('[data-edit-patient-button] svg').exists()).toBe(true)
     expect(hero.find('[data-export-button] svg').exists()).toBe(true)
-    expect(wrapper.findAll('[role="tab"] svg')).toHaveLength(7)
+    expect(hero.find('[data-charge-patient-button] svg').exists()).toBe(true)
+    expect(wrapper.findAll('[role="tab"] svg')).toHaveLength(8)
 
     wrapper.unmount()
   })
@@ -721,8 +768,10 @@ describe('patient detail laboratory tab (F5 #316)', () => {
 
     expect(wrapper.find('#tab-laboratorio').exists()).toBe(false)
     // Finanzas holds neither `view.lab_case` nor `manage.specialty_record`, so
-    // the drawer keeps the five tabs it always had for that desk.
-    expect(wrapper.findAll('[role="tab"]')).toHaveLength(5)
+    // the drawer keeps the five clinical/data tabs; #320 adds the patient
+    // ledger because the desk does hold `view.patient_statement`.
+    expect(wrapper.findAll('[role="tab"]')).toHaveLength(6)
+    expect(wrapper.find('#tab-cuenta').exists()).toBe(true)
 
     wrapper.unmount()
   })
@@ -781,6 +830,92 @@ describe('patient detail specialty tab boundary (#313)', () => {
 
     expect(harness.apiGet.mock.calls.map(([url]) => url)).toContain(URLS.specialty)
     expect(harness.privateChannel.mock.calls.map(([name]) => name)).toContain('specialty-records')
+
+    wrapper.unmount()
+  })
+})
+
+// #320 (S2/S4/S6) — the patient ledger lives in the drawer as a «Cuenta» tab
+// gated by `view.patient_statement`, and the manual charge is the hero's second
+// secondary action gated by `manage.patient_charge`. Both belong to the cash
+// desk: a clinical profile sees neither the tab nor the action, and the page
+// never asks for a statement it cannot read.
+describe('patient detail cuenta tab (#320)', () => {
+  const statementCalls = () =>
+    harness.apiGet.mock.calls.filter(([url]) => isStatementUrl(url)).length
+
+  const setNativeValue = async (selector, value) => {
+    const input = document.querySelector(selector)
+    expect(input, `${selector} must render`).toBeTruthy()
+    input.value = value
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+  }
+
+  beforeEach(() => {
+    harness.apiGet.mockReset()
+    installGet(happyGet)
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.body.innerHTML = ''
+  })
+
+  it('shows the Cuenta tab with the API statement and a period request', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.findAll('[role="tab"]').map(tab => tab.text())).toContain('Cuenta')
+    expect(wrapper.find('[data-patient-tab-panel="cuenta"]').exists()).toBe(true)
+
+    const url = harness.apiGet.mock.calls.map(([called]) => String(called)).find(isStatementUrl)
+    expect(url).toBeTruthy()
+    expect(url).toMatch(/[?&]date_from=\d{4}-\d{2}-\d{2}/)
+    expect(url).toMatch(/[?&]date_to=\d{4}-\d{2}-\d{2}/)
+
+    const panel = wrapper.get('[data-patient-tab-panel="cuenta"]')
+    expect(panel.find('[data-patient-statement]').exists()).toBe(true)
+    expect(panel.text().replace(/\u00a0/g, ' ')).toContain('CHG-000001')
+    expect(panel.find('[data-statement-charge]').exists()).toBe(true)
+
+    expect(wrapper.find('[data-charge-patient-button]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('registers a manual charge from the hero and reloads the statement', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+
+    const wrapper = await mountPage()
+    const before = statementCalls()
+
+    await wrapper.get('[data-charge-patient-button]').trigger('click')
+    await flushPromises()
+
+    expect(document.querySelector('[data-patient-charge-modal]')).toBeTruthy()
+
+    await setNativeValue('[data-patient-charge-amount] input', '120')
+    await setNativeValue('[data-patient-charge-description] input', 'Corona metal-cerámica')
+
+    document.querySelector('[data-patient-charge-submit]').click()
+    await flushPromises()
+
+    expect(statementCalls()).toBe(before + 1)
+
+    wrapper.unmount()
+  })
+
+  it('hides the Cuenta tab and the charge action from a clinical desk', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 31, role: 'odontologo' }))
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.findAll('[role="tab"]').map(tab => tab.text())).not.toContain('Cuenta')
+    expect(wrapper.find('[data-patient-tab-panel="cuenta"]').exists()).toBe(false)
+    expect(wrapper.find('[data-charge-patient-button]').exists()).toBe(false)
+    expect(statementCalls()).toBe(0)
 
     wrapper.unmount()
   })

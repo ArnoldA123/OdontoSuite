@@ -37,6 +37,19 @@
               Exportar
             </UiButton>
             <UiButton
+              v-if="can.managePatientCharge?.value"
+              variant="secondary"
+              size="sm"
+              class="flex-none whitespace-nowrap"
+              data-charge-patient-button
+              @click="openChargeModal"
+            >
+              <template #icon-left>
+                <BanknotesIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Registrar cargo
+            </UiButton>
+            <UiButton
               v-if="can.editPatient?.value"
               variant="primary"
               size="sm"
@@ -634,6 +647,22 @@
             </PatientTabPanel>
           </template>
 
+          <template #cuenta>
+            <!-- Cuenta del paciente (#320): el libro que el cierre y el
+                 mostrador escriben, con el período y sus saldos. La tab sólo
+                 existe con `view.patient_statement`; el alta manual de un
+                 cargo se abre con `manage.patient_charge`. -->
+            <PatientTabPanel state="cuenta">
+              <PatientStatementPanel
+                v-if="patient"
+                ref="statementPanel"
+                :patient="patient"
+                :can-manage-charge="Boolean(can.managePatientCharge?.value)"
+                @charge="openChargeModal"
+              />
+            </PatientTabPanel>
+          </template>
+
           <template #audit>
             <!-- Historial de Auditoría -->
             <PatientTabPanel
@@ -730,6 +759,9 @@
       @saved="handleLabCaseSaved"
     />
 
+    <!-- Cuenta del paciente (#320): el cargo manual del mostrador. -->
+    <PatientChargeModal v-model="chargeModalOpen" :patient="patient" @success="handleChargeSaved" />
+
     <!-- Edit Patient Modal -->
     <PatientFormModal
       v-if="showEditModal"
@@ -747,6 +779,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   AcademicCapIcon,
   ArrowDownTrayIcon,
+  BanknotesIcon,
   BeakerIcon,
   ClipboardDocumentListIcon,
   ClockIcon,
@@ -776,6 +809,8 @@ import UiTabs from '../../components/ui/Tabs.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
 import PatientFormModal from './PatientFormModal.vue'
 import PatientTabPanel from './PatientTabPanel.vue'
+import PatientStatementPanel from './components/PatientStatementPanel.vue'
+import PatientChargeModal from './components/PatientChargeModal.vue'
 import LabCaseFormModal from '../lab-cases/LabCaseFormModal.vue'
 import {
   formatDate as formatCaseDate,
@@ -789,6 +824,7 @@ export default {
   components: {
     AppLayout,
     ArrowDownTrayIcon,
+    BanknotesIcon,
     PencilSquareIcon,
     PlusIcon,
     Breadcrumbs,
@@ -801,6 +837,8 @@ export default {
     UiDataTable,
     PatientFormModal,
     PatientTabPanel,
+    PatientStatementPanel,
+    PatientChargeModal,
     LabCaseFormModal
   },
   setup() {
@@ -842,6 +880,8 @@ export default {
     const showEditModal = ref(false)
     const labCaseFormOpen = ref(false)
     const labCaseEditing = ref(null)
+    const chargeModalOpen = ref(false)
+    const statementPanel = ref(null)
 
     const breadcrumbs = [{ to: '/patients', label: 'Pacientes' }]
 
@@ -892,6 +932,14 @@ export default {
       icon: BeakerIcon
     }
 
+    // #320: el libro del paciente es superficie de caja, no de clínica; su tab
+    // se ordena junto a la del taller, antes de la auditoría.
+    const cuentaTab = {
+      id: 'cuenta',
+      name: 'Cuenta',
+      icon: BanknotesIcon
+    }
+
     const auditTab = {
       id: 'audit',
       name: 'Historial',
@@ -907,13 +955,21 @@ export default {
     //
     // F5 (#316): la pestaña del taller es trabajo de despacho y sigue la misma
     // regla con `view.lab_case`; se ordena antes de la auditoría.
-    const visibleTabs = computed(() => {
-      const visible = tabs.filter(tab => tab.id !== 'specialties' || can.viewSpecialtyRecord?.value)
-      if (!can.viewLabCase?.value) return visible
-      const auditIndex = visible.findIndex(tab => tab.id === 'audit')
+    //
+    // #320 (D1): la cuenta del paciente es superficie de caja y se ordena entre
+    // el taller y la auditoría, con `view.patient_statement` como puerta.
+    const insertBeforeAudit = (list, tab) => {
+      const auditIndex = list.findIndex(item => item.id === 'audit')
       return auditIndex === -1
-        ? [...visible, laboratorioTab]
-        : [...visible.slice(0, auditIndex), laboratorioTab, ...visible.slice(auditIndex)]
+        ? [...list, tab]
+        : [...list.slice(0, auditIndex), tab, ...list.slice(auditIndex)]
+    }
+
+    const visibleTabs = computed(() => {
+      let visible = tabs.filter(tab => tab.id !== 'specialties' || can.viewSpecialtyRecord?.value)
+      if (can.viewLabCase?.value) visible = insertBeforeAudit(visible, laboratorioTab)
+      if (can.viewPatientStatement?.value) visible = insertBeforeAudit(visible, cuentaTab)
+      return visible
     })
 
     const labCaseColumns = [
@@ -1026,6 +1082,18 @@ export default {
     const handleLabCaseSaved = async () => {
       labCaseFormOpen.value = false
       await loadLabCases()
+    }
+
+    // #320: el cargo manual se abre desde el hero y desde la tab Cuenta; al
+    // aceptarse, el libro se relee sin recargar la ficha.
+    const openChargeModal = () => {
+      chargeModalOpen.value = true
+    }
+
+    const handleChargeSaved = async () => {
+      chargeModalOpen.value = false
+      toast.success('Cargo registrado exitosamente')
+      await statementPanel.value?.reload()
     }
 
     const loadAuditLogs = async () => {
@@ -1474,6 +1542,10 @@ export default {
       createLabCase,
       editLabCase,
       handleLabCaseSaved,
+      statementPanel,
+      chargeModalOpen,
+      openChargeModal,
+      handleChargeSaved,
       formatCaseDate,
       phaseBadgeVariant,
       phaseLabel,
