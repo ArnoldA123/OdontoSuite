@@ -134,6 +134,14 @@ class ConsultationClosureTest extends TestCase
         $this->assertSame('180.00', $appointment->final_amount);
         $this->assertSame('execution', $appointment->consultation_mode);
         $this->assertSame($encounter->treatment_plan_id, $appointment->treatment_plan_id);
+
+        // F5 (#314, D2): the conduct lives in the evolution. The appointment is
+        // the schedule projection and no longer copies the plan it does not own.
+        $this->assertNull($appointment->treatment_notes);
+        $this->assertSame(
+            'Obturación con resina compuesta.',
+            ClinicalEvolution::where('clinical_encounter_id', $encounter->id)->sole()->plan,
+        );
     }
 
     public function test_every_clinical_row_the_act_produced_hangs_from_the_encounter(): void
