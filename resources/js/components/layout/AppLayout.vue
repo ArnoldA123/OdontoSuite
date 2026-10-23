@@ -512,7 +512,7 @@ import {
 import ToastContainer from '../ToastContainer.vue'
 import NotificationToast from '../ui/NotificationToast.vue'
 import NotificationCenter from '../NotificationCenter.vue'
-import { BellIcon, SunIcon } from '@heroicons/vue/24/outline'
+import { ArrowsRightLeftIcon, BellIcon, SunIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const router = useRouter()
@@ -569,7 +569,9 @@ const canvasRoutes = [
   '/business-intelligence',
   // Settings (canvas surface only — internals deferred per OQ#3)
   '/settings/branches',
-  '/settings/payment-methods'
+  '/settings/payment-methods',
+  // Gobierno de sedes
+  '/branch-transfers'
 ]
 
 // PR-ambientes-01 (AMB-01-001 [BLOCKING]) — prefix-matching helper. The
@@ -888,6 +890,15 @@ const navigation = computed(() => {
       badge: null
     },
     {
+      // #305: self-service transfer between sedes. Every role asks; the API
+      // decides who sees and decides (request/decide.branch_transfer).
+      name: 'Traslados de Sede',
+      to: '/branch-transfers',
+      icon: ArrowsRightLeftIcon,
+      roles: ['all'],
+      badge: null
+    },
+    {
       // Sprint 2 (B-CASH-3): modulo de metodos de pago (solo admin).
       // T6: the user-visible label carries the accent every sibling entry
       // has; the route path stays ASCII.
@@ -1065,6 +1076,7 @@ const pageTitledRoutes = [
   '/reception-procedures',
   '/settings/branches',
   '/settings/payment-methods',
+  '/branch-transfers',
   '/specialties',
   '/specialty-records',
   '/treatment-plans'
@@ -1095,6 +1107,7 @@ const getPageDescription = () => {
     '/professionals': 'Gestión de profesionales',
     '/environments': 'Configuración de ambientes',
     '/settings/branches': 'Sedes de la clínica',
+    '/branch-transfers': 'Solicitudes de traslado entre sedes',
     '/appointment-types': 'Tipos de citas disponibles',
     '/procedure-catalog': 'Catálogo clínico de procedimientos',
     '/procedure-catalog/': 'Detalle de procedimiento',

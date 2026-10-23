@@ -227,6 +227,14 @@ const routes = [
     component: () => import('./modules/settings/branches/BranchDetailPage.vue'),
     beforeEnter: requireAuth
   },
+  {
+    // #305: self-service branch transfers. Asking is open to every role; the
+    // API decides who may see and decide (request/decide.branch_transfer).
+    path: '/branch-transfers',
+    name: 'branch-transfers',
+    component: () => import('./modules/branch-transfers/BranchTransfersPage.vue'),
+    beforeEnter: requireAuth
+  },
   // Sprint 2 (B-CASH-3): modulo de metodos de pago (solo administrador).
   {
     path: '/settings/payment-methods',
