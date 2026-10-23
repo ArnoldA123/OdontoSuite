@@ -493,15 +493,15 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ### Decisiones de diseño (ADRs)
 
-| ADR                                                                       | Contenido                                                                                                                      |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `docs/architecture/decisions/0007-user-specialty-source-of-truth.md`      | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza.    |
-| `docs/architecture/decisions/0008-procedure-catalog-legacy-specialty.md`  | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill.    |
-| `docs/architecture/decisions/0010-branch-scope-authorization.md`          | La sede es una dimensión de autorización, no un filtro de consulta.                                                            |
-| `docs/architecture/decisions/0011-quotation-igv-policy.md`                | El IGV de un presupuesto se descompone del precio, no se suma.                                                                 |
-| `docs/architecture/decisions/0012-catalog-applicability-and-tariff.md`    | El catálogo declara sobre qué se hace (pieza/superficie/cuadrante/arcada) y a qué precio, con vigencia y convenio.             |
-| `docs/architecture/decisions/0013-plan-versioning-and-continuity.md`      | El plan aceptado es una versión inmutable; la continuidad es una solicitud que recepción materializa con validación de agenda. |
-| `docs/architecture/decisions/0014-clinical-record-signature-and-cie10.md` | El registro de atención es un documento firmado: motivo, CIE-10 y firma electrónica simple con hash de integridad.             |
+| ADR                                                                       | Contenido                                                                                                                                        |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `docs/architecture/decisions/0007-user-specialty-source-of-truth.md`      | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza.                      |
+| `docs/architecture/decisions/0008-procedure-catalog-legacy-specialty.md`  | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill.                      |
+| `docs/architecture/decisions/0010-branch-scope-authorization.md`          | La sede es una dimensión de autorización, no un filtro de consulta.                                                                              |
+| `docs/architecture/decisions/0011-quotation-igv-policy.md`                | El IGV de un presupuesto se descompone del precio, no se suma.                                                                                   |
+| `docs/architecture/decisions/0012-catalog-applicability-and-tariff.md`    | El catálogo declara sobre qué se hace (pieza/superficie/cuadrante/arcada) y a qué precio, con vigencia y convenio.                               |
+| `docs/architecture/decisions/0013-plan-versioning-and-continuity.md`      | El plan aceptado es una versión inmutable; la continuidad es una solicitud que recepción materializa con validación de agenda.                   |
+| `docs/architecture/decisions/0014-clinical-record-signature-and-cie10.md` | El registro de atención es un documento firmado: motivo, CIE-10 y firma electrónica simple con hash de integridad.                               |
 | `docs/architecture/decisions/0015-money-vocabulary-and-patient-ledger.md` | Pago, descuento, condonación, devolución y ajuste son conceptos distintos; el cargo es un libro del paciente y sólo el efectivo mueve la gaveta. |
 
 > **Estado**: los ocho cuerpos de la tabla están escritos y el índice resuelve
