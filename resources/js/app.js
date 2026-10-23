@@ -252,6 +252,13 @@ const routes = [
     component: () => import('./modules/settings/payment-methods/PaymentMethodsPage.vue'),
     beforeEnter: requireAuth
   },
+  // #304 S1: the accounting freeze date per module (administrador).
+  {
+    path: '/settings/accounting-locks',
+    name: 'accounting-locks',
+    component: () => import('./modules/accounting-locks/AccountingLocksPage.vue'),
+    beforeEnter: requireAuth
+  },
   // Catch-all 404 route. Rendered in-place so the user keeps the existing
   // app shell (header / sidebar) and can navigate back without a hard reload.
   {
