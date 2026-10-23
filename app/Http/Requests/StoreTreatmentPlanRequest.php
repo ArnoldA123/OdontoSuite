@@ -88,6 +88,10 @@ class StoreTreatmentPlanRequest extends FormRequest
             'items.*.site_code' => 'sometimes|nullable|string|max:30',
             'items.*.specialty' => 'sometimes|nullable|string|max:50',
             'items.*.phase_number' => 'sometimes|nullable|integer|min:1',
+            'items.*.sequence' => 'sometimes|nullable|integer|min:1',
+            'items.*.priority' => 'sometimes|nullable|in:urgent,elective,optional',
+            'items.*.is_optional' => 'sometimes|boolean',
+            'items.*.status' => 'sometimes|string',
             'items.*.category' => 'sometimes|nullable|string|max:50',
             // #296: only a reviewed analysis can be cited; the service checks
             // patient, status and annulment before anything is written.

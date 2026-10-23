@@ -33,6 +33,7 @@ class QuotationService
     public function __construct(
         private readonly AccountingLockService $accountingLocks = new AccountingLockService,
         private readonly ProcedurePriceResolver $prices = new ProcedurePriceResolver,
+        private readonly TreatmentPlanVersionService $versions = new TreatmentPlanVersionService,
     ) {}
 
     /**
@@ -327,6 +328,17 @@ class QuotationService
             $this->assertDecisionPending($quotation, 'aprobar');
 
             $quotation->update(['status' => 'approved']);
+
+            // #288: a signed quotation freezes the plan version it quotes. The
+            // plan may keep moving; this quote never follows it.
+            if ($quotation->treatment_plan_id !== null) {
+                $plan = TreatmentPlan::find($quotation->treatment_plan_id);
+
+                if ($plan !== null) {
+                    $version = $this->versions->acceptedVersion($plan, Auth::id());
+                    $quotation->forceFill(['treatment_plan_version_id' => $version->id])->save();
+                }
+            }
 
             // One current approval per quotation: the transition guard above is
             // what prevents re-approvals from accumulating rows.

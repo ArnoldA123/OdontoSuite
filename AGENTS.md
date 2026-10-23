@@ -96,11 +96,11 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 39 controllers API (38 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 41 controllers API (40 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 59 modelos Eloquent
-  Services/                # 25 services + Reports/ (8 report services)
+  Models/                  # 64 modelos Eloquent
+  Services/                # 30 services + Reports/ (8 report services)
   Events/                  # 35 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
@@ -119,7 +119,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 136 migraciones
+  migrations/              # 145 migraciones
   seeders/                 # 16 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
                            #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
@@ -128,7 +128,7 @@ database/
                            #   SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 224 rutas API (medido con php artisan route:list --json: uris api/…; 237 totales con web)
+  api.php                  # 241 rutas API (medido con php artisan route:list --json: uris api/…; 254 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -184,7 +184,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 59 modelos, 39 controllers API, 35 eventos (10 listener classes / 13 cableos
+- 64 modelos, 41 controllers API, 35 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 13 modelos con SoftDeletes (la historia clínica y sus evoluciones ya no lo
   usan: #292)
@@ -222,6 +222,16 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 - Recordatorios de confirmación agendados en el flujo real de citas (#154):
   crear y reprogramar agendan 24h/48h/72h, cancelar cancela los pendientes y
   `reminders:reconcile` (horario) repara huecos y cubre citas previas
+- Continuidad y plan versionado (#284/#288): `patient_recalls` (intervalo
+  3/6/12, motivo y vencimiento) alimenta la cola de recepción
+  (`GET /api/continuity/queue`) con métrica de cumplimiento; el cierre ya no
+  inventa la próxima cita, deja una `continuity_request` que recepción
+  materializa con la validación de conflictos de la agenda; el acto consume
+  ítems del plan (`treatment_plan_item_consumptions`) y el estado del ítem se
+  deriva de esos consumos. Los planes tienen prioridad y secuencia por ítem,
+  versiones inmutables con el presupuesto aprobado atado a la versión aceptada,
+  alternativas A/B por pieza con el rechazo fechado y motivo, y máquina de
+  estados que responde 422
 - AGENTS.md sincronizado con el código (guard `scripts/audit/doc-drift.mjs`)
 - Atención clínica como entidad propia (#282): `clinical_encounters` con estado
   `open → closed | voided`, cierre único, proyección de la cita y urgencia sin
@@ -432,15 +442,16 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ### Decisiones de diseño (ADRs)
 
-| ADR                                                                      | Contenido                                                                                                                   |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| `docs/architecture/decisions/0007-user-specialty-source-of-truth.md`     | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza. |
-| `docs/architecture/decisions/0008-procedure-catalog-legacy-specialty.md` | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill. |
-| `docs/architecture/decisions/0010-branch-scope-authorization.md`         | La sede es una dimensión de autorización, no un filtro de consulta.                                                         |
-| `docs/architecture/decisions/0011-quotation-igv-policy.md`               | El IGV de un presupuesto se descompone del precio, no se suma.                                                              |
-| `docs/architecture/decisions/0012-catalog-applicability-and-tariff.md`   | El catálogo declara sobre qué se hace (pieza/superficie/cuadrante/arcada) y a qué precio, con vigencia y convenio.          |
+| ADR                                                                      | Contenido                                                                                                                      |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `docs/architecture/decisions/0007-user-specialty-source-of-truth.md`     | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza.    |
+| `docs/architecture/decisions/0008-procedure-catalog-legacy-specialty.md` | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill.    |
+| `docs/architecture/decisions/0010-branch-scope-authorization.md`         | La sede es una dimensión de autorización, no un filtro de consulta.                                                            |
+| `docs/architecture/decisions/0011-quotation-igv-policy.md`               | El IGV de un presupuesto se descompone del precio, no se suma.                                                                 |
+| `docs/architecture/decisions/0012-catalog-applicability-and-tariff.md`   | El catálogo declara sobre qué se hace (pieza/superficie/cuadrante/arcada) y a qué precio, con vigencia y convenio.             |
+| `docs/architecture/decisions/0013-plan-versioning-and-continuity.md`     | El plan aceptado es una versión inmutable; la continuidad es una solicitud que recepción materializa con validación de agenda. |
 
-> **Estado**: los cinco cuerpos de la tabla están escritos y el índice resuelve
+> **Estado**: los seis cuerpos de la tabla están escritos y el índice resuelve
 > sus enlaces. El índice vive en `docs/architecture/decisions/README.md` y su
 > integridad la fija
 > `tests/Unit/Documentation/ArchitectureDecisionsIndexTest.php`.
@@ -466,7 +477,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 39 controllers API, 59
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 41 controllers API, 64
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -478,6 +489,45 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-22 (continuidad y planes versionados, #284/#288)** — Dos decisiones
+  de dominio que comparten cimiento. **Continuidad (#284)**: nace
+  `patient_recalls` (paciente, intervalo 3/6/12, motivo, `due_date`, estado y
+  cita de control) con cola de vencidos y métrica de cumplimiento
+  (`completed / (completed + overdue)`), y `continuity_requests` sustituye la
+  cita que el cierre inventaba: el profesional deja la conducta con fecha
+  preferida y recepción la materializa por
+  `POST /continuity-requests/{id}/schedule` o
+  `POST /patient-recalls/{id}/schedule`, puertas que delegan en
+  `AppointmentService` y validan profesional y sillón; un conflicto deja la
+  solicitud pendiente sin cita. El cierre acepta `recall` (intervalo y motivo) y
+  conserva `next_appointment` como conducta. `GET /api/continuity/queue` combina
+  recalls vencidos y solicitudes pendientes acotados por sede. La ejecución del
+  plan deja de escribirse a mano: `treatment_plan_item_consumptions` liga el
+  acto al ítem y el estado se deriva (`completed` si cubre `quantity`,
+  `in_progress` si cubre parte, `pending` sin consumo); el plan publica
+  `executed_quantity`, `pending_quantity`, `session_count` y `consumptions`.
+  **Planes (#288)**: `treatment_plan_items` gana `priority`
+  (`urgent|elective|optional`) y `sequence`; `treatment_plan_versions` guarda la
+  foto inmutable (cabecera, ítems, alternativas y rechazos) con
+  `current_version_id`/`active_version_id`, y
+  `quotations.treatment_plan_version_id` se fija al aprobar el presupuesto, así
+  que editar el plan después de la firma abre una versión nueva sin tocar lo
+  aceptado. `treatment_plan_item_alternatives` registra opciones A/B por pieza;
+  aceptar una copia sus datos al ítem y rechaza las demás con fecha y motivo, y
+  un ítem opcional rechazado conserva `rejected_at`/`rejection_reason`. La
+  máquina de estados responde 422 (antes 500), `approved` exige al menos una
+  línea vigente y `completed` exige todas las líneas no canceladas consumidas.
+  `StoreTreatmentPlanRequest` y el `PUT` reconcilian líneas por `id` en lugar de
+  borrar y recrear, con lo que los consumos sobreviven a la edición. §4
+  sincronizado con valores medidos: 41 controllers API, 64 modelos, 30 services,
+  145 migraciones, 241 rutas API y 254 totales con web. ADR-0013. Tests:
+  `RecallServiceTest` (11), `ContinuityTest` (9), `PlanSessionConsumptionTest`
+  (9), `TreatmentPlanPriorityTest` (4), `TreatmentPlanVersioningTest` (9),
+  `TreatmentPlanAlternativesTest` (7), más el fixture de permisos regenerado y
+  los smokes JS del modal, detalle y lista de planes. Follow-up declarado: la
+  superficie web de la cola de continuidad de recepción (la issue es
+  `area:backend`).
 
 - **2026-10-23 (materiales e inventario: consumo desde la atención y stock
   real,** **#295)** — El almacén deja de ser un catálogo congelado. El

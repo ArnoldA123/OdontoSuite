@@ -14,6 +14,7 @@ class Quotation extends Model
 
     protected $fillable = [
         'treatment_plan_id',
+        'treatment_plan_version_id',
         'appointment_id',
         'clinical_encounter_id',
         'patient_id',
@@ -54,6 +55,15 @@ class Quotation extends Model
     public function treatmentPlan(): BelongsTo
     {
         return $this->belongsTo(TreatmentPlan::class);
+    }
+
+    /**
+     * #288: the immutable version the patient accepted when this quote was
+     * approved.
+     */
+    public function treatmentPlanVersion(): BelongsTo
+    {
+        return $this->belongsTo(TreatmentPlanVersion::class, 'treatment_plan_version_id');
     }
 
     public function appointment(): BelongsTo

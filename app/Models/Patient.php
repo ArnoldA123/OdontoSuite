@@ -163,6 +163,22 @@ class Patient extends Model
     }
 
     /**
+     * F4 (#284): the recall schedule this patient carries.
+     */
+    public function recalls(): HasMany
+    {
+        return $this->hasMany(PatientRecall::class);
+    }
+
+    /**
+     * F4 (#284): the conduct left at a closure and still waiting for a slot.
+     */
+    public function continuityRequests(): HasMany
+    {
+        return $this->hasMany(ContinuityRequest::class);
+    }
+
+    /**
      * Get the patient's full name.
      */
     public function getFullNameAttribute(): string

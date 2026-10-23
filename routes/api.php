@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\CashRegisterController;
 use App\Http\Controllers\Api\CashReportController;
 use App\Http\Controllers\Api\ClinicalEncounterController;
 use App\Http\Controllers\Api\ConsultationController;
+use App\Http\Controllers\Api\ContinuityController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DentalChairController;
 use App\Http\Controllers\Api\DentalPieceController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\MedicalRecordController;
 use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\PatientController;
+use App\Http\Controllers\Api\PatientRecallController;
 use App\Http\Controllers\Api\PayerController;
 use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\PendingPaymentsController;
@@ -210,6 +212,25 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:'.Permissions::START_CONSULTATION);
     Route::get('my-day', [AppointmentCustodyController::class, 'myDay'])
         ->middleware('permission:'.Permissions::VIEW_MY_DAY);
+
+    // F4 (#284): continuity between acts. The desk reads overdue recalls and
+    // the conduct left at a closure; reception materialises it through the
+    // agenda, never by writing an appointment directly.
+    Route::middleware('permission:'.Permissions::VIEW_CONTINUITY)->group(function () {
+        Route::get('continuity/queue', [ContinuityController::class, 'queue']);
+        Route::get('continuity-requests/{continuityRequest}', [ContinuityController::class, 'show']);
+        Route::get('patient-recalls', [PatientRecallController::class, 'index']);
+        Route::get('patient-recalls/metrics', [PatientRecallController::class, 'metrics']);
+        Route::get('patient-recalls/{recall}', [PatientRecallController::class, 'show']);
+    });
+    Route::middleware('permission:'.Permissions::MANAGE_CONTINUITY)->group(function () {
+        Route::post('patient-recalls', [PatientRecallController::class, 'store']);
+        Route::post('patient-recalls/{recall}/schedule', [PatientRecallController::class, 'schedule']);
+        Route::post('patient-recalls/{recall}/complete', [PatientRecallController::class, 'complete']);
+        Route::post('patient-recalls/{recall}/cancel', [PatientRecallController::class, 'cancel']);
+        Route::post('continuity-requests/{continuityRequest}/schedule', [ContinuityController::class, 'schedule']);
+        Route::post('continuity-requests/{continuityRequest}/dismiss', [ContinuityController::class, 'dismiss']);
+    });
     // #280: closing a consultation writes ClinicalEvolution, treatment plan,
     // materials and attachments. Reception must not reach it.
     Route::post('appointments/{appointment}/complete', [ConsultationController::class, 'complete'])
@@ -350,10 +371,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // Treatment plans (clinical roles and administrator).
     Route::middleware('permission:'.Permissions::MANAGE_TREATMENT_PLAN)->group(function () {
         Route::get('treatment-plans/summary', [TreatmentPlanController::class, 'summary']);
+        Route::get('treatment-plans/{id}/versions', [TreatmentPlanController::class, 'versions']);
+        Route::get('treatment-plans/{id}/versions/{versionId}', [TreatmentPlanController::class, 'showVersion']);
         Route::apiResource('treatment-plans', TreatmentPlanController::class);
         Route::post('treatment-plans/{id}/change-status', [TreatmentPlanController::class, 'changeStatus']);
         Route::post('treatment-plans/{id}/duplicate', [TreatmentPlanController::class, 'duplicate']);
         Route::post('treatment-plans/{id}/add-item', [TreatmentPlanController::class, 'addItem']);
+        Route::post('treatment-plans/items/{itemId}/alternatives', [TreatmentPlanController::class, 'addAlternative']);
+        Route::post('treatment-plans/items/{itemId}/reject', [TreatmentPlanController::class, 'rejectItem']);
+        Route::post('treatment-plans/alternatives/{alternativeId}/accept', [TreatmentPlanController::class, 'acceptAlternative']);
+        Route::post('treatment-plans/alternatives/{alternativeId}/reject', [TreatmentPlanController::class, 'rejectAlternative']);
         Route::delete('treatment-plans/items/{itemId}', [TreatmentPlanController::class, 'removeItem']);
     });
 
