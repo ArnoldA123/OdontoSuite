@@ -37,6 +37,8 @@ class StoreQuotationRequest extends FormRequest
         return [
             'treatment_plan_id' => 'sometimes|nullable|exists:treatment_plans,id',
             'patient_id' => 'sometimes|nullable|exists:patients,id',
+            // #293 S3/S4: the estimate names the convenio it was priced under.
+            'payer_id' => 'nullable|exists:payers,id',
             'quotation_date' => 'sometimes|nullable|date|before_or_equal:today',
             'valid_until' => 'sometimes|nullable|date|after:quotation_date',
             'subtotal' => 'required|numeric|min:0|max:999999.99',
@@ -51,6 +53,11 @@ class StoreQuotationRequest extends FormRequest
             'items.*.description' => 'required_with:items|string|max:200',
             'items.*.quantity' => 'required_with:items|numeric|min:0.01|max:999.99',
             'items.*.unit_price' => 'required_with:items|numeric|min:0|max:99999.99',
+            // #293 S2: the line names the catalog procedure and its site.
+            'items.*.procedure_catalog_id' => 'nullable|exists:procedure_catalog,id',
+            'items.*.dental_piece_id' => 'nullable|exists:dental_pieces,id',
+            'items.*.tooth_surface_id' => 'nullable|exists:tooth_surfaces,id',
+            'items.*.site_code' => 'nullable|string|max:30',
             // Slice 02 / T-02.7 — optional procedure + payment method.
             'procedure_id' => 'nullable|exists:procedure_catalog,id',
             'payment_method_id' => 'nullable|exists:payment_methods,id',
@@ -67,6 +74,7 @@ class StoreQuotationRequest extends FormRequest
     {
         return [
             'patient_id.exists' => 'El paciente seleccionado no existe',
+            'payer_id.exists' => 'El convenio seleccionado no existe',
             // BF-009 — no 'patient_id.required' message; rule is sometimes|nullable.
             'treatment_plan_id.exists' => 'El plan de tratamiento seleccionado no existe',
             'subtotal.required' => 'El subtotal es obligatorio',

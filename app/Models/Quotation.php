@@ -17,6 +17,8 @@ class Quotation extends Model
         'appointment_id',
         'clinical_encounter_id',
         'patient_id',
+        // #293 S3/S4: the convenio the estimate was issued under.
+        'payer_id',
         'created_by',
         'quotation_number',
         'quotation_date',
@@ -70,6 +72,14 @@ class Quotation extends Model
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
+    }
+
+    /**
+     * #293 S3/S4: the convenio whose tariff the estimate froze.
+     */
+    public function payer(): BelongsTo
+    {
+        return $this->belongsTo(Payer::class);
     }
 
     public function createdBy(): BelongsTo

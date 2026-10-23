@@ -21,11 +21,12 @@ use App\Http\Controllers\Api\DentalPieceController;
 use App\Http\Controllers\Api\MedicalRecordController;
 use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\PatientController;
+use App\Http\Controllers\Api\PayerController;
 use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\PendingPaymentsController;
-use App\Http\Controllers\Api\ProcedureBranchPriceController;
 use App\Http\Controllers\Api\ProcedureCatalogController;
 use App\Http\Controllers\Api\ProcedureCatalogFavoriteController;
+use App\Http\Controllers\Api\ProcedurePriceController;
 use App\Http\Controllers\Api\ProcedureStatsController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\QuotationController;
@@ -289,9 +290,31 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('branches/{branch}/procedure-prices')
         ->middleware('permission:'.Permissions::MANAGE_BRANCH_PRICE)
         ->group(function () {
-            Route::get('/', [ProcedureBranchPriceController::class, 'index']);
-            Route::put('/', [ProcedureBranchPriceController::class, 'update']);
-            Route::delete('{priceId}', [ProcedureBranchPriceController::class, 'destroy']);
+            Route::get('/', [ProcedurePriceController::class, 'index']);
+            Route::put('/', [ProcedurePriceController::class, 'update']);
+            Route::delete('{priceId}', [ProcedurePriceController::class, 'destroy']);
+        });
+
+    // Convenios (#293 S3): the catalog the estimate reads, and the tariff agreed
+    // with each one. `payers/active` is declared before the parameterised write
+    // so a convenio called "active" can never shadow it.
+    Route::get('payers/active', [PayerController::class, 'active'])
+        ->middleware('permission:'.Permissions::VIEW_PAYER);
+    Route::get('payers', [PayerController::class, 'index'])
+        ->middleware('permission:'.Permissions::VIEW_PAYER);
+    Route::post('payers', [PayerController::class, 'store'])
+        ->middleware('permission:'.Permissions::MANAGE_PAYER);
+    Route::put('payers/{payer}', [PayerController::class, 'update'])
+        ->middleware('permission:'.Permissions::MANAGE_PAYER);
+
+    // Group scope (branch.global): a price agreed for a convenio is not a sede
+    // decision, even when it carries an optional branch.
+    Route::prefix('payers/{payer}/procedure-prices')
+        ->middleware(['permission:'.Permissions::MANAGE_PAYER_PRICE, 'branch.global'])
+        ->group(function () {
+            Route::get('/', [ProcedurePriceController::class, 'payerIndex']);
+            Route::put('/', [ProcedurePriceController::class, 'payerUpdate']);
+            Route::delete('{priceId}', [ProcedurePriceController::class, 'payerDestroy']);
         });
 
     Route::apiResource('branches', BranchController::class)

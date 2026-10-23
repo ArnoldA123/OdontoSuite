@@ -44,6 +44,11 @@ class DatabaseSeeder extends Seeder
             //     cirugía oral / implantología). Idempotente (32 FDI permanentes).
             DentalPieceSeeder::class,
 
+            // 7c. Superficies de cada pieza activa (#293 S1/S2): un
+            //     procedimiento de superficie exige su superficie. Idempotente
+            //     (5 por pieza).
+            ToothSurfaceSeeder::class,
+
             // 8. Registros de especialidades
             SpecialtyRecordSeeder::class,
         ]);

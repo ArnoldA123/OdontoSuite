@@ -8,15 +8,20 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Branch tariff row (#290 S8).
+ * Tariff row (#293 S3, S5).
+ *
+ * A price agreed for a procedure with a sede, a convenio, both, or neither,
+ * optionally inside a validity window. `branch_id` null means group scope;
+ * `payer_id` null means the price is not negotiated with a convenio.
  */
-class ProcedureBranchPrice extends Model
+class ProcedurePrice extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'procedure_catalog_id',
         'branch_id',
+        'payer_id',
         'price',
         'valid_from',
         'valid_to',
@@ -40,6 +45,11 @@ class ProcedureBranchPrice extends Model
         return $this->belongsTo(Branch::class);
     }
 
+    public function payer(): BelongsTo
+    {
+        return $this->belongsTo(Payer::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
@@ -48,6 +58,11 @@ class ProcedureBranchPrice extends Model
     public function scopeForBranch(Builder $query, int $branchId): Builder
     {
         return $query->where('branch_id', $branchId);
+    }
+
+    public function scopeForPayer(Builder $query, int $payerId): Builder
+    {
+        return $query->where('payer_id', $payerId);
     }
 
     /**

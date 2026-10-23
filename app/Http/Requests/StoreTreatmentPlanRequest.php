@@ -83,6 +83,9 @@ class StoreTreatmentPlanRequest extends FormRequest
             'items.*.unit_cost' => 'required_with:items|numeric|min:0|max:99999.99',
             'items.*.procedure_catalog_id' => 'sometimes|nullable|exists:procedure_catalog,id',
             'items.*.dental_piece_id' => 'sometimes|nullable|exists:dental_pieces,id',
+            // #293 S2: site of the catalog procedure the line names.
+            'items.*.tooth_surface_id' => 'sometimes|nullable|exists:tooth_surfaces,id',
+            'items.*.site_code' => 'sometimes|nullable|string|max:30',
             'items.*.specialty' => 'sometimes|nullable|string|max:50',
             'items.*.phase_number' => 'sometimes|nullable|integer|min:1',
             'items.*.category' => 'sometimes|nullable|string|max:50',

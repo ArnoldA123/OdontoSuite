@@ -96,10 +96,10 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 37 controllers API (36 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 38 controllers API (37 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 56 modelos Eloquent
+  Models/                  # 58 modelos Eloquent
   Services/                # 22 services + Reports/ (8 report services)
   Events/                  # 35 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
@@ -112,21 +112,23 @@ resources/js/
   components/
     ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
-    procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ImportCsvModal
+    procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ProcedureSiteFields,
+                           #   ImportCsvModal
   modules/                 # 19 módulos de dominio (ver §5)
   router/auth.js           # requireAuth, requireGuest (localStorage)
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 125 migraciones
-  seeders/                 # 15 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
+  migrations/              # 133 migraciones
+  seeders/                 # 16 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
                            #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
                            #   SimpleAppointmentsSeeder, ReminderSchedulesSeeder, CashRegisterSeeder,
-                           #   CompletedAppointmentsSeeder, DentalPieceSeeder, SpecialtyRecordSeeder)
+                           #   CompletedAppointmentsSeeder, DentalPieceSeeder, ToothSurfaceSeeder,
+                           #   SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 211 rutas API (medido con php artisan route:list --json: uris api/…; 224 totales con web)
+  api.php                  # 218 rutas API (medido con php artisan route:list --json: uris api/…; 231 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -134,7 +136,7 @@ tests/
   Feature/Api/             # AuthTest (rate limiting, login)
 docs/
   mejoras/                 # 3 planes cerrados (ver §9)
-  architecture/decisions/  # índice de ADRs (README.md) + cuerpos 0007 y 0008
+  architecture/decisions/  # índice de ADRs (README.md) + cuerpos 0007, 0008 y 0010-0012
 
 .github/workflows/
   ci.yml                   # CI con 3 jobs: quality (lint), backend-tests (MySQL 8.0 service), frontend-build
@@ -182,7 +184,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 56 modelos, 37 controllers API, 35 eventos (10 listener classes / 13 cableos
+- 58 modelos, 38 controllers API, 35 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 13 modelos con SoftDeletes (la historia clínica y sus evoluciones ya no lo
   usan: #292)
@@ -228,6 +230,28 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 - CI/CD con GitHub Actions (3 jobs desacoplados: quality, backend-tests MySQL,
   frontend-build; ver §10 para qué bloquea y qué es aviso explícito)
 - CREDENTIALS.md sincronizado (tests automáticos lo validan)
+- Catálogo con aplicabilidad (#293): `procedure_catalog.site_type`
+  (`none|tooth|surface|quadrant|arch`) y `procedure_external_codes` con los
+  códigos del nomenclador público (RM 550-2023/MINSA) y del SIS, más búsqueda
+  por `external_system`/`external_code`. Una línea de plan o de presupuesto que
+  nombra un procedimiento con sitio debe declararlo (`dental_piece_id`,
+  `tooth_surface_id` o `site_code`); sin sitio responde 422 nombrando el
+  procedimiento, y el traspaso plan → presupuesto se niega a emitir una línea
+  anterior a la regla que no lo declare.
+- Tarifario con sede y convenio (#293): `procedure_prices` (sede y convenio
+  opcionales, con ventana de vigencia) reemplaza `procedure_branch_prices`; la
+  cascada a la fecha de referencia es convenio+sede → convenio → sede →
+  `default_cost`, y el resultado nombra su origen y la fila aplicada. `payers`
+  es el catálogo de convenios; el precio de un convenio se administra con
+  `manage.payer_price` y alcance de grupo.
+- Presupuesto congelado al emitir (#293): cada línea con procedimiento resuelve
+  el precio vigente en su `quotation_date` y guarda la evidencia del tarifario
+  (`price_source`, `price_row_id`, `price_valid_from`, `price_valid_to`); el
+  documento guarda `payer_id` y su bruto es la suma de sus líneas. Cambiar el
+  tarifario no altera presupuestos emitidos ni atenciones cerradas.
+- Superficies dentales con datos: `ToothSurfaceSeeder` da las cinco superficies
+  canónicas (V/L/M/D/O) a cada pieza activa y `GET /api/dental-pieces` las
+  publica, así que un procedimiento de superficie tiene dónde cumplirse.
 
 ### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
 
@@ -374,7 +398,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 | Pusher TypeError en tests                               | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `composer dev` no levanta Vite                          | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Email no se envía                                       | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `php artisan migrate:fresh --seed` falla                | Verificar conexión MySQL en `.env`. Seeders activos: 15.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `php artisan migrate:fresh --seed` falla                | Verificar conexión MySQL en `.env`. Seeders activos: 16.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Frontend no encuentra módulo                            | `pnpm install` y reiniciar `pnpm dev`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | WebSocket no conecta                                    | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | CI falla por `MissingAppKeyException`                   | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -400,9 +424,12 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | `docs/architecture/decisions/0007-user-specialty-source-of-truth.md`     | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza. |
 | `docs/architecture/decisions/0008-procedure-catalog-legacy-specialty.md` | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill. |
+| `docs/architecture/decisions/0010-branch-scope-authorization.md`         | La sede es una dimensión de autorización, no un filtro de consulta.                                                         |
+| `docs/architecture/decisions/0011-quotation-igv-policy.md`               | El IGV de un presupuesto se descompone del precio, no se suma.                                                              |
+| `docs/architecture/decisions/0012-catalog-applicability-and-tariff.md`   | El catálogo declara sobre qué se hace (pieza/superficie/cuadrante/arcada) y a qué precio, con vigencia y convenio.          |
 
-> **Estado**: los dos ADR de la tabla están escritos y el índice resuelve sus
-> enlaces. El índice vive en `docs/architecture/decisions/README.md` y su
+> **Estado**: los cinco cuerpos de la tabla están escritos y el índice resuelve
+> sus enlaces. El índice vive en `docs/architecture/decisions/README.md` y su
 > integridad la fija
 > `tests/Unit/Documentation/ArchitectureDecisionsIndexTest.php`.
 
@@ -427,7 +454,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 37 controllers API, 56
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 38 controllers API, 58
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -439,6 +466,48 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-22 (catálogo: aplicabilidad, tarifario y vigencia, #293)** — El
+  catálogo deja de ser un nomenclador a medias. `procedure_catalog.site_type`
+  declara sobre qué se hace un procedimiento
+  (`none|tooth|surface|quadrant|arch`, por omisión `none`) y
+  `procedure_external_codes` guarda sus códigos en el catálogo público (RM
+  550-2023/MINSA) y en el tarifario del SIS, con búsqueda por código externo.
+  Una línea de plan o de presupuesto que nombra un procedimiento con sitio debe
+  declararlo —pieza, superficie (que ya nombra su pieza), cuadrante o arcada—;
+  `ProcedureSiteRule` es la única regla y la aplican los dos escritores, y el
+  traspaso plan → presupuesto se niega a emitir una línea previa a la regla. El
+  tarifario pasa a una sola tabla: `procedure_prices` (sede y convenio
+  opcionales, ventana de vigencia) sustituye a `procedure_branch_prices`, con
+  las filas copiadas y sus `id` preservados, y `payers` es el catálogo de
+  convenios. La cascada a la fecha de referencia es convenio+sede → convenio →
+  sede → `default_cost`, y el resultado nombra su origen y la fila aplicada. El
+  presupuesto resuelve el precio el día de su emisión, no el día del plan, y
+  guarda la evidencia (`price_source`, `price_row_id`, `price_valid_from`,
+  `price_valid_to`) y su convenio (`payer_id`); el bruto del documento es la
+  suma de sus líneas. Cambiar el tarifario no mueve un presupuesto emitido ni
+  una atención cerrada. `tooth_surfaces` deja de estar vacía:
+  `ToothSurfaceSeeder` da cinco superficies canónicas (V/L/M/D/O) a cada pieza
+  activa y `GET /api/dental-pieces` las publica. Permisos nuevos: `view.payer`,
+  `manage.payer` y `manage.payer_price` (este último con `branch.global`).
+  Puertas: `GET|PUT|DELETE /api/branches/{branch}/procedure-prices` (sin
+  convenio) y `GET|PUT|DELETE /api/payers/{payer}/procedure-prices` (convenio,
+  sede opcional), más `GET /api/payers`, `GET /api/payers/active`,
+  `POST /api/payers` y `PUT /api/payers/{payer}`. §4 sincronizado con valores
+  medidos: 38 controllers API, 58 modelos, 133 migraciones, 218 rutas API y 231
+  totales con web, 16 seeders activos. Superficie: el detalle del catálogo
+  declara la aplicabilidad y las equivalencias, el alta del plan elige
+  procedimiento y sitio, y el presupuesto elige convenio y sitio por línea.
+  Queda declarada como follow-up, en la órbita de #304, la pantalla de
+  administración de convenios y del tarifario de convenio. Tests:
+  `ProcedureCatalogApplicabilityTest`, `ProcedureExternalCodeTest`,
+  `ProcedurePriceCascadeTest`, `PayerCatalogTest`,
+  `ProcedureSiteRequirementTest`, `QuotationPriceFreezeTest`,
+  `DentalPiecesEndpointTest` extendido y los smokes
+  `procedure-catalog-form-site`, `treatment-plan-site` y `quotation-site-payer`
+  con el unitario `procedureSite`. Suite MySQL:
+  `OK (2428 tests, 14285 assertions)`; Vitest: 946 pruebas en 114 archivos;
+  ADR 0012.
 
 - **2026-10-22 (presupuestos con IGV explícito e inmutables, y métodos de pago**
   **con familia y referencia, #289/#291)** — Dos decisiones de dominio sobre

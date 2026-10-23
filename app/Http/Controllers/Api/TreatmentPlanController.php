@@ -40,7 +40,7 @@ class TreatmentPlanController extends Controller
         if ($request->has('items') && is_array($request->input('items'))) {
             $items = $request->input('items');
             $items = array_map(function ($item) {
-                foreach (['description', 'procedure_name', 'specialty', 'category', 'phase_number', 'procedure_catalog_id', 'dental_piece_id'] as $k) {
+                foreach (['description', 'procedure_name', 'specialty', 'category', 'phase_number', 'procedure_catalog_id', 'dental_piece_id', 'tooth_surface_id', 'site_code'] as $k) {
                     if (isset($item[$k]) && $item[$k] === '') {
                         $item[$k] = null;
                     }
@@ -188,6 +188,8 @@ class TreatmentPlanController extends Controller
                 'items.*.unit_cost' => 'required_with:items|numeric|min:0',
                 'items.*.procedure_catalog_id' => 'nullable|exists:procedure_catalog,id',
                 'items.*.dental_piece_id' => 'nullable|exists:dental_pieces,id',
+                'items.*.tooth_surface_id' => 'nullable|exists:tooth_surfaces,id',
+                'items.*.site_code' => 'nullable|string|max:30',
                 'items.*.specialty' => 'nullable|string|max:50',
                 'items.*.phase_number' => 'nullable|integer|min:1',
                 'items.*.category' => 'nullable|string|max:50',
@@ -327,6 +329,8 @@ class TreatmentPlanController extends Controller
                 'unit_cost' => 'required|numeric|min:0',
                 'procedure_catalog_id' => 'nullable|exists:procedure_catalog,id',
                 'dental_piece_id' => 'nullable|exists:dental_pieces,id',
+                'tooth_surface_id' => 'nullable|exists:tooth_surfaces,id',
+                'site_code' => 'nullable|string|max:30',
                 'specialty' => 'nullable|string|max:50',
                 'phase_number' => 'nullable|integer|min:1',
                 'category' => 'nullable|string|max:50',

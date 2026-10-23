@@ -255,9 +255,15 @@ class BillingService
         ]);
 
         foreach ($executedItems as $item) {
+            // The act is already documented, so the estimate inherits the site
+            // of the executed line without re-asserting the applicability rule.
             \App\Models\QuotationItem::create([
                 'quotation_id' => $quotation->id,
                 'treatment_plan_item_id' => $item->id,
+                'procedure_catalog_id' => $item->procedure_catalog_id,
+                'dental_piece_id' => $item->dental_piece_id,
+                'tooth_surface_id' => $item->tooth_surface_id,
+                'site_code' => $item->site_code,
                 'item_name' => $item->procedure_name,
                 'item_description' => $item->procedure_description,
                 'quantity' => $item->quantity,

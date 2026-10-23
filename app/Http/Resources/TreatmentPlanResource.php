@@ -51,6 +51,8 @@ class TreatmentPlanResource extends JsonResource
                 'procedure_id' => $i->procedure_id,
                 'procedure_catalog_id' => $i->procedure_catalog_id,
                 'dental_piece_id' => $i->dental_piece_id,
+                'tooth_surface_id' => $i->tooth_surface_id,
+                'site_code' => $i->site_code,
                 'procedure_name' => $i->procedure_name,
                 'procedure_description' => $i->procedure_description,
                 'specialty' => $i->specialty,

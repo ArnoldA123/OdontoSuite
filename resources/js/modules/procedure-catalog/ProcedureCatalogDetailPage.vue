@@ -174,6 +174,15 @@
                     {{ procedure.default_duration_minutes }} min
                   </dd>
                 </div>
+                <!-- #293 S1: what the procedure applies to. -->
+                <div>
+                  <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                    Aplicabilidad
+                  </dt>
+                  <dd class="mt-1 text-sm text-theme-primary" data-detail-field="site_type">
+                    {{ siteTypeLabel }}
+                  </dd>
+                </div>
               </div>
               <div>
                 <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
@@ -184,6 +193,43 @@
                 </dd>
               </div>
             </dl>
+          </UiCard>
+
+          <!-- #293 S7: equivalencias con el nomenclador público. Read-only. -->
+          <UiCard variant="glass" data-detail-group="external-codes">
+            <h2 class="text-2xl font-semibold text-label">Equivalencias</h2>
+            <p class="mt-1 text-sm text-theme-secondary">
+              Códigos del nomenclador público con los que se reconoce este procedimiento
+            </p>
+
+            <div
+              v-if="externalCodes.length"
+              class="mt-6 divide-y divide-hairline"
+              data-external-codes-list
+            >
+              <article
+                v-for="(externalCode, index) in externalCodes"
+                :key="`${externalCode.system}-${externalCode.code}-${index}`"
+                data-external-code-row
+                class="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3 first:pt-0 last:pb-0"
+              >
+                <UiStatusBadge
+                  variant="info"
+                  size="sm"
+                  :label="externalSystemLabel(externalCode.system)"
+                />
+                <p class="font-mono text-sm text-label" data-external-code-code>
+                  {{ externalCode.code }}
+                </p>
+                <p v-if="externalCode.description" class="text-sm text-theme-secondary">
+                  {{ externalCode.description }}
+                </p>
+              </article>
+            </div>
+
+            <p v-else class="mt-6 text-sm text-theme-secondary" data-external-codes-empty>
+              Este procedimiento no declara equivalencias con el nomenclador público.
+            </p>
           </UiCard>
 
           <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -394,7 +440,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeftIcon,
@@ -408,6 +454,7 @@ import { useApi } from '../../composables/useApi'
 import { useAuditLogs } from '../../composables/useAuditLogs'
 import { useToast } from '../../composables/useToast'
 import { formatCurrency } from '../../composables/useFormatters'
+import { SITE_TYPE_LABELS } from './procedureSite'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
@@ -426,6 +473,23 @@ const procedure = ref(null)
 const loading = ref(true)
 const loadError = ref(false)
 const activeTab = ref('data')
+
+// #293 S1/S7: the declared applicability and the public nomenclator codes are
+// part of what the catalog says about a procedure.
+const siteTypeLabel = computed(
+  () => SITE_TYPE_LABELS[procedure.value?.site_type ?? 'none'] ?? SITE_TYPE_LABELS.none
+)
+
+const externalCodes = computed(() =>
+  Array.isArray(procedure.value?.external_codes) ? procedure.value.external_codes : []
+)
+
+const externalSystemLabels = {
+  minsa_rm550_2023: 'MINSA RM 550-2023',
+  sis: 'SIS'
+}
+
+const externalSystemLabel = system => externalSystemLabels[system] ?? system
 
 const auditLogs = ref([])
 const auditLoading = ref(false)

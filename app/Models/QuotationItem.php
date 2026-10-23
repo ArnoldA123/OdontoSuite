@@ -13,10 +13,19 @@ class QuotationItem extends Model
     protected $fillable = [
         'quotation_id',
         'treatment_plan_item_id',
+        'procedure_catalog_id',
+        'dental_piece_id',
+        'tooth_surface_id',
+        'site_code',
         'item_name',
         'item_description',
         'quantity',
         'unit_price',
+        // #293 S4/S6: the evidence of the tariff the line froze.
+        'price_source',
+        'price_row_id',
+        'price_valid_from',
+        'price_valid_to',
         'total_price',
         'specialty',
         'notes',
@@ -25,6 +34,8 @@ class QuotationItem extends Model
     protected $casts = [
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
+        'price_valid_from' => 'date',
+        'price_valid_to' => 'date',
     ];
 
     // Relaciones
@@ -36,5 +47,20 @@ class QuotationItem extends Model
     public function treatmentPlanItem(): BelongsTo
     {
         return $this->belongsTo(TreatmentPlanItem::class);
+    }
+
+    public function procedure(): BelongsTo
+    {
+        return $this->belongsTo(ProcedureCatalog::class, 'procedure_catalog_id');
+    }
+
+    public function dentalPiece(): BelongsTo
+    {
+        return $this->belongsTo(DentalPiece::class);
+    }
+
+    public function toothSurface(): BelongsTo
+    {
+        return $this->belongsTo(ToothSurface::class);
     }
 }

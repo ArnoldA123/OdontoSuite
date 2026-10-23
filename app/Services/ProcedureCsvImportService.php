@@ -13,12 +13,13 @@ use Illuminate\Support\Facades\Validator;
  * Sprint 3 fix (IM-6): importador CSV de procedimientos del catalogo.
  *
  * Formato esperado del CSV (header obligatorio):
- *   code,name,description,specialty_code,default_cost,default_duration_minutes,materials_needed,requires_anesthesia,requires_radiographs,contraindications,post_procedure_care,is_active
+ *   code,name,description,specialty_code,default_cost,default_duration_minutes,materials_needed,requires_anesthesia,requires_radiographs,contraindications,post_procedure_care,is_active,site_type
  *
  * Comportamiento:
  *   - code existe -> actualiza (mantiene specialty_id, solo actualiza campos del CSV)
  *   - code nuevo -> crea
  *   - specialty_code se resuelve a specialty_id (FK). Si no existe, se omite el campo.
+ *   - site_type (#293 S1) es opcional; una celda vacia significa `none`.
  *   - Errores de validacion se reportan por fila con su numero, NO abortan el batch.
  *
  * Devuelve: { inserted: N, updated: M, errors: K, failed_rows: [{row, errors, data}] }
@@ -69,6 +70,12 @@ class ProcedureCsvImportService
             $data = array_combine($header, $row);
             $data = array_map(fn ($v) => is_string($v) ? trim($v) : $v, $data);
 
+            // #293 S1: una celda vacia no declara sitio; el procedimiento aplica
+            // al paciente completo.
+            if (array_key_exists('site_type', $data) && $data['site_type'] === '') {
+                $data['site_type'] = 'none';
+            }
+
             $validator = Validator::make($data, [
                 'code' => 'required|string|max:50',
                 'name' => 'required|string|max:200',
@@ -82,6 +89,7 @@ class ProcedureCsvImportService
                 'contraindications' => 'nullable|string',
                 'post_procedure_care' => 'nullable|string',
                 'is_active' => 'nullable|in:0,1,true,false,si,no',
+                'site_type' => 'nullable|in:none,tooth,surface,quadrant,arch',
             ]);
 
             if ($validator->fails()) {

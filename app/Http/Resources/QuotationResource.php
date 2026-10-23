@@ -18,6 +18,8 @@ class QuotationResource extends JsonResource
             'id' => $this->id,
             'treatment_plan_id' => $this->treatment_plan_id,
             'patient_id' => $this->patient_id,
+            // #293 S3/S4: the convenio the estimate was priced under.
+            'payer_id' => $this->payer_id,
             'quotation_date' => $this->quotation_date?->format('Y-m-d'),
             'valid_until' => $this->valid_until?->format('Y-m-d'),
             'subtotal' => $this->subtotal,
@@ -55,10 +57,19 @@ class QuotationResource extends JsonResource
                 return $this->items->map(function ($item) {
                     return [
                         'id' => $item->id,
+                        'procedure_catalog_id' => $item->procedure_catalog_id,
+                        'dental_piece_id' => $item->dental_piece_id,
+                        'tooth_surface_id' => $item->tooth_surface_id,
+                        'site_code' => $item->site_code,
                         'description' => $item->description,
                         'quantity' => $item->quantity,
                         'unit_price' => $item->unit_price,
                         'subtotal' => $item->subtotal,
+                        // #293 S4/S6: the tariff the line froze at emission.
+                        'price_source' => $item->price_source,
+                        'price_row_id' => $item->price_row_id,
+                        'price_valid_from' => $item->price_valid_from?->toDateString(),
+                        'price_valid_to' => $item->price_valid_to?->toDateString(),
                     ];
                 });
             }),

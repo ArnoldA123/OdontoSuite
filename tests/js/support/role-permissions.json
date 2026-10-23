@@ -65,6 +65,9 @@
     "manage.appointment_type",
     "manage.branch",
     "manage.branch_price",
+    "view.payer",
+    "manage.payer",
+    "manage.payer_price",
     "manage.accounting_lock",
     "override.accounting_lock",
     "view.report",
@@ -110,7 +113,8 @@
     "manage.transaction",
     "create.transaction",
     "view.pending_payment",
-    "pay.pending_payment"
+    "pay.pending_payment",
+    "view.payer"
   ],
   "odontologo": [
     "view.profile",
@@ -150,6 +154,7 @@
     "manage.specialty_record",
     "view.dental_piece",
     "manage.procedure_favorite",
+    "view.payer",
     "view.ai_analysis",
     "create.ai_analysis",
     "review.ai_analysis",
@@ -193,6 +198,7 @@
     "manage.specialty_record",
     "view.dental_piece",
     "manage.procedure_favorite",
+    "view.payer",
     "view.ai_analysis",
     "create.ai_analysis",
     "review.ai_analysis",
@@ -299,6 +305,7 @@
     "view.cash_report",
     "export.cash_report",
     "manage.payment_mercadopago",
+    "view.payer",
     "view.report",
     "export.report",
     "manage.cash_register",

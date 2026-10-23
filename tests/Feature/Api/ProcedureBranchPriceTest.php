@@ -3,8 +3,8 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Branch;
-use App\Models\ProcedureBranchPrice;
 use App\Models\ProcedureCatalog;
+use App\Models\ProcedurePrice;
 use App\Models\TreatmentPlan;
 use App\Models\User;
 use App\Services\ProcedurePriceResolver;
@@ -50,11 +50,12 @@ class ProcedureBranchPriceTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function priceRow(ProcedureCatalog $procedure, Branch $branch, float $price, ?string $from = null, ?string $to = null): ProcedureBranchPrice
+    private function priceRow(ProcedureCatalog $procedure, Branch $branch, float $price, ?string $from = null, ?string $to = null): ProcedurePrice
     {
-        return ProcedureBranchPrice::create([
+        return ProcedurePrice::create([
             'procedure_catalog_id' => $procedure->id,
             'branch_id' => $branch->id,
+            'payer_id' => null,
             'price' => $price,
             'valid_from' => $from,
             'valid_to' => $to,
@@ -148,9 +149,10 @@ class ProcedureBranchPriceTest extends TestCase
             ])
             ->assertOk();
 
-        $this->assertDatabaseHas('procedure_branch_prices', [
+        $this->assertDatabaseHas('procedure_prices', [
             'procedure_catalog_id' => $procedure->id,
             'branch_id' => $branch->id,
+            'payer_id' => null,
             'price' => 75.5,
         ]);
 
@@ -217,13 +219,25 @@ class ProcedureBranchPriceTest extends TestCase
             'unit_cost' => $applied['price'],
         ]);
 
-        // The tariff changes after the plan was written.
+        // #293 S4 superseded the earlier expectation: the estimate freezes the
+        // tariff in force on its issue date, not the price the plan copied.
         $priceRow->update(['price' => 95.0]);
 
         $this->actingAs($actor, 'sanctum');
         $quotation = app(QuotationService::class)->generateQuotation($plan->id);
         $item = $quotation->items()->firstOrFail();
 
-        $this->assertSame(80.0, (float) $item->unit_price);
+        $this->assertSame(95.0, (float) $item->unit_price);
+        $this->assertSame($priceRow->id, $item->price_row_id);
+        $this->assertSame('95.00', $quotation->fresh()->total_amount);
+
+        // The issued estimate does not follow a later tariff change.
+        $priceRow->update(['price' => 120.0]);
+
+        $still = $quotation->fresh()->items()->firstOrFail();
+
+        $this->assertSame(95.0, (float) $still->unit_price);
+        $this->assertSame($priceRow->id, $still->price_row_id);
+        $this->assertSame('95.00', $quotation->fresh()->total_amount);
     }
 }

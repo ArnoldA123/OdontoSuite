@@ -268,6 +268,53 @@
                 <UiInput v-model="item.phase_number" size="sm" type="number" label="Fase" min="1" />
               </div>
             </div>
+
+            <!-- #293 S1/S2: the line may name a catalog procedure and the site
+                 the procedure applies to. The free-text name stays editable. -->
+            <div class="mt-3 space-y-3" :data-plan-item-extra="index">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="text-xs font-medium text-theme-secondary">
+                  Catálogo y sitio de la atención
+                </p>
+                <UiButton
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  :data-plan-item-catalog-toggle="index"
+                  @click="toggleCatalog(item)"
+                >
+                  {{ catalogItem === item ? 'Ocultar catálogo' : 'Elegir del catálogo' }}
+                </UiButton>
+              </div>
+
+              <p
+                v-if="item.procedure_catalog_id"
+                class="text-xs text-theme-secondary"
+                :data-plan-item-catalog="index"
+              >
+                Procedimiento del catálogo vinculado. El nombre y el precio siguen siendo editables.
+              </p>
+
+              <div
+                v-if="catalogItem === item"
+                class="rounded-[var(--radius-control)] p-2"
+                style="border: 1px solid var(--color-hairline)"
+                :data-plan-item-catalog-panel="index"
+              >
+                <ProcedureCatalogPicker
+                  :model-value="item.procedure_catalog_id"
+                  @select="procedure => onCatalogPick(item, procedure)"
+                />
+              </div>
+
+              <ProcedureSiteFields
+                :site-type="item.site_type"
+                :model-value="siteOf(item)"
+                :errors="siteErrors(index)"
+                :disabled="loading"
+                @update:model-value="site => applySite(item, site)"
+              />
+            </div>
           </div>
         </div>
 
@@ -385,12 +432,19 @@ import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { formatCurrency } from '@/composables/useFormatters'
 import PatientSelector from '@/components/ui/PatientSelector.vue'
+import ProcedureCatalogPicker from '@/components/procedures/ProcedureCatalogPicker.vue'
+import ProcedureSiteFields from '@/components/procedures/ProcedureSiteFields.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiCard from '@/components/ui/Card.vue'
 import UiInput from '@/components/ui/Input.vue'
 import UiModal from '@/components/ui/Modal.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
 import CreatePatientInline from './CreatePatientInline.vue'
+import {
+  requiredSiteField,
+  siteRequirementMessage,
+  siteTypeOf
+} from '@/modules/procedure-catalog/procedureSite'
 import { ExclamationCircleIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -423,7 +477,12 @@ const emptyItem = () => ({
   description: '',
   quantity: 1,
   unit_cost: 0,
-  phase_number: 1
+  phase_number: 1,
+  procedure_catalog_id: null,
+  site_type: 'none',
+  dental_piece_id: null,
+  tooth_surface_id: null,
+  site_code: null
 })
 
 const form = ref({
@@ -443,6 +502,55 @@ const form = ref({
 })
 
 const errors = ref({})
+
+// #293 S1: the catalog picker and the site fields are optional, so the item
+// panel opens on demand and never hides the free-text procedure.
+const catalogItem = ref(null)
+
+const toggleCatalog = item => {
+  catalogItem.value = catalogItem.value === item ? null : item
+}
+
+const siteOf = item => ({
+  dental_piece_id: item.dental_piece_id ?? null,
+  tooth_surface_id: item.tooth_surface_id ?? null,
+  site_code: item.site_code ?? null
+})
+
+const applySite = (item, site) => {
+  item.dental_piece_id = site?.dental_piece_id ?? null
+  item.tooth_surface_id = site?.tooth_surface_id ?? null
+  item.site_code = site?.site_code ?? null
+  errors.value = {}
+}
+
+const siteErrors = index => ({
+  dental_piece_id: errors.value[`items.${index}.dental_piece_id`],
+  tooth_surface_id: errors.value[`items.${index}.tooth_surface_id`],
+  site_code: errors.value[`items.${index}.site_code`]
+})
+
+const onCatalogPick = (item, procedure) => {
+  if (!procedure) return
+
+  const previousRequirement = requiredSiteField(item.site_type)
+
+  item.procedure_catalog_id = procedure.id
+  item.procedure_name = procedure.name
+  item.unit_cost = Number(procedure.default_cost ?? 0)
+  item.site_type = procedure.site_type ?? 'none'
+
+  // The site answers the previous applicability: keep it only when the new
+  // procedure still demands the same column.
+  if (requiredSiteField(item.site_type) !== previousRequirement) {
+    item.dental_piece_id = null
+    item.tooth_surface_id = null
+    item.site_code = null
+  }
+
+  catalogItem.value = null
+  errors.value = {}
+}
 
 const snapshot = () => JSON.stringify(form.value)
 const isDirty = computed(() => snapshot() !== baseline.value)
@@ -501,19 +609,40 @@ const handleSubmit = async () => {
   }
   if (Object.keys(errors.value).length > 0) return
 
-  const cleanedItems = form.value.items
-    .filter(i => (i.procedure_name || '').trim() !== '' || (i.description || '').trim() !== '')
-    .map(item => ({
-      procedure_name: (item.procedure_name || '').trim() || (item.description || '').trim(),
-      description: (item.description || '').trim() || null,
-      quantity: Number(item.quantity) || 1,
-      unit_cost: Number(item.unit_cost) || 0,
-      phase_number: Number(item.phase_number) || 1,
-      specialty: item.specialty || null,
-      procedure_catalog_id: item.procedure_catalog_id || null,
-      dental_piece_id: item.dental_piece_id || null,
-      category: item.category || null
-    }))
+  // #293 S2: the API is the authority, but a site-requiring procedure without
+  // its site is stopped here first with the reason in Spanish.
+  const pendingItems = form.value.items.filter(
+    i => (i.procedure_name || '').trim() !== '' || (i.description || '').trim() !== ''
+  )
+
+  const missingSite = pendingItems.find(item => {
+    const field = requiredSiteField(item.site_type)
+    return field !== null && !item[field]
+  })
+
+  if (missingSite) {
+    const index = form.value.items.indexOf(missingSite)
+    const field = requiredSiteField(missingSite.site_type)
+    errors.value = {
+      [`items.${index}.${field}`]: 'Requerido',
+      _general: siteRequirementMessage(missingSite.procedure_name, missingSite.site_type)
+    }
+    return
+  }
+
+  const cleanedItems = pendingItems.map(item => ({
+    procedure_name: (item.procedure_name || '').trim() || (item.description || '').trim(),
+    description: (item.description || '').trim() || null,
+    quantity: Number(item.quantity) || 1,
+    unit_cost: Number(item.unit_cost) || 0,
+    phase_number: Number(item.phase_number) || 1,
+    specialty: item.specialty || null,
+    procedure_catalog_id: item.procedure_catalog_id || null,
+    dental_piece_id: item.dental_piece_id || null,
+    tooth_surface_id: item.tooth_surface_id || null,
+    site_code: item.site_code || null,
+    category: item.category || null
+  }))
 
   if (cleanedItems.length === 0) {
     errors.value._general = 'Agrega al menos un procedimiento con nombre'
@@ -627,6 +756,11 @@ const initializeForm = () => {
             specialty: i.specialty,
             procedure_catalog_id: i.procedure_catalog_id,
             dental_piece_id: i.dental_piece_id,
+            tooth_surface_id: i.tooth_surface_id ?? null,
+            site_code: i.site_code ?? null,
+            // The API does not publish the applicability of the procedure on
+            // the line, so the declared site names it back.
+            site_type: siteTypeOf(i),
             category: i.category
           }))
         : [emptyItem()]
