@@ -112,7 +112,7 @@ Creado: 2026-10-19 · Orquestador: el Gentleman
 
 - **L1** (2026-10-19 16:06) — "continuando con este proyecto conforme dejamos el dashboar quiero hacer ahora la interfaz de metodos de pago, para hacer ello en un worktree nuevo"
 - **L2** (2026-10-19 16:14) — Decisión de implementación: `components/ui/DataTable.vue` recibe `scope="col"` en sus `<th>` (fix de accesibilidad del primitivo) para que la lista pueda usar la primitiva y el guard PAGOS-A11Y-001 siga exigiéndolo; el guard se re-ancla al contrato (tabla explícita o primitiva que lo declara).
-- **L3** (2026-10-19 16:15) — Base de datos de test aislada `odontosuite_pm_test` (socket XAMPP, root/09098) para no colisionar con los worktrees concurrentes que comparten `odontosuite_test`.
+- **L3** (2026-10-19 16:15) — Base de datos de test aislada `odontosuite_pm_test` (socket XAMPP, root/<clave local>) para no colisionar con los worktrees concurrentes que comparten `odontosuite_test`.
 - **L4** (2026-10-19 16:20) — T3 y T4 delegados a dos workers con superficies disjuntas; ambos devuelven commits revisados por el orquestador (`3ce0ec5`, `c133a4b`).
 - **L5** (2026-10-19 16:45) — Guard `DashboardAppShellTest:1845` fijaba el literal `title="Métodos de Pago"` del `PageHeader` retirado; se re-ancló a `data-hero-title` (regla: anclar al contrato, no al literal). El guard PAGOS-A11Y-001 se re-ancló a la tabla renderizada (`<th scope="col">` en el primitivo).
 - **L6** (2026-10-19 16:50) — JS suite completa bajo carga concurrente falló 11 archivos sin un solo test rojo (timeouts de colección); se re-ejecuta en reposo antes de concluir.
