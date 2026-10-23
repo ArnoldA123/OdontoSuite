@@ -85,7 +85,14 @@ del login es el `username`** (no el email, no el nombre).
 > autorización registrada de un administrador (`authorized_by` + motivo), y el
 > descuento es un campo del cobro, no un tipo de transacción. El cargo que el
 > cierre escribe en `patient_charges` y el cargo manual se leen en el estado de
-> cuenta del paciente, que es del paciente y no de la sede.
+> cuenta del paciente, que es del paciente y no de la sede. Desde #313 el
+> registro de especialidad es un acto clínico con narrativa quirúrgica: el
+> escritorio de laboratorio no lo lee ni lo escribe, y su canal de difusión dejó
+> de autorizarlo. Desde #314 la conducta clínica no se copia en la cita: el
+> cierre ya no escribe `treatment_notes` y el campo sólo se publica al
+> escritorio que lee la historia clínica. Desde #315 los eventos de documentos
+> clínicos no viajan por `dashboard-updates`, que autoriza a los siete roles. La
+> frontera completa vive en ADR-0016.
 
 | Funcionalidad                       | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
 | ----------------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
@@ -133,6 +140,8 @@ del login es el `username`** (no el email, no el nombre).
 | Autorizar edición antes del bloqueo | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | **Clínica**                         |
 | Historias clínicas                  | ✅            | ❌            | ✅         | ✅           | ❌      | ✅        | ❌       |
+| Registros de especialidad           | ✅            | ❌            | ✅         | ✅           | ❌      | ❌        | ❌       |
+| Notas de tratamiento de la cita     | ✅            | ❌            | ✅         | ✅           | ❌      | ✅        | ❌       |
 | Casos de laboratorio (lectura)      | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Casos de laboratorio (alta y fases) | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
 | Odontogramas                        | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |

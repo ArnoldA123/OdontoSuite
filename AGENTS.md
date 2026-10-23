@@ -314,8 +314,10 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   taller (paciente, pieza, trabajo, material, fecha de envío, fecha prometida y
   técnico asignado) con cinco fases que sólo avanzan; entrar en `delivered`
   emite `LabCaseReady` y el caso aparece en `GET /api/my-day` bajo
-  `ready_lab_cases`. El escritorio de laboratorio ya no lee la historia clínica
-  ni el acto clínico, y sus registros de especialidad y planes siguen intactos.
+  `ready_lab_cases`. El escritorio de laboratorio ya no lee la historia clínica,
+  el acto clínico ni los registros de especialidad (#313), y la cita dejó de
+  llevar la conducta clínica a cualquier lector (#314): sus insumos son el caso
+  protésico, el plan de tratamiento y la agenda operativa (ADR-0016).
 
 ### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
 
@@ -544,6 +546,48 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-23 (frontera de la narrativa clínica: especialidades, cita y
+  difusión, #313/#314/#315)** — La frontera que #285 fijó en el módulo de
+  historia clínica se cierra en las otras tres superficies que publicaban la
+  misma narrativa; la decisión vive en ADR-0016. **Registros de especialidad
+  (#313)**: el registro es un acto clínico con narrativa quirúrgica
+  (`surgical_notes`, `post_surgical_notes`, `complications`, `follow_up_notes` y
+  sus equivalentes) y no es insumo del trabajo protésico —el caso `lab_cases` ya
+  publica pieza, trabajo, material, fechas y técnico—, así que
+  `manage.specialty_record` queda en administración y escritorio clínico: el
+  técnico recibe 403 en todo el módulo, la navegación no ofrece
+  `/specialty-records`, el tab de especialidades del detalle de paciente se
+  oculta sin el permiso, y el canal `specialty-records` deja de autorizarlo.
+  `SPECIALTY_RECORD_ROLES` sustituye al uso compartido de `TREATMENT_ROLES`; los
+  planes de tratamiento y `view.dental_piece` no cambian. **Cita (#314)**:
+  `appointments.treatment_notes` es la conducta clínica copiada de la evolución,
+  no un resumen operativo. El cierre deja de escribirla
+  (`ConsultationService::projectOnAppointment`), la cita conserva `notes` y la
+  solicitud de continuidad, y `AppointmentResource` publica el campo sólo a
+  quien lee la historia clínica (`manage.medical_record`): recepción y
+  laboratorio reciben la cita sin la clave. Las filas históricas no se
+  reescriben, pero tampoco se publican fuera del escritorio clínico, y ningún
+  evento de cita difunde el campo (`AppointmentBroadcastPayload` recorta el
+  payload de `AppointmentCreated`, `AppointmentUpdated`, `AppointmentCompleted`
+  y `AppointmentCheckedIn`; `ReminderSent` recorta la cita que embebe, porque
+  publica por `reminders` y `appointments`, canales de recepción y laboratorio).
+  **Difusión (#315)**: un canal no puede variar su payload por rol, así que un
+  evento de documento clínico viaja sólo por el canal de los escritorios que lo
+  leen. `MedicalRecordCreated` publica sólo en `medical-records`, y
+  `SpecialtyRecordCreated`/`SpecialtyRecordUpdated` sólo en `specialty-records`;
+  ninguno en `dashboard-updates`, que autoriza a los siete roles. Sin rutas,
+  controllers, modelos ni migraciones nuevas: §4 no cambia. Tests:
+  `TechnicianClinicalRecordScopeTest` extendido (403 en las cinco puertas del
+  módulo y 200 de los tres roles que lo conservan),
+  `AppointmentTreatmentNotesDeskTest` (ambos lados: quién ve el campo y quién
+  no), `ConsultationClosureTest` (la cita cerrada ya no copia el plan),
+  `AppointmentBroadcastPayloadTest`, `ClinicalEventsChannelBoundaryTest`,
+  `DashboardUpdatesPrivateChannelTest` (14 publicadores), más
+  `PermissionCatalogTest`, `DeskMatrixTest`,
+  `SpecialtiesNavigationDisambiguationTest`, `DomainChannelsAuthorizationTest`,
+  `FrontendPermissionContractTest` y el fixture de permisos regenerado.
+  `CREDENTIALS.md` suma las dos filas de la frontera y
+  `docs/architecture/desks.md` retira el acto del escritorio de laboratorio.
 - **2026-10-23 (seguridad: credencial local redactada y gate de secretos)** — La
   nota ODD de la interfaz de métodos de pago publicaba en su log la contraseña
   del MariaDB local de XAMPP; la misma clave aparecía en una nota de auditoría
