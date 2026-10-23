@@ -153,7 +153,7 @@ class BusinessIntelligenceRenderTest extends TestCase
         $this->assertNotEmpty($rows, 'Revenue report MUST contain at least one row when completed payments exist.');
 
         $types = array_values(array_unique(array_column($rows, 'type')));
-        $expectedTypes = ['Por Tipo de Cita', 'Por Profesional', 'Por Ambiente', 'Por Día'];
+        $expectedTypes = ['Por Tipo de Cita', 'Por Profesional', 'Por Ambiente', 'Por Día', 'Por Sede'];
 
         sort($types);
         sort($expectedTypes);
