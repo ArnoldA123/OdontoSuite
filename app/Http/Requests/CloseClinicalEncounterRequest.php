@@ -74,7 +74,7 @@ class CloseClinicalEncounterRequest extends FormRequest
             'treatment_plan.items.*.requires_anesthesia' => 'sometimes|boolean',
             'treatment_plan.items.*.is_optional' => 'sometimes|boolean',
             'materials' => 'sometimes|array',
-            'materials.*.product_id' => 'required_with:materials|integer',
+            'materials.*.product_id' => 'required_with:materials|integer|exists:products,id',
             'materials.*.quantity_used' => 'required_with:materials|numeric|min:0.01',
             'materials.*.unit_cost' => 'nullable|numeric|min:0',
             'materials.*.treatment_plan_item_id' => 'nullable|integer',

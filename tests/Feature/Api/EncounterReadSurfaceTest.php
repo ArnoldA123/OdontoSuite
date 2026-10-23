@@ -176,6 +176,10 @@ class EncounterReadSurfaceTest extends TestCase
             'code' => 'RES-A2',
             'cost_price' => 20,
             'sale_price' => 35,
+            // #295 S2: el acto consume 2 unidades y el almacén no puede
+            // responder por una demanda que no tiene saldo: sin stock el
+            // cierre es 422 y este test no mediría la lectura del acto.
+            'stock_quantity' => 10,
         ]);
 
         $this->actingAs($professional, 'sanctum')

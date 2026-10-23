@@ -11,6 +11,7 @@ use App\Models\Patient;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Quotation;
+use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -146,6 +147,8 @@ class ConsultationClosureTest extends TestCase
             'code' => 'RES-A2',
             'cost_price' => 20,
             'sale_price' => 35,
+            // #295 S2: consumir dos unidades exige que el almacén las tenga.
+            'stock_quantity' => 10,
         ]);
 
         $payload = $this->payload([
@@ -185,6 +188,17 @@ class ConsultationClosureTest extends TestCase
         // The appointment id is kept as the schedule projection of the same row.
         $this->assertSame(1, ClinicalEvolution::where('appointment_id', $appointment->id)->count());
         $this->assertSame($encounter->id, ClinicalEvolution::sole()->clinical_encounter_id);
+
+        // #295 S1: the act leaves the warehouse with the stock it consumed and
+        // the exit movement that explains the balance.
+        $this->assertSame(8.0, (float) $product->fresh()->stock_quantity);
+
+        $movement = StockMovement::where('clinical_encounter_id', $encounter->id)->sole();
+        $this->assertSame('out', $movement->type);
+        $this->assertSame(2.0, (float) $movement->quantity);
+        $this->assertSame(10.0, (float) $movement->previous_stock);
+        $this->assertSame(8.0, (float) $movement->new_stock);
+        $this->assertSame("ENC-{$encounter->id}", $movement->reference);
     }
 
     public function test_the_quotation_of_the_closure_points_at_the_act_and_the_appointment(): void
