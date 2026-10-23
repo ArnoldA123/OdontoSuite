@@ -577,17 +577,30 @@ documentada y no bloquea producción.
   gerencia de administrador de sede. Superficie: `/branch-transfers` con el
   formulario de solicitud, la historia visible y la decisión de gerencia. §4/§5
   sincronizados: 47 controllers API, 70 modelos, 35 services, 152 migraciones,
-  259 rutas API y 272 totales con web, 41 composables, 20 módulos de dominio y
-  22 páginas. Tests: `BranchTransferRequestTest` (16),
+  260 rutas API y 273 totales con web, 41 composables, 20 módulos de dominio y
+  22 páginas. Tests: `BranchTransferRequestTest` (19),
   `BranchTransferDecisionTest` (10), `BranchAffiliationWriterTest` (2, guard
   estático de «una sola pluma»), `AuthPermissionsPayloadTest` (+2) y el smoke
-  `branch-transfers`; `PermissionCatalogTest`, `DeskMatrixTest`,
+  `branch-transfers` (21); `PermissionCatalogTest`, `DeskMatrixTest`,
   `RoutePermissionMatrixTest` y `FrontendPermissionContractTest` verdes con el
   fixture regenerado. Decisión en ADR-0016, que cierra la postergación que
   declaraba ADR-0010. Fuera de alcance, documentado: el 403 conserva el sobre
   genérico de la API (los mensajes de la regla viven en la excepción) y la
   etiqueta accesible de `UiStatusPill` no conoce `rejected` (mismo patrón que el
   resto del SPA).
+- **2026-10-23 (asistente de cierre: el formulario se rearma entre atenciones,
+  #311)** — `ConsultationWizard` vive montado en `/my-day` y `/calendar` y sólo
+  alterna su visibilidad, así que su `payload` local sobrevivía entre una cita y
+  la siguiente: el motivo de consulta, la evolución SOAP, los diagnósticos
+  CIE-10, los materiales y los ítems del plan de la atención anterior seguían
+  editables y viajaban al firmar el acto de otro paciente. El payload se
+  construye ahora desde `createInitialPayload()` y `resetForm()` lo rearma
+  completo —paso inicial, firma, ítems y búsquedas en vuelo— cuando cambia la
+  cita y en cada apertura del asistente (`openForAppointment()`), no sólo la
+  contraseña de firma. Sin rutas, modelos, migraciones ni primitivas UI nuevas:
+  los conteos de §4 no cambian. Tests: `consultation-wizard-reset.test.js` (2) y
+  el caso de firma de `consultation-closure-nts139.test.js` ajustado al paso
+  inicial.
 
 - **2026-10-23 (caja: vocabulario del dinero y estado de cuenta del paciente,
   #287)** — La caja y la deuda del paciente dejan de compartir un solo
