@@ -48,8 +48,10 @@ class DomainChannelsAuthorizationTest extends TestCase
         $map = [
             'appointments' => $appointmentRoles,
             'reminders' => $appointmentRoles,
+            // F5 (#285): the channel publishes the full evolution, the addenda
+            // and the attachments, so the laboratory desk is out of it.
             'medical-records' => [
-                'administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente',
+                'administrador', 'odontologo', 'implantologo', 'asistente',
             ],
             'specialty-records' => [
                 'administrador', 'odontologo', 'implantologo', 'tecnico_dental',

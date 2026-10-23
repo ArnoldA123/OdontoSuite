@@ -104,8 +104,10 @@ Broadcast::channel('medical-records', function ($user) {
         return false;
     }
 
+    // F5 (#285): the channel publishes the evolution, the addenda and the
+    // attachments, so the laboratory desk is out of it.
     return in_array($user->role ?? null, [
-        'administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente',
+        'administrador', 'odontologo', 'implantologo', 'asistente',
     ], true);
 });
 

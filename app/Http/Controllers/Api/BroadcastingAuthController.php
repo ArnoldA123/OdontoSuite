@@ -49,7 +49,7 @@ class BroadcastingAuthController extends Controller
      * @var string[]
      */
     private const MEDICAL_RECORD_ROLES = [
-        'administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente',
+        'administrador', 'odontologo', 'implantologo', 'asistente',
     ];
 
     /**
