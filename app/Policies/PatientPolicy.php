@@ -85,12 +85,15 @@ class PatientPolicy
     public function export(User $user, Patient $patient): bool
     {
         // Admin, recepcionista y clínicos pueden exportar fichas de pacientes
+        // #285: the export carries the clinical record (evolutions,
+        // odontograms, specialty records and attachment binaries), so the
+        // laboratory desk is out.
         return in_array($user->role, [
             'administrador',
             'recepcionista',
             'odontologo',
             'implantologo',
-            'tecnico_dental',
+            'asistente',
         ]);
     }
 }

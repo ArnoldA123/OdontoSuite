@@ -9,6 +9,7 @@ use App\Models\Patient;
 use App\Models\PatientRecall;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\ClinicalCompliancePayload;
 use Tests\TestCase;
 
 /**
@@ -20,6 +21,7 @@ use Tests\TestCase;
  */
 class ContinuityTest extends TestCase
 {
+    use ClinicalCompliancePayload;
     use RefreshDatabase;
 
     private function staff(string $role, array $attributes = []): User
@@ -48,6 +50,7 @@ class ContinuityTest extends TestCase
     private function closurePayload(array $overrides = []): array
     {
         return array_merge([
+            ...$this->compliancePayload(),
             'mode' => 'consultation',
             'skip_materials' => true,
             'evolution' => [

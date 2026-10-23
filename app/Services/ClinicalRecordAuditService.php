@@ -40,6 +40,12 @@ class ClinicalRecordAuditService
     public const SURFACE_STATS = 'stats';
 
     /**
+     * F6 (#286): the printable record of one clinical act. Printing is a read of
+     * the same content, so it is audited like the evolution timeline.
+     */
+    public const SURFACE_ATTENTION_RECORD = 'attention_record';
+
+    /**
      * One read for the record the caller opened.
      */
     public function recordViewed(MedicalRecord $record, string $surface): void

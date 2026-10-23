@@ -77,13 +77,15 @@ del login es el `username`** (no el email, no el nombre).
 > atención de urgencia existe sin cita. Desde #295 el cierre descuenta stock
 > real: un material sin stock suficiente responde 422 con el nombre del insumo y
 > la transacción no escribe nada; el inventario se recibe por compra y se ajusta
-> por conteo. Desde #287 el dinero tiene vocabulario cerrado: pago y devolución
-> mueven la gaveta (sólo si el método es efectivo), condonación y ajuste son
-> asientos de ledger que exigen autorización registrada de un administrador
-> (`authorized_by` + motivo), y el descuento es un campo del cobro, no un tipo
-> de transacción. El cargo que el cierre escribe en `patient_charges` y el cargo
-> manual se leen en el estado de cuenta del paciente, que es del paciente y no
-> de la sede.
+> por conteo. Desde #285 el escritorio de laboratorio no lee la historia clínica
+> ni el acto clínico, no exporta la ficha del paciente y no se suscribe al canal
+> de la historia: el técnico trabaja desde el caso protésico. Desde #287 el
+> dinero tiene vocabulario cerrado: pago y devolución mueven la gaveta (sólo si
+> el método es efectivo), condonación y ajuste son asientos de ledger que exigen
+> autorización registrada de un administrador (`authorized_by` + motivo), y el
+> descuento es un campo del cobro, no un tipo de transacción. El cargo que el
+> cierre escribe en `patient_charges` y el cargo manual se leen en el estado de
+> cuenta del paciente, que es del paciente y no de la sede.
 
 | Funcionalidad                       | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
 | ----------------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
@@ -92,7 +94,7 @@ del login es el `username`** (no el email, no el nombre).
 | Ver pacientes                       | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ✅       |
 | Editar pacientes                    | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Eliminar pacientes                  | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Exportar ficha de paciente          | ✅            | ✅            | ✅         | ✅           | ✅      | ❌        | ❌       |
+| Exportar ficha de paciente          | ✅            | ✅            | ✅         | ✅           | ❌      | ❌        | ❌       |
 | **Citas/Agenda**                    |
 | Crear citas                         | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Ver citas                           | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
@@ -106,7 +108,7 @@ del login es el `username`** (no el email, no el nombre).
 | Abrir atención de urgencia          | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Cerrar atención (sin cita)          | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Anular atención abierta             | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Ver atenciones clínicas             | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Ver atenciones clínicas             | ✅            | ❌            | ✅         | ✅           | ❌      | ✅        | ❌       |
 | **Reportes/BI**                     |
 | Ver reportes                        | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
 | Exportar datos                      | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
@@ -130,7 +132,9 @@ del login es el `username`** (no el email, no el nombre).
 | Fijar bloqueo contable              | ✅²           | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | Autorizar edición antes del bloqueo | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | **Clínica**                         |
-| Historias clínicas                  | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Historias clínicas                  | ✅            | ❌            | ✅         | ✅           | ❌      | ✅        | ❌       |
+| Casos de laboratorio (lectura)      | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Casos de laboratorio (alta y fases) | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
 | Odontogramas                        | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Planes de tratamiento               | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
 | Análisis IA                         | ✅            | ❌            | ✅         | ✅           | ❌      | ❌        | ❌       |

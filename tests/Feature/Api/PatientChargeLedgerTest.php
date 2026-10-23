@@ -11,6 +11,7 @@ use App\Models\PatientCharge;
 use App\Models\User;
 use App\Services\PatientChargeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\ClinicalCompliancePayload;
 use Tests\TestCase;
 
 /**
@@ -23,6 +24,7 @@ use Tests\TestCase;
  */
 class PatientChargeLedgerTest extends TestCase
 {
+    use ClinicalCompliancePayload;
     use RefreshDatabase;
 
     private function professional(): User
@@ -46,6 +48,7 @@ class PatientChargeLedgerTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return array_merge([
+            ...$this->compliancePayload(),
             'mode' => 'execution',
             'evolution' => [
                 'subjective' => 'Dolor en pieza 16 desde hace tres días.',

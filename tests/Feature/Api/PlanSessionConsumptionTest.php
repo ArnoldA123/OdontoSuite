@@ -9,6 +9,7 @@ use App\Models\TreatmentPlanItem;
 use App\Models\TreatmentPlanItemConsumption;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\ClinicalCompliancePayload;
 use Tests\TestCase;
 
 /**
@@ -20,6 +21,7 @@ use Tests\TestCase;
  */
 class PlanSessionConsumptionTest extends TestCase
 {
+    use ClinicalCompliancePayload;
     use RefreshDatabase;
 
     private function professional(): User
@@ -74,6 +76,7 @@ class PlanSessionConsumptionTest extends TestCase
         return [
             'mode' => $mode,
             'skip_materials' => true,
+            ...$this->compliancePayload(),
             'evolution' => [
                 'subjective' => 'Sesión de tratamiento.',
                 'objective' => 'Procedimiento ejecutado según el plan.',
@@ -306,6 +309,7 @@ class PlanSessionConsumptionTest extends TestCase
             ->postJson("/api/appointments/{$appointment->id}/complete", [
                 'mode' => 'execution',
                 'skip_materials' => true,
+                ...$this->compliancePayload(),
                 'evolution' => [
                     'subjective' => 'Dolor.',
                     'objective' => 'Caries.',

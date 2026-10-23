@@ -1,4 +1,4 @@
-# ADR-0014 — El dinero tiene vocabulario cerrado y el paciente tiene ledger propio
+# ADR-0015 — El dinero tiene vocabulario cerrado y el paciente tiene ledger propio
 
 - **Status:** Accepted
 - **Decided:** 2026-10-23 (issue #287, specs S1-S10 de

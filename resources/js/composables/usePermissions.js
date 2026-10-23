@@ -15,6 +15,7 @@ const PERMISSION_BY_KEY = {
   deletePatient: 'delete.patient',
   editPatient: 'update.patient',
   viewPatient: 'view.patient',
+  exportPatient: 'export.patient',
 
   // Appointments and calendar
   createAppointment: 'manage.appointment',

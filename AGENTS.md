@@ -96,12 +96,12 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 44 controllers API (43 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 46 controllers API (45 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 66 modelos Eloquent
-  Services/                # 33 services + Reports/ (9 report services)
-  Events/                  # 35 eventos (10 listener classes, 13 cableos en AppServiceProvider)
+  Models/                  # 69 modelos Eloquent
+  Services/                # 34 services + Reports/ (9 report services)
+  Events/                  # 36 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
   Jobs/                    # ExportPatientFileJob, ClearDashboardCache
@@ -119,16 +119,16 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 148 migraciones
-  seeders/                 # 16 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
-                           #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
-                           #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
-                           #   SimpleAppointmentsSeeder, ReminderSchedulesSeeder, CashRegisterSeeder,
-                           #   CompletedAppointmentsSeeder, DentalPieceSeeder, ToothSurfaceSeeder,
-                           #   SpecialtyRecordSeeder)
+  migrations/              # 151 migraciones
+  seeders/                 # 17 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
+                           #   SpecialtySeeder, UserSpecialtySeeder, DiagnosisCatalogSeeder,
+                           #   AppointmentTypeSeeder, EnvironmentSeeder, ProcedureCatalogSeeder,
+                           #   PatientSeeder, SimpleAppointmentsSeeder, ReminderSchedulesSeeder,
+                           #   CashRegisterSeeder, CompletedAppointmentsSeeder, DentalPieceSeeder,
+                           #   ToothSurfaceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 245 rutas API (medido con php artisan route:list --json: uris api/…; 258 totales con web)
+  api.php                  # 253 rutas API (medido con php artisan route:list --json: uris api/…; 266 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -136,7 +136,7 @@ tests/
   Feature/Api/             # AuthTest (rate limiting, login)
 docs/
   mejoras/                 # 3 planes cerrados (ver §9)
-  architecture/decisions/  # índice de ADRs (README.md) + cuerpos 0007, 0008 y 0010-0012
+  architecture/decisions/  # índice de ADRs (README.md) + cuerpos 0007, 0008 y 0010-0015
 
 .github/workflows/
   ci.yml                   # CI con 3 jobs: quality (lint), backend-tests (MySQL 8.0 service), frontend-build
@@ -146,29 +146,29 @@ docs/
 
 ## 5. Módulos del frontend (19 módulos, 21 páginas)
 
-| Módulo                    | Ruta                        | Roles                            |
-| ------------------------- | --------------------------- | -------------------------------- |
-| Dashboard                 | `/dashboard`                | todos                            |
-| Mi día                    | `/my-day`                   | admin, todos los clínicos        |
-| Calendario                | `/calendar`                 | todos los clínicos               |
-| Pacientes                 | `/patients`                 | todos                            |
-| Profesionales             | `/professionals`            | admin                            |
-| Ambientes                 | `/environments`             | admin                            |
-| Tipos de cita             | `/appointment-types`        | admin                            |
-| Especialidades (catálogo) | `/specialties`              | admin                            |
-| Sucursales                | `/settings/branches`        | admin                            |
-| Métodos de pago           | `/settings/payment-methods` | admin                            |
-| Caja                      | `/cash-register`            | admin, finanzas, recep           |
-| BI                        | `/business-intelligence`    | admin, finanzas                  |
-| Planes de tratamiento     | `/treatment-plans`          | clínicos                         |
-| Presupuestos              | `/quotations`               | admin, finanzas, odonto, implant |
-| Historias clínicas        | `/medical-records`          | clínicos                         |
-| Registros especialidad    | `/specialty-records`        | clínicos                         |
-| Análisis IA               | `/ai-analysis`              | admin, odonto, implantólogo      |
-| Catálogo procedimientos   | `/procedure-catalog`        | admin                            |
-| Mis procedimientos        | `/my-procedures`            | clínicos (favoritos)             |
-| Recepción procedimientos  | `/reception-procedures`     | recep                            |
-| Estadísticas catálogo     | `/procedure-stats`          | admin, finanzas                  |
+| Módulo                    | Ruta                        | Roles                                 |
+| ------------------------- | --------------------------- | ------------------------------------- |
+| Dashboard                 | `/dashboard`                | todos                                 |
+| Mi día                    | `/my-day`                   | admin, todos los clínicos             |
+| Calendario                | `/calendar`                 | todos los clínicos                    |
+| Pacientes                 | `/patients`                 | todos                                 |
+| Profesionales             | `/professionals`            | admin                                 |
+| Ambientes                 | `/environments`             | admin                                 |
+| Tipos de cita             | `/appointment-types`        | admin                                 |
+| Especialidades (catálogo) | `/specialties`              | admin                                 |
+| Sucursales                | `/settings/branches`        | admin                                 |
+| Métodos de pago           | `/settings/payment-methods` | admin                                 |
+| Caja                      | `/cash-register`            | admin, finanzas, recep                |
+| BI                        | `/business-intelligence`    | admin, finanzas                       |
+| Planes de tratamiento     | `/treatment-plans`          | clínicos                              |
+| Presupuestos              | `/quotations`               | admin, finanzas, odonto, implant      |
+| Historias clínicas        | `/medical-records`          | odontólogos, implantólogos, asistente |
+| Registros especialidad    | `/specialty-records`        | clínicos                              |
+| Análisis IA               | `/ai-analysis`              | admin, odonto, implantólogo           |
+| Catálogo procedimientos   | `/procedure-catalog`        | admin                                 |
+| Mis procedimientos        | `/my-procedures`            | clínicos (favoritos)                  |
+| Recepción procedimientos  | `/reception-procedures`     | recep                                 |
+| Estadísticas catálogo     | `/procedure-stats`          | admin, finanzas                       |
 
 **Auth frontend**: el router NO tiene `meta.roles`. La API rechaza con 403 y el
 frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
@@ -184,7 +184,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 66 modelos, 44 controllers API, 35 eventos (10 listener classes / 13 cableos
+- 69 modelos, 46 controllers API, 36 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 13 modelos con SoftDeletes (la historia clínica y sus evoluciones ya no lo
   usan: #292)
@@ -240,7 +240,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   guarda `cash.session` deja de estar en las rutas de creación y anulación de
   transacciones: la regla vive en `TransactionService`, que sigue exigiendo la
   sesión de la transacción abierta para anular.
-- BI (9 report services) + export
+- BI (8 report services) + export
 - Catálogo de procedimientos con favoritos (admin/clínico/recep)
 - Estadísticas del catálogo (`/api/admin/procedure-stats`)
 - Importador CSV de procedimientos (`/api/admin/procedure-catalog/import`)
@@ -281,6 +281,10 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   `requires_materials` se deriva del recetario del procedimiento en vez de un
   flag manual. Las cantidades de stock y consumo son `decimal(12,3)`.
 - `composer dev` usa `pnpm dev`
+- Cumplimiento NTS 139/NTS 188 (#286): el cierre exige motivo de consulta,
+  diagnóstico codificado contra el catálogo CIE-10 y firma del profesional; el
+  acto firmado publica su hash de integridad y `GET /api/encounters/{id}/record`
+  emite el registro imprimible de la norma.
 - CI/CD con GitHub Actions (3 jobs desacoplados: quality, backend-tests MySQL,
   frontend-build; ver §10 para qué bloquea y qué es aviso explícito)
 - CREDENTIALS.md sincronizado (tests automáticos lo validan)
@@ -306,12 +310,20 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 - Superficies dentales con datos: `ToothSurfaceSeeder` da las cinco superficies
   canónicas (V/L/M/D/O) a cada pieza activa y `GET /api/dental-pieces` las
   publica, así que un procedimiento de superficie tiene dónde cumplirse.
+- Laboratorio protésico propio (#285): `lab_cases` es la orden de trabajo del
+  taller (paciente, pieza, trabajo, material, fecha de envío, fecha prometida y
+  técnico asignado) con cinco fases que sólo avanzan; entrar en `delivered`
+  emite `LabCaseReady` y el caso aparece en `GET /api/my-day` bajo
+  `ready_lab_cases`. El escritorio de laboratorio ya no lee la historia clínica
+  ni el acto clínico, y sus registros de especialidad y planes siguen intactos.
 
 ### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
 
 - **Retención y archivo por antigüedad**: la historia se conserva y no se borra,
-  pero todavía no existe el archivo por antigüedad (cinco años activos y quince
-  pasivos) ni la firma digital, que pertenece a F6 con CIE-10.
+  y desde #286 cada acto se firma, pero todavía no existe el archivo por
+  antigüedad (cinco años activos y quince pasivos) ni la firma con certificado
+  digital; la firma vigente es electrónica simple (contraseña revalidada + hash
+  de integridad, ADR-0014).
 - **`migrate:fresh` es solo-MySQL por decisión (#79).** El esquema no se
   construye en SQLite: eliminar `transactions.type` choca con el índice
   `idx_transactions_patient_type_status` (`no such column: type`), y las
@@ -355,6 +367,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   como `sometimes|nullable` y `QuotationController@store` deriva el paciente
   desde `treatment_plan_id`, así que el bloqueo del path `generateQuotation`
   (fix C-1 del Sprint 0) ya no existe.
+
 - **#287 declaró fuera de alcance tres cosas**: la UI de caja para devoluciones,
   depósitos y estado de cuenta (la issue es `area:backend`); la imputación de un
   pago a un cargo concreto —no hay abono por cargo, así que la corrección de un
@@ -458,7 +471,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 | Pusher TypeError en tests                               | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `composer dev` no levanta Vite                          | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Email no se envía                                       | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `php artisan migrate:fresh --seed` falla                | Verificar conexión MySQL en `.env`. Seeders activos: 16.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `php artisan migrate:fresh --seed` falla                | Verificar conexión MySQL en `.env`. Seeders activos: 17.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Frontend no encuentra módulo                            | `pnpm install` y reiniciar `pnpm dev`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | WebSocket no conecta                                    | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | CI falla por `MissingAppKeyException`                   | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -480,17 +493,18 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ### Decisiones de diseño (ADRs)
 
-| ADR                                                                       | Contenido                                                                                                                                        |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `docs/architecture/decisions/0007-user-specialty-source-of-truth.md`      | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza.                      |
-| `docs/architecture/decisions/0008-procedure-catalog-legacy-specialty.md`  | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill.                      |
-| `docs/architecture/decisions/0010-branch-scope-authorization.md`          | La sede es una dimensión de autorización, no un filtro de consulta.                                                                              |
-| `docs/architecture/decisions/0011-quotation-igv-policy.md`                | El IGV de un presupuesto se descompone del precio, no se suma.                                                                                   |
-| `docs/architecture/decisions/0012-catalog-applicability-and-tariff.md`    | El catálogo declara sobre qué se hace (pieza/superficie/cuadrante/arcada) y a qué precio, con vigencia y convenio.                               |
-| `docs/architecture/decisions/0013-plan-versioning-and-continuity.md`      | El plan aceptado es una versión inmutable; la continuidad es una solicitud que recepción materializa con validación de agenda.                   |
-| `docs/architecture/decisions/0014-money-vocabulary-and-patient-ledger.md` | Pago, descuento, condonación, devolución y ajuste son conceptos distintos; el cargo es un libro del paciente y sólo el efectivo mueve la gaveta. |
+| ADR                                                                       | Contenido                                                                                                                      |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `docs/architecture/decisions/0007-user-specialty-source-of-truth.md`      | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza.    |
+| `docs/architecture/decisions/0008-procedure-catalog-legacy-specialty.md`  | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill.    |
+| `docs/architecture/decisions/0010-branch-scope-authorization.md`          | La sede es una dimensión de autorización, no un filtro de consulta.                                                            |
+| `docs/architecture/decisions/0011-quotation-igv-policy.md`                | El IGV de un presupuesto se descompone del precio, no se suma.                                                                 |
+| `docs/architecture/decisions/0012-catalog-applicability-and-tariff.md`    | El catálogo declara sobre qué se hace (pieza/superficie/cuadrante/arcada) y a qué precio, con vigencia y convenio.             |
+| `docs/architecture/decisions/0013-plan-versioning-and-continuity.md`      | El plan aceptado es una versión inmutable; la continuidad es una solicitud que recepción materializa con validación de agenda. |
+| `docs/architecture/decisions/0014-clinical-record-signature-and-cie10.md` | El registro de atención es un documento firmado: motivo, CIE-10 y firma electrónica simple con hash de integridad.             |
+| `docs/architecture/decisions/0015-money-vocabulary-and-patient-ledger.md` | Pago, descuento, condonación, devolución y ajuste son conceptos distintos; el cargo es un libro del paciente y sólo el efectivo mueve la gaveta. |
 
-> **Estado**: los siete cuerpos de la tabla están escritos y el índice resuelve
+> **Estado**: los ocho cuerpos de la tabla están escritos y el índice resuelve
 > sus enlaces. El índice vive en `docs/architecture/decisions/README.md` y su
 > integridad la fija
 > `tests/Unit/Documentation/ArchitectureDecisionsIndexTest.php`.
@@ -516,7 +530,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 44 controllers API, 66
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 46 controllers API, 69
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -581,19 +595,92 @@ documentada y no bloquea producción.
   (la ficha es compartida, ADR-0010); la gaveta, sus movimientos, los depósitos
   y la conciliación siguen acotados por sede. Permisos nuevos (los tres con
   `CASH_ROLES`): `manage.patient_charge`, `view.patient_statement` y
-  `manage.cash_deposit`. Decisión en ADR-0014. §4 sincronizado con valores
-  medidos: 44 controllers API, 66 modelos, 33 services + 9 report services, 148
-  migraciones, 245 rutas API y 258 totales con web; sin cambios de UI ni de §5
+  `manage.cash_deposit`. Decisión en ADR-0015. §4 sincronizado con valores
+  medidos: 46 controllers API, 69 modelos, 34 services + 9 report services, 151
+  migraciones, 253 rutas API y 266 totales con web; sin cambios de UI ni de §5
   (la issue es `area:backend`). Tests: `MoneyVocabularyTest` unitario (8),
-  `MoneyVocabularyTest` de API (14), `PatientChargeLedgerTest` (12),
-  `BackfillPatientChargesCommandTest` (4), `PatientStatementTest` (8),
-  `CashDepositTest` (12), `CashReportNettingTest` (4), más
+  `MoneyVocabularyTest` de API (18), `PatientChargeLedgerTest` (12),
+  `BackfillPatientChargesCommandTest` (4), `PatientStatementTest` (9),
+  `CashDepositTest` (13), `CashReportNettingTest` (4), más
   `CashLedgerIntegrityTest`, `CashReportPeriodTest` y `CashReportPopulationTest`
   ajustados. Follow-ups declarados: la UI de caja para devoluciones, depósitos y
   estado de cuenta; la imputación de un pago a un cargo concreto (la corrección
   va por ajuste); y los movimientos electrónicos anteriores a la regla
   sólo-efectivo, que siguen en las sesiones antiguas porque el ledger no se
   reescribe.
+
+- **2026-10-23 (laboratorio protésico: casos, fases y entregas, #285)** — El
+  trabajo de laboratorio deja de vivir en la historia clínica. `lab_cases`
+  guarda la orden del taller —paciente, pieza, trabajo, material, `sent_at`,
+  `promised_at`, `professional_id` que prescribe y `technician_id` asignado— y
+  `status` recorre las cinco fases del issue
+  (`in_preparation → in_laboratory → try_in → delivered → placed`). La máquina
+  sólo avanza: una fase posterior se acepta (un trabajo simple salta la prueba),
+  la misma o una anterior responde 422 nombrando la fase actual y la pedida, y
+  `status` no se escribe por `POST`/`PUT`: la única puerta es
+  `POST /api/lab-cases/{id}/phase`. Entrar en `delivered` marca `delivered_at` y
+  emite `LabCaseReady` (`caso_laboratorio_listo`) por el canal privado
+  `lab-cases` y por `user.{professional_id}`; `placed` marca `placed_at` y no
+  notifica. `GET /api/my-day` publica `ready_lab_cases` del profesional
+  autenticado y su conteo, y el escritorio del profesional escucha el evento,
+  avisa y refresca. **Alcance del escritorio**: `tecnico_dental` deja de leer la
+  historia clínica y el acto clínico (`manage.medical_record`,
+  `manage.evolution`, `manage.attachment`, `view.medical_record_stats` y
+  `view.encounter`), no exporta la ficha del paciente (`export.patient`, cuyo
+  PDF/ZIP lleva evoluciones, odontogramas, registros de especialidad y los
+  binarios de los adjuntos) y deja de suscribirse al canal privado
+  `medical-records`, que publica la evolución, los addenda y los adjuntos, con
+  `TechnicianClinicalRecordScopeTest` cubriendo el criterio de aceptación;
+  conserva el flujo clínico que fijaron F1/F2 (iniciar y cerrar la atención,
+  abrir o anular un acto) y sus registros de especialidad y planes de
+  tratamiento. Catálogo: `view.lab_case` (administrador, recepción, odontólogo,
+  implantólogo, técnico, asistente) y `manage.lab_case` (administrador,
+  odontólogo, implantólogo, técnico). Puertas: `GET /api/lab-cases`,
+  `GET /api/lab-cases/{id}`, `POST /api/lab-cases`, `PUT /api/lab-cases/{id}` y
+  `POST /api/lab-cases/{id}/phase`. La sede sigue siendo dimensión de
+  autorización (`ScopesToBranch`: estampado en el alta, 403 en sede ajena, 404
+  en binding). §4 sincronizado con valores medidos: 42 controllers API, 65
+  modelos, 146 migraciones, 36 eventos, 246 rutas API y 259 totales con web.
+  Tests: `LabCaseDomainTest` (2), `LabCasePhaseMachineTest` (12),
+  `LabCaseApiTest` (16), `TechnicianClinicalRecordScopeTest` (2),
+  `MyDayQueueTest` extendido (3 casos nuevos), `DomainChannelsPrivateTest`,
+  `DomainChannelsAuthorizationTest`, `BroadcastingAuthChannelsTest`,
+  `PermissionCatalogTest` y el smoke unitario `myDay`. Fuera de alcance,
+  declarado: la pantalla del módulo (la issue es `area:backend`);
+  `appointments.treatment_notes`, que el cierre copia del `plan` de la evolución
+  y que la agenda publica desde F2 a todo el que lee citas —recepción incluida—,
+  porque es la conducta de la cita y no la lectura del registro; y
+  `MedicalRecordCreated`, que desde #249 publica el modelo completo en
+  `dashboard-updates`, canal abierto a todos los roles.
+
+- **2026-10-22 (cumplimiento NTS 139 y NTS 188: registro firmado, CIE-10 y
+  motivo de consulta, #286)** — El acto clínico pasa a ser un documento firmado.
+  `clinical_encounters` gana `reason_for_consultation` (aceptado al abrir la
+  urgencia y exigido al cerrar) y el bloque de firma: `signed_by`, `signed_at`,
+  `signer_license` y `signature_hash`. `diagnosis_catalog` deja de ser una tabla
+  muerta: modelo `DiagnosisCatalog`, seeder con el capítulo odontológico de
+  CIE-10 (K00-K14 más estomatología, 20 entradas) y superficie de lectura
+  `GET /api/diagnoses` (permiso `view.diagnosis_catalog`); el acto codifica uno
+  o más diagnósticos en `encounter_diagnoses` con copia congelada de `cie_code`
+  y `name`, y una entrada inactiva no se puede codificar. El cierre exige
+  motivo, al menos un diagnóstico y la firma: el profesional del acto reingresa
+  su contraseña y `App\Support\ClinicalRecordSignature` sella un SHA-256 del
+  contenido (acto, evoluciones, diagnósticos, odontograma y materiales; el plan
+  queda fuera a propósito porque sigue vivo después del acto). Una contraseña
+  inválida responde 422 (`clinical_signature_invalid_credentials`), firmar el
+  acto de otro profesional 403 (`clinical_signature_not_professional`), y ningún
+  rechazo escribe algo. El registro imprimible es
+  `GET /api/encounters/{id}/record`: PDF con los bloques de NTS 139 y el
+  odontograma de NTS 188, sólo para atención cerrada, con auditoría de lectura
+  (`medical_record_viewed`, `surface = attention_record`) y el hash de
+  verificación impreso. El asistente de cierre del SPA captura los tres campos.
+  §4 sincronizado con valores medidos: 42 controllers API, 66 modelos, 147
+  migraciones, 17 seeders activos, 244 rutas API y 257 totales con web.
+  ADR-0014. Tests: `ClinicalRecordComplianceTest` (9), `DiagnosisCatalogTest`
+  (8), `EncounterRecordPdfTest` (5), el trait `ClinicalCompliancePayload` en los
+  siete tests de cierre previos y el fixture de permisos regenerado. Fuera de
+  alcance, documentado: retención y archivo por antigüedad y la firma con
+  certificado digital.
 
 - **2026-10-22 (continuidad y planes versionados, #284/#288)** — Dos decisiones
   de dominio que comparten cimiento. **Continuidad (#284)**: nace

@@ -7,6 +7,7 @@ use App\Events\PatientReady;
 use App\Exceptions\Custody\CustodyException;
 use App\Models\Appointment;
 use App\Models\AppointmentCustodyLog;
+use App\Models\LabCase;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -139,9 +140,10 @@ class AppointmentCustodyService
     /**
      * The professional's queue: today's waiting and upcoming appointments plus
      * whatever act is still open, which is not limited to today because an
-     * unfinished consultation must never disappear from the desk.
+     * unfinished consultation must never disappear from the desk. F5 (#285, S6)
+     * adds the prosthetic cases that came back from the workshop.
      *
-     * @return array{waiting: Collection<int, Appointment>, attending: Collection<int, Appointment>, upcoming: Collection<int, Appointment>}
+     * @return array{waiting: Collection<int, Appointment>, attending: Collection<int, Appointment>, upcoming: Collection<int, Appointment>, ready_lab_cases: Collection<int, LabCase>}
      */
     public function queueFor(User $user): array
     {
@@ -165,6 +167,14 @@ class AppointmentCustodyService
                 ->whereIn('status', ['scheduled', 'confirmed'])
                 ->whereDate('scheduled_at', $today)
                 ->orderBy('scheduled_at')
+                ->get(),
+            'ready_lab_cases' => LabCase::query()
+                ->with(['patient', 'technician', 'dentalPiece'])
+                ->where('professional_id', $user->id)
+                ->ready()
+                ->visibleToBranch($user)
+                ->orderBy('delivered_at')
+                ->orderBy('id')
                 ->get(),
         ];
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * F2 (#282) — the closure payload.
@@ -29,6 +30,21 @@ class CloseClinicalEncounterRequest extends FormRequest
         return [
             'mode' => 'required|in:consultation,execution,plan_session',
             'skip_materials' => 'sometimes|boolean',
+            // F6 (#286): NTS 139 minimums. The complaint is the patient's own
+            // words; the diagnoses are catalogue rows, not free text; the close
+            // is signed by the professional of the act.
+            'reason_for_consultation' => 'required|string|max:1000',
+            'diagnoses' => 'required|array|min:1',
+            'diagnoses.*.diagnosis_catalog_id' => [
+                'required',
+                'integer',
+                'distinct',
+                Rule::exists('diagnosis_catalog', 'id')->where('is_active', true),
+            ],
+            'diagnoses.*.type' => 'sometimes|in:presumptive,definitive,rule_out',
+            'diagnoses.*.notes' => 'nullable|string|max:500',
+            'signature' => 'required|array',
+            'signature.password' => 'required|string',
             'evolution' => 'required|array',
             'evolution.subjective' => 'required|string',
             'evolution.objective' => 'required|string',

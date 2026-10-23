@@ -10,14 +10,19 @@ use App\Models\AiImageAnalysis;
 use App\Models\ClinicalAttachment;
 use App\Models\ClinicalEncounter;
 use App\Models\ClinicalEvolution;
+use App\Models\EncounterDiagnosis;
 use App\Models\OdontogramRecord;
 use App\Models\ProcedureMaterial;
 use App\Models\Quotation;
 use App\Services\ClinicalEncounterService;
+use App\Services\ClinicalRecordAuditService;
 use App\Services\ConsultationService;
+use App\Support\ClinicalRecordSignature;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * F2 (#282) — the encounter doors that do not belong to an appointment.
@@ -35,6 +40,7 @@ class ClinicalEncounterController extends Controller
     public function __construct(
         private readonly ClinicalEncounterService $encounters,
         private readonly ConsultationService $consultations,
+        private readonly ClinicalRecordAuditService $clinicalRecordAudit,
     ) {}
 
     /**
@@ -116,11 +122,63 @@ class ClinicalEncounterController extends Controller
             'attachments',
             'quotations',
             'aiImageAnalyses.reviewedBy',
+            'diagnoses.catalog',
+            'signedBy',
         ]);
 
         return response()->json([
             'data' => array_merge($this->resource($encounter), $this->detail($encounter)),
         ]);
+    }
+
+    /**
+     * F6 (#286) — the printable record of the act (NTS 139).
+     *
+     * The document is emitted from a closed act, which is the signed one: an
+     * open act has no record to print yet. Reading the record is a clinical
+     * read, so it leaves the same trail as the history (#292).
+     */
+    public function record(ClinicalEncounter $encounter): Response|JsonResponse
+    {
+        if (! $encounter->isClosed()) {
+            return response()->json([
+                'error' => [
+                    'error_code' => 'encounter_not_closed',
+                    'message' => 'El registro de atención se emite sobre una atención cerrada.',
+                    'context' => ['current_status' => $encounter->status],
+                ],
+            ], 422);
+        }
+
+        $encounter->loadMissing([
+            'patient',
+            'user',
+            'signedBy',
+            'medicalRecord',
+            'appointment.appointmentType',
+            'clinicalEvolutions',
+            'diagnoses.catalog',
+            'odontogramRecords.dentalPiece',
+            'odontogramRecords.toothSurface',
+            'procedureMaterials.product',
+            'continuityRequests',
+            'treatmentPlan.items',
+        ]);
+
+        if ($encounter->medicalRecord !== null) {
+            $this->clinicalRecordAudit->recordViewed(
+                $encounter->medicalRecord,
+                ClinicalRecordAuditService::SURFACE_ATTENTION_RECORD,
+            );
+        }
+
+        $pdf = Pdf::loadView('reports.encounter-record', [
+            'encounter' => $encounter,
+            'signatureVerified' => ClinicalRecordSignature::matches($encounter),
+            'nextAppointment' => $encounter->continuityRequests->firstWhere('status', 'pending'),
+        ]);
+
+        return $pdf->download("registro-atencion-{$encounter->id}.pdf");
     }
 
     public function store(Request $request): JsonResponse
@@ -129,6 +187,9 @@ class ClinicalEncounterController extends Controller
             'patient_id' => 'required|integer|exists:patients,id',
             'user_id' => 'sometimes|integer|exists:users,id',
             'notes' => 'nullable|string|max:1000',
+            // F6 (#286): the urgency act records its own complaint at opening;
+            // the close still requires it when the act arrived without one.
+            'reason_for_consultation' => 'nullable|string|max:1000',
         ]);
 
         // The professional of the act is the authenticated one. Naming another
@@ -238,6 +299,9 @@ class ClinicalEncounterController extends Controller
             'voided_by' => $encounter->voided_by,
             'void_reason' => $encounter->void_reason,
             'notes' => $encounter->notes,
+            'reason_for_consultation' => $encounter->reason_for_consultation,
+            'signed_at' => $encounter->signed_at?->toIso8601String(),
+            'signed_by' => $encounter->signed_by,
             'patient' => $encounter->patient !== null ? [
                 'id' => $encounter->patient->id,
                 'first_name' => $encounter->patient->first_name,
@@ -263,6 +327,28 @@ class ClinicalEncounterController extends Controller
     {
         return [
             'closed_by_user' => $encounter->closedBy?->name,
+            // F6 (#286): the NTS 139 record of the act.
+            'reason_for_consultation' => $encounter->reason_for_consultation,
+            'diagnoses' => $encounter->diagnoses
+                ->map(fn (EncounterDiagnosis $diagnosis): array => [
+                    'id' => $diagnosis->id,
+                    'diagnosis_catalog_id' => $diagnosis->diagnosis_catalog_id,
+                    'cie_code' => $diagnosis->cie_code,
+                    'name' => $diagnosis->name,
+                    'type' => $diagnosis->type,
+                    'notes' => $diagnosis->notes,
+                ])
+                ->values()
+                ->all(),
+            'signature' => [
+                'signed' => $encounter->isSigned(),
+                'signed_at' => $encounter->signed_at?->toIso8601String(),
+                'signed_by' => $encounter->signed_by,
+                'signed_by_user' => $encounter->signedBy?->name,
+                'license' => $encounter->signer_license,
+                'hash' => $encounter->signature_hash,
+                'verified' => ClinicalRecordSignature::matches($encounter),
+            ],
             'evolutions' => $encounter->clinicalEvolutions
                 ->map(fn (ClinicalEvolution $evolution): array => [
                     'id' => $evolution->id,

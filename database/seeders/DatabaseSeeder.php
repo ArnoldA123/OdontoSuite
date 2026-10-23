@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             // 3. Configuracion clinica
             SpecialtySeeder::class,
             UserSpecialtySeeder::class, // Issue #211: pivote desde specialty legacy
+            DiagnosisCatalogSeeder::class, // F6 (#286): codigos CIE-10 del capitulo odontologico
             AppointmentTypeSeeder::class,
             EnvironmentSeeder::class,
             ProcedureCatalogSeeder::class, // depende de SpecialtySeeder
