@@ -524,7 +524,7 @@ documentada y no bloquea producción.
   145 migraciones, 241 rutas API y 254 totales con web. ADR-0013. Tests:
   `RecallServiceTest` (11), `ContinuityTest` (9), `PlanSessionConsumptionTest`
   (9), `TreatmentPlanPriorityTest` (4), `TreatmentPlanVersioningTest` (9),
-  `TreatmentPlanAlternativesTest` (6), más el fixture de permisos regenerado y
+  `TreatmentPlanAlternativesTest` (7), más el fixture de permisos regenerado y
   los smokes JS del modal, detalle y lista de planes. Follow-up declarado: la
   superficie web de la cola de continuidad de recepción (la issue es
   `area:backend`).

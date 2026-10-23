@@ -77,8 +77,8 @@ continuidad y recepción la materializa por la puerta que ya valida conflictos.
 
 - `RecallServiceTest` (11), `ContinuityTest` (9) y
   `PlanSessionConsumptionTest` (9): verdes en MySQL.
-- Suite completa `vendor/bin/phpunit -c phpunit.mysql.xml`: 2529 tests,
-  15140 assertions, `OK`.
+- Suite completa `vendor/bin/phpunit -c phpunit.mysql.xml`: 2530 tests,
+  15146 assertions, `OK`.
 - Regresiones de citas, presupuestos, permisos y planes: 199 + 31 verdes.
 - Vitest: 114 archivos, 946 tests. `pnpm build`, ESLint (0 errores),
   Prettier, Pint y `doc-drift` (14/14) en verde.
