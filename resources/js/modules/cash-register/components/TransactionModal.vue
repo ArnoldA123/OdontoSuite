@@ -15,6 +15,15 @@
         {{ generalError }}
       </div>
 
+      <AccountingLockNotice
+        v-if="lockBlocked"
+        v-model="lockReason"
+        :message="lockMessage"
+        :error="lockReasonError"
+        :loading="loading"
+        @retry="retryWithOverride"
+      />
+
       <UiStatusBadge
         :variant="isRefund ? 'error' : 'success'"
         :label="isRefund ? 'Egreso' : 'Ingreso'"
@@ -233,8 +242,10 @@ import UiSelect from '@/components/ui/Select.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
+import AccountingLockNotice from '@/components/money/AccountingLockNotice.vue'
 import { useTransactions } from '@/composables/useTransactions'
 import { useApi } from '@/composables/useApi'
+import { useAccountingLock } from '@/composables/useAccountingLock'
 import { formatCurrency } from '@/composables/useFormatters'
 import { PlusIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 
@@ -254,6 +265,16 @@ const emit = defineEmits(['update:modelValue', 'success'])
 
 const { createTransaction } = useTransactions()
 const { get } = useApi()
+const {
+  blocked: lockBlocked,
+  message: lockMessage,
+  reason: lockReason,
+  reasonError: lockReasonError,
+  reset: resetLock,
+  detect: detectLock,
+  applyValidationErrors: applyLockValidationErrors,
+  authorize: authorizeLock
+} = useAccountingLock()
 
 const loading = ref(false)
 const errors = ref({})
@@ -413,17 +434,29 @@ const handleSubmit = async () => {
     return
   }
 
+  await performSubmit(null)
+}
+
+const buildPayload = override => ({
+  ...formData.value,
+  patient_id: selectedPatient.value.id,
+  description: buildDescription(),
+  ...override
+})
+
+const performSubmit = async override => {
   loading.value = true
   try {
-    const result = await createTransaction({
-      ...formData.value,
-      patient_id: selectedPatient.value.id,
-      description: buildDescription()
-    })
+    const result = await createTransaction(buildPayload(override))
+    resetLock()
     emit('success', result)
     close()
   } catch (error) {
     const data = error.response?.data
+
+    if (detectLock(error)) return
+    if (applyLockValidationErrors(data?.errors)) return
+
     if (data?.errors) {
       errors.value = {
         ...data.errors,
@@ -439,6 +472,14 @@ const handleSubmit = async () => {
   }
 }
 
+const retryWithOverride = async () => {
+  const override = authorizeLock()
+  if (!override) return
+
+  errors.value = {}
+  await performSubmit(override)
+}
+
 const formatAppointment = appointment => {
   const typeName = appointment.appointment_type?.name || 'Cita'
   const date = new Date(appointment.scheduled_at).toLocaleDateString('es-PE')
@@ -452,6 +493,7 @@ const resetForm = () => {
   patientResults.value = []
   patientAppointments.value = []
   errors.value = {}
+  resetLock()
 }
 
 watch(

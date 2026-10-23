@@ -87,6 +87,16 @@ class AccountingLockHttpGuardTest extends TestCase
         ])->refresh();
     }
 
+    private function blockedMessage(string $module, string $lockedThrough, string $action): string
+    {
+        return sprintf(
+            'El módulo [%s] está bloqueado contablemente hasta el %s: la operación [%s] sobre un registro de esa fecha requiere autorización registrada.',
+            $module,
+            $lockedThrough,
+            $action,
+        );
+    }
+
     public function test_updating_a_locked_quotation_answers_403_and_audits_the_attempt(): void
     {
         $quotation = $this->quotationAt(now()->subDays(5));
@@ -102,6 +112,42 @@ class AccountingLockHttpGuardTest extends TestCase
         $this->assertSame($quotation->id, $audit->auditable_id);
         $this->assertSame(AccountingLockService::QUOTATIONS, $audit->metadata['module']);
         $this->assertSame($this->branch->id, $audit->metadata['branch_id']);
+    }
+
+    public function test_the_blocked_answer_publishes_the_machine_code_and_the_api_message(): void
+    {
+        $quotation = $this->quotationAt(now()->subDays(5));
+        $lockedThrough = now()->subDays(2);
+        $this->lock(AccountingLockService::QUOTATIONS, $lockedThrough);
+
+        $response = $this->putJson("/api/quotations/{$quotation->id}", ['notes' => 'Nota reescrita']);
+
+        $response->assertForbidden();
+        $response->assertJsonPath('code', 'accounting_lock_blocked');
+        $response->assertJsonPath(
+            'message',
+            $this->blockedMessage(
+                AccountingLockService::QUOTATIONS,
+                $lockedThrough->toDateString(),
+                'update',
+            ),
+        );
+    }
+
+    public function test_a_short_override_reason_keeps_the_422_contract(): void
+    {
+        $quotation = $this->quotationAt(now()->subDays(5));
+        $this->lock(AccountingLockService::QUOTATIONS, now()->subDays(2));
+
+        $response = $this->putJson("/api/quotations/{$quotation->id}", [
+            'notes' => 'Nota reescrita',
+            'lock_override_reason' => 'corto',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['lock_override_reason']);
+        $response->assertJsonMissingPath('code');
+        $this->assertSame('Nota original', $quotation->fresh()->notes);
     }
 
     public function test_updating_a_locked_quotation_with_a_registered_reason_succeeds(): void

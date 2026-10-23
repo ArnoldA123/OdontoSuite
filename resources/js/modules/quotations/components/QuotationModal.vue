@@ -15,6 +15,15 @@
         {{ submitError }}
       </p>
 
+      <AccountingLockNotice
+        v-if="lockBlocked"
+        v-model="lockReason"
+        :message="lockMessage"
+        :error="lockReasonError"
+        :loading="saving"
+        @retry="retryWithOverride"
+      />
+
       <fieldset class="space-y-4" data-form-section="patient">
         <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
           Paciente y vigencia
@@ -345,6 +354,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useQuotations } from '../../../composables/useQuotations'
 import { useApi } from '../../../composables/useApi'
+import { useAccountingLock } from '../../../composables/useAccountingLock'
 import { formatCurrency } from '../../../composables/useFormatters'
 import { calendarDateKey } from '../quotationMeta'
 import {
@@ -353,6 +363,7 @@ import {
   siteTypeOf
 } from '../../procedure-catalog/procedureSite'
 import PatientSelector from '../../../components/ui/PatientSelector.vue'
+import AccountingLockNotice from '../../../components/money/AccountingLockNotice.vue'
 import ProcedureCatalogPicker from '../../../components/procedures/ProcedureCatalogPicker.vue'
 import ProcedureSiteFields from '../../../components/procedures/ProcedureSiteFields.vue'
 import TreatmentPlanSelector from '../../../components/ui/TreatmentPlanSelector.vue'
@@ -373,6 +384,16 @@ const emit = defineEmits(['close', 'saved'])
 
 const { createQuotation, updateQuotation } = useQuotations()
 const { get } = useApi()
+const {
+  blocked: lockBlocked,
+  message: lockMessage,
+  reason: lockReason,
+  reasonError: lockReasonError,
+  reset: resetLock,
+  detect: detectLock,
+  applyValidationErrors: applyLockValidationErrors,
+  authorize: authorizeLock
+} = useAccountingLock()
 
 const patient = ref(null)
 const plan = ref(null)
@@ -609,19 +630,37 @@ const onSubmit = async () => {
     return
   }
 
+  await performSubmit(null)
+}
+
+const performSubmit = async override => {
   saving.value = true
   try {
-    const payload = buildPayload()
+    const payload = { ...buildPayload(), ...override }
     const persisted = props.isEdit
       ? await updateQuotation(props.quotation.id, payload)
       : await createQuotation(payload)
+    resetLock()
     emit('saved', persisted)
   } catch (error) {
-    errors.value = normalizeServerErrors(error.response?.data?.errors)
-    submitError.value = error.response?.data?.message || 'No pudimos guardar el presupuesto.'
+    const data = error.response?.data
+
+    if (detectLock(error)) return
+    if (applyLockValidationErrors(data?.errors)) return
+
+    errors.value = normalizeServerErrors(data?.errors)
+    submitError.value = data?.message || 'No pudimos guardar el presupuesto.'
   } finally {
     saving.value = false
   }
+}
+
+const retryWithOverride = async () => {
+  const override = authorizeLock()
+  if (!override) return
+
+  submitError.value = ''
+  await performSubmit(override)
 }
 
 const addItem = () => {
@@ -658,6 +697,7 @@ const handlePlanSelected = selectedPlan => {
 const initialize = () => {
   errors.value = {}
   submitError.value = ''
+  resetLock()
 
   if (!props.quotation) {
     patient.value = null
