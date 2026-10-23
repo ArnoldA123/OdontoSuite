@@ -145,4 +145,5 @@ código ni tests.
 | Suite PHP completa | `vendor/bin/phpunit -c phpunit.mysql.xml` (MySQL, base propia) | OK (2686 tests, 16242 assertions) |
 | Suite JS completa | `pnpm test:js` | 115 archivos, 956 tests, todos en verde |
 | Smoke del detalle de paciente | `pnpm vitest run tests/js/smoke/patients-detail-redesign.test.js` | 14 passed |
+| Revisión nativa (RDD) | `assess` → `inspect` → `start` → captura de reviewers | **Bloqueada por el transporte**: `pi-host-relay-transport-failure`, «Stream ended without finish_reason» en el grupo de 3 y en el slot `review-risk` (9m 28s). Lineage `review-2cd04e630ed70cfc` abierta, sin mutación. |
 
