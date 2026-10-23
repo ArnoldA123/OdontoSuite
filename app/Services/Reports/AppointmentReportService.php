@@ -3,24 +3,32 @@
 namespace App\Services\Reports;
 
 use App\Models\Appointment;
+use App\Services\Reports\Concerns\ResolvesBranchFilter;
 use App\Services\Reports\Concerns\ResolvesReportPeriod;
 use Carbon\Carbon;
 
 class AppointmentReportService
 {
+    use ResolvesBranchFilter;
     use ResolvesReportPeriod;
 
     /**
      * Get appointment report data.
+     *
+     * The sede is the one the appointment was booked in (#303, L2): a visit has
+     * exactly one branch, so the filter is a column and not an interpretation.
      */
     public function getReportData(array $filters = []): array
     {
         [$startDate, $endDate] = $this->resolvePeriod($filters);
         $professionalId = $filters['professional_id'] ?? null;
         $environmentId = $filters['environment_id'] ?? null;
+        $branchId = $this->branchFilter($filters);
 
         $query = Appointment::with(['patient', 'user', 'dentalChair', 'appointmentType'])
             ->whereBetween('scheduled_at', [$startDate, $endDate]);
+
+        $query = $this->filterBranch($query, 'branch_id', $branchId);
 
         if ($professionalId) {
             $query->where('user_id', $professionalId);

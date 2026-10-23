@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Models\Appointment;
 use App\Models\DentalChair;
+use App\Services\Reports\Concerns\ResolvesBranchFilter;
 use App\Services\Reports\Concerns\ResolvesMoneyTotals;
 use App\Services\Reports\Concerns\ResolvesReportPeriod;
 use Carbon\Carbon;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class UtilizationReportService
 {
+    use ResolvesBranchFilter;
     use ResolvesMoneyTotals;
     use ResolvesReportPeriod;
 
@@ -20,18 +22,25 @@ class UtilizationReportService
      * Availability is the chair's real working days (D4), the numerator counts
      * reservations that actually occupied the chair (D5), and revenue is the net
      * money collected against that chair's appointments (D1, S4).
+     *
+     * A chair belongs to one sede (#303, L2), so filtering by sede is filtering
+     * the population: every aggregate below is already bounded by the chairs of
+     * that sede.
      */
     public function getReportData(array $filters = []): array
     {
         [$startDate, $endDate] = $this->resolvePeriod($filters);
         $professionalId = $filters['professional_id'] ?? null;
         $environmentId = $filters['environment_id'] ?? null;
+        $branchId = $this->branchFilter($filters);
 
         $query = DentalChair::query();
 
         if ($environmentId) {
             $query->where('id', $environmentId);
         }
+
+        $query = $this->filterBranch($query, 'branch_id', $branchId);
 
         $environments = $query->orderBy('name')->get();
 
