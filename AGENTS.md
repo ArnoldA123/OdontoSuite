@@ -108,13 +108,13 @@ app/
 
 resources/js/
   app.js                   # entry + router (guards en router/auth.js)
-  composables/             # 42 composables singleton
+  composables/             # 43 composables singleton
   components/
     ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
     procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ProcedureSiteFields,
                            #   ImportCsvModal
-  modules/                 # 23 módulos de dominio (ver §5)
+  modules/                 # 24 módulos de dominio (ver §5)
   router/auth.js           # requireAuth, requireGuest (localStorage)
   design-system/tokens.js  # design tokens
 
@@ -144,33 +144,34 @@ docs/
 
 ---
 
-## 5. Módulos del frontend (23 módulos, 23 páginas)
+## 5. Módulos del frontend (24 módulos, 24 páginas)
 
-| Módulo                    | Ruta                        | Roles                                 |
-| ------------------------- | --------------------------- | ------------------------------------- |
-| Dashboard                 | `/dashboard`                | todos                                 |
-| Mi día                    | `/my-day`                   | admin, todos los clínicos             |
-| Calendario                | `/calendar`                 | todos los clínicos                    |
-| Pacientes                 | `/patients`                 | todos                                 |
-| Profesionales             | `/professionals`            | admin                                 |
-| Ambientes                 | `/environments`             | admin                                 |
-| Tipos de cita             | `/appointment-types`        | admin                                 |
-| Especialidades (catálogo) | `/specialties`              | admin                                 |
-| Sucursales                | `/settings/branches`        | admin                                 |
-| Métodos de pago           | `/settings/payment-methods` | admin                                 |
-| Caja                      | `/cash-register`            | admin, finanzas, recep                |
-| BI                        | `/business-intelligence`    | admin, finanzas                       |
-| Planes de tratamiento     | `/treatment-plans`          | clínicos                              |
-| Presupuestos              | `/quotations`               | admin, finanzas, odonto, implant      |
-| Historias clínicas        | `/medical-records`          | odontólogos, implantólogos, asistente |
-| Registros especialidad    | `/specialty-records`        | clínicos                              |
-| Análisis IA               | `/ai-analysis`              | admin, odonto, implantólogo           |
-| Catálogo procedimientos   | `/procedure-catalog`        | admin                                 |
-| Mis procedimientos        | `/my-procedures`            | clínicos (favoritos)                  |
-| Recepción procedimientos  | `/reception-procedures`     | recep                                 |
-| Estadísticas catálogo     | `/procedure-stats`          | admin, finanzas                       |
-| Continuidad               | `/continuity`               | admin, recepción, clínicos            |
-| Laboratorio protésico     | `/lab-cases`                | admin, recepción, clínicos            |
+| Módulo                    | Ruta                         | Roles                                 |
+| ------------------------- | ---------------------------- | ------------------------------------- |
+| Dashboard                 | `/dashboard`                 | todos                                 |
+| Mi día                    | `/my-day`                    | admin, todos los clínicos             |
+| Calendario                | `/calendar`                  | todos los clínicos                    |
+| Pacientes                 | `/patients`                  | todos                                 |
+| Profesionales             | `/professionals`             | admin                                 |
+| Ambientes                 | `/environments`              | admin                                 |
+| Tipos de cita             | `/appointment-types`         | admin                                 |
+| Especialidades (catálogo) | `/specialties`               | admin                                 |
+| Sucursales                | `/settings/branches`         | admin                                 |
+| Métodos de pago           | `/settings/payment-methods`  | admin                                 |
+| Caja                      | `/cash-register`             | admin, finanzas, recep                |
+| BI                        | `/business-intelligence`     | admin, finanzas                       |
+| Planes de tratamiento     | `/treatment-plans`           | clínicos                              |
+| Presupuestos              | `/quotations`                | admin, finanzas, odonto, implant      |
+| Historias clínicas        | `/medical-records`           | odontólogos, implantólogos, asistente |
+| Registros especialidad    | `/specialty-records`         | clínicos                              |
+| Análisis IA               | `/ai-analysis`               | admin, odonto, implantólogo           |
+| Catálogo procedimientos   | `/procedure-catalog`         | admin                                 |
+| Mis procedimientos        | `/my-procedures`             | clínicos (favoritos)                  |
+| Recepción procedimientos  | `/reception-procedures`      | recep                                 |
+| Estadísticas catálogo     | `/procedure-stats`           | admin, finanzas                       |
+| Continuidad               | `/continuity`                | admin, recepción, clínicos            |
+| Laboratorio protésico     | `/lab-cases`                 | admin, recepción, clínicos            |
+| Bloqueo contable          | `/settings/accounting-locks` | admin                                 |
 
 **Auth frontend**: el router NO tiene `meta.roles`. La API rechaza con 403 y el
 frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
@@ -208,6 +209,20 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 - Multi-rol con middleware `permission:` (alias `CheckPermission`),
   `cash.session`
 - Multi-sede parcial (filtros en 6 controllers)
+- Alcance por sede en BI completo (#303): los seis reportes y su exportación
+  aceptan `branch_id` resuelto con
+  `App\Authorization\BranchAccess::effectiveFilter` (sede propia por omisión,
+  403 al pedir otra) y el reporte de ingresos gana el corte «Por Sede», que
+  agrupa por la sede del cajón, deja el dinero sin cajón en `Sin sede` y suma
+  exactamente el resumen del período. La atribución de un reporte de período por
+  sede es la sede donde ocurrió la atención (ADR-0010).
+- Superficie de la sede (#304): `/settings/accounting-locks` administra el
+  bloqueo contable por módulo y sede (fila global de gerencia vs. sede propia),
+  el detalle del catálogo edita el tarifario por sede con vigencia y estado, y
+  BI publica el selector de sede (solo alcance de grupo) y el bloque consolidado
+  con su doble desglose. Gobiernan `can.manageAccountingLock`,
+  `can.manageBranchPrice` y `can.viewReports`; el 403 del bloqueo contable se
+  avisa en línea en los modales de dinero con reintento autorizado por motivo.
 - Calendario con FullCalendar, bloques, waiting list
 - Caja completa (apertura/cierre, movimientos, arqueos, PDF)
 - Vocabulario del dinero y ledger del paciente (#287):
@@ -659,6 +674,39 @@ documentada y no bloquea producción.
   los conteos de §4 no cambian. Tests: `consultation-wizard-reset.test.js` (2) y
   el caso de firma de `consultation-closure-nts139.test.js` ajustado al paso
   inicial.
+- **2026-10-23 (BI por sede y superficie de la sede, #303/#304)** — Los seis
+  reportes de Business Intelligence y su exportación aceptan `branch_id`
+  resuelto con `App\Authorization\BranchAccess::effectiveFilter`: un usuario con
+  sede recibe la suya por omisión y pedir otra responde 403, y la exportación
+  respeta el mismo filtro. El reporte de ingresos gana el corte «Por Sede», que
+  agrupa por la sede del cajón, deja el dinero sin cajón en la fila `Sin sede` y
+  suma exactamente el resumen del período. La atribución de un reporte de
+  período por sede es la sede donde ocurrió la atención (#303 L2, ADR-0010):
+  pacientes con cita en la sede con su dinero de la sede, sillones por su sede,
+  profesionales por actividad, citas por `appointments.branch_id` e ingresos por
+  `cash_register_sessions.branch_id`; `patients.branch_id` sigue siendo la sede
+  de registro de la ficha, no la clave de un reporte. Superficie: nueva página
+  `/settings/accounting-locks` (`manage.accounting_lock`) que lista los cuatro
+  módulos con su fecha efectiva y su origen (sede, global o sin bloqueo) y
+  permite fijar y retirar el bloqueo, distinguiendo gerencia (fila global) de
+  administrador de sede; el detalle del catálogo suma el tab «Tarifario»
+  (`manage.branch_price`) para alta, edición y retiro del precio por sede con
+  ventana de vigencia, precio de lista y estado (vigente, futuro, vencido), y su
+  API acepta `procedure_id` como filtro; BI gana selector de sede visible solo
+  con alcance de grupo, alimentado por `GET /api/branches/active`, y el bloque
+  consolidado con su doble desglose (que no se exporta). Los modales de dinero
+  reconocen el bloqueo contable por código de máquina: `AccountingLockService`
+  lanza `App\Exceptions\AccountingLockBlockedException`, que publica
+  `code: accounting_lock_blocked` con el mismo 403 y el mismo mensaje, y el
+  aviso se muestra en línea con el campo de motivo de al menos 10 caracteres y
+  el reintento autorizado. §4 y §5 sincronizados: 20 módulos de dominio y 22
+  páginas. Tests: `BranchScopeReportTest` (6), `AccountingLockHttpGuardTest`
+  extendido, `ProcedureBranchPriceTest` (9), `businessIntelligenceBranch` (5),
+  `business-intelligence-branch` (8), `accountingLockMeta` (12),
+  `accounting-locks` (13), `branchTariff` (6), `procedure-tariff` (4),
+  `accountingLockOverride` (7), `money-lock-notice` (3) y `usePermissions`
+  extendido; `BusinessIntelligenceRenderTest` y `RevenueReportContractTest`
+  ajustados al corte nuevo.
 
 - **2026-10-23 (caja: vocabulario del dinero y estado de cuenta del paciente,
   #287)** — La caja y la deuda del paciente dejan de compartir un solo
