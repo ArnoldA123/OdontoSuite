@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Patient;
 use App\Models\PatientCharge;
+use App\Models\PatientChargeAllocation;
 use App\Models\Transaction;
 use App\Support\MoneyVocabulary;
 use Illuminate\Support\Carbon;
@@ -28,6 +29,12 @@ use Illuminate\Support\Carbon;
  *
  * The ledger belongs to the patient, not to a sede: the ficha is shared between
  * branches (ADR-0010).
+ *
+ * #321 (S1-S4) — the statement also publishes the imputation as the view it is:
+ * how much of each charge a completed payment covered (`charge_balances`) and
+ * how much collected money no charge claimed (`unallocated_payments`). The
+ * totals of `summary` and the two balances do not change because of it: the
+ * allocation never moves money, it only says which charge the money paid.
  */
 class PatientStatementService
 {
@@ -81,6 +88,7 @@ class PatientStatementService
 
         $entries = $this->entries($patient, $from, $to);
         $summary = $this->summary($entries, $opening);
+        $allocation = $this->allocationView($patient, $to);
 
         return [
             'patient' => [
@@ -96,6 +104,8 @@ class PatientStatementService
             'opening_balance' => $opening,
             'closing_balance' => $summary['balance'],
             'summary' => $summary,
+            'charge_balances' => $allocation['rows'],
+            'unallocated_payments' => $this->unallocatedPayments($patient, $to, $allocation['covered']),
             'entries' => array_map(static fn (array $item): array => $item['entry'], $entries),
         ];
     }
@@ -274,6 +284,136 @@ class PatientStatementService
         $summary['balance'] = $balance;
 
         return $summary;
+    }
+
+    /**
+     * #321 (S1-S2) — the balance of each charge as of `$to`, and the money the
+     * allocations covered.
+     *
+     * The view reads the charges up to the cut and the allocations of completed
+     * payments up to it, so a charge of an earlier period still shows the
+     * payments that covered it. A refund does not say which charge it returns,
+     * so it releases the coverage of its own payment in the same proportion the
+     * payment lost (`covered = allocation × (amount − refunded) / amount`); the
+     * rounding residual stays on the last allocation of that payment so the sum
+     * of the rows is the sum that was computed.
+     *
+     * @return array{rows: list<array<string, mixed>>, covered: float}
+     */
+    private function allocationView(Patient $patient, Carbon $to): array
+    {
+        $charges = PatientCharge::query()
+            ->where('patient_id', $patient->id)
+            ->where('charged_at', '<=', $to)
+            ->orderBy('charged_at')
+            ->orderBy('id')
+            ->get();
+
+        if ($charges->isEmpty()) {
+            return ['rows' => [], 'covered' => 0.0];
+        }
+
+        $allocations = PatientChargeAllocation::query()
+            ->whereIn('patient_charge_id', $charges->pluck('id'))
+            ->whereHas('transaction', fn ($query) => $query
+                ->where('status', 'completed')
+                ->where('created_at', '<=', $to))
+            ->orderBy('id')
+            ->get(['id', 'patient_charge_id', 'transaction_id', 'amount']);
+
+        $covered = [];
+
+        if ($allocations->isNotEmpty()) {
+            $paymentIds = $allocations->pluck('transaction_id')->unique()->values();
+
+            $payments = Transaction::query()
+                ->whereIn('id', $paymentIds)
+                ->where('status', 'completed')
+                ->where('created_at', '<=', $to)
+                ->get(['id', 'amount'])
+                ->keyBy('id');
+
+            $refunded = Transaction::query()
+                ->whereIn('parent_transaction_id', $paymentIds)
+                ->where('type', MoneyVocabulary::REFUND)
+                ->where('status', 'completed')
+                ->where('created_at', '<=', $to)
+                ->groupBy('parent_transaction_id')
+                ->selectRaw('parent_transaction_id, SUM(amount) as total')
+                ->pluck('total', 'parent_transaction_id');
+
+            foreach ($allocations->groupBy('transaction_id') as $paymentId => $group) {
+                $payment = $payments->get($paymentId);
+
+                if ($payment === null) {
+                    continue;
+                }
+
+                $amount = round((float) $payment->amount, 2);
+                $ratio = $amount > 0
+                    ? max(0.0, min(1.0, ($amount - (float) ($refunded[$paymentId] ?? 0)) / $amount))
+                    : 0.0;
+
+                $coveredTotal = round((float) $group->sum('amount') * $ratio, 2);
+                $assigned = 0.0;
+                $rows = $group->values();
+
+                foreach ($rows as $index => $allocation) {
+                    $share = $index === $rows->count() - 1
+                        ? round($coveredTotal - $assigned, 2)
+                        : round((float) $allocation->amount * $ratio, 2);
+
+                    $assigned = round($assigned + $share, 2);
+                    $chargeId = (int) $allocation->patient_charge_id;
+                    $covered[$chargeId] = round(($covered[$chargeId] ?? 0.0) + $share, 2);
+                }
+            }
+        }
+
+        $rows = [];
+        $coveredTotal = 0.0;
+
+        foreach ($charges as $charge) {
+            $amount = round((float) $charge->amount, 2);
+            $allocated = round((float) ($covered[$charge->id] ?? 0.0), 2);
+            $coveredTotal = round($coveredTotal + $allocated, 2);
+
+            $rows[] = [
+                'id' => $charge->id,
+                'reference' => 'CHG-'.str_pad((string) $charge->id, 6, '0', STR_PAD_LEFT),
+                'date' => $charge->charged_at->toIso8601String(),
+                'description' => $charge->description,
+                'amount' => $amount,
+                'allocated' => $allocated,
+                'balance' => round($amount - $allocated, 2),
+            ];
+        }
+
+        return ['rows' => $rows, 'covered' => $coveredTotal];
+    }
+
+    /**
+     * #321 (S1/S3) — the collected money no charge claimed. Refunds reduce what
+     * is available to impute, and the charges covered by the allocations are
+     * subtracted so the number is what is left to assign.
+     */
+    private function unallocatedPayments(Patient $patient, Carbon $to, float $covered): float
+    {
+        $collected = (float) Transaction::query()
+            ->where('patient_id', $patient->id)
+            ->where('type', MoneyVocabulary::PAYMENT)
+            ->where('status', 'completed')
+            ->where('created_at', '<=', $to)
+            ->sum('amount');
+
+        $refunded = (float) Transaction::query()
+            ->where('patient_id', $patient->id)
+            ->where('type', MoneyVocabulary::REFUND)
+            ->where('status', 'completed')
+            ->where('created_at', '<=', $to)
+            ->sum('amount');
+
+        return round($collected - $refunded - $covered, 2);
     }
 
     /**

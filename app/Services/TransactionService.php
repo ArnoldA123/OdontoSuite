@@ -25,6 +25,7 @@ class TransactionService
     public function __construct(
         private readonly AccountingLockService $accountingLocks,
         private readonly PatientStatementService $statements,
+        private readonly PatientChargeAllocationService $allocations,
     ) {}
 
     /**
@@ -112,6 +113,13 @@ class TransactionService
                 'processed_at' => now(),
             ]);
 
+            // #321 (S1): the payment may declare the charges it settles. The
+            // rows are written in the same transaction as the payment, so a
+            // refused imputation leaves neither the money nor the view.
+            if (! empty($data['allocations'])) {
+                $this->allocations->allocate($transaction, $data['allocations']);
+            }
+
             // Only the cash types write a movement, and only when the method is
             // physical cash: a card, transfer or wallet sale is money collected
             // for the patient but it never enters the drawer, so counting it in
@@ -127,6 +135,10 @@ class TransactionService
             DB::commit();
 
             $transaction->load(['patient', 'appointment', 'treatmentPlan', 'paymentMethod', 'createdBy', 'authorizedBy']);
+
+            if (! empty($data['allocations'])) {
+                $transaction->load('chargeAllocations.patientCharge');
+            }
 
             // Emitir eventos de WebSocket
             if ($cashMovement instanceof CashMovement) {

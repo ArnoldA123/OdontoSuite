@@ -172,6 +172,25 @@ class StoreTransactionRequest extends FormRequest
                 'nullable',
                 'array',
             ],
+            // #321 (S1): only a payment settles charges, and the sums are
+            // checked by PatientChargeAllocationService against the ledger.
+            'allocations' => [
+                'nullable',
+                'array',
+                'min:1',
+                'prohibited_unless:type,'.MoneyVocabulary::PAYMENT,
+            ],
+            'allocations.*.patient_charge_id' => [
+                'required',
+                'integer',
+                'distinct',
+                'exists:patient_charges,id',
+            ],
+            'allocations.*.amount' => [
+                'required',
+                'numeric',
+                'min:0.01',
+            ],
         ];
     }
 
@@ -212,6 +231,16 @@ class StoreTransactionRequest extends FormRequest
             'notes.max' => 'Las notas no pueden exceder los 500 caracteres.',
             'reference_number.max' => 'El número de referencia no puede exceder los 100 caracteres.',
             'metadata.array' => 'Los metadatos deben ser un objeto.',
+            'allocations.array' => 'Las imputaciones deben ser una lista.',
+            'allocations.min' => 'Debe indicar al menos un cargo a imputar.',
+            'allocations.prohibited_unless' => 'Sólo un pago puede imputarse a los cargos del paciente.',
+            'allocations.*.patient_charge_id.required' => 'El cargo es requerido.',
+            'allocations.*.patient_charge_id.integer' => 'El cargo debe ser un identificador válido.',
+            'allocations.*.patient_charge_id.distinct' => 'El cargo está repetido en la imputación.',
+            'allocations.*.patient_charge_id.exists' => 'El cargo seleccionado no existe.',
+            'allocations.*.amount.required' => 'El importe de la imputación es requerido.',
+            'allocations.*.amount.numeric' => 'El importe de la imputación debe ser numérico.',
+            'allocations.*.amount.min' => 'El importe de la imputación debe ser mayor que cero.',
         ];
     }
 
