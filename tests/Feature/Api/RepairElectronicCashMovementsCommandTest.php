@@ -163,7 +163,9 @@ class RepairElectronicCashMovementsCommandTest extends TestCase
         $this->assertSame('170.00', $this->session->closing_amount);
         $this->assertSame('0.00', $this->session->difference_amount);
         $this->assertSame('closed', $this->session->status);
-        $this->assertSame(
+        // MySQL 8 stores a JSON object with its keys normalized (shortest
+        // first), so the stored arqueo is compared by value, not by order.
+        $this->assertEquals(
             ['denominations' => ['100' => 1, '50' => 1, '20' => 1]],
             $this->session->arqueo_data,
         );
