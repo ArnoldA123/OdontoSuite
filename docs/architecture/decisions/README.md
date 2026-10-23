@@ -5,15 +5,16 @@ material architectural decision, its context, and its consequences.
 
 ## Index
 
-| ADR                                                  | Title                                                                      | Status                          |
-| ---------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------- |
-| [0007](./0007-user-specialty-source-of-truth.md)     | User specialty source-of-truth — pivot over JSON                           | Accepted                        |
-| [0008](./0008-procedure-catalog-legacy-specialty.md) | Procedure catalog `legacy_specialty` deprecation                           | Accepted (deprecation in force) |
-| 0009                                                 | Migration drift: additive-only policy + driver-conditional guards          | Accepted 2026-08-05 — see below |
-| [0010](./0010-branch-scope-authorization.md)         | La sede es una dimensión de autorización                                   | Accepted                        |
-| [0011](./0011-quotation-igv-policy.md)               | El IGV de un presupuesto se descompone del precio                          | Accepted                        |
-| [0012](./0012-catalog-applicability-and-tariff.md)   | El catálogo declara sobre qué se hace y a qué precio, con vigencia         | Accepted                        |
-| [0013](./0013-plan-versioning-and-continuity.md)     | El plan aceptado es una versión inmutable; la continuidad es una solicitud | Accepted                        |
+| ADR                                                   | Title                                                                      | Status                          |
+| ----------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------- |
+| [0007](./0007-user-specialty-source-of-truth.md)      | User specialty source-of-truth — pivot over JSON                           | Accepted                        |
+| [0008](./0008-procedure-catalog-legacy-specialty.md)  | Procedure catalog `legacy_specialty` deprecation                           | Accepted (deprecation in force) |
+| 0009                                                  | Migration drift: additive-only policy + driver-conditional guards          | Accepted 2026-08-05 — see below |
+| [0010](./0010-branch-scope-authorization.md)          | La sede es una dimensión de autorización                                   | Accepted                        |
+| [0011](./0011-quotation-igv-policy.md)                | El IGV de un presupuesto se descompone del precio                          | Accepted                        |
+| [0012](./0012-catalog-applicability-and-tariff.md)    | El catálogo declara sobre qué se hace y a qué precio, con vigencia         | Accepted                        |
+| [0013](./0013-plan-versioning-and-continuity.md)      | El plan aceptado es una versión inmutable; la continuidad es una solicitud | Accepted                        |
+| [0014](./0014-money-vocabulary-and-patient-ledger.md) | El dinero tiene vocabulario cerrado y el paciente tiene ledger propio      | Accepted                        |
 
 0009 has no separate body yet. Its decision is enforced by
 `tests/Unit/SddCheckMigrationsTest.php`, which scans `database/migrations/` and
