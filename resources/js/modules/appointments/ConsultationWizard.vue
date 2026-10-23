@@ -844,6 +844,16 @@ watch(
   { immediate: true }
 )
 
+// F6 (#286): la contraseña firma un acto, no la sesión del asistente. Abrir el
+// cierre de otra cita exige una re-autenticación propia; si el acto anterior
+// dejó la clave en el formulario, no puede viajar al siguiente registro.
+watch(
+  () => props.appointment?.id,
+  () => {
+    payload.value.signature.password = ''
+  }
+)
+
 watch(
   selectedPlan,
   plan => {
