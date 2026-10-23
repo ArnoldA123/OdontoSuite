@@ -27,7 +27,10 @@ class CashDepositService
 
     private const MAX_PER_PAGE = 100;
 
-    public function __construct(private readonly CashRegisterService $cashRegister) {}
+    public function __construct(
+        private readonly CashRegisterService $cashRegister,
+        private readonly AccountingLockService $accountingLocks,
+    ) {}
 
     /**
      * @param array<string, mixed> $data
@@ -80,6 +83,21 @@ class CashDepositService
                 'deposited_at' => ['La fecha del depósito no puede ser futura.'],
             ]);
         }
+
+        // #323 (S8) — the bank date is the accounting date of the deposit: a
+        // deposit dated inside a closed period changes that day's
+        // reconciliation, so it needs the registered authorization the rest of
+        // the money mutations need. The guard runs before the deposit's own
+        // transaction, because the blocked attempt is evidence that must
+        // survive the rejected write.
+        $this->accountingLocks->guard(
+            AccountingLockService::CASH_MOVEMENTS,
+            $depositedAt,
+            $session->branch_id === null ? null : (int) $session->branch_id,
+            $session,
+            'deposit',
+            $data['lock_override_reason'] ?? null,
+        );
 
         return DB::transaction(function () use ($session, $amount, $reference, $depositedAt, $data): CashDeposit {
             // Locking the drawer serializes concurrent deposits: the second one

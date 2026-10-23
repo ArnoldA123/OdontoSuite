@@ -36,6 +36,10 @@ class StoreCashDepositRequest extends FormRequest
             'reference' => ['required', 'string', 'max:100'],
             'deposited_at' => ['nullable', 'date', 'before_or_equal:today'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            // #323 (S8): the registered authorization of a deposit dated inside
+            // an accounting lock. Its minimum length is the lock rule's, not
+            // this request's.
+            'lock_override_reason' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -57,6 +61,8 @@ class StoreCashDepositRequest extends FormRequest
             'deposited_at.before_or_equal' => 'La fecha del depósito no puede ser futura.',
             'notes.string' => 'Las notas deben ser texto.',
             'notes.max' => 'Las notas no pueden exceder 1000 caracteres.',
+            'lock_override_reason.string' => 'El motivo de la autorización debe ser texto.',
+            'lock_override_reason.max' => 'El motivo de la autorización no puede exceder 1000 caracteres.',
         ];
     }
 }

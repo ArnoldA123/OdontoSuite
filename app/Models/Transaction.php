@@ -110,6 +110,16 @@ class Transaction extends Model
         return $this->hasMany(self::class, 'parent_transaction_id');
     }
 
+    /**
+     * #321 (S1-S4) — the charges this payment covers. The rows are a view over
+     * the ledger: voiding the payment stops them from counting, and the patient
+     * balance still follows the rule of #287.
+     */
+    public function chargeAllocations(): HasMany
+    {
+        return $this->hasMany(PatientChargeAllocation::class);
+    }
+
     // Scopes
     /**
      * #283 S2/S3 — transactions carry no `branch_id`: the sede is the drawer's.

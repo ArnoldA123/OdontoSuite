@@ -140,23 +140,30 @@ en su propio ledger.**
 - El esperado de la sesión y el depósito sólo cuentan efectivo, así que
   `pending_deposit` puede ser negativo cuando el depósito incluye efectivo de
   días anteriores: es información, no un error.
-- Los movimientos de gaveta electrónicos escritos **antes** de esta decisión
-  siguen contando en sus sesiones antiguas. El ledger no se reescribe, así que
-  el histórico conserva esa inconsistencia y sólo las filas nuevas obedecen la
-  regla sólo-efectivo.
+- Los movimientos de gaveta electrónicos escritos **antes** de esta decisión se
+  reparan con `cash:repair-electronic-movements` (#322, ADR posterior): el
+  comando marca (soft delete + `audit_logs`) los movimientos ligados a un método
+  que no es efectivo, con `--dry-run` e idempotencia, y **no** reescribe las
+  columnas de la sesión (`expected_amount`, `closing_amount`,
+  `difference_amount`, `arqueo_data`), que quedan como el registro histórico de
+  lo que se declaró al cerrar. Un movimiento cuyo método no se puede comprobar
+  se conserva y se cuenta aparte.
 - Las filas históricas de tipo `discount` se leen como línea de descuento del
   estado de cuenta (no se migran ni se reescriben), así que un paciente con
   descuentos del modelo anterior no ve su deuda inflada.
-- La ventana entre un depósito y una devolución de la misma sesión no comparte
-  lock: el depósito bloquea la sesión y la devolución bloquea al paciente. Con
-  una sesión por operador la ventana es despreciable y queda declarada, no
-  cerrada.
-- Un depósito con `deposited_at` anterior registra su movimiento con la fecha de
-  hoy: el bloqueo contable no lo cubre porque no reescribe un período, y la
-  fecha bancaria es la que ordena la conciliación.
-- No hay imputación de un pago a un cargo concreto: el saldo es del paciente y
-  la corrección de un cargo va por ajuste. Un abono por cargo exigiría otra
-  decisión y otra tabla.
+- La ventana entre un depósito y una devolución de la misma sesión queda cerrada
+  (#323): el depósito, el pago, la devolución, la anulación y el cierre toman el
+  mismo lock de la fila de `cash_register_sessions` antes de leer o escribir la
+  gaveta, así que no pueden calcular el efectivo disponible a la vez.
+- Un depósito con `deposited_at` anterior es un hecho de ese día bancario: el
+  bloqueo contable del módulo `cash_movements` se evalúa sobre `deposited_at`
+  (#323), no sobre la fecha en que se escribe el movimiento, y la operación
+  exige `lock_override_reason` de administrador cuando cae en un período
+  cerrado. El movimiento sigue naciendo con la fecha de hoy; lo que cambia es
+  qué fecha decide el bloqueo.
+- La imputación de un pago a un cargo concreto existe desde #321, pero como
+  vista: `patient_charge_allocations` dice qué cargo pagó un pago y el saldo
+  sigue siendo la regla de esta decisión. Ver ADR-0018.
 - Permisos nuevos, los tres con `CASH_ROLES` (administrador, finanzas,
   recepcionista): `manage.patient_charge`, `view.patient_statement` y
   `manage.cash_deposit`; el listado de depósitos conserva `view.cash_register`.
