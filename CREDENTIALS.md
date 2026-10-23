@@ -123,6 +123,8 @@ del login es el `username`** (no el email, no el nombre).
 | Autorizar edición antes del bloqueo | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | **Clínica**                         |
 | Historias clínicas                  | ✅            | ❌            | ✅         | ✅           | ❌      | ✅        | ❌       |
+| Casos de laboratorio (lectura)      | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Casos de laboratorio (alta y fases) | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
 | Odontogramas                        | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Planes de tratamiento               | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
 | Análisis IA                         | ✅            | ❌            | ✅         | ✅           | ❌      | ❌        | ❌       |

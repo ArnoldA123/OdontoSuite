@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * F5 (#285) — the prosthetic lab case.
  *
  * The workshop works with the patient, the piece, the job and two dates; it
