@@ -16,7 +16,8 @@ material architectural decision, its context, and its consequences.
 | [0013](./0013-plan-versioning-and-continuity.md)      | El plan aceptado es una versión inmutable; la continuidad es una solicitud | Accepted                        |
 | [0014](./0014-clinical-record-signature-and-cie10.md) | El registro de atención es un documento firmado: motivo, CIE-10 y firma    | Accepted                        |
 | [0015](./0015-money-vocabulary-and-patient-ledger.md) | El dinero tiene vocabulario cerrado y el paciente tiene ledger propio      | Accepted                        |
-| [0016](./0016-branch-transfer-request.md)             | El traslado entre sedes es una solicitud aprobada, no una edición          | Accepted                        |
+| [0016](./0016-clinical-narrative-desk-boundary.md)    | La narrativa clínica no cruza al escritorio no clínico                     | Accepted                        |
+| [0017](./0017-branch-transfer-request.md)             | El traslado entre sedes es una solicitud aprobada, no una edición          | Accepted                        |
 
 0009 has no separate body yet. Its decision is enforced by
 `tests/Unit/SddCheckMigrationsTest.php`, which scans `database/migrations/` and

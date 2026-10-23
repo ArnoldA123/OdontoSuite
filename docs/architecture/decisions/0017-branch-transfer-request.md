@@ -1,4 +1,4 @@
-# ADR-0016 — El traslado entre sedes es una solicitud aprobada, no una edición
+# ADR-0017 — El traslado entre sedes es una solicitud aprobada, no una edición
 
 - **Status:** Accepted
 - **Decided:** 2026-10-25 (issue #305, specs S1-S11 de

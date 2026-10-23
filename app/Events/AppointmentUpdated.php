@@ -3,6 +3,7 @@
 namespace App\Events;
 
 use App\Models\Appointment;
+use App\Support\AppointmentBroadcastPayload;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -39,7 +40,7 @@ class AppointmentUpdated implements ShouldBroadcast
     public function broadcastWith()
     {
         return [
-            'appointment' => $this->appointment->load('patient', 'user', 'appointmentType', 'dentalChair'),
+            'appointment' => AppointmentBroadcastPayload::for($this->appointment),
         ];
     }
 }

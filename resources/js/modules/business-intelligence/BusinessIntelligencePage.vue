@@ -40,7 +40,8 @@
           <UiButton
             variant="secondary"
             size="sm"
-            :disabled="loading || exporting === 'excel'"
+            :disabled="loading || exporting === 'excel' || !exportsEnabled"
+            :title="exportsEnabled ? null : exportUnavailableHint"
             data-export-excel
             @click="exportReport('excel')"
           >
@@ -49,7 +50,8 @@
           <UiButton
             variant="secondary"
             size="sm"
-            :disabled="loading || exporting === 'csv'"
+            :disabled="loading || exporting === 'csv' || !exportsEnabled"
+            :title="exportsEnabled ? null : exportUnavailableHint"
             data-export-csv
             @click="exportReport('csv')"
           >
@@ -58,7 +60,8 @@
           <UiButton
             variant="secondary"
             size="sm"
-            :disabled="loading || exporting === 'pdf'"
+            :disabled="loading || exporting === 'pdf' || !exportsEnabled"
+            :title="exportsEnabled ? null : exportUnavailableHint"
             data-export-pdf
             @click="exportReport('pdf')"
           >
@@ -68,6 +71,12 @@
       </div>
       <p class="mt-4 text-xs text-theme-secondary" data-period-applied>
         Período aplicado: {{ appliedLabel }}
+      </p>
+      <p v-if="appliedBranchLabel" class="mt-1 text-xs text-theme-secondary" data-branch-applied>
+        Sede aplicada: {{ appliedBranchLabel }}
+      </p>
+      <p v-if="!exportsEnabled" class="mt-1 text-xs text-theme-secondary" data-export-unavailable>
+        {{ exportUnavailableHint }}
       </p>
     </header>
 
@@ -119,6 +128,15 @@
             :error="rangeError"
             data-filters-to
             @update:model-value="periodPreset = 'custom'"
+          />
+        </div>
+
+        <div v-if="groupBranchScope" class="lg:col-span-2">
+          <UiSelect
+            v-model="draft.branchId"
+            :options="branchOptions"
+            label="Sede"
+            data-filters-branch
           />
         </div>
 
@@ -430,7 +448,11 @@
             />
           </section>
 
-          <section v-else-if="!isDashboard" :aria-label="reportTitle" data-report-table-section>
+          <section
+            v-else-if="!isDashboard && !isConsolidated"
+            :aria-label="reportTitle"
+            data-report-table-section
+          >
             <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
               <h2 class="text-lg font-semibold text-theme-primary">{{ reportTitle }}</h2>
               <!--
@@ -467,6 +489,8 @@
               data-report-table
             />
           </section>
+
+          <ConsolidatedReportSection v-if="isConsolidated && consolidated" :report="consolidated" />
         </template>
       </template>
     </div>
@@ -479,6 +503,7 @@ import { useRouter } from 'vue-router'
 import { ArrowPathIcon, ArrowUturnLeftIcon } from '@heroicons/vue/24/outline'
 import { colors } from '../../design-system/tokens.js'
 import { useApi } from '../../composables/useApi'
+import { useAuth } from '../../composables/useAuth'
 import { formatCurrency } from '../../composables/useFormatters'
 import { useToast } from '../../composables/useToast'
 import AppLayout from '../../components/layout/AppLayout.vue'
@@ -490,9 +515,19 @@ import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'
 import DashboardSectionError from '../dashboard/DashboardSectionError.vue'
+import ConsolidatedReportSection from './ConsolidatedReportSection.vue'
+import {
+  buildAppliedParams,
+  canExportReport,
+  hasGroupBranchScope,
+  toBranchOptions
+} from './reportScope'
 
 const DASHBOARD_ENDPOINT = '/api/reports/dashboard'
+const CONSOLIDATED_ENDPOINT = '/api/reports/consolidated'
 const FALLBACK_ERROR = 'Revisa tu conexión y vuelve a intentarlo.'
+const EXPORT_UNAVAILABLE_HINT =
+  'El consolidado no se exporta: elige otro reporte para descargar Excel, CSV o PDF.'
 const MONEY_KEYS = new Set([
   'price',
   'total_spent',
@@ -516,6 +551,13 @@ const EMPTY_DASHBOARD = {
   professionalPerformance: []
 }
 
+const EMPTY_CONSOLIDATED = {
+  period: { start_date: '', end_date: '', branch_id: null, label: '' },
+  summary: { net: 0, refunds: 0, paid_appointments: 0 },
+  by_branch: [],
+  by_professional: []
+}
+
 const presets = [
   { id: '7d', label: '7 días', days: 7 },
   { id: '30d', label: '30 días', days: 30 },
@@ -528,11 +570,13 @@ const reportOptions = [
   { value: 'patients', label: 'Reporte de Pacientes' },
   { value: 'professionals', label: 'Reporte de Profesionales' },
   { value: 'revenue', label: 'Reporte de Ingresos' },
+  { value: 'consolidated', label: 'Consolidado por Sede' },
   { value: 'utilization', label: 'Utilización de Ambientes' }
 ]
 
 const REVENUE_DIMENSIONS = [
   'Por Tipo de Cita',
+  'Por Sede',
   'Por Profesional',
   'Por Ambiente',
   'Por Día',
@@ -594,16 +638,19 @@ const defaultRange = () => ({ from: daysBack(29), to: daysBack(0) })
 
 const router = useRouter()
 const { get, download, normalizeError } = useApi()
+const { user } = useAuth()
 const toast = useToast()
 
-const draft = ref({ ...defaultRange(), professionalId: '', environmentId: '' })
+const draft = ref({ ...defaultRange(), professionalId: '', environmentId: '', branchId: null })
 const applied = ref({ ...draft.value })
 const periodPreset = ref('30d')
 const appliedPreset = ref('30d')
 const selectedReport = ref('dashboard')
 const professionals = ref([])
 const environments = ref([])
+const branches = ref([])
 const dashboard = ref({ ...EMPTY_DASHBOARD })
+const consolidated = ref(null)
 const reportRows = ref([])
 const reportColumns = ref([])
 const revenueSummary = ref(null)
@@ -621,6 +668,12 @@ let reportRequestId = 0
 let disposed = false
 
 const isDashboard = computed(() => selectedReport.value === 'dashboard')
+const isConsolidated = computed(() => selectedReport.value === 'consolidated')
+
+const groupBranchScope = computed(() => hasGroupBranchScope(user.value))
+const branchOptions = computed(() => toBranchOptions(branches.value))
+const exportsEnabled = computed(() => canExportReport(selectedReport.value))
+const exportUnavailableHint = EXPORT_UNAVAILABLE_HINT
 
 const rangeError = computed(() => {
   if (!draft.value.from || !draft.value.to) {
@@ -635,6 +688,14 @@ const appliedLabel = computed(() => {
   const preset = presets.find(item => item.id === appliedPreset.value)
   const range = `${formatShortDate(applied.value.from)} — ${formatShortDate(applied.value.to)}`
   return `${range} · ${preset ? preset.label : 'rango manual'}`
+})
+
+const appliedBranchLabel = computed(() => {
+  if (!applied.value.branchId) {
+    return ''
+  }
+  const branch = branches.value.find(item => item.id === applied.value.branchId)
+  return branch ? branch.name : ''
 })
 
 const professionalOptions = computed(() => [
@@ -682,6 +743,12 @@ const isEmpty = computed(() => {
   if (isDashboard.value) {
     return !hasDashboardCharts.value && dashboard.value.professionalPerformance.length === 0
   }
+  if (isConsolidated.value) {
+    return (
+      !consolidated.value ||
+      (consolidated.value.by_branch.length === 0 && consolidated.value.by_professional.length === 0)
+    )
+  }
   return reportRows.value.length === 0
 })
 
@@ -712,15 +779,22 @@ const normalizeDashboard = payload => ({
     : []
 })
 
-const appliedParams = () => ({
-  start_date: applied.value.from,
-  end_date: applied.value.to,
-  professional_id: applied.value.professionalId || '',
-  environment_id: applied.value.environmentId || ''
+const normalizeConsolidated = payload => ({
+  period: { ...EMPTY_CONSOLIDATED.period, ...(payload?.period ?? {}) },
+  summary: {
+    net: Number(payload?.summary?.net ?? 0),
+    refunds: Number(payload?.summary?.refunds ?? 0),
+    paid_appointments: Number(payload?.summary?.paid_appointments ?? 0)
+  },
+  by_branch: Array.isArray(payload?.by_branch) ? payload.by_branch : [],
+  by_professional: Array.isArray(payload?.by_professional) ? payload.by_professional : []
 })
+
+const appliedParams = () => buildAppliedParams(applied.value)
 
 const clearData = () => {
   dashboard.value = { ...EMPTY_DASHBOARD }
+  consolidated.value = null
   reportRows.value = []
   reportColumns.value = []
   revenueSummary.value = null
@@ -894,6 +968,17 @@ const loadReport = async () => {
         return
       }
       dashboard.value = normalizeDashboard(response?.data)
+      consolidated.value = null
+      reportRows.value = []
+      reportColumns.value = []
+      revenueSummary.value = null
+    } else if (isConsolidated.value) {
+      const response = await get(CONSOLIDATED_ENDPOINT, { params: appliedParams() })
+      if (!isCurrent()) {
+        return
+      }
+      consolidated.value = normalizeConsolidated(response?.data)
+      dashboard.value = { ...EMPTY_DASHBOARD }
       reportRows.value = []
       reportColumns.value = []
       revenueSummary.value = null
@@ -937,7 +1022,8 @@ const applyFilters = () => {
     from: draft.value.from,
     to: draft.value.to,
     professionalId: draft.value.professionalId,
-    environmentId: draft.value.environmentId
+    environmentId: draft.value.environmentId,
+    branchId: draft.value.branchId
   }
   appliedPreset.value = periodPreset.value
   loadReport()
@@ -952,18 +1038,26 @@ const selectPreset = preset => {
 
 const resetFilters = () => {
   periodPreset.value = '30d'
-  draft.value = { ...defaultRange(), professionalId: '', environmentId: '' }
+  draft.value = { ...defaultRange(), professionalId: '', environmentId: '', branchId: null }
   applyFilters()
 }
 
 const loadFilterOptions = async () => {
-  const [professionalsResponse, environmentsResponse] = await Promise.all([
+  const requests = [
     get('/api/users/active').catch(() => null),
     get('/api/dental-chairs/active').catch(() => null)
-  ])
+  ]
+
+  if (groupBranchScope.value) {
+    requests.push(get('/api/branches/active').catch(() => null))
+  }
+
+  const [professionalsResponse, environmentsResponse, branchesResponse] =
+    await Promise.all(requests)
 
   professionals.value = Array.isArray(professionalsResponse?.data) ? professionalsResponse.data : []
   environments.value = Array.isArray(environmentsResponse?.data) ? environmentsResponse.data : []
+  branches.value = Array.isArray(branchesResponse?.data) ? branchesResponse.data : []
 }
 
 const saveBlob = (blob, filename) => {
@@ -982,7 +1076,7 @@ const saveBlob = (blob, filename) => {
 }
 
 const exportReport = async format => {
-  if (exporting.value) {
+  if (exporting.value || !exportsEnabled.value) {
     return
   }
 

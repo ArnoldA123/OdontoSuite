@@ -4,9 +4,12 @@ namespace Tests\Feature\Api;
 
 use App\Jobs\ExportPatientFileJob;
 use App\Models\ClinicalEncounter;
+use App\Models\DentalPiece;
+use App\Models\ImplantologyRecord;
 use App\Models\MedicalRecord;
 use App\Models\Patient;
 use App\Models\User;
+use Database\Seeders\DentalPieceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -19,6 +22,11 @@ use Tests\TestCase;
  * now its own entity and the record leaves that desk: a lab technician works
  * from the work order, not from the patient's clinical history. The other four
  * clinical roles keep the record exactly as before.
+ *
+ * #313 (decision D1) closes the second half of the same boundary: the specialty
+ * record is a clinical act with surgical narrative, so the laboratory leaves its
+ * module whole and keeps only the case and the treatment plan as prosthetic
+ * input.
  */
 class TechnicianClinicalRecordScopeTest extends TestCase
 {
@@ -147,5 +155,94 @@ class TechnicianClinicalRecordScopeTest extends TestCase
                 ->getJson("/api/encounters/{$encounter->id}")
                 ->assertOk();
         }
+    }
+
+    /**
+     * #313 (decision D1) — the specialty record is a clinical act with surgical
+     * narrative (`surgical_notes`, `post_surgical_notes`, `complications`,
+     * `follow_up_notes`), not prosthetic input. Reading and writing are the same
+     * permission, so the laboratory desk leaves the module whole: every read and
+     * the write door answer 403 and nothing is written.
+     */
+    public function test_the_laboratory_is_forbidden_on_the_specialty_record_module(): void
+    {
+        $technician = $this->staff('tecnico_dental');
+        $patient = Patient::factory()->create();
+
+        $this->actingAs($technician, 'sanctum')
+            ->getJson("/api/specialty-records?patient_id={$patient->id}&specialty=implantologia")
+            ->assertForbidden();
+
+        $this->actingAs($technician, 'sanctum')
+            ->getJson('/api/specialty-records/1')
+            ->assertForbidden();
+
+        $this->actingAs($technician, 'sanctum')
+            ->getJson("/api/specialty-records/patient/{$patient->id}/all")
+            ->assertForbidden();
+
+        $this->actingAs($technician, 'sanctum')
+            ->getJson("/api/specialty-records/patient/{$patient->id}/implantologia/stats")
+            ->assertForbidden();
+
+        $this->actingAs($technician, 'sanctum')
+            ->postJson('/api/specialty-records', [
+                'specialty' => 'implantologia',
+                'patient_id' => $patient->id,
+                'implant_brand' => 'Straumann',
+                'implant_model' => 'BLT',
+                'implant_diameter' => '4.1',
+                'implant_length' => '10.0',
+                'batch_number' => 'L-1',
+                'placement_date' => now()->subDay()->toDateString(),
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('implantology_records', 0);
+    }
+
+    /**
+     * The grant #313 keeps: administration and the two clinician roles read and
+     * write the specialty record exactly as before, and reading it stays a read.
+     */
+    public function test_administration_and_the_clinicians_keep_the_specialty_record(): void
+    {
+        $this->seed(DentalPieceSeeder::class);
+
+        $patient = Patient::factory()->create();
+        $piece = DentalPiece::query()->where('fdi_number', '16')->firstOrFail();
+        $record = ImplantologyRecord::create([
+            'patient_id' => $patient->id,
+            'dental_piece_id' => $piece->id,
+            'created_by' => $this->staff('odontologo')->id,
+            'implant_brand' => 'Straumann',
+            'implant_model' => 'BLT',
+            'implant_diameter' => '4.1',
+            'implant_length' => '10.0',
+            'batch_number' => 'L-1',
+            'placement_date' => now()->subDays(3)->toDateString(),
+        ]);
+
+        foreach (['administrador', 'odontologo', 'implantologo'] as $role) {
+            $user = $this->staff($role);
+
+            $this->actingAs($user, 'sanctum')
+                ->getJson("/api/specialty-records?patient_id={$patient->id}&specialty=implantologia")
+                ->assertOk();
+
+            $this->actingAs($user, 'sanctum')
+                ->getJson("/api/specialty-records/{$record->id}")
+                ->assertOk();
+
+            $this->actingAs($user, 'sanctum')
+                ->getJson("/api/specialty-records/patient/{$patient->id}/all")
+                ->assertOk();
+
+            $this->actingAs($user, 'sanctum')
+                ->getJson("/api/specialty-records/patient/{$patient->id}/implantologia/stats")
+                ->assertOk();
+        }
+
+        $this->assertDatabaseCount('implantology_records', 1);
     }
 }

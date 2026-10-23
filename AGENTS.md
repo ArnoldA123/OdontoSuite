@@ -108,13 +108,13 @@ app/
 
 resources/js/
   app.js                   # entry + router (guards en router/auth.js)
-  composables/             # 41 composables singleton
+  composables/             # 44 composables singleton
   components/
     ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
     procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ProcedureSiteFields,
                            #   ImportCsvModal
-  modules/                 # 20 módulos de dominio (ver §5)
+  modules/                 # 25 módulos de dominio (ver §5)
   router/auth.js           # requireAuth, requireGuest (localStorage)
   design-system/tokens.js  # design tokens
 
@@ -139,37 +139,40 @@ docs/
   architecture/decisions/  # índice de ADRs (README.md) + cuerpos 0007, 0008 y 0010-0015
 
 .github/workflows/
-  ci.yml                   # CI con 3 jobs: quality (lint), backend-tests (MySQL 8.0 service), frontend-build
+  ci.yml                   # CI con 4 jobs: quality (lint), backend-tests (MySQL), frontend-build, security (gitleaks)
 ```
 
 ---
 
-## 5. Módulos del frontend (20 módulos, 22 páginas)
+## 5. Módulos del frontend (25 módulos, 25 páginas)
 
-| Módulo                    | Ruta                        | Roles                                 |
-| ------------------------- | --------------------------- | ------------------------------------- |
-| Dashboard                 | `/dashboard`                | todos                                 |
-| Mi día                    | `/my-day`                   | admin, todos los clínicos             |
-| Calendario                | `/calendar`                 | todos los clínicos                    |
-| Pacientes                 | `/patients`                 | todos                                 |
-| Profesionales             | `/professionals`            | admin                                 |
-| Ambientes                 | `/environments`             | admin                                 |
-| Tipos de cita             | `/appointment-types`        | admin                                 |
-| Especialidades (catálogo) | `/specialties`              | admin                                 |
-| Sucursales                | `/settings/branches`        | admin                                 |
-| Traslados de sede         | `/branch-transfers`         | todos                                 |
-| Métodos de pago           | `/settings/payment-methods` | admin                                 |
-| Caja                      | `/cash-register`            | admin, finanzas, recep                |
-| BI                        | `/business-intelligence`    | admin, finanzas                       |
-| Planes de tratamiento     | `/treatment-plans`          | clínicos                              |
-| Presupuestos              | `/quotations`               | admin, finanzas, odonto, implant      |
-| Historias clínicas        | `/medical-records`          | odontólogos, implantólogos, asistente |
-| Registros especialidad    | `/specialty-records`        | clínicos                              |
-| Análisis IA               | `/ai-analysis`              | admin, odonto, implantólogo           |
-| Catálogo procedimientos   | `/procedure-catalog`        | admin                                 |
-| Mis procedimientos        | `/my-procedures`            | clínicos (favoritos)                  |
-| Recepción procedimientos  | `/reception-procedures`     | recep                                 |
-| Estadísticas catálogo     | `/procedure-stats`          | admin, finanzas                       |
+| Módulo                    | Ruta                         | Roles                                 |
+| ------------------------- | ---------------------------- | ------------------------------------- |
+| Dashboard                 | `/dashboard`                 | todos                                 |
+| Mi día                    | `/my-day`                    | admin, todos los clínicos             |
+| Calendario                | `/calendar`                  | todos los clínicos                    |
+| Pacientes                 | `/patients`                  | todos                                 |
+| Profesionales             | `/professionals`             | admin                                 |
+| Ambientes                 | `/environments`              | admin                                 |
+| Tipos de cita             | `/appointment-types`         | admin                                 |
+| Especialidades (catálogo) | `/specialties`               | admin                                 |
+| Sucursales                | `/settings/branches`         | admin                                 |
+| Traslados de sede         | `/branch-transfers`          | todos                                 |
+| Métodos de pago           | `/settings/payment-methods`  | admin                                 |
+| Caja                      | `/cash-register`             | admin, finanzas, recep                |
+| BI                        | `/business-intelligence`     | admin, finanzas                       |
+| Planes de tratamiento     | `/treatment-plans`           | clínicos                              |
+| Presupuestos              | `/quotations`                | admin, finanzas, odonto, implant      |
+| Historias clínicas        | `/medical-records`           | odontólogos, implantólogos, asistente |
+| Registros especialidad    | `/specialty-records`         | clínicos                              |
+| Análisis IA               | `/ai-analysis`               | admin, odonto, implantólogo           |
+| Catálogo procedimientos   | `/procedure-catalog`         | admin                                 |
+| Mis procedimientos        | `/my-procedures`             | clínicos (favoritos)                  |
+| Recepción procedimientos  | `/reception-procedures`      | recep                                 |
+| Estadísticas catálogo     | `/procedure-stats`           | admin, finanzas                       |
+| Continuidad               | `/continuity`                | admin, recepción, clínicos            |
+| Laboratorio protésico     | `/lab-cases`                 | admin, recepción, clínicos            |
+| Bloqueo contable          | `/settings/accounting-locks` | admin                                 |
 
 **Auth frontend**: el router NO tiene `meta.roles`. La API rechaza con 403 y el
 frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
@@ -207,6 +210,20 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 - Multi-rol con middleware `permission:` (alias `CheckPermission`),
   `cash.session`
 - Multi-sede parcial (filtros en 6 controllers)
+- Alcance por sede en BI completo (#303): los seis reportes y su exportación
+  aceptan `branch_id` resuelto con
+  `App\Authorization\BranchAccess::effectiveFilter` (sede propia por omisión,
+  403 al pedir otra) y el reporte de ingresos gana el corte «Por Sede», que
+  agrupa por la sede del cajón, deja el dinero sin cajón en `Sin sede` y suma
+  exactamente el resumen del período. La atribución de un reporte de período por
+  sede es la sede donde ocurrió la atención (ADR-0010).
+- Superficie de la sede (#304): `/settings/accounting-locks` administra el
+  bloqueo contable por módulo y sede (fila global de gerencia vs. sede propia),
+  el detalle del catálogo edita el tarifario por sede con vigencia y estado, y
+  BI publica el selector de sede (solo alcance de grupo) y el bloque consolidado
+  con su doble desglose. Gobiernan `can.manageAccountingLock`,
+  `can.manageBranchPrice` y `can.viewReports`; el 403 del bloqueo contable se
+  avisa en línea en los modales de dinero con reintento autorizado por motivo.
 - Calendario con FullCalendar, bloques, waiting list
 - Caja completa (apertura/cierre, movimientos, arqueos, PDF)
 - Vocabulario del dinero y ledger del paciente (#287):
@@ -286,8 +303,8 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   diagnóstico codificado contra el catálogo CIE-10 y firma del profesional; el
   acto firmado publica su hash de integridad y `GET /api/encounters/{id}/record`
   emite el registro imprimible de la norma.
-- CI/CD con GitHub Actions (3 jobs desacoplados: quality, backend-tests MySQL,
-  frontend-build; ver §10 para qué bloquea y qué es aviso explícito)
+- CI/CD con GitHub Actions (4 jobs desacoplados: quality, backend-tests MySQL,
+  frontend-build y security; ver §10 para qué bloquea y qué es aviso explícito)
 - CREDENTIALS.md sincronizado (tests automáticos lo validan)
 - Catálogo con aplicabilidad (#293): `procedure_catalog.site_type`
   (`none|tooth|surface|quadrant|arch`) y `procedure_external_codes` con los
@@ -315,8 +332,10 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   taller (paciente, pieza, trabajo, material, fecha de envío, fecha prometida y
   técnico asignado) con cinco fases que sólo avanzan; entrar en `delivered`
   emite `LabCaseReady` y el caso aparece en `GET /api/my-day` bajo
-  `ready_lab_cases`. El escritorio de laboratorio ya no lee la historia clínica
-  ni el acto clínico, y sus registros de especialidad y planes siguen intactos.
+  `ready_lab_cases`. El escritorio de laboratorio ya no lee la historia clínica,
+  el acto clínico ni los registros de especialidad (#313), y la cita dejó de
+  llevar la conducta clínica a cualquier lector (#314): sus insumos son el caso
+  protésico, el plan de tratamiento y la agenda operativa (ADR-0016).
 
 ### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
 
@@ -514,15 +533,16 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ## 10. CI/CD
 
-`.github/workflows/ci.yml` con 3 jobs desacoplados (ninguno bloquea a otro: un
+`.github/workflows/ci.yml` con 4 jobs desacoplados (ninguno bloquea a otro: un
 lint en rojo nunca esconde si los tests pasan). El workflow es la fuente de
 verdad; esta tabla lo resume sin repetir su contenido.
 
-| Job              | Qué verifica                                                                                                                                       |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `quality`        | Bloqueantes: PHP syntax, validación JSON, Pint (`vendor/bin/pint --test`), ESLint, Vitest smoke (`pnpm test:js`) y Prettier (`pnpm format:check`). |
-| `backend-tests`  | MySQL 8.0 real como service: `php artisan migrate --force` + suite completa.                                                                       |
-| `frontend-build` | `pnpm build` + upload del artifact.                                                                                                                |
+| Job              | Qué verifica                                                                                                                                                                                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quality`        | Bloqueantes: PHP syntax, validación JSON, Pint (`vendor/bin/pint --test`), ESLint, Vitest smoke (`pnpm test:js`) y Prettier (`pnpm format:check`).                                                                     |
+| `backend-tests`  | MySQL 8.0 real como service: `php artisan migrate --force` + suite completa.                                                                                                                                           |
+| `frontend-build` | `pnpm build` + upload del artifact.                                                                                                                                                                                    |
+| `security`       | Bloqueante: `gitleaks` fijado y verificado por checksum sobre los commits que publica el run (rango del PR o del push), con las reglas de `.gitleaks.toml`; la credencial histórica de `SECURITY.md` no se re-escanea. |
 
 **Triggers**: push a `main`/`fix/*`/`feat/*`/`chore/*`/`refactor/*` + PRs a
 `main`.
@@ -583,11 +603,111 @@ documentada y no bloquea producción.
   estático de «una sola pluma»), `AuthPermissionsPayloadTest` (+2) y el smoke
   `branch-transfers` (21); `PermissionCatalogTest`, `DeskMatrixTest`,
   `RoutePermissionMatrixTest` y `FrontendPermissionContractTest` verdes con el
-  fixture regenerado. Decisión en ADR-0016, que cierra la postergación que
+  fixture regenerado. Decisión en ADR-0017, que cierra la postergación que
   declaraba ADR-0010. Fuera de alcance, documentado: el 403 conserva el sobre
   genérico de la API (los mensajes de la regla viven en la excepción) y la
   etiqueta accesible de `UiStatusPill` no conoce `rejected` (mismo patrón que el
   resto del SPA).
+- **2026-10-23 (superficies web de continuidad y laboratorio, #310/#316)** — Dos
+  pantallas que el backend ya publicaba pero nadie veía. **Continuidad**
+  (`/continuity`, entrada de navegación para administración, recepción y los
+  escritorios clínicos) consume `GET /api/continuity/queue`, que devuelve los
+  recalls vencidos y las solicitudes de continuidad pendientes con su
+  procedencia (plan, atención o cita), y `GET /api/patient-recalls/metrics`: la
+  tira de indicadores muestra recalls vencidos, solicitudes pendientes, total en
+  cola y `compliance_rate` tal como lo publica la API (`—` cuando no hay
+  denominador), sin recalcularlo en el cliente. **Agendar** abre el formulario
+  con la fecha preferida precargada (o el vencimiento del recall a las 09:00 si
+  ese instante ya pasó) y postea por la puerta de su población
+  (`POST /api/continuity-requests/{id}/schedule` o
+  `POST /api/patient-recalls/{id}/schedule`), así que la cita sigue validando
+  profesional y sillón y el 422 de conflicto se pinta en su campo. **Descartar**
+  es solo de solicitudes de continuidad, porque es la única fila que registra el
+  motivo (`POST /api/continuity-requests/{id}/dismiss`, motivo obligatorio en la
+  interfaz); un recall sale de la cola agendándolo. Las tres acciones se ocultan
+  sin `manage.continuity` (`administrador` y `recepcionista`): un clínico lee la
+  cola y no la gestiona. **Laboratorio protésico** (`/lab-cases`, visible para
+  los mismos escritorios) lista las órdenes de trabajo con filtros de fase,
+  `technician_id=me` y `overdue`, sobre `GET /api/lab-cases`; el detalle abre la
+  puerta de fase (`POST /api/lab-cases/{id}/phase`) ofreciendo solo fases
+  posteriores, porque la máquina no retrocede, y el mensaje del servicio cae en
+  el campo. El formulario de alta/edición (`POST|PUT /api/lab-cases`) se abre
+  desde la propia página, desde una pestaña **Laboratorio** nueva en la ficha
+  del paciente —que lista `GET /api/lab-cases?patient_id=…`— y desde el cierre
+  de la atención como bloque aditivo que no toca el payload del cierre.
+  Recepción ve los casos y no escribe (`manage.lab_case` es de administración,
+  dentistas y técnico). `GET /api/my-day` ya publicaba `ready_lab_cases`: el
+  escritorio del profesional ahora los agrupa en un bloque `Laboratorio listo`
+  con su conteo, y la suscripción al canal privado `lab-cases` refresca la lista
+  al recibir `caso_laboratorio_listo`. Sin rutas API, migraciones ni controllers
+  nuevos: la entrega es de superficie. §4 y §5 re-medidos: 42 composables y 23
+  módulos de dominio en 23 páginas (la cabecera de §5 decía 19/21 y ya derivaba:
+  los directorios de `resources/js/modules/` eran 21 antes de esta entrega).
+  Tests nuevos en `pnpm test:js`: 36 de continuidad (`continuityMeta`,
+  `useContinuity` y el smoke de la cola), 46 del laboratorio (`labCaseMeta`,
+  `useLabCases`, listado, formulario, pestaña del paciente y cierre) y 7 del
+  escritorio de Mi día. `scripts/audit/doc-drift.mjs` en verde.
+
+- **2026-10-23 (frontera de la narrativa clínica: especialidades, cita y
+  difusión, #313/#314/#315)** — La frontera que #285 fijó en el módulo de
+  historia clínica se cierra en las otras tres superficies que publicaban la
+  misma narrativa; la decisión vive en ADR-0016. **Registros de especialidad
+  (#313)**: el registro es un acto clínico con narrativa quirúrgica
+  (`surgical_notes`, `post_surgical_notes`, `complications`, `follow_up_notes` y
+  sus equivalentes) y no es insumo del trabajo protésico —el caso `lab_cases` ya
+  publica pieza, trabajo, material, fechas y técnico—, así que
+  `manage.specialty_record` queda en administración y escritorio clínico: el
+  técnico recibe 403 en todo el módulo, la navegación no ofrece
+  `/specialty-records`, el tab de especialidades del detalle de paciente se
+  oculta sin el permiso, y el canal `specialty-records` deja de autorizarlo.
+  `SPECIALTY_RECORD_ROLES` sustituye al uso compartido de `TREATMENT_ROLES`; los
+  planes de tratamiento y `view.dental_piece` no cambian. **Cita (#314)**:
+  `appointments.treatment_notes` es la conducta clínica copiada de la evolución,
+  no un resumen operativo. El cierre deja de escribirla
+  (`ConsultationService::projectOnAppointment`), la cita conserva `notes` y la
+  solicitud de continuidad, y `AppointmentResource` publica el campo sólo a
+  quien lee la historia clínica (`manage.medical_record`): recepción y
+  laboratorio reciben la cita sin la clave. Las filas históricas no se
+  reescriben, pero tampoco se publican fuera del escritorio clínico, y ningún
+  evento de cita difunde el campo (`AppointmentBroadcastPayload` recorta el
+  payload de `AppointmentCreated`, `AppointmentUpdated`, `AppointmentCompleted`
+  y `AppointmentCheckedIn`; `ReminderSent` recorta la cita que embebe, porque
+  publica por `reminders` y `appointments`, canales de recepción y laboratorio).
+  **Difusión (#315)**: un canal no puede variar su payload por rol, así que un
+  evento de documento clínico viaja sólo por el canal de los escritorios que lo
+  leen. `MedicalRecordCreated` publica sólo en `medical-records`, y
+  `SpecialtyRecordCreated`/`SpecialtyRecordUpdated` sólo en `specialty-records`;
+  ninguno en `dashboard-updates`, que autoriza a los siete roles. Sin rutas,
+  controllers, modelos ni migraciones nuevas: §4 no cambia. Tests:
+  `TechnicianClinicalRecordScopeTest` extendido (403 en las cinco puertas del
+  módulo y 200 de los tres roles que lo conservan),
+  `AppointmentTreatmentNotesDeskTest` (ambos lados: quién ve el campo y quién
+  no), `ConsultationClosureTest` (la cita cerrada ya no copia el plan),
+  `AppointmentBroadcastPayloadTest`, `ClinicalEventsChannelBoundaryTest`,
+  `DashboardUpdatesPrivateChannelTest` (14 publicadores), más
+  `PermissionCatalogTest`, `DeskMatrixTest`,
+  `SpecialtiesNavigationDisambiguationTest`, `DomainChannelsAuthorizationTest`,
+  `FrontendPermissionContractTest` y el fixture de permisos regenerado.
+  `CREDENTIALS.md` suma las dos filas de la frontera y
+  `docs/architecture/desks.md` retira el acto del escritorio de laboratorio.
+- **2026-10-23 (seguridad: credencial local redactada y gate de secretos)** — La
+  nota ODD de la interfaz de métodos de pago publicaba en su log la contraseña
+  del MariaDB local de XAMPP; la misma clave aparecía en una nota de auditoría
+  sin versionar. Se redactaron las dos, junto con las rutas absolutas de otras
+  cinco notas. El valor sigue recuperable en la historia (`b914f45`, `2fd17a2`)
+  y en cuatro cabeceras de PR cerradas: la decisión de aceptar el riesgo, sus
+  condiciones (base local, `skip-networking`, phpMyAdmin bajo `Require local`,
+  sin datos reales) y sus disparadores de rotación viven en `SECURITY.md`. Nuevo
+  job `security` en CI: `gitleaks` 8.30.1 fijado y verificado contra el checksum
+  publicado, corriendo sobre los commits que publica cada run (rango del PR o
+  del push) con las reglas de `.gitleaks.toml` (contraseña de base escrita como
+  valor, forma `root/<clave>` y allowlist de marcadores documentados). No
+  re-escanea la historia: el hallazgo conocido ya está publicado. Guard
+  `SecretScanGateTest` (3). Sin rutas, modelos, migraciones ni primitivas UI
+  nuevas: los conteos de §4 no cambian.
+
+n
+
 - **2026-10-23 (asistente de cierre: el formulario se rearma entre atenciones,
   #311)** — `ConsultationWizard` vive montado en `/my-day` y `/calendar` y sólo
   alterna su visibilidad, así que su `payload` local sobrevivía entre una cita y
@@ -601,6 +721,39 @@ documentada y no bloquea producción.
   los conteos de §4 no cambian. Tests: `consultation-wizard-reset.test.js` (2) y
   el caso de firma de `consultation-closure-nts139.test.js` ajustado al paso
   inicial.
+- **2026-10-23 (BI por sede y superficie de la sede, #303/#304)** — Los seis
+  reportes de Business Intelligence y su exportación aceptan `branch_id`
+  resuelto con `App\Authorization\BranchAccess::effectiveFilter`: un usuario con
+  sede recibe la suya por omisión y pedir otra responde 403, y la exportación
+  respeta el mismo filtro. El reporte de ingresos gana el corte «Por Sede», que
+  agrupa por la sede del cajón, deja el dinero sin cajón en la fila `Sin sede` y
+  suma exactamente el resumen del período. La atribución de un reporte de
+  período por sede es la sede donde ocurrió la atención (#303 L2, ADR-0010):
+  pacientes con cita en la sede con su dinero de la sede, sillones por su sede,
+  profesionales por actividad, citas por `appointments.branch_id` e ingresos por
+  `cash_register_sessions.branch_id`; `patients.branch_id` sigue siendo la sede
+  de registro de la ficha, no la clave de un reporte. Superficie: nueva página
+  `/settings/accounting-locks` (`manage.accounting_lock`) que lista los cuatro
+  módulos con su fecha efectiva y su origen (sede, global o sin bloqueo) y
+  permite fijar y retirar el bloqueo, distinguiendo gerencia (fila global) de
+  administrador de sede; el detalle del catálogo suma el tab «Tarifario»
+  (`manage.branch_price`) para alta, edición y retiro del precio por sede con
+  ventana de vigencia, precio de lista y estado (vigente, futuro, vencido), y su
+  API acepta `procedure_id` como filtro; BI gana selector de sede visible solo
+  con alcance de grupo, alimentado por `GET /api/branches/active`, y el bloque
+  consolidado con su doble desglose (que no se exporta). Los modales de dinero
+  reconocen el bloqueo contable por código de máquina: `AccountingLockService`
+  lanza `App\Exceptions\AccountingLockBlockedException`, que publica
+  `code: accounting_lock_blocked` con el mismo 403 y el mismo mensaje, y el
+  aviso se muestra en línea con el campo de motivo de al menos 10 caracteres y
+  el reintento autorizado. §4 y §5 sincronizados: 20 módulos de dominio y 22
+  páginas. Tests: `BranchScopeReportTest` (6), `AccountingLockHttpGuardTest`
+  extendido, `ProcedureBranchPriceTest` (9), `businessIntelligenceBranch` (5),
+  `business-intelligence-branch` (8), `accountingLockMeta` (12),
+  `accounting-locks` (13), `branchTariff` (6), `procedure-tariff` (4),
+  `accountingLockOverride` (7), `money-lock-notice` (3) y `usePermissions`
+  extendido; `BusinessIntelligenceRenderTest` y `RevenueReportContractTest`
+  ajustados al corte nuevo.
 
 - **2026-10-23 (caja: vocabulario del dinero y estado de cuenta del paciente,
   #287)** — La caja y la deuda del paciente dejan de compartir un solo

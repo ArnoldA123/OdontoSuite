@@ -1,7 +1,7 @@
 # Environments UI Redesign — CERRADO ✅
 
 Rama: `feat/environments-ui-redesign` (desde `main` @ e2034c1)
-Worktree: `/home/chomb/proyectos/odontosuite-wt/environments-ui-redesign`
+Worktree: `~/proyectos/odontosuite-wt/environments-ui-redesign`
 Creado: 2026-10-11 · Orquestador: el Gentleman
 
 ## Objetivo
@@ -113,7 +113,7 @@ la feature al cierre**. Los puntos 2-4 quedan así:
   ESLint: **0 errores** (backlog prettier preexistente, advisory) · build ✓ ·
   **doc-drift 12/12**.
 - Visual (Playwright, 3 viewports + re-check): PASS 4/4 en los arreglos F2/F3/F5;
-  capturas en `/home/chomb/proyectos/odontosuite-wt/env-ui-verify-screenshots/`
+  capturas en `~/proyectos/odontosuite-wt/env-ui-verify-screenshots/`
   (fuera del worktree a propósito).
 - **Revisión nativa del agregado final** (frontera `e2034c1` → HEAD, 10 paths /
   2925 líneas): lens `review-reliability` **approved + burned**

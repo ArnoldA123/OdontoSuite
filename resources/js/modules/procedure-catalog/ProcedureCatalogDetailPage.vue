@@ -435,6 +435,10 @@
           </div>
         </UiCard>
       </template>
+
+      <template #tariff>
+        <BranchTariffPanel v-if="tariffOpened" :procedure-id="procedure.id" />
+      </template>
     </UiTabs>
   </AppLayout>
 </template>
@@ -444,6 +448,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeftIcon,
+  BanknotesIcon,
   ClockIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
@@ -452,6 +457,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
 import { useAuditLogs } from '../../composables/useAuditLogs'
+import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { formatCurrency } from '../../composables/useFormatters'
 import { SITE_TYPE_LABELS } from './procedureSite'
@@ -462,12 +468,16 @@ import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiTabs from '../../components/ui/Tabs.vue'
 import LoadingSpinner from '../../components/ui/LoadingSpinner.vue'
+import BranchTariffPanel from './BranchTariffPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { get } = useApi()
+const { can } = usePermissions()
 const toast = useToast()
 const { getAllAuditLogs } = useAuditLogs()
+
+const canManageBranchPrice = computed(() => can.manageBranchPrice.value)
 
 const procedure = ref(null)
 const loading = ref(true)
@@ -500,12 +510,21 @@ const versions = ref([])
 const versionsLoading = ref(false)
 const versionsError = ref(false)
 const versionsLoaded = ref(false)
+const tariffOpened = ref(false)
 
-const tabs = [
-  { id: 'data', label: 'Datos', icon: Squares2X2Icon },
-  { id: 'audit', label: 'Historial', icon: ClockIcon },
-  { id: 'versions', label: 'Versiones', icon: DocumentTextIcon }
-]
+const tabs = computed(() => {
+  const available = [
+    { id: 'data', label: 'Datos', icon: Squares2X2Icon },
+    { id: 'audit', label: 'Historial', icon: ClockIcon },
+    { id: 'versions', label: 'Versiones', icon: DocumentTextIcon }
+  ]
+
+  if (canManageBranchPrice.value) {
+    available.push({ id: 'tariff', label: 'Tarifario', icon: BanknotesIcon })
+  }
+
+  return available
+})
 
 const formatDate = value => {
   if (!value) return 'Fecha no registrada'
@@ -614,6 +633,7 @@ const loadActiveTab = () => {
   if (activeTab.value === 'versions' && !versionsLoaded.value && !versionsLoading.value) {
     loadVersions()
   }
+  if (activeTab.value === 'tariff' && canManageBranchPrice.value) tariffOpened.value = true
 }
 
 watch(activeTab, loadActiveTab)

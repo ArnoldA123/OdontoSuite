@@ -62,6 +62,8 @@ class AppLayoutCanvasRoutesTest extends TestCase
         // Settings (canvas surface only)
         '/settings/branches',
         '/settings/payment-methods',
+        // Administración del bloqueo contable (#304)
+        '/settings/accounting-locks',
     ];
 
     private static function projectRoot(): string

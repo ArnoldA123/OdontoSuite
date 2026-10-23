@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Models\Appointment;
 use App\Models\User;
+use App\Services\Reports\Concerns\ResolvesBranchFilter;
 use App\Services\Reports\Concerns\ResolvesMoneyTotals;
 use App\Services\Reports\Concerns\ResolvesReportPeriod;
 use Carbon\Carbon;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProfessionalReportService
 {
+    use ResolvesBranchFilter;
     use ResolvesMoneyTotals;
     use ResolvesReportPeriod;
 
@@ -23,17 +25,30 @@ class ProfessionalReportService
      *
      * Money is net (S4): `total_revenue` is payments minus refunds and
      * `refunds` reports the positive refunded amount for the same professional.
+     *
+     * With a sede filter (#303, L2) the population is the professionals with
+     * activity in that sede during the period, and both their counters and
+     * their money come from that sede's appointments.
      */
     public function getReportData(array $filters = []): array
     {
         [$startDate, $endDate] = $this->resolvePeriod($filters);
         $professionalId = $filters['professional_id'] ?? null;
         $environmentId = $filters['environment_id'] ?? null;
+        $branchId = $this->branchFilter($filters);
 
         $query = User::whereIn('role', DashboardService::PROFESSIONAL_ROLES);
 
         if ($professionalId) {
             $query->where('id', $professionalId);
+        }
+
+        if ($branchId !== null) {
+            $query->whereHas('appointments', function ($q) use ($startDate, $endDate, $branchId) {
+                $q->whereBetween('scheduled_at', [$startDate, $endDate]);
+
+                $this->filterBranch($q, 'branch_id', $branchId);
+            });
         }
 
         $professionals = $query->orderBy('name')->get();
@@ -54,6 +69,7 @@ class ProfessionalReportService
             ->whereBetween('scheduled_at', [$startDate, $endDate])
             ->whereIn('user_id', $ids)
             ->when($environmentId, fn ($q) => $q->where('dental_chair_id', $environmentId))
+            ->when($branchId !== null, fn ($q) => $q->where('branch_id', $branchId))
             ->groupBy('user_id')
             ->get()
             ->keyBy('user_id');
@@ -62,6 +78,7 @@ class ProfessionalReportService
             ->join('appointments', 'appointments.id', '=', 'transactions.appointment_id')
             ->whereIn('appointments.user_id', $ids)
             ->when($environmentId, fn ($q) => $q->where('appointments.dental_chair_id', $environmentId))
+            ->when($branchId !== null, fn ($q) => $q->where('appointments.branch_id', $branchId))
             ->groupBy('appointments.user_id')
             ->select(
                 'appointments.user_id',

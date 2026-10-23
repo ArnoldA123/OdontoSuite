@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Models\Patient;
+use App\Services\Reports\Concerns\ResolvesBranchFilter;
 use App\Services\Reports\Concerns\ResolvesMoneyTotals;
 use App\Services\Reports\Concerns\ResolvesReportPeriod;
 use Carbon\Carbon;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class PatientReportService
 {
+    use ResolvesBranchFilter;
     use ResolvesMoneyTotals;
     use ResolvesReportPeriod;
 
@@ -19,42 +21,52 @@ class PatientReportService
      * Spend is money actually collected in the period minus refunds (D1, S4),
      * not catalog price, and the last appointment reads any status so a
      * cancelled visit still reports activity.
+     *
+     * The patient file is shared across sedes (ADR-0010), so a sede filter is
+     * not a patient census: the population is the patients seen in that sede
+     * during the period and the money is what its drawer collected (#303, L2).
+     * A patient treated in two sedes appears in both, with each sede's figures.
      */
     public function getReportData(array $filters = []): array
     {
         [$startDate, $endDate] = $this->resolvePeriod($filters);
         $professionalId = $filters['professional_id'] ?? null;
         $environmentId = $filters['environment_id'] ?? null;
+        $branchId = $this->branchFilter($filters);
 
-        $query = Patient::withCount(['appointments' => function ($q) use ($startDate, $endDate, $professionalId, $environmentId) {
-            $q->whereBetween('scheduled_at', [$startDate, $endDate]);
+        // `withCount` passes a builder and `with` a relation, so the shared
+        // callback stays untyped.
+        $appointments = function ($query) use ($startDate, $endDate, $professionalId, $environmentId, $branchId) {
+            $query->whereBetween('scheduled_at', [$startDate, $endDate]);
 
             if ($professionalId) {
-                $q->where('user_id', $professionalId);
+                $query->where('user_id', $professionalId);
             }
 
             if ($environmentId) {
-                $q->where('dental_chair_id', $environmentId);
+                $query->where('dental_chair_id', $environmentId);
             }
-        }])
-            ->with(['appointments' => function ($q) use ($startDate, $endDate, $professionalId, $environmentId) {
-                $q->whereBetween('scheduled_at', [$startDate, $endDate]);
 
-                if ($professionalId) {
-                    $q->where('user_id', $professionalId);
-                }
+            if ($branchId !== null) {
+                $query->where('branch_id', $branchId);
+            }
+        };
 
-                if ($environmentId) {
-                    $q->where('dental_chair_id', $environmentId);
-                }
-            }]);
+        $query = Patient::withCount(['appointments' => $appointments])
+            ->with(['appointments' => $appointments]);
+
+        if ($branchId !== null) {
+            $query->whereHas('appointments', $appointments);
+        }
 
         $patients = $query->orderBy('last_name')->orderBy('first_name')->get();
 
         $patientIds = $patients->pluck('id')->all();
 
-        $moneyByPatient = empty($patientIds) ? collect() : $this->moneyTransactions($startDate, $endDate)
-            ->whereIn('patient_id', $patientIds)
+        $moneyByPatient = empty($patientIds) ? collect() : $this->filterByDrawerBranch(
+            $this->moneyTransactions($startDate, $endDate)->whereIn('patient_id', $patientIds),
+            $branchId
+        )
             ->groupBy('patient_id')
             ->select(
                 'patient_id',

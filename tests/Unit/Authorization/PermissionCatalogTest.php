@@ -218,6 +218,37 @@ class PermissionCatalogTest extends TestCase
         }
     }
 
+    /**
+     * #313 (decision D1) — the specialty record is a clinical act with surgical
+     * narrative (`surgical_notes`, `post_surgical_notes`, `complications`,
+     * `follow_up_notes`), not prosthetic input. Reading and writing are the same
+     * permission, so the laboratory desk leaves the whole module; the case
+     * (`lab_cases`) already publishes the piece, the work, the material, the
+     * dates and the technician, which is what the workshop needs.
+     */
+    #[Test]
+    public function the_specialty_record_belongs_to_administration_and_the_clinicians(): void
+    {
+        $this->assertSame(
+            ['administrador', 'odontologo', 'implantologo'],
+            Permissions::rolesFor(Permissions::MANAGE_SPECIALTY_RECORD),
+            'The specialty record is a clinical act: #313 closes the laboratory desk out of it.',
+        );
+
+        $this->assertFalse(
+            Permissions::roleHas('tecnico_dental', Permissions::MANAGE_SPECIALTY_RECORD),
+            'The laboratory holds [manage.specialty_record], but the surgical narrative is not prosthetic input.',
+        );
+
+        // The prosthetic inputs the workshop does need are untouched.
+        foreach ([Permissions::MANAGE_TREATMENT_PLAN, Permissions::VIEW_DENTAL_PIECE] as $permission) {
+            $this->assertTrue(
+                Permissions::roleHas('tecnico_dental', $permission),
+                "The laboratory should keep [{$permission}]: #313 closes the specialty record, not its work order.",
+            );
+        }
+    }
+
     #[Test]
     public function frontend_only_permissions_exist_in_the_catalog(): void
     {

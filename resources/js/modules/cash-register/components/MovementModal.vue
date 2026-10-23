@@ -15,6 +15,15 @@
         {{ errors.general }}
       </div>
 
+      <AccountingLockNotice
+        v-if="lockBlocked"
+        v-model="lockReason"
+        :message="lockMessage"
+        :error="lockReasonError"
+        :loading="loading"
+        @retry="retryWithOverride"
+      />
+
       <UiSelect
         v-model="form.type"
         data-field="type"
@@ -122,7 +131,9 @@ import UiModal from '@/components/ui/Modal.vue'
 import UiSelect from '@/components/ui/Select.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
+import AccountingLockNotice from '@/components/money/AccountingLockNotice.vue'
 import { useApi } from '@/composables/useApi'
+import { useAccountingLock } from '@/composables/useAccountingLock'
 import { formatCurrency } from '@/composables/useFormatters'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 
@@ -140,6 +151,16 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'success'])
 
 const { post } = useApi()
+const {
+  blocked: lockBlocked,
+  message: lockMessage,
+  reason: lockReason,
+  reasonError: lockReasonError,
+  reset: resetLock,
+  detect: detectLock,
+  applyValidationErrors: applyLockValidationErrors,
+  authorize: authorizeLock
+} = useAccountingLock()
 
 const TYPE_OPTIONS = [
   { label: 'Ingreso', value: 'income' },
@@ -219,7 +240,10 @@ const handleModelValue = value => emit('update:modelValue', value)
 watch(
   () => props.modelValue,
   value => {
-    if (value) errors.value = {}
+    if (value) {
+      errors.value = {}
+      resetLock()
+    }
   }
 )
 
@@ -275,16 +299,32 @@ const handleSubmit = async () => {
   errors.value = {}
   if (!validate()) return
 
+  await performSubmit(null)
+}
+
+const performSubmit = async override => {
   loading.value = true
 
   try {
-    const response = await post('/api/cash-movements', buildPayload())
+    const response = await post('/api/cash-movements', { ...buildPayload(), ...override })
+    resetLock()
     emit('success', response.data)
     close()
   } catch (error) {
+    if (detectLock(error)) return
+    if (applyLockValidationErrors(error.response?.data?.errors)) return
+
     handleError(error)
   } finally {
     loading.value = false
   }
+}
+
+const retryWithOverride = async () => {
+  const override = authorizeLock()
+  if (!override) return
+
+  errors.value = {}
+  await performSubmit(override)
 }
 </script>

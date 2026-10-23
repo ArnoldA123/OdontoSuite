@@ -31,8 +31,8 @@
             </p>
           </div>
 
-          <!-- The three queue counts summarize the three sections below. -->
-          <dl class="grid grid-cols-3 gap-3" data-my-day-counts>
+          <!-- The queue counts summarize the sections below. -->
+          <dl class="grid grid-cols-2 gap-3 md:grid-cols-4" data-my-day-counts>
             <div
               v-for="stat in statCards"
               :key="stat.key"
@@ -159,6 +159,64 @@
             </UiCard>
           </div>
         </section>
+
+        <!--
+          F5 (#316): the workshop returned the work. The block only exists when
+          there is a case to place, so a professional without laboratory work
+          keeps the desk it had; the appointment sections keep their empties.
+        -->
+        <section
+          v-if="queue.ready_lab_cases.length > 0"
+          data-my-day-section="lab-cases"
+          aria-label="Laboratorio listo"
+          class="space-y-3"
+        >
+          <div class="flex items-baseline gap-3">
+            <h3 class="text-xl font-semibold text-label">Laboratorio listo</h3>
+            <p class="text-sm text-theme-secondary">
+              El taller devolvió el trabajo y espera colocación.
+            </p>
+          </div>
+
+          <div class="grid gap-3">
+            <UiCard
+              v-for="labCase in queue.ready_lab_cases"
+              :key="labCase.id"
+              variant="flat"
+              data-my-day-lab-case
+              :data-my-day-lab-case-id="labCase.id"
+            >
+              <div class="flex flex-wrap items-center gap-3">
+                <div class="min-w-0 flex-1">
+                  <p class="truncate font-medium text-label" data-my-day-lab-case-work>
+                    {{ labCase.work }}
+                  </p>
+                  <p class="truncate text-sm text-theme-secondary">
+                    {{ patientFullName(labCase.patient) }}
+                    <span v-if="pieceOf(labCase)">· {{ pieceOf(labCase) }}</span>
+                  </p>
+                </div>
+                <p class="text-sm text-theme-secondary" data-my-day-lab-case-promised>
+                  Prometido {{ formatDate(labCase.promised_at) }}
+                </p>
+                <UiStatusBadge
+                  :variant="phaseBadgeVariant(labCase.status)"
+                  :label="phaseLabel(labCase.status)"
+                  size="sm"
+                  show-dot
+                />
+                <UiButton
+                  variant="primary"
+                  size="sm"
+                  data-my-day-lab-case-open
+                  @click="openLabCases"
+                >
+                  Ver
+                </UiButton>
+              </div>
+            </UiCard>
+          </div>
+        </section>
       </template>
     </div>
 
@@ -172,6 +230,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
@@ -181,6 +240,13 @@ import UiSkeleton from '../../components/ui/Skeleton.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import ConsultationWizard from '../appointments/ConsultationWizard.vue'
 import { statusBadgeVariant, statusLabel } from '../appointments/appointmentStatus'
+import {
+  formatDate,
+  patientFullName,
+  phaseBadgeVariant,
+  phaseLabel,
+  pieceLabel
+} from '../lab-cases/labCaseMeta'
 import { useAuth } from '../../composables/useAuth'
 import { useConsultation } from '../../composables/useConsultation'
 import { useMyDay } from '../../composables/useMyDay'
@@ -190,6 +256,7 @@ import { formatCompactTime } from '../../composables/useFormatters'
 const { user } = useAuth()
 const { can } = usePermissions()
 const { openForAppointment } = useConsultation()
+const router = useRouter()
 const {
   queue,
   counts,
@@ -223,7 +290,8 @@ const todayLabel = new Date().toLocaleDateString('es-ES', {
 const statCards = [
   { key: 'waiting', label: 'En espera' },
   { key: 'attending', label: 'Atendiendo' },
-  { key: 'upcoming', label: 'Próximos' }
+  { key: 'upcoming', label: 'Próximos' },
+  { key: 'ready_lab_cases', label: 'Laboratorio' }
 ]
 
 const sections = computed(() => [
@@ -253,7 +321,11 @@ const sections = computed(() => [
   }
 ])
 
-const hasRows = computed(() => sections.value.some(section => section.rows.length > 0))
+const hasRows = computed(
+  () =>
+    sections.value.some(section => section.rows.length > 0) ||
+    queue.value.ready_lab_cases.length > 0
+)
 const showSkeleton = computed(() => loading.value && !hasRows.value)
 
 const patientName = appointment => {
@@ -265,6 +337,14 @@ const patientName = appointment => {
 }
 
 const chairName = appointment => appointment?.dental_chair?.name || ''
+
+const pieceOf = labCase => {
+  const fdi = labCase?.dental_piece?.fdi_number
+  if (fdi === null || fdi === undefined) return ''
+  return `Pieza ${pieceLabel(labCase.dental_piece)}`
+}
+
+const openLabCases = () => router.push('/lab-cases')
 
 const continueConsultation = async appointment => {
   wizardAppointment.value = appointment

@@ -32,7 +32,7 @@ nuevo. Un flujo de solicitud y aprobación de traslado es otra entrega: inventar
 esa entidad aquí duplicaría un proceso que ninguna de las issues que originan
 esta decisión pide.
 
-> **Actualización (2026-10-25, #305):** ese flujo llegó y vive en ADR-0016.
+> **Actualización (2026-10-25, #305):** ese flujo llegó y vive en ADR-0017.
 > `branch_transfer_requests` registra la solicitud con su motivo y su decisión,
 > y la aprobación es la segunda puerta que escribe `users.branch_id` —con la
 > misma auditoría `user_branch_assigned` y dentro de una transacción—. Una
@@ -91,8 +91,17 @@ como candado de lectura.
   estampa.
 - Leer la ficha de un paciente de otra sede es posible abriéndola por id, no
   enumerando esa sede: el selector `branch_id` de un listado ajeno responde 403.
-- Los reportes que aún no aceptan `branch_id` (citas, pacientes, profesionales,
-  utilización, dashboard) quedan como follow-up declarado en la entrega de #290.
+- La ficha del paciente sigue siendo compartida, así que un reporte de periodo
+  por sede no se atribuye por la sede de registro del paciente sino por la sede
+  donde ocurrió la atención: la población filtrada son los pacientes con cita en
+  la sede, el dinero se atribuye por la sede del cajón, el sillón por su sede y
+  las citas por `appointments.branch_id` (#303, decisión en
+  `odd/tasks/bi-filtro-sede-303.md`, L2). `patients.branch_id` queda como el
+  valor con el que se estampa la ficha al crearla, no como clave de un reporte
+  de periodo.
+- Los seis reportes de BI y la exportación aceptan `branch_id` desde #303, con
+  la misma regla que el consolidado: sede propia por omisión y 403 al pedir
+  otra.
 
 ## References
 

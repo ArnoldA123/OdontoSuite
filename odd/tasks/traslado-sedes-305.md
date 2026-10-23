@@ -182,7 +182,7 @@ smoke (~390) si conviene separarlos; c7 `AGENTS.md` y esta ficha. El backend
 comportamiento no se puede partir más pequeño: el guard
 `RoutePermissionMatrixTest` falla si un permiso del catálogo no tiene puerta.
 
-L8. Decisión registrada: `docs/architecture/decisions/0016-branch-transfer-request.md`
+L8. Decisión registrada: `docs/architecture/decisions/0017-branch-transfer-request.md`
 (la solicitud aprobada como segunda puerta de la afiliación), con la nota de
 actualización en ADR-0010 que cerraba la postergación.
 
