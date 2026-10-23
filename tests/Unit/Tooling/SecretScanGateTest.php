@@ -63,6 +63,26 @@ class SecretScanGateTest extends TestCase
             $source,
             'A full-history scan would red on the leak SECURITY.md records.'
         );
+        $this->assertStringContainsString(
+            '[ "$AFTER_SHA" = "$ZERO" ]',
+            $source,
+            'A branch deletion (all-zero after SHA) MUST exit green: it publishes no commit.'
+        );
+        $this->assertStringContainsString(
+            'git cat-file -e',
+            $source,
+            'Both range endpoints MUST resolve; gitleaks exits 0 on an unresolvable range.'
+        );
+        $this->assertStringContainsString(
+            'git rev-list --count',
+            $source,
+            'A zero-commit range MUST fail instead of reporting a false green.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/\$COUNT.*-eq 0/s',
+            $source,
+            'The zero-commit guard MUST be wired to the count it reads.'
+        );
 
         $checkout = null;
         foreach ($job['steps'] ?? [] as $step) {
