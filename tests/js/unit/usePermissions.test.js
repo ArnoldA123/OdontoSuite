@@ -70,4 +70,20 @@ describe('usePermissions derives every flag from the permission payload (#280)',
     expect(hasAllPermissions(['viewCashReports', 'exportCashData'])).toBe(true)
     expect(hasAllPermissions(['viewCashReports', 'manageUsers'])).toBe(false)
   })
+
+  // #304 S4: the three surfaces of the sede administration derive their flags
+  // from the same payload, never from a role list.
+  it('derives the sede administration flags from the permission payload', () => {
+    authState.ref.value = {
+      role: 'administrador',
+      permissions: ['view.report', 'manage.branch_price', 'manage.accounting_lock']
+    }
+
+    const { can } = usePermissions()
+
+    expect(can.viewReports.value).toBe(true)
+    expect(can.manageBranchPrice.value).toBe(true)
+    expect(can.manageAccountingLock.value).toBe(true)
+    expect(can.overrideAccountingLock.value).toBe(false)
+  })
 })
