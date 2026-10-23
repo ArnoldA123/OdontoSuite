@@ -70,6 +70,16 @@ class TechnicianClinicalRecordScopeTest extends TestCase
         $this->actingAs($technician, 'sanctum')
             ->getJson("/api/encounters/{$encounter->id}")
             ->assertForbidden();
+
+        // The write door of the record is closed too: reading it and writing
+        // it are the same surface.
+        $this->actingAs($technician, 'sanctum')
+            ->postJson("/api/medical-records/{$record->id}/evolutions", [
+                'subjective' => 'Control de laboratorio',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('clinical_evolutions', 0);
     }
 
     public function test_the_other_clinical_roles_keep_the_record_and_the_act(): void

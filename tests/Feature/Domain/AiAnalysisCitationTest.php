@@ -288,14 +288,20 @@ class AiAnalysisCitationTest extends TestCase
         $this->assertDatabaseCount('ai_analysis_citations', 1);
     }
 
-    public function test_the_laboratory_desktop_cannot_cite_an_analysis(): void
+    /**
+     * #296, re-scoped by #285: a record writer with no AI module cannot cite.
+     * The laboratory desk no longer reaches this door at all (#285), so the
+     * citation guard is pinned with the assistant desk, which still writes
+     * evolutions.
+     */
+    public function test_a_record_writer_without_the_ai_module_cannot_cite_an_analysis(): void
     {
-        $technician = $this->clinician('tecnico_dental');
+        $assistant = $this->clinician('asistente');
         $patient = Patient::factory()->create();
-        $record = $this->record($patient, $technician);
+        $record = $this->record($patient, $assistant);
         $analysis = $this->reviewedAnalysis($patient, $this->clinician());
 
-        $this->actingAs($technician)
+        $this->actingAs($assistant)
             ->postJson('/api/medical-records/'.$record->id.'/evolutions', [
                 'subjective' => 'Control',
                 'cited_analysis_ids' => [$analysis->id],
@@ -308,21 +314,6 @@ class AiAnalysisCitationTest extends TestCase
 
         $this->assertDatabaseCount('clinical_evolutions', 0);
         $this->assertDatabaseCount('ai_analysis_citations', 0);
-    }
-
-    public function test_the_laboratory_desktop_keeps_writing_evolutions_without_citations(): void
-    {
-        $technician = $this->clinician('tecnico_dental');
-        $patient = Patient::factory()->create();
-        $record = $this->record($patient, $technician);
-
-        $this->actingAs($technician)
-            ->postJson('/api/medical-records/'.$record->id.'/evolutions', [
-                'subjective' => 'Control de laboratorio',
-            ])
-            ->assertCreated();
-
-        $this->assertDatabaseCount('clinical_evolutions', 1);
     }
 
     public function test_an_evolution_without_citations_keeps_the_existing_contract(): void
