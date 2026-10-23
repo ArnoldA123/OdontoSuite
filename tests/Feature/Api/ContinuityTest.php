@@ -235,6 +235,103 @@ class ContinuityTest extends TestCase
         $this->assertSame($patient->id, $response->json('data.recalls.0.patient_id'));
     }
 
+    public function test_reception_manages_recalls_while_a_clinician_only_reads_continuity(): void
+    {
+        $receptionist = $this->staff('recepcionista');
+        $clinician = $this->staff('odontologo');
+        $patient = Patient::factory()->create();
+
+        $this->actingAs($receptionist, 'sanctum')
+            ->postJson('/api/patient-recalls', [
+                'patient_id' => $patient->id,
+                'interval_months' => 3,
+                'reason' => 'Control trimestral.',
+            ])
+            ->assertCreated();
+
+        $this->assertSame(1, PatientRecall::count());
+
+        $this->actingAs($clinician, 'sanctum')
+            ->postJson('/api/patient-recalls', [
+                'patient_id' => $patient->id,
+                'interval_months' => 6,
+                'reason' => 'Control semestral.',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($clinician, 'sanctum')
+            ->getJson('/api/continuity/queue')
+            ->assertOk();
+
+        $recall = PatientRecall::sole();
+
+        $this->actingAs($clinician, 'sanctum')
+            ->postJson('/api/patient-recalls/'.$recall->id.'/complete')
+            ->assertForbidden();
+    }
+
+    public function test_a_pending_conduct_can_be_dismissed_with_its_reason(): void
+    {
+        $receptionist = $this->staff('recepcionista');
+        $professional = $this->staff('odontologo');
+        $patient = Patient::factory()->create();
+
+        $request = ContinuityRequest::create([
+            'patient_id' => $patient->id,
+            'kind' => ContinuityRequest::KIND_CONTROL,
+            'status' => ContinuityRequest::STATUS_PENDING,
+            'duration_minutes' => 30,
+            'created_by' => $professional->id,
+        ]);
+
+        $this->actingAs($receptionist, 'sanctum')
+            ->postJson("/api/continuity-requests/{$request->id}/dismiss", [
+                'reason' => 'El paciente eligió otra sede.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', ContinuityRequest::STATUS_DISMISSED);
+
+        $this->assertSame('El paciente eligió otra sede.', $request->fresh()->resolution_notes);
+    }
+
+    public function test_the_recall_metrics_and_the_due_filter_are_served(): void
+    {
+        $receptionist = $this->staff('recepcionista');
+        $professional = $this->staff('odontologo');
+        $patient = Patient::factory()->create();
+
+        PatientRecall::create([
+            'patient_id' => $patient->id,
+            'interval_months' => 3,
+            'reason' => 'Vencido.',
+            'due_date' => now()->subWeek()->toDateString(),
+            'status' => PatientRecall::STATUS_PENDING,
+            'created_by' => $professional->id,
+        ]);
+
+        PatientRecall::create([
+            'patient_id' => $patient->id,
+            'interval_months' => 3,
+            'reason' => 'Futuro.',
+            'due_date' => now()->addMonth()->toDateString(),
+            'status' => PatientRecall::STATUS_PENDING,
+            'created_by' => $professional->id,
+        ]);
+
+        $this->actingAs($receptionist, 'sanctum')
+            ->getJson('/api/patient-recalls?due=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.reason', 'Vencido.');
+
+        $this->actingAs($receptionist, 'sanctum')
+            ->getJson('/api/patient-recalls/metrics')
+            ->assertOk()
+            ->assertJsonPath('data.overdue', 1)
+            ->assertJsonPath('data.pending', 2)
+            ->assertJsonPath('data.compliance_rate', 0);
+    }
+
     public function test_the_queue_respects_the_branch_of_the_receptionist(): void
     {
         $branchA = Branch::factory()->create();
