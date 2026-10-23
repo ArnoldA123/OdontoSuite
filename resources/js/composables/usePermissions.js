@@ -43,6 +43,11 @@ const PERMISSION_BY_KEY = {
   manageConfig: 'manage.config',
   viewAuditLogs: 'view.audit_log',
 
+  // Sede, tarifario y bloqueo contable (#283/#290, superficie #304)
+  manageBranchPrice: 'manage.branch_price',
+  manageAccountingLock: 'manage.accounting_lock',
+  overrideAccountingLock: 'override.accounting_lock',
+
   // Procedure catalog
   manageProcedureCatalog: 'manage.procedure_catalog',
   viewProcedureCatalog: 'view.procedure_catalog',
