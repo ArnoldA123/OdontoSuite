@@ -427,6 +427,9 @@ class TreatmentPlanService
                 unset($itemData['id'], $itemData['treatment_plan_id'], $itemData['created_at'], $itemData['updated_at']);
                 $itemData['treatment_plan_id'] = $newPlan->id;
                 $itemData['status'] = $item->status === 'proposed' ? 'proposed' : 'pending';
+                // A copy of the plan is a new proposal: a rejection belongs to
+                // the patient decision on the original line, not to the copy.
+                unset($itemData['rejected_at'], $itemData['rejection_reason']);
                 // total_cost se recalcula en persistItem si hace falta
                 unset($itemData['total_cost']);
 

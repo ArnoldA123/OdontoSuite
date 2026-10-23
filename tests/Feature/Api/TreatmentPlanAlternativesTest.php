@@ -189,6 +189,30 @@ class TreatmentPlanAlternativesTest extends TestCase
         $this->assertSame('proposed', $option->fresh()->status);
     }
 
+    public function test_duplicating_a_plan_does_not_carry_a_rejection_to_the_copy(): void
+    {
+        $author = $this->clinician();
+        $patient = Patient::factory()->create();
+        [$plan, $item] = $this->planWithOptionalItem($author, $patient);
+
+        $this->actingAs($author, 'sanctum')
+            ->postJson("/api/treatment-plans/items/{$item->id}/reject", [
+                'reason' => 'El paciente decidió no realizarlo.',
+            ])
+            ->assertOk();
+
+        $response = $this->actingAs($author, 'sanctum')
+            ->postJson("/api/treatment-plans/{$plan->id}/duplicate")
+            ->assertCreated();
+
+        $copy = TreatmentPlan::findOrFail($response->json('data.id'));
+        $copiedItem = $copy->items()->sole();
+
+        $this->assertSame('pending', $copiedItem->status);
+        $this->assertNull($copiedItem->rejected_at);
+        $this->assertNull($copiedItem->rejection_reason);
+    }
+
     public function test_an_alternative_changes_the_draft_version_of_the_plan(): void
     {
         $author = $this->clinician();
