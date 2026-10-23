@@ -108,13 +108,13 @@ app/
 
 resources/js/
   app.js                   # entry + router (guards en router/auth.js)
-  composables/             # 40 composables singleton
+  composables/             # 42 composables singleton
   components/
     ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
     procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ProcedureSiteFields,
                            #   ImportCsvModal
-  modules/                 # 19 módulos de dominio (ver §5)
+  modules/                 # 23 módulos de dominio (ver §5)
   router/auth.js           # requireAuth, requireGuest (localStorage)
   design-system/tokens.js  # design tokens
 
@@ -144,7 +144,7 @@ docs/
 
 ---
 
-## 5. Módulos del frontend (19 módulos, 21 páginas)
+## 5. Módulos del frontend (23 módulos, 23 páginas)
 
 | Módulo                    | Ruta                        | Roles                                 |
 | ------------------------- | --------------------------- | ------------------------------------- |
@@ -169,6 +169,8 @@ docs/
 | Mis procedimientos        | `/my-procedures`            | clínicos (favoritos)                  |
 | Recepción procedimientos  | `/reception-procedures`     | recep                                 |
 | Estadísticas catálogo     | `/procedure-stats`          | admin, finanzas                       |
+| Continuidad               | `/continuity`               | admin, recepción, clínicos            |
+| Laboratorio protésico     | `/lab-cases`                | admin, recepción, clínicos            |
 
 **Auth frontend**: el router NO tiene `meta.roles`. La API rechaza con 403 y el
 frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
@@ -542,6 +544,46 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-23 (superficies web de continuidad y laboratorio, #310/#316)** — Dos
+  pantallas que el backend ya publicaba pero nadie veía. **Continuidad**
+  (`/continuity`, entrada de navegación para administración, recepción y los
+  escritorios clínicos) consume `GET /api/continuity/queue`, que devuelve los
+  recalls vencidos y las solicitudes de continuidad pendientes con su
+  procedencia (plan, atención o cita), y `GET /api/patient-recalls/metrics`: la
+  tira de indicadores muestra recalls vencidos, solicitudes pendientes, total en
+  cola y `compliance_rate` tal como lo publica la API (`—` cuando no hay
+  denominador), sin recalcularlo en el cliente. **Agendar** abre el formulario
+  con la fecha preferida precargada (o el vencimiento del recall a las 09:00 si
+  ese instante ya pasó) y postea por la puerta de su población
+  (`POST /api/continuity-requests/{id}/schedule` o
+  `POST /api/patient-recalls/{id}/schedule`), así que la cita sigue validando
+  profesional y sillón y el 422 de conflicto se pinta en su campo. **Descartar**
+  es solo de solicitudes de continuidad, porque es la única fila que registra el
+  motivo (`POST /api/continuity-requests/{id}/dismiss`, motivo obligatorio en la
+  interfaz); un recall sale de la cola agendándolo. Las tres acciones se ocultan
+  sin `manage.continuity` (`administrador` y `recepcionista`): un clínico lee la
+  cola y no la gestiona. **Laboratorio protésico** (`/lab-cases`, visible para
+  los mismos escritorios) lista las órdenes de trabajo con filtros de fase,
+  `technician_id=me` y `overdue`, sobre `GET /api/lab-cases`; el detalle abre la
+  puerta de fase (`POST /api/lab-cases/{id}/phase`) ofreciendo solo fases
+  posteriores, porque la máquina no retrocede, y el mensaje del servicio cae en
+  el campo. El formulario de alta/edición (`POST|PUT /api/lab-cases`) se abre
+  desde la propia página, desde una pestaña **Laboratorio** nueva en la ficha
+  del paciente —que lista `GET /api/lab-cases?patient_id=…`— y desde el cierre
+  de la atención como bloque aditivo que no toca el payload del cierre.
+  Recepción ve los casos y no escribe (`manage.lab_case` es de administración,
+  dentistas y técnico). `GET /api/my-day` ya publicaba `ready_lab_cases`: el
+  escritorio del profesional ahora los agrupa en un bloque `Laboratorio listo`
+  con su conteo, y la suscripción al canal privado `lab-cases` refresca la lista
+  al recibir `caso_laboratorio_listo`. Sin rutas API, migraciones ni controllers
+  nuevos: la entrega es de superficie. §4 y §5 re-medidos: 42 composables y 23
+  módulos de dominio en 23 páginas (la cabecera de §5 decía 19/21 y ya derivaba:
+  los directorios de `resources/js/modules/` eran 21 antes de esta entrega).
+  Tests nuevos en `pnpm test:js`: 36 de continuidad (`continuityMeta`,
+  `useContinuity` y el smoke de la cola), 46 del laboratorio (`labCaseMeta`,
+  `useLabCases`, listado, formulario, pestaña del paciente y cierre) y 7 del
+  escritorio de Mi día. `scripts/audit/doc-drift.mjs` en verde.
 
 - **2026-10-23 (caja: vocabulario del dinero y estado de cuenta del paciente,
   #287)** — La caja y la deuda del paciente dejan de compartir un solo
