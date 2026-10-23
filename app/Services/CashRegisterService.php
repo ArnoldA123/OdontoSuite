@@ -101,6 +101,20 @@ class CashRegisterService
         DB::beginTransaction();
 
         try {
+            // #323 (S7) — the closure reads the drawer with the same lock the
+            // deposit and the refund take, so a payment landing mid-close
+            // cannot be left out of the arqueo.
+            $session = CashRegisterSession::query()
+                ->whereKey($session->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($session->status !== 'open') {
+                throw ValidationException::withMessages([
+                    'session' => ['La sesión de caja no está abierta.'],
+                ]);
+            }
+
             // Calculate expected amount
             $expectedAmount = $this->calculateExpectedAmount($session);
 

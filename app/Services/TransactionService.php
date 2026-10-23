@@ -67,6 +67,25 @@ class TransactionService
         DB::beginTransaction();
 
         try {
+            // #323 (S7) — every drawer writer locks the session row before it
+            // reads or writes cash: the deposit, the closure and this payment
+            // or refund now serialize on the same row, so a deposit can never
+            // take out cash a concurrent refund is about to return.
+            if ($cashSession instanceof CashRegisterSession) {
+                $lockedSession = CashRegisterSession::query()
+                    ->whereKey($cashSession->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $lockedSession instanceof CashRegisterSession || $lockedSession->status !== 'open') {
+                    throw ValidationException::withMessages([
+                        'session' => ['No hay una sesión de caja abierta. Debe abrir la caja antes de registrar transacciones.'],
+                    ]);
+                }
+
+                $cashSession = $lockedSession;
+            }
+
             // Two refunds of the same patient can never pass the cap together:
             // the patient row serializes the calculation with the insert, so
             // the amount the second one can return excludes the first one's.
