@@ -497,6 +497,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { usePermissions } from '@/composables/usePermissions'
 import { useNotifications } from '../../composables/useNotifications'
 import { useWebSocketNotifications } from '../../composables/useWebSocketNotifications'
 import { useEcho } from '../../composables/useEcho'
@@ -517,6 +518,7 @@ import { BellIcon, SunIcon } from '@heroicons/vue/24/outline'
 const route = useRoute()
 const router = useRouter()
 const { user, logout: authLogout } = useAuth()
+const { can } = usePermissions()
 const { connectionStatus: wsStatus } = useEcho()
 
 // Handlers del modal global de confirmacion (useConfirm).
@@ -569,7 +571,8 @@ const canvasRoutes = [
   '/business-intelligence',
   // Settings (canvas surface only — internals deferred per OQ#3)
   '/settings/branches',
-  '/settings/payment-methods'
+  '/settings/payment-methods',
+  '/settings/accounting-locks'
 ]
 
 // PR-ambientes-01 (AMB-01-001 [BLOCKING]) — prefix-matching helper. The
@@ -720,6 +723,16 @@ const CreditCardIcon = {
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    </svg>
+  `
+}
+
+// #304 S1: icono para Bloqueo Contable.
+const LockClosedIcon = {
+  template: `
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
     </svg>
   `
 }
@@ -898,6 +911,17 @@ const navigation = computed(() => {
       badge: null
     },
     {
+      // #304 S1/S5: the accounting freeze surface. `roles` decides whether the
+      // entry is worth rendering; `permissions` repeats the API gate so a
+      // session without `manage.accounting_lock` never offers the door.
+      name: 'Bloqueo Contable',
+      to: '/settings/accounting-locks',
+      icon: LockClosedIcon,
+      roles: ['administrador'],
+      permissions: ['manageAccountingLock'],
+      badge: null
+    },
+    {
       name: 'Catálogo de Procedimientos',
       to: '/procedure-catalog',
       icon: ClipboardDocumentListIcon,
@@ -979,10 +1003,14 @@ const navigation = computed(() => {
     }
   ]
 
-  // Filtrar navegación según el rol del usuario
-  return allItems.filter(
-    item => item.roles.includes('all') || item.roles.includes(safeUser.value?.role)
-  )
+  // Filtrar navegación según el rol del usuario y, cuando la entrada lo declara,
+  // según los permisos efectivos de la sesión.
+  return allItems.filter(item => {
+    if (!item.roles.includes('all') && !item.roles.includes(safeUser.value?.role)) return false
+    if (!item.permissions) return true
+
+    return item.permissions.every(key => can[key]?.value === true)
+  })
 })
 
 // Navigation item classes (iOS clinical: systemBlue for active nav).
@@ -1063,6 +1091,7 @@ const pageTitledRoutes = [
   '/procedure-stats',
   '/quotations',
   '/reception-procedures',
+  '/settings/accounting-locks',
   '/settings/branches',
   '/settings/payment-methods',
   '/specialties',
@@ -1095,6 +1124,7 @@ const getPageDescription = () => {
     '/professionals': 'Gestión de profesionales',
     '/environments': 'Configuración de ambientes',
     '/settings/branches': 'Sedes de la clínica',
+    '/settings/accounting-locks': 'Cierre contable por módulo',
     '/appointment-types': 'Tipos de citas disponibles',
     '/procedure-catalog': 'Catálogo clínico de procedimientos',
     '/procedure-catalog/': 'Detalle de procedimiento',
