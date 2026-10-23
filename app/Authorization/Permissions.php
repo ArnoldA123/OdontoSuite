@@ -287,6 +287,23 @@ final class Permissions
         'asistente',
     ];
 
+    /**
+     * #285 (S3/S5) — the patient-file export is the record in one call.
+     *
+     * The PDF and the ZIP carry the evolutions, the odontograms, the specialty
+     * records and the attachment binaries, so exporting follows the same
+     * boundary as reading the record. `finanzas` keeps the inert grant it had;
+     * `PatientPolicy::export()` is the effective gate.
+     */
+    private const PATIENT_EXPORT_ROLES = [
+        'administrador',
+        'recepcionista',
+        'odontologo',
+        'implantologo',
+        'asistente',
+        'finanzas',
+    ];
+
     private const TREATMENT_ROLES = [
         'administrador',
         'odontologo',
@@ -356,7 +373,7 @@ final class Permissions
         self::AUTHORIZE_BROADCASTING => self::ALL_ROLES,
         self::VIEW_USER => self::ALL_ROLES,
         self::VIEW_PATIENT => self::ALL_ROLES,
-        self::EXPORT_PATIENT => self::ALL_ROLES,
+        self::EXPORT_PATIENT => self::PATIENT_EXPORT_ROLES,
         self::VIEW_APPOINTMENT_TYPE => self::ALL_ROLES,
         self::VIEW_DENTAL_CHAIR => self::ALL_ROLES,
         self::VIEW_BRANCH => self::ALL_ROLES,

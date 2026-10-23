@@ -23,6 +23,7 @@
             data-hero-actions
           >
             <UiButton
+              v-if="can.exportPatient?.value"
               variant="secondary"
               size="sm"
               class="flex-none whitespace-nowrap"

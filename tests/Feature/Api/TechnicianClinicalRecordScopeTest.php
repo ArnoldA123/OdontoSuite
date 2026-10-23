@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Api;
 
+use App\Jobs\ExportPatientFileJob;
 use App\Models\ClinicalEncounter;
 use App\Models\MedicalRecord;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 /**
@@ -80,6 +82,34 @@ class TechnicianClinicalRecordScopeTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseCount('clinical_evolutions', 0);
+    }
+
+    /**
+     * The patient-file export is the record in one GET: the PDF and the ZIP
+     * carry the evolutions, the odontograms, the specialty records and the
+     * attachment binaries. It was reachable by `export.patient`, so the
+     * laboratory desk left that capability too.
+     */
+    public function test_the_laboratory_cannot_export_the_patient_file(): void
+    {
+        Queue::fake();
+
+        $technician = $this->staff('tecnico_dental');
+        $patient = Patient::factory()->create();
+
+        $this->actingAs($technician, 'sanctum')
+            ->getJson("/api/patients/{$patient->id}/export?format=pdf&async=1")
+            ->assertForbidden();
+
+        Queue::assertNothingPushed();
+
+        foreach (['administrador', 'recepcionista', 'odontologo', 'implantologo', 'asistente'] as $role) {
+            $this->actingAs($this->staff($role), 'sanctum')
+                ->getJson("/api/patients/{$patient->id}/export?format=pdf&async=1")
+                ->assertStatus(202);
+        }
+
+        Queue::assertPushed(ExportPatientFileJob::class, 5);
     }
 
     public function test_the_other_clinical_roles_keep_the_record_and_the_act(): void

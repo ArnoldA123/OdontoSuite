@@ -230,7 +230,6 @@
     "authorize.broadcasting",
     "view.user",
     "view.patient",
-    "export.patient",
     "view.appointment_type",
     "view.dental_chair",
     "view.branch",
