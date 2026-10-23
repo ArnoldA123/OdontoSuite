@@ -26,6 +26,10 @@ class TreatmentPlanItem extends Model
         'total_cost',
         'estimated_duration_minutes',
         'phase_number',
+        'sequence',
+        'priority',
+        'rejected_at',
+        'rejection_reason',
         'status',
         'notes',
         'materials_required',
@@ -36,6 +40,9 @@ class TreatmentPlanItem extends Model
     protected $casts = [
         'unit_cost' => 'decimal:2',
         'total_cost' => 'decimal:2',
+        'quantity' => 'integer',
+        'sequence' => 'integer',
+        'rejected_at' => 'datetime',
         'requires_anesthesia' => 'boolean',
         'is_optional' => 'boolean',
         'materials_required' => 'array',
@@ -76,6 +83,39 @@ class TreatmentPlanItem extends Model
     public function procedureMaterials(): HasMany
     {
         return $this->hasMany(ProcedureMaterial::class, 'treatment_plan_item_id');
+    }
+
+    /**
+     * F4 (#284): the acts that executed this line. Status is derived from these
+     * rows, never written directly by the plan API.
+     */
+    public function consumptions(): HasMany
+    {
+        return $this->hasMany(TreatmentPlanItemConsumption::class);
+    }
+
+    /**
+     * #288: option A/B for this line and the record of the one that was
+     * declined.
+     */
+    public function alternatives(): HasMany
+    {
+        return $this->hasMany(TreatmentPlanItemAlternative::class);
+    }
+
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('phase_number')->orderBy('sequence')->orderBy('id');
+    }
+
+    public function executedQuantity(): float
+    {
+        return round((float) $this->consumptions()->sum('quantity'), 2);
+    }
+
+    public function pendingQuantity(): float
+    {
+        return round(max(0, (float) $this->quantity - $this->executedQuantity()), 2);
     }
 
     /**

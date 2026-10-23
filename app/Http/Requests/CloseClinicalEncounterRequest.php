@@ -74,6 +74,7 @@ class CloseClinicalEncounterRequest extends FormRequest
             'treatment_plan.items.*.phase_number' => 'nullable|integer|min:1',
             'treatment_plan.items.*.estimated_duration_minutes' => 'nullable|integer',
             'treatment_plan.items.*.status' => 'sometimes|string',
+            'treatment_plan.items.*.consumed_quantity' => 'sometimes|nullable|numeric|min:0.01',
             'treatment_plan.items.*.materials_required' => 'nullable',
             'treatment_plan.items.*.requires_anesthesia' => 'sometimes|boolean',
             'treatment_plan.items.*.is_optional' => 'sometimes|boolean',
@@ -95,6 +96,13 @@ class CloseClinicalEncounterRequest extends FormRequest
             'next_appointment.appointment_type_id' => 'nullable|integer',
             'next_appointment.duration_minutes' => 'nullable|integer|min:15',
             'next_appointment.notes' => 'nullable|string',
+            // F4 (#284): the professional leaves the recall interval and its
+            // reason at the close; the system computes the due date.
+            'recall' => 'sometimes|array',
+            'recall.interval_months' => 'required_with:recall|in:3,6,12',
+            'recall.reason' => 'required_with:recall|string|max:255',
+            'recall.due_date' => 'nullable|date|after_or_equal:today',
+            'recall.notes' => 'nullable|string|max:1000',
             'generate_quotation' => 'sometimes|boolean',
         ];
     }

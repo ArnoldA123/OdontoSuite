@@ -23,7 +23,6 @@ use App\Models\ProcedureCatalog;
 use App\Models\TreatmentPlan;
 use App\Models\TreatmentPlanItem;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -60,6 +59,9 @@ class ConsultationService
         private readonly BillingService $billing,
         private readonly ClinicalEncounterService $encounters,
         private readonly InventoryService $inventory,
+        private readonly TreatmentPlanSessionService $sessions,
+        private readonly ContinuityService $continuity,
+        private readonly RecallService $recalls,
     ) {}
 
     /**
@@ -139,8 +141,10 @@ class ConsultationService
 
             if ($appointment !== null) {
                 $this->projectOnAppointment($appointment, $current, $mode, $finalAmount, $payload, $userId);
-                $this->scheduleFollowUpAppointment($appointment, $payload['next_appointment'] ?? null, $userId);
+                $this->persistContinuity($current, $appointment, $payload, $userId);
             }
+
+            $this->persistRecall($current, $appointment, $payload, $userId);
 
             $current->refresh()->load([
                 'patient',
@@ -445,15 +449,14 @@ class ConsultationService
         if ($mode === self::MODE_PLAN_SESSION) {
             $plan = TreatmentPlan::with('items')->findOrFail($planData['id']);
 
-            $itemUpdates = $planData['items'] ?? [];
-            foreach ($itemUpdates as $update) {
-                $item = $plan->items->firstWhere('id', $update['id'] ?? null);
-                if (! $item) {
-                    continue;
-                }
-                $item->status = $update['status'] ?? $item->status;
-                $item->save();
-            }
+            // F4 (#284): the session consumes plan lines. The status of the item
+            // is derived from those consumptions, never written here.
+            $this->sessions->consume(
+                $encounter,
+                $plan,
+                $planData['items'] ?? [],
+                $userId,
+            );
 
             $this->recalculatePlanTotals($plan);
 
@@ -463,7 +466,7 @@ class ConsultationService
         if ($mode === self::MODE_EXECUTION) {
             $items = $planData['items'] ?? [];
             $asProposed = (bool) ($planData['as_proposed'] ?? false);
-            $itemStatus = $asProposed ? 'proposed' : 'completed';
+            $itemStatus = $asProposed ? 'proposed' : 'pending';
 
             $plan = TreatmentPlan::create([
                 'patient_id' => $encounter->patient_id,
@@ -478,8 +481,9 @@ class ConsultationService
                 'notes' => $planData['notes'] ?? null,
             ]);
 
+            $lines = [];
             foreach ($items as $item) {
-                TreatmentPlanItem::create([
+                $line = TreatmentPlanItem::create([
                     'treatment_plan_id' => $plan->id,
                     'procedure_catalog_id' => $item['procedure_catalog_id'] ?? null,
                     'procedure_name' => $item['procedure_name'] ?? 'Procedimiento',
@@ -496,6 +500,14 @@ class ConsultationService
                     'requires_anesthesia' => $item['requires_anesthesia'] ?? false,
                     'is_optional' => $item['is_optional'] ?? false,
                 ]);
+
+                if (! $asProposed) {
+                    $lines[] = ['id' => $line->id, 'consumed_quantity' => $line->quantity];
+                }
+            }
+
+            if ($lines !== []) {
+                $this->sessions->consume($encounter, $plan->refresh()->load('items'), $lines, $userId);
             }
 
             $this->recalculatePlanTotals($plan);
@@ -646,26 +658,52 @@ class ConsultationService
     }
 
     /**
-     * @param array<string, mixed>|null $next
+     * F4 (#284) — the professional leaves the conduct; reception books it.
+     * The closure no longer writes an appointment row directly.
+     *
+     * @param array<string, mixed> $payload
      */
-    private function scheduleFollowUpAppointment(Appointment $appointment, ?array $next, ?int $userId): void
-    {
-        if (empty($next) || empty($next['scheduled_at'])) {
+    private function persistContinuity(
+        ClinicalEncounter $encounter,
+        Appointment $appointment,
+        array $payload,
+        ?int $userId,
+    ): void {
+        $this->continuity->requestFromClosure(
+            $encounter,
+            $appointment,
+            $payload['next_appointment'] ?? null,
+            $userId,
+        );
+    }
+
+    /**
+     * F4 (#284) — the recall interval belongs to the patient, with its reason
+     * and its due date. It is not a reminder template.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function persistRecall(
+        ClinicalEncounter $encounter,
+        ?Appointment $appointment,
+        array $payload,
+        ?int $userId,
+    ): void {
+        $recall = $payload['recall'] ?? null;
+        $user = Auth::user();
+
+        if (! is_array($recall) || ! $user instanceof \App\Models\User) {
             return;
         }
 
-        Appointment::create([
-            'patient_id' => $appointment->patient_id,
-            'user_id' => $appointment->user_id,
-            'dental_chair_id' => $appointment->dental_chair_id,
-            'appointment_type_id' => $next['appointment_type_id'] ?? $appointment->appointment_type_id,
-            'scheduled_at' => Carbon::parse($next['scheduled_at']),
-            'duration_minutes' => $next['duration_minutes'] ?? 30,
-            'status' => 'scheduled',
-            'notes' => $next['notes'] ?? null,
-            'created_by' => $userId,
-            'updated_by' => $userId,
-        ]);
+        $this->recalls->create([
+            'patient_id' => $encounter->patient_id,
+            'branch_id' => $appointment?->branch_id ?? $encounter->patient?->branch_id,
+            'interval_months' => (int) $recall['interval_months'],
+            'reason' => $recall['reason'],
+            'due_date' => $recall['due_date'] ?? null,
+            'notes' => $recall['notes'] ?? null,
+        ], $user);
     }
 
     /**

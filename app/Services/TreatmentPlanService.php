@@ -12,12 +12,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class TreatmentPlanService
 {
     public function __construct(
         private readonly AiAnalysisCitationService $citations,
         private readonly AccountingLockService $accountingLocks,
+        private readonly TreatmentPlanSessionService $sessions,
+        private readonly TreatmentPlanVersionService $versions,
     ) {}
 
     public function createPlan(array $data): TreatmentPlan
@@ -48,7 +51,8 @@ class TreatmentPlanService
 
             $this->calculateTotals($plan->id);
 
-            $plan->refresh();
+            $this->versions->initialize($plan->refresh()->load('items'), Auth::id());
+
             $plan->load([
                 'items',
                 'patient',
@@ -88,21 +92,28 @@ class TreatmentPlanService
             }
 
             $data['last_activity_at'] = now();
+            $items = null;
+
+            if (array_key_exists('items', $data) && is_array($data['items'])) {
+                $items = $data['items'];
+                unset($data['items']);
+            }
+
             $plan->update($data);
 
             if ($citedAnalysisIds !== null) {
                 $this->citations->sync($plan, $citedAnalysisIds, Auth::user());
             }
 
-            if (isset($data['items']) && is_array($data['items'])) {
-                // Reemplazar items completos (estrategia simple y consistente con el front)
-                $plan->items()->delete();
-                foreach ($data['items'] as $itemData) {
-                    $this->persistItem($plan->id, $itemData);
-                }
+            if ($items !== null) {
+                // F4 (#284): lines are reconciled, never deleted and recreated.
+                // The act that consumed a line must keep pointing at it.
+                $this->reconcileItems($plan, $items);
             }
 
             $this->calculateTotals($id);
+
+            $this->versions->record($plan, 'Plan actualizado', Auth::id());
 
             $plan->refresh();
             $plan->load([
@@ -133,7 +144,11 @@ class TreatmentPlanService
 
         $this->guardPlan($planId, 'add_item', $lockOverrideReason);
 
-        return $this->persistItem($planId, $itemData);
+        $item = $this->persistItem($planId, $itemData);
+
+        $this->versions->record(TreatmentPlan::findOrFail($planId), 'Ítem agregado', Auth::id());
+
+        return $item;
     }
 
     /**
@@ -143,7 +158,137 @@ class TreatmentPlanService
      */
     private function persistItem(int $planId, array $itemData): TreatmentPlanItem
     {
+        $itemData = $this->prepareItemPayload($itemData, null, $planId);
         $itemData['treatment_plan_id'] = $planId;
+
+        $item = TreatmentPlanItem::create($itemData);
+
+        $this->calculateTotals($planId);
+        $this->touchPlanActivity($planId);
+
+        return $item;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $items
+     */
+    private function reconcileItems(TreatmentPlan $plan, array $items): void
+    {
+        $existing = $plan->items()->get()->keyBy('id');
+        $kept = [];
+
+        foreach ($items as $itemData) {
+            $itemId = isset($itemData['id']) ? (int) $itemData['id'] : null;
+
+            if ($itemId !== null) {
+                $item = $existing->get($itemId);
+
+                if (! $item) {
+                    throw ValidationException::withMessages([
+                        'items' => ["El ítem {$itemId} no pertenece a este plan."],
+                    ]);
+                }
+
+                $item->fill($this->prepareItemPayload($itemData, $item, $plan->id));
+                $item->save();
+                $kept[] = $item->id;
+
+                continue;
+            }
+
+            $created = $this->persistItem($plan->id, $itemData);
+            $kept[] = $created->id;
+        }
+
+        foreach ($existing as $item) {
+            if (in_array($item->id, $kept, true)) {
+                continue;
+            }
+
+            $this->sessions->assertRemovable($item);
+            $item->delete();
+        }
+
+        $this->calculateTotals($plan->id);
+        $this->touchPlanActivity($plan->id);
+    }
+
+    /**
+     * The status of a plan line is derived from the act that consumed it (F4).
+     *
+     * @param  array<string, mixed> $itemData
+     * @return array<string, mixed>
+     */
+    private function prepareItemPayload(array $itemData, ?TreatmentPlanItem $item = null, ?int $planId = null): array
+    {
+        unset($itemData['id'], $itemData['treatment_plan_id']);
+
+        if (array_key_exists('status', $itemData)) {
+            $status = $itemData['status'];
+            unset($itemData['status']);
+
+            $unchanged = $item !== null && $status === $item->status;
+            $allowedOnCreate = $item === null && in_array($status, ['pending', 'proposed'], true);
+
+            if (! $unchanged && ! $allowedOnCreate) {
+                throw ValidationException::withMessages([
+                    'items' => ['El estado del ítem se deriva de la atención que lo consume; no se escribe desde el plan.'],
+                ]);
+            }
+
+            if ($existingStatus = $item?->status) {
+                $itemData['status'] = $existingStatus;
+            }
+        }
+
+        if (! $item) {
+            if (empty($itemData['procedure_name'])) {
+                throw ValidationException::withMessages([
+                    'items' => ['El nombre del procedimiento es obligatorio para un ítem nuevo.'],
+                ]);
+            }
+
+            if (! isset($itemData['quantity'], $itemData['unit_cost'])) {
+                throw ValidationException::withMessages([
+                    'items' => ['Un ítem nuevo necesita cantidad y precio unitario.'],
+                ]);
+            }
+
+            $itemData['status'] ??= 'pending';
+        }
+
+        $priority = $itemData['priority'] ?? null;
+        $isOptional = array_key_exists('is_optional', $itemData)
+            ? (bool) $itemData['is_optional']
+            : null;
+
+        if ($priority !== null && ! in_array($priority, ['urgent', 'elective', 'optional'], true)) {
+            throw ValidationException::withMessages([
+                'items.priority' => ['La prioridad debe ser urgente, electiva u opcional.'],
+            ]);
+        }
+
+        if ($priority === null && $isOptional === true) {
+            $priority = 'optional';
+        }
+
+        if ($priority === 'optional') {
+            $isOptional = true;
+        }
+
+        if ($priority === null && $isOptional === false && $item?->priority === 'optional') {
+            $priority = 'elective';
+        }
+
+        $itemData['priority'] = $priority ?? $item?->priority ?? 'elective';
+        $itemData['is_optional'] = $isOptional ?? $item?->is_optional ?? false;
+
+        if (! isset($itemData['sequence']) || $itemData['sequence'] === null) {
+            $itemData['sequence'] = $item?->sequence
+                ?? $this->nextSequence($planId, (int) ($itemData['phase_number'] ?? $item?->phase_number ?? 1));
+        }
+
+        $itemData['phase_number'] = $itemData['phase_number'] ?? $item?->phase_number ?? 1;
 
         // #293 S2: a line that names a catalog procedure carries the site the
         // procedure applies to. Free-text lines keep their payload untouched.
@@ -162,18 +307,24 @@ class TreatmentPlanService
 
         // Calcular total_cost del item (quantity * unit_cost) si no fue provisto
         if (! isset($itemData['total_cost']) || $itemData['total_cost'] === null) {
-            $itemData['total_cost'] = round(
-                (float) ($itemData['quantity'] ?? 0) * (float) ($itemData['unit_cost'] ?? 0),
-                2
-            );
+            $quantity = $itemData['quantity'] ?? $item?->quantity ?? 0;
+            $unitCost = $itemData['unit_cost'] ?? $item?->unit_cost ?? 0;
+
+            $itemData['total_cost'] = round((float) $quantity * (float) $unitCost, 2);
         }
 
-        $item = TreatmentPlanItem::create($itemData);
+        return $itemData;
+    }
 
-        $this->calculateTotals($planId);
-        $this->touchPlanActivity($planId);
+    private function nextSequence(?int $planId, int $phaseNumber): int
+    {
+        if ($planId === null) {
+            return 1;
+        }
 
-        return $item;
+        return (int) TreatmentPlanItem::where('treatment_plan_id', $planId)
+            ->where('phase_number', $phaseNumber)
+            ->max('sequence') + 1;
     }
 
     public function removeItem(int $itemId, ?string $lockOverrideReason = null): bool
@@ -183,10 +334,14 @@ class TreatmentPlanService
 
         $this->guardPlan($planId, 'remove_item', $lockOverrideReason);
 
+        $this->sessions->assertRemovable($item);
+
         $item->delete();
 
         $this->calculateTotals($planId);
         $this->touchPlanActivity($planId);
+
+        $this->versions->record(TreatmentPlan::findOrFail($planId), 'Ítem eliminado', Auth::id());
 
         return true;
     }
@@ -215,14 +370,20 @@ class TreatmentPlanService
 
     public function changeStatus(int $id, string $status): TreatmentPlan
     {
-        $plan = TreatmentPlan::findOrFail($id);
+        $plan = TreatmentPlan::with('items')->findOrFail($id);
 
         $this->validateStatusTransition($plan->status, $status);
+        $this->assertStatusContent($plan, $status);
 
         $plan->update([
             'status' => $status,
             'last_activity_at' => now(),
         ]);
+
+        if ($status === 'approved') {
+            $this->versions->accept($plan, Auth::id());
+        }
+
         $plan->refresh();
         $plan->load(['items', 'patient', 'createdBy']);
 
@@ -245,7 +406,13 @@ class TreatmentPlanService
             $originalPlan = TreatmentPlan::with('items')->findOrFail($id);
 
             $newPlanData = $originalPlan->toArray();
-            unset($newPlanData['id'], $newPlanData['created_at'], $newPlanData['updated_at']);
+            unset(
+                $newPlanData['id'],
+                $newPlanData['created_at'],
+                $newPlanData['updated_at'],
+                $newPlanData['current_version_id'],
+                $newPlanData['active_version_id'],
+            );
 
             $newPlanData['plan_number'] = $this->generatePlanNumber();
             $newPlanData['title'] = $originalPlan->title.' (Copia)';
@@ -259,6 +426,7 @@ class TreatmentPlanService
                 $itemData = $item->toArray();
                 unset($itemData['id'], $itemData['treatment_plan_id'], $itemData['created_at'], $itemData['updated_at']);
                 $itemData['treatment_plan_id'] = $newPlan->id;
+                $itemData['status'] = $item->status === 'proposed' ? 'proposed' : 'pending';
                 // total_cost se recalcula en persistItem si hace falta
                 unset($itemData['total_cost']);
 
@@ -266,6 +434,8 @@ class TreatmentPlanService
             }
 
             $this->calculateTotals($newPlan->id);
+
+            $this->versions->initialize($newPlan->refresh()->load('items'), Auth::id());
 
             $newPlan->refresh();
             $newPlan->load(['items', 'patient', 'createdBy']);
@@ -330,9 +500,45 @@ class TreatmentPlanService
         ];
 
         if (! in_array($newStatus, $validTransitions[$currentStatus] ?? [])) {
-            throw new \InvalidArgumentException(
-                "No se puede cambiar el estado de '{$currentStatus}' a '{$newStatus}'"
-            );
+            throw ValidationException::withMessages([
+                'status' => ["No se puede cambiar el estado de '{$currentStatus}' a '{$newStatus}'."],
+            ]);
+        }
+    }
+
+    /**
+     * #288 — the state machine validates content, not only the transition. A
+     * plan cannot be approved empty or completed with lines still pending.
+     */
+    private function assertStatusContent(TreatmentPlan $plan, string $status): void
+    {
+        if ($status === 'approved') {
+            $live = $plan->items->where('status', '!=', 'cancelled');
+
+            if ($live->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'status' => ['No se puede aprobar un plan sin procedimientos vigentes.'],
+                ]);
+            }
+        }
+
+        if ($status === 'completed') {
+            $live = $plan->items->where('status', '!=', 'cancelled');
+            $open = $live->where('status', '!=', 'completed');
+
+            if ($live->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'status' => ['No se puede completar un plan sin procedimientos vigentes.'],
+                ]);
+            }
+
+            if ($open->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'status' => [
+                        'No se puede completar el plan: '.$open->count().' procedimiento(s) siguen sin ejecutar.',
+                    ],
+                ]);
+            }
         }
     }
 

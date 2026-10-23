@@ -19,6 +19,8 @@ class TreatmentPlan extends Model
         'origin_appointment_id',
         'created_by',
         'plan_number',
+        'current_version_id',
+        'active_version_id',
         'title',
         'description',
         'status',
@@ -76,7 +78,29 @@ class TreatmentPlan extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(TreatmentPlanItem::class);
+        return $this->hasMany(TreatmentPlanItem::class)
+            ->orderBy('phase_number')
+            ->orderBy('sequence')
+            ->orderBy('id');
+    }
+
+    /**
+     * #288: the versions of this plan, newest first. The accepted one is the
+     * immutable source of the quote that was signed.
+     */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(TreatmentPlanVersion::class)->orderByDesc('version_number');
+    }
+
+    public function currentVersion(): BelongsTo
+    {
+        return $this->belongsTo(TreatmentPlanVersion::class, 'current_version_id');
+    }
+
+    public function activeVersion(): BelongsTo
+    {
+        return $this->belongsTo(TreatmentPlanVersion::class, 'active_version_id');
     }
 
     public function quotations(): HasMany
@@ -97,6 +121,34 @@ class TreatmentPlan extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    /**
+     * F4 (#284): the conduct left pending for this plan.
+     */
+    public function continuityRequests(): HasMany
+    {
+        return $this->hasMany(ContinuityRequest::class);
+    }
+
+    /**
+     * #288: the phase a line belongs to, ordered by its explicit sequence.
+     */
+    public function phaseSummary(): array
+    {
+        return $this->items
+            ->groupBy('phase_number')
+            ->map(function ($items, $phase) {
+                return [
+                    'phase_number' => (int) $phase,
+                    'total' => $items->count(),
+                    'completed' => $items->where('status', 'completed')->count(),
+                    'in_progress' => $items->where('status', 'in_progress')->count(),
+                    'pending' => $items->whereIn('status', ['pending', 'proposed'])->count(),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**

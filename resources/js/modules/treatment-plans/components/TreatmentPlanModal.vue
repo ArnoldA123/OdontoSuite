@@ -631,6 +631,7 @@ const handleSubmit = async () => {
   }
 
   const cleanedItems = pendingItems.map(item => ({
+    id: item.id || null,
     procedure_name: (item.procedure_name || '').trim() || (item.description || '').trim(),
     description: (item.description || '').trim() || null,
     quantity: Number(item.quantity) || 1,
@@ -748,6 +749,7 @@ const initializeForm = () => {
     const items =
       props.plan.items?.length > 0
         ? props.plan.items.map(i => ({
+            id: i.id,
             procedure_name: i.procedure_name || '',
             description: i.procedure_description || '',
             quantity: i.quantity || 1,

@@ -15,8 +15,10 @@ class TreatmentPlanController extends Controller
 {
     protected $treatmentPlanService;
 
-    public function __construct(TreatmentPlanService $treatmentPlanService)
-    {
+    public function __construct(
+        TreatmentPlanService $treatmentPlanService,
+        private readonly \App\Services\TreatmentPlanAlternativeService $alternatives,
+    ) {
         $this->treatmentPlanService = $treatmentPlanService;
     }
 
@@ -144,7 +146,10 @@ class TreatmentPlanController extends Controller
             $plan = \App\Models\TreatmentPlan::with([
                 'patient',
                 'createdBy',
-                'items',
+                'items.consumptions',
+                'items.alternatives',
+                'currentVersion',
+                'activeVersion',
                 'quotations',
                 'paymentPlans',
                 // #296: the decision-support material the plan cites.
@@ -182,16 +187,21 @@ class TreatmentPlanController extends Controller
                 'requires_anesthesia' => 'boolean',
                 'is_urgent' => 'boolean',
                 'items' => 'nullable|array',
+                'items.*.id' => 'nullable|integer',
                 'items.*.description' => 'nullable|string|max:500',
-                'items.*.procedure_name' => 'required_with:items|nullable|string|max:200',
-                'items.*.quantity' => 'required_with:items|numeric|min:0.01',
-                'items.*.unit_cost' => 'required_with:items|numeric|min:0',
+                'items.*.procedure_name' => 'sometimes|nullable|string|max:200',
+                'items.*.quantity' => 'sometimes|nullable|numeric|min:0.01',
+                'items.*.unit_cost' => 'sometimes|nullable|numeric|min:0',
                 'items.*.procedure_catalog_id' => 'nullable|exists:procedure_catalog,id',
                 'items.*.dental_piece_id' => 'nullable|exists:dental_pieces,id',
                 'items.*.tooth_surface_id' => 'nullable|exists:tooth_surfaces,id',
                 'items.*.site_code' => 'nullable|string|max:30',
                 'items.*.specialty' => 'nullable|string|max:50',
                 'items.*.phase_number' => 'nullable|integer|min:1',
+                'items.*.sequence' => 'sometimes|nullable|integer|min:1',
+                'items.*.priority' => 'sometimes|nullable|in:urgent,elective,optional',
+                'items.*.is_optional' => 'sometimes|boolean',
+                'items.*.status' => 'sometimes|string',
                 'items.*.category' => 'nullable|string|max:50',
                 // #296: only a reviewed analysis can be cited.
                 'cited_analysis_ids' => 'sometimes|array|max:20',
@@ -317,6 +327,52 @@ class TreatmentPlanController extends Controller
     }
 
     /**
+     * #288: the version history of a plan. The snapshot of a single version is
+     * served by `showVersion`, so the list stays cheap.
+     */
+    public function versions(int $id): JsonResponse
+    {
+        try {
+            $plan = \App\Models\TreatmentPlan::findOrFail($id);
+
+            return response()->json([
+                'data' => $plan->versions()->get()->map(fn ($version) => [
+                    'id' => $version->id,
+                    'version_number' => $version->version_number,
+                    'status' => $version->status,
+                    'reason' => $version->reason,
+                    'accepted_at' => $version->accepted_at?->toIso8601String(),
+                    'created_at' => $version->created_at?->toIso8601String(),
+                ])->values()->all(),
+                'meta' => [
+                    'current_version_id' => $plan->current_version_id,
+                    'active_version_id' => $plan->active_version_id,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('TreatmentPlanController@versions: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al obtener las versiones del plan'], 500);
+        }
+    }
+
+    public function showVersion(int $id, int $versionId): JsonResponse
+    {
+        try {
+            $version = \App\Models\TreatmentPlanVersion::where('treatment_plan_id', $id)
+                ->findOrFail($versionId);
+
+            return response()->json(['data' => $version]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('TreatmentPlanController@showVersion: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al obtener la versión del plan'], 500);
+        }
+    }
+
+    /**
      * Agregar item al plan.
      */
     public function addItem(Request $request, int $id): JsonResponse
@@ -333,7 +389,11 @@ class TreatmentPlanController extends Controller
                 'site_code' => 'nullable|string|max:30',
                 'specialty' => 'nullable|string|max:50',
                 'phase_number' => 'nullable|integer|min:1',
+                'sequence' => 'sometimes|nullable|integer|min:1',
+                'priority' => 'sometimes|nullable|in:urgent,elective,optional',
+                'is_optional' => 'sometimes|boolean',
                 'category' => 'nullable|string|max:50',
+                'status' => 'sometimes|string',
             ], [
                 'procedure_name.required' => 'El nombre del procedimiento es obligatorio',
                 'unit_cost.required' => 'El precio unitario es obligatorio',
@@ -362,6 +422,126 @@ class TreatmentPlanController extends Controller
                 'message' => 'Error al agregar procedimiento',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * #288: add option A/B to a plan line.
+     */
+    public function addAlternative(Request $request, int $itemId): JsonResponse
+    {
+        $validated = $request->validate([
+            'option_code' => 'sometimes|nullable|string|max:2',
+            'procedure_catalog_id' => 'nullable|exists:procedure_catalog,id',
+            'procedure_name' => 'required|string|max:200',
+            'procedure_description' => 'nullable|string|max:500',
+            'dental_piece_id' => 'nullable|exists:dental_pieces,id',
+            'tooth_surface_id' => 'nullable|exists:tooth_surfaces,id',
+            'site_code' => 'nullable|string|max:30',
+            'quantity' => 'required|numeric|min:0.01',
+            'unit_cost' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:1000',
+        ], [
+            'procedure_name.required' => 'El nombre del procedimiento de la alternativa es obligatorio',
+            'quantity.required' => 'La cantidad es obligatoria',
+            'unit_cost.required' => 'El precio unitario es obligatorio',
+        ]);
+
+        try {
+            $item = \App\Models\TreatmentPlanItem::findOrFail($itemId);
+            $alternative = $this->alternatives->create($item, $validated, $request->user()->id);
+
+            return response()->json([
+                'data' => $alternative,
+                'meta' => ['message' => 'Alternativa agregada exitosamente'],
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('TreatmentPlanController@addAlternative: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al agregar la alternativa'], 500);
+        }
+    }
+
+    public function acceptAlternative(Request $request, int $alternativeId): JsonResponse
+    {
+        try {
+            $alternative = \App\Models\TreatmentPlanItemAlternative::findOrFail($alternativeId);
+            $result = $this->alternatives->accept($alternative, $request->user()->id);
+
+            return response()->json([
+                'data' => $result,
+                'meta' => ['message' => 'Alternativa aceptada exitosamente'],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('TreatmentPlanController@acceptAlternative: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al aceptar la alternativa'], 500);
+        }
+    }
+
+    public function rejectAlternative(Request $request, int $alternativeId): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => 'required|string|max:255',
+        ], [
+            'reason.required' => 'El motivo del rechazo es obligatorio',
+        ]);
+
+        try {
+            $alternative = \App\Models\TreatmentPlanItemAlternative::findOrFail($alternativeId);
+            $rejected = $this->alternatives->reject($alternative, $validated['reason'], $request->user()->id);
+
+            return response()->json([
+                'data' => $rejected,
+                'meta' => ['message' => 'Alternativa rechazada exitosamente'],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('TreatmentPlanController@rejectAlternative: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al rechazar la alternativa'], 500);
+        }
+    }
+
+    /**
+     * #288: an optional line that the patient declined keeps its date and its
+     * reason instead of disappearing from the plan.
+     */
+    public function rejectItem(Request $request, int $itemId): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => 'required|string|max:255',
+        ], [
+            'reason.required' => 'El motivo del rechazo es obligatorio',
+        ]);
+
+        try {
+            $item = \App\Models\TreatmentPlanItem::findOrFail($itemId);
+            $rejected = $this->alternatives->rejectItem($item, $validated['reason'], $request->user()->id);
+
+            return response()->json([
+                'data' => $rejected,
+                'meta' => ['message' => 'Ítem rechazado exitosamente'],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('TreatmentPlanController@rejectItem: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al rechazar el ítem'], 500);
         }
     }
 

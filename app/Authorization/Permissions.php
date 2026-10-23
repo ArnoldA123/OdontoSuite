@@ -89,6 +89,13 @@ final class Permissions
 
     public const VIEW_MY_DAY = 'view.my_day';
 
+    // F4 (#284): continuity between acts. Reading the pending queue is part of
+    // the appointment desktop; materialising it belongs to reception and the
+    // administrator, and it never writes clinical records.
+    public const VIEW_CONTINUITY = 'view.continuity';
+
+    public const MANAGE_CONTINUITY = 'manage.continuity';
+
     public const VIEW_PRODUCT = 'view.product';
 
     // #295 (S6): the warehouse. Reading what is on the shelf is clinical and
@@ -312,6 +319,8 @@ final class Permissions
         self::ANNOUNCE_PATIENT => ['administrador', 'recepcionista'],
         self::START_CONSULTATION => self::MEDICAL_ROLES,
         self::VIEW_MY_DAY => self::MEDICAL_ROLES,
+        self::VIEW_CONTINUITY => self::APPOINTMENT_ROLES,
+        self::MANAGE_CONTINUITY => ['administrador', 'recepcionista'],
         // #280: closing a consultation writes clinical records, so reception
         // must not reach it. This is the only deliberate behavior change
         // against the pre-catalog role lists.

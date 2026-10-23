@@ -142,6 +142,22 @@ class ClinicalEncounter extends Model
         return $this->hasMany(AiImageAnalysis::class);
     }
 
+    /**
+     * F4 (#284): the plan items this act consumed.
+     */
+    public function planItemConsumptions(): HasMany
+    {
+        return $this->hasMany(TreatmentPlanItemConsumption::class);
+    }
+
+    /**
+     * F4 (#284): the conduct this act left for reception.
+     */
+    public function continuityRequests(): HasMany
+    {
+        return $this->hasMany(ContinuityRequest::class);
+    }
+
     public function scopeOpen(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_OPEN);

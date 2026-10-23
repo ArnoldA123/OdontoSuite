@@ -163,6 +163,8 @@ class ClinicalEncounterController extends Controller
             return response()->json(['error' => $e->toArray()], $e->httpStatus);
         } catch (EncounterException $e) {
             return response()->json(['error' => $e->toArray()], $e->httpStatus);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('Clinical encounter close failed', [
                 'encounter_id' => $encounter->id,
