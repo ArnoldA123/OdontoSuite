@@ -103,6 +103,14 @@ class TechnicianClinicalRecordScopeTest extends TestCase
 
         Queue::assertNothingPushed();
 
+        // `finanzas` keeps the catalog grant it had, but `PatientPolicy::export()`
+        // is the effective gate and never included it: the answer stays 403.
+        $this->actingAs($this->staff('finanzas'), 'sanctum')
+            ->getJson("/api/patients/{$patient->id}/export?format=pdf&async=1")
+            ->assertForbidden();
+
+        Queue::assertNothingPushed();
+
         foreach (['administrador', 'recepcionista', 'odontologo', 'implantologo', 'asistente'] as $role) {
             $this->actingAs($this->staff($role), 'sanctum')
                 ->getJson("/api/patients/{$patient->id}/export?format=pdf&async=1")
