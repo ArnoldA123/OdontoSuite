@@ -215,6 +215,16 @@ final class Permissions
     /** #290 S8: the branch tariff agreed for one sede. */
     public const MANAGE_BRANCH_PRICE = 'manage.branch_price';
 
+    /**
+     * #305: moving a user between sedes. Asking is self-service for every role
+     * — the professional requests their own transfer — and deciding is group
+     * scope. The two decision doors also carry `branch.global`, so a sede
+     * administrator sees the requests of their sede but cannot decide them.
+     */
+    public const REQUEST_BRANCH_TRANSFER = 'request.branch_transfer';
+
+    public const DECIDE_BRANCH_TRANSFER = 'decide.branch_transfer';
+
     // #293 S3: convenios and the tariff agreed with them.
     public const VIEW_PAYER = 'view.payer';
 
@@ -484,6 +494,8 @@ final class Permissions
         self::MANAGE_APPOINTMENT_TYPE => ['administrador'],
         self::MANAGE_BRANCH => ['administrador'],
         self::MANAGE_BRANCH_PRICE => ['administrador'],
+        self::REQUEST_BRANCH_TRANSFER => self::ALL_ROLES,
+        self::DECIDE_BRANCH_TRANSFER => ['administrador'],
         self::VIEW_PAYER => self::QUOTATION_READERS,
         self::MANAGE_PAYER => ['administrador'],
         self::MANAGE_PAYER_PRICE => ['administrador'],

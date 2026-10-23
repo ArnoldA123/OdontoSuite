@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\BranchController;
+use App\Http\Controllers\Api\BranchTransferController;
 use App\Http\Controllers\Api\CashDepositController;
 use App\Http\Controllers\Api\CashMovementController;
 use App\Http\Controllers\Api\CashRegisterController;
@@ -148,6 +149,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:'.Permissions::MANAGE_USER)->group(function () {
         Route::apiResource('users', UserController::class);
     });
+
+    // #305: moving a user between sedes is a request, not an edit. Asking is
+    // self-service for every role and reading is the union of both sedes; the
+    // two decision doors are group scope (`branch.global`), so a sede
+    // administrator sees the requests enter and leave but never decides them.
+    Route::middleware('permission:'.Permissions::REQUEST_BRANCH_TRANSFER)->group(function () {
+        Route::get('branch-transfers', [BranchTransferController::class, 'index']);
+        // Fixed segment before the binding: `destinations` is a catalogue, not
+        // a request id.
+        Route::get('branch-transfers/destinations', [BranchTransferController::class, 'destinations']);
+        Route::get('branch-transfers/{branchTransfer}', [BranchTransferController::class, 'show']);
+        Route::post('branch-transfers', [BranchTransferController::class, 'store']);
+        Route::post('branch-transfers/{branchTransfer}/cancel', [BranchTransferController::class, 'cancel']);
+    });
+    Route::post('branch-transfers/{branchTransfer}/approve', [BranchTransferController::class, 'approve'])
+        ->middleware(['permission:'.Permissions::DECIDE_BRANCH_TRANSFER, 'branch.global']);
+    Route::post('branch-transfers/{branchTransfer}/reject', [BranchTransferController::class, 'reject'])
+        ->middleware(['permission:'.Permissions::DECIDE_BRANCH_TRANSFER, 'branch.global']);
 
     // Patients: read for every role; write follows the CREDENTIALS.md matrix.
     Route::middleware('permission:'.Permissions::VIEW_PATIENT)->group(function () {

@@ -58,6 +58,10 @@ class AuthController extends Controller
                     'username' => $user->username,
                     'email' => $user->email,
                     'role' => $user->role,
+                    // #305: the SPA needs the affiliation to tell a sede
+                    // administrator from gerencia, and to exclude the current
+                    // sede from the transfer destinations.
+                    'branch_id' => $user->branch_id,
                     'permissions' => $user->permissions(),
                 ],
                 'token' => $token,
@@ -97,6 +101,9 @@ class AuthController extends Controller
                 'username' => $user->username,
                 'email' => $user->email,
                 'role' => $user->role,
+                // #305: same field the login payload carries, so a session
+                // restored from /api/auth/me keeps the branch dimension.
+                'branch_id' => $user->branch_id,
                 'permissions' => $user->permissions(),
             ],
         ]);

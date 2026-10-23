@@ -96,11 +96,11 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 46 controllers API (45 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 47 controllers API (46 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 69 modelos Eloquent
-  Services/                # 34 services + Reports/ (9 report services)
+  Models/                  # 70 modelos Eloquent
+  Services/                # 35 services + Reports/ (9 report services)
   Events/                  # 36 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
@@ -108,18 +108,18 @@ app/
 
 resources/js/
   app.js                   # entry + router (guards en router/auth.js)
-  composables/             # 43 composables singleton
+  composables/             # 44 composables singleton
   components/
     ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
     procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ProcedureSiteFields,
                            #   ImportCsvModal
-  modules/                 # 24 módulos de dominio (ver §5)
+  modules/                 # 25 módulos de dominio (ver §5)
   router/auth.js           # requireAuth, requireGuest (localStorage)
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 151 migraciones
+  migrations/              # 152 migraciones
   seeders/                 # 17 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, DiagnosisCatalogSeeder,
                            #   AppointmentTypeSeeder, EnvironmentSeeder, ProcedureCatalogSeeder,
@@ -128,7 +128,7 @@ database/
                            #   ToothSurfaceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 253 rutas API (medido con php artisan route:list --json: uris api/…; 266 totales con web)
+  api.php                  # 260 rutas API (medido con php artisan route:list --json: uris api/…; 273 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -144,7 +144,7 @@ docs/
 
 ---
 
-## 5. Módulos del frontend (24 módulos, 24 páginas)
+## 5. Módulos del frontend (25 módulos, 25 páginas)
 
 | Módulo                    | Ruta                         | Roles                                 |
 | ------------------------- | ---------------------------- | ------------------------------------- |
@@ -157,6 +157,7 @@ docs/
 | Tipos de cita             | `/appointment-types`         | admin                                 |
 | Especialidades (catálogo) | `/specialties`               | admin                                 |
 | Sucursales                | `/settings/branches`         | admin                                 |
+| Traslados de sede         | `/branch-transfers`          | todos                                 |
 | Métodos de pago           | `/settings/payment-methods`  | admin                                 |
 | Caja                      | `/cash-register`             | admin, finanzas, recep                |
 | BI                        | `/business-intelligence`     | admin, finanzas                       |
@@ -187,7 +188,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 69 modelos, 46 controllers API, 36 eventos (10 listener classes / 13 cableos
+- 70 modelos, 47 controllers API, 36 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 13 modelos con SoftDeletes (la historia clínica y sus evoluciones ya no lo
   usan: #292)
@@ -550,7 +551,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 46 controllers API, 69
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 47 controllers API, 70
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -563,6 +564,50 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-25 (traslado entre sedes: solicitud, aprobación y efecto en el
+  alcance, #305)** — El traslado deja de ser un cambio administrativo sin
+  proceso. Nace `branch_transfer_requests` (`user_id`, `from_branch_id` nullable
+  —copia de `users.branch_id` al pedir, así que un usuario con alcance de grupo
+  también puede pedir su afiliación—, `to_branch_id`, `status`
+  `pending|approved|rejected|cancelled`, `reason` obligatorio, `requested_at`,
+  `decided_at`, `decided_by`, `decision_notes`); ambas sedes son
+  `restrictOnDelete` porque la historia sigue nombrando la sede que menciona.
+  Puertas: `POST /api/branch-transfers` (autoservicio de cualquier rol, destino
+  activo y distinto del actual), `POST .../{id}/cancel` (sólo el solicitante y
+  sólo en `pending`), `POST .../{id}/approve` y `.../reject` (gerencia:
+  `decide.branch_transfer` + `branch.global`, así que el administrador de sede
+  ve entrar y salir pero no decide), más `GET /api/branch-transfers` y
+  `GET /api/branch-transfers/{id}`, más
+  `GET /api/branch-transfers/destinations`, que publica las sedes activas del
+  catálogo porque `/api/branches/active` filtra por sede y dejaba sin destinos
+  al profesional que pide el traslado. Reglas: una sola solicitud abierta (409;
+  transacción con bloqueo de la fila del usuario antes de contar), nadie decide
+  su propia solicitud (403: el solicitante cancela, no rechaza), origen que ya
+  no coincide con la afiliación (409) y destino desactivado (409). **Una sola
+  pluma**: la aprobación es la única escritura de `users.branch_id` fuera de
+  `PUT /api/users/{id}`, en la misma transacción que el estado y la auditoría
+  `user_branch_assigned` con el valor anterior y el nuevo; un fallo posterior no
+  deja la sede a medio cambiar, y las puertas de escritura releen la fila con
+  bloqueo para que una decisión concurrente no se pise. **Lectura**: el
+  solicitante ve las suyas, el administrador de sede las que entran o salen de
+  su sede, gerencia todas; un cruce es 404 en lectura y 403 en operación.
+  Permisos nuevos: `request.branch_transfer` (todos los roles) y
+  `decide.branch_transfer` (administración). `POST /api/auth/login` y
+  `GET /api/auth/me` publican `branch_id`, que el SPA necesita para distinguir
+  gerencia de administrador de sede. Superficie: `/branch-transfers` con el
+  formulario de solicitud, la historia visible y la decisión de gerencia. §4/§5
+  sincronizados: 47 controllers API, 70 modelos, 35 services, 152 migraciones,
+  260 rutas API y 273 totales con web, 41 composables, 20 módulos de dominio y
+  22 páginas. Tests: `BranchTransferRequestTest` (19),
+  `BranchTransferDecisionTest` (10), `BranchAffiliationWriterTest` (2, guard
+  estático de «una sola pluma»), `AuthPermissionsPayloadTest` (+2) y el smoke
+  `branch-transfers` (21); `PermissionCatalogTest`, `DeskMatrixTest`,
+  `RoutePermissionMatrixTest` y `FrontendPermissionContractTest` verdes con el
+  fixture regenerado. Decisión en ADR-0017, que cierra la postergación que
+  declaraba ADR-0010. Fuera de alcance, documentado: el 403 conserva el sobre
+  genérico de la API (los mensajes de la regla viven en la excepción) y la
+  etiqueta accesible de `UiStatusPill` no conoce `rejected` (mismo patrón que el
+  resto del SPA).
 - **2026-10-23 (superficies web de continuidad y laboratorio, #310/#316)** — Dos
   pantallas que el backend ya publicaba pero nadie veía. **Continuidad**
   (`/continuity`, entrada de navegación para administración, recepción y los
@@ -660,6 +705,8 @@ documentada y no bloquea producción.
   re-escanea la historia: el hallazgo conocido ya está publicado. Guard
   `SecretScanGateTest` (3). Sin rutas, modelos, migraciones ni primitivas UI
   nuevas: los conteos de §4 no cambian.
+
+n
 
 - **2026-10-23 (asistente de cierre: el formulario se rearma entre atenciones,
   #311)** — `ConsultationWizard` vive montado en `/my-day` y `/calendar` y sólo

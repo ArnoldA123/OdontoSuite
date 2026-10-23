@@ -32,6 +32,12 @@ nuevo. Un flujo de solicitud y aprobación de traslado es otra entrega: inventar
 esa entidad aquí duplicaría un proceso que ninguna de las issues que originan
 esta decisión pide.
 
+> **Actualización (2026-10-25, #305):** ese flujo llegó y vive en ADR-0017.
+> `branch_transfer_requests` registra la solicitud con su motivo y su decisión,
+> y la aprobación es la segunda puerta que escribe `users.branch_id` —con la
+> misma auditoría `user_branch_assigned` y dentro de una transacción—. Una
+> solicitud pendiente sigue sin habilitar nada.
+
 **Administrador de sede por asignación.** No se crea un octavo rol ni una tabla
 de grupos: `administrador` con `branch_id` administra esa sede y `administrador`
 sin `branch_id` es gerencia global (consolidado, catálogo de sedes,
