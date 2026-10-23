@@ -1,7 +1,7 @@
 <template>
   <UiModal
     :model-value="modelValue"
-    :title="isRefund ? 'Registrar Egreso' : 'Registrar Ingreso'"
+    :title="isRefund ? 'Registrar devolución' : 'Registrar Ingreso'"
     size="lg"
     @update:model-value="close"
   >
@@ -26,7 +26,7 @@
 
       <UiStatusBadge
         :variant="isRefund ? 'error' : 'success'"
-        :label="isRefund ? 'Egreso' : 'Ingreso'"
+        :label="transactionTypeLabel(formData.type)"
         size="md"
       />
 
@@ -106,7 +106,7 @@
           Tipo de transacción
           <span class="text-systemRed-600">*</span>
         </label>
-        <UiSelect v-model="formData.type" :options="typeOptions" :disabled="loading" />
+        <UiSelect v-model="formData.type" :options="TRANSACTION_TYPE_OPTIONS" :disabled="loading" />
       </div>
 
       <div v-if="!isRefund" data-modal-field="appointment_id">
@@ -128,14 +128,66 @@
         </p>
       </div>
 
-      <UiInput
-        v-else
-        v-model="formData.description"
-        label="Concepto"
-        placeholder="Descripción del egreso..."
-        :disabled="loading"
-        :error="fieldError('description')"
-      />
+      <template v-else>
+        <div data-modal-field="description">
+          <UiInput
+            v-model="formData.description"
+            label="Motivo de la devolución"
+            placeholder="Motivo de la devolución..."
+            data-modal-description
+            :disabled="loading"
+            :error="fieldError('description')"
+          />
+          <p
+            v-if="fieldError('description')"
+            data-field-error="description"
+            class="mt-1 text-sm text-systemRed-600"
+          >
+            {{ fieldError('description') }}
+          </p>
+        </div>
+
+        <div data-modal-field="authorized_by">
+          <label class="mb-1 block text-sm font-medium text-theme-primary">
+            Administrador que autoriza
+            <span class="text-systemRed-600">*</span>
+          </label>
+          <UiSelect
+            v-model="formData.authorized_by"
+            :options="authorizerOptions"
+            placeholder="Seleccionar administrador"
+            :disabled="loading"
+            :error="fieldError('authorized_by')"
+          />
+          <p
+            v-if="fieldError('authorized_by')"
+            data-field-error="authorized_by"
+            class="mt-1 text-sm text-systemRed-600"
+          >
+            {{ fieldError('authorized_by') }}
+          </p>
+        </div>
+
+        <div data-modal-field="authorization_reason">
+          <UiInput
+            :model-value="formData.authorization_reason"
+            label="Motivo de la autorización del administrador"
+            placeholder="Por qué el administrador autoriza la devolución..."
+            required
+            :disabled="loading"
+            :error="fieldError('authorization_reason')"
+            :hint="`${authorizationReasonLength}/${AUTHORIZATION_REASON_MAX_LENGTH} caracteres`"
+            @update:model-value="setAuthorizationReason"
+          />
+          <p
+            v-if="fieldError('authorization_reason')"
+            data-field-error="authorization_reason"
+            class="mt-1 text-sm text-systemRed-600"
+          >
+            {{ fieldError('authorization_reason') }}
+          </p>
+        </div>
+      </template>
 
       <div data-modal-field="payment_method_id">
         <label class="mb-1 block text-sm font-medium text-theme-primary">
@@ -247,6 +299,14 @@ import { useTransactions } from '@/composables/useTransactions'
 import { useApi } from '@/composables/useApi'
 import { useAccountingLock } from '@/composables/useAccountingLock'
 import { formatCurrency } from '@/composables/useFormatters'
+import {
+  AUTHORIZATION_REASON_FIELD,
+  AUTHORIZATION_REASON_MAX_LENGTH,
+  AUTHORIZER_FIELD,
+  TRANSACTION_TYPE_OPTIONS,
+  requiresAuthorization,
+  transactionTypeLabel
+} from '../moneyMeta'
 import { PlusIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -285,6 +345,9 @@ const patientResults = ref([])
 const selectedPatient = ref(null)
 const patientAppointments = ref([])
 const paymentMethods = ref([])
+const authorizers = ref([])
+const authorizersLoading = ref(false)
+const authorizersLoaded = ref(false)
 
 const buildForm = () => ({
   patient_id: null,
@@ -295,17 +358,18 @@ const buildForm = () => ({
   amount: 0,
   description: '',
   notes: '',
-  reference_number: ''
+  reference_number: '',
+  authorized_by: null,
+  authorization_reason: ''
 })
 
 const formData = ref(buildForm())
 
 const isRefund = computed(() => formData.value.type === 'refund')
 
-const typeOptions = [
-  { label: 'Ingreso', value: 'payment' },
-  { label: 'Egreso', value: 'refund' }
-]
+const authorizationReasonLength = computed(
+  () => String(formData.value.authorization_reason || '').length
+)
 
 const appointmentOptions = computed(() =>
   patientAppointments.value.map(appointment => ({
@@ -316,6 +380,10 @@ const appointmentOptions = computed(() =>
 
 const paymentMethodOptions = computed(() =>
   paymentMethods.value.map(method => ({ label: method.name, value: method.id }))
+)
+
+const authorizerOptions = computed(() =>
+  authorizers.value.map(user => ({ label: user.name, value: user.id }))
 )
 
 const fieldError = field => {
@@ -352,6 +420,33 @@ const loadPaymentMethods = async () => {
   } catch {
     paymentMethods.value = []
   }
+}
+
+const loadAuthorizers = async () => {
+  if (authorizersLoading.value || authorizersLoaded.value) return
+
+  authorizersLoading.value = true
+  try {
+    const response = await get('/api/users/active', { params: { role: 'administrador' } })
+    authorizers.value = response?.data || []
+    authorizersLoaded.value = true
+  } catch {
+    authorizers.value = []
+  } finally {
+    authorizersLoading.value = false
+  }
+}
+
+const ensureAuthorizers = () => {
+  if (!requiresAuthorization(formData.value.type)) return
+  loadAuthorizers()
+}
+
+const setAuthorizationReason = value => {
+  formData.value.authorization_reason = String(value ?? '').slice(
+    0,
+    AUTHORIZATION_REASON_MAX_LENGTH
+  )
 }
 
 const searchPatients = async () => {
@@ -415,8 +510,24 @@ const validateForm = () => {
     valid = false
   }
   if (isRefund.value && !formData.value.description) {
-    errors.value.description = 'El concepto es requerido'
+    errors.value.description = 'El motivo de la devolución es requerido'
     valid = false
+  }
+  if (requiresAuthorization(formData.value.type)) {
+    if (!formData.value.authorized_by) {
+      errors.value[AUTHORIZER_FIELD] = 'El administrador que autoriza es requerido'
+      valid = false
+    }
+
+    const reason = String(formData.value.authorization_reason || '').trim()
+    if (!reason) {
+      errors.value[AUTHORIZATION_REASON_FIELD] = 'El motivo de la autorización es requerido'
+      valid = false
+    } else if (reason.length > AUTHORIZATION_REASON_MAX_LENGTH) {
+      errors.value[AUTHORIZATION_REASON_FIELD] =
+        `El motivo de la autorización no puede exceder los ${AUTHORIZATION_REASON_MAX_LENGTH} caracteres.`
+      valid = false
+    }
   }
   return valid
 }
@@ -437,12 +548,24 @@ const handleSubmit = async () => {
   await performSubmit(null)
 }
 
-const buildPayload = override => ({
-  ...formData.value,
-  patient_id: selectedPatient.value.id,
-  description: buildDescription(),
-  ...override
-})
+const buildPayload = override => {
+  const payload = {
+    ...formData.value,
+    patient_id: selectedPatient.value.id,
+    description: buildDescription(),
+    ...override
+  }
+
+  if (requiresAuthorization(payload.type)) {
+    payload[AUTHORIZER_FIELD] = Number(payload[AUTHORIZER_FIELD])
+    payload[AUTHORIZATION_REASON_FIELD] = String(payload[AUTHORIZATION_REASON_FIELD] || '').trim()
+  } else {
+    delete payload[AUTHORIZER_FIELD]
+    delete payload[AUTHORIZATION_REASON_FIELD]
+  }
+
+  return payload
+}
 
 const performSubmit = async override => {
   loading.value = true
@@ -499,7 +622,9 @@ const resetForm = () => {
 watch(
   () => props.modelValue,
   isOpen => {
-    if (isOpen) resetForm()
+    if (!isOpen) return
+    resetForm()
+    ensureAuthorizers()
   }
 )
 
@@ -508,10 +633,18 @@ watch(
   () => {
     formData.value.appointment_id = null
     formData.value.description = ''
+    formData.value[AUTHORIZER_FIELD] = null
+    formData.value[AUTHORIZATION_REASON_FIELD] = ''
+    delete errors.value[AUTHORIZER_FIELD]
+    delete errors.value[AUTHORIZATION_REASON_FIELD]
+    delete errors.value.description
+
+    ensureAuthorizers()
   }
 )
 
 onMounted(() => {
   loadPaymentMethods()
+  ensureAuthorizers()
 })
 </script>

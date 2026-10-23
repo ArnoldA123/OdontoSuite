@@ -224,7 +224,7 @@ describe('Caja > Transacciones list', () => {
   it('keeps the applied filters when the server-side page changes', async () => {
     wrapper = await mountList()
 
-    await chooseOption(wrapper.find('[data-filter="type"]').element, 'Egreso')
+    await chooseOption(wrapper.find('[data-filter="type"]').element, 'Devolución')
     await wrapper.find('[data-filter-apply]').trigger('click')
 
     const pagination = wrapper.findComponent(Pagination)
