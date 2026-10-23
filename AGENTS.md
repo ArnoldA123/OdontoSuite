@@ -520,23 +520,32 @@ documentada y no bloquea producción.
   avisa y refresca. **Alcance del escritorio**: `tecnico_dental` deja de leer la
   historia clínica y el acto clínico (`manage.medical_record`,
   `manage.evolution`, `manage.attachment`, `view.medical_record_stats` y
-  `view.encounter`), con `TechnicianClinicalRecordScopeTest` cubriendo el
-  criterio de aceptación; conserva el flujo clínico que fijaron F1/F2 (iniciar y
-  cerrar la atención, abrir o anular un acto) y sus registros de especialidad y
-  planes de tratamiento. Catálogo: `view.lab_case` (administrador, recepción,
-  odontólogo, implantólogo, técnico, asistente) y `manage.lab_case`
-  (administrador, odontólogo, implantólogo, técnico). Puertas:
-  `GET /api/lab-cases`, `GET /api/lab-cases/{id}`, `POST /api/lab-cases`,
-  `PUT /api/lab-cases/{id}` y `POST /api/lab-cases/{id}/phase`. La sede sigue
-  siendo dimensión de autorización (`ScopesToBranch`: estampado en el alta, 403
-  en sede ajena, 404 en binding). §4 sincronizado con valores medidos: 42
-  controllers API, 65 modelos, 146 migraciones, 36 eventos, 246 rutas API y 259
-  totales con web. Tests: `LabCaseDomainTest` (2), `LabCasePhaseMachineTest`
-  (12), `LabCaseApiTest` (16), `TechnicianClinicalRecordScopeTest` (2),
+  `view.encounter`), no exporta la ficha del paciente (`export.patient`, cuyo
+  PDF/ZIP lleva evoluciones, odontogramas, registros de especialidad y los
+  binarios de los adjuntos) y deja de suscribirse al canal privado
+  `medical-records`, que publica la evolución, los addenda y los adjuntos, con
+  `TechnicianClinicalRecordScopeTest` cubriendo el criterio de aceptación;
+  conserva el flujo clínico que fijaron F1/F2 (iniciar y cerrar la atención,
+  abrir o anular un acto) y sus registros de especialidad y planes de
+  tratamiento. Catálogo: `view.lab_case` (administrador, recepción, odontólogo,
+  implantólogo, técnico, asistente) y `manage.lab_case` (administrador,
+  odontólogo, implantólogo, técnico). Puertas: `GET /api/lab-cases`,
+  `GET /api/lab-cases/{id}`, `POST /api/lab-cases`, `PUT /api/lab-cases/{id}` y
+  `POST /api/lab-cases/{id}/phase`. La sede sigue siendo dimensión de
+  autorización (`ScopesToBranch`: estampado en el alta, 403 en sede ajena, 404
+  en binding). §4 sincronizado con valores medidos: 42 controllers API, 65
+  modelos, 146 migraciones, 36 eventos, 246 rutas API y 259 totales con web.
+  Tests: `LabCaseDomainTest` (2), `LabCasePhaseMachineTest` (12),
+  `LabCaseApiTest` (16), `TechnicianClinicalRecordScopeTest` (2),
   `MyDayQueueTest` extendido (3 casos nuevos), `DomainChannelsPrivateTest`,
   `DomainChannelsAuthorizationTest`, `BroadcastingAuthChannelsTest`,
   `PermissionCatalogTest` y el smoke unitario `myDay`. Fuera de alcance,
-  declarado: la pantalla del módulo (la issue es `area:backend`).
+  declarado: la pantalla del módulo (la issue es `area:backend`);
+  `appointments.treatment_notes`, que el cierre copia del `plan` de la evolución
+  y que la agenda publica desde F2 a todo el que lee citas —recepción incluida—,
+  porque es la conducta de la cita y no la lectura del registro; y
+  `MedicalRecordCreated`, que desde #249 publica el modelo completo en
+  `dashboard-updates`, canal abierto a todos los roles.
 
 - **2026-10-22 (cumplimiento NTS 139 y NTS 188: registro firmado, CIE-10 y
   motivo de consulta, #286)** — El acto clínico pasa a ser un documento firmado.

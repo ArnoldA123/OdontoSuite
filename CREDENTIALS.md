@@ -78,7 +78,8 @@ del login es el `username`** (no el email, no el nombre).
 > real: un material sin stock suficiente responde 422 con el nombre del insumo y
 > la transacción no escribe nada; el inventario se recibe por compra y se ajusta
 > por conteo. Desde #285 el escritorio de laboratorio no lee la historia clínica
-> ni el acto clínico: el técnico trabaja desde el caso protésico.
+> ni el acto clínico, no exporta la ficha del paciente y no se suscribe al canal
+> de la historia: el técnico trabaja desde el caso protésico.
 
 | Funcionalidad                       | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
 | ----------------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
@@ -87,7 +88,7 @@ del login es el `username`** (no el email, no el nombre).
 | Ver pacientes                       | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ✅       |
 | Editar pacientes                    | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Eliminar pacientes                  | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Exportar ficha de paciente          | ✅            | ✅            | ✅         | ✅           | ✅      | ❌        | ❌       |
+| Exportar ficha de paciente          | ✅            | ✅            | ✅         | ✅           | ❌      | ❌        | ❌       |
 | **Citas/Agenda**                    |
 | Crear citas                         | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Ver citas                           | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
