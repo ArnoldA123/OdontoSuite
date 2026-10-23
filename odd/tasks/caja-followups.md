@@ -1,6 +1,6 @@
 # Caja follow-ups — rutas fantasma, alcance de la sesión actual y fugas de los 500
 
-Rama `fix/caja-followups`, worktree `/home/chomb/proyectos/odontosuite-caja-followups`,
+Rama `fix/caja-followups`, worktree `~/proyectos/odontosuite-caja-followups`,
 base `main` @ `dc11206`. Origen: cuatro defectos vecinos detectados al cerrar #191/#193/#194/
 #196/#198, ninguno cubierto por las issues abiertas (#192, #195, #197, #199).
 

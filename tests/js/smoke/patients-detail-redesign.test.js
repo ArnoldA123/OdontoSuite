@@ -13,7 +13,14 @@ import { readFileSync } from 'node:fs'
 // (loading via LoadingSpinner, empty/error via UiSectionEmpty), the edit
 // form consolidated into the shared PatientFormModal, and a
 // heroicons-only icon budget.
-const harness = vi.hoisted(() => ({ apiGet: vi.fn() }))
+const harness = vi.hoisted(() => {
+  const privateChannel = vi.fn(() => {
+    const channel = { listen: () => channel }
+    return channel
+  })
+
+  return { apiGet: vi.fn(), privateChannel }
+})
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
@@ -33,6 +40,7 @@ vi.mock('../../../resources/js/composables/useEcho', () => ({
       const channel = { listen: () => channel }
       return channel
     },
+    privateChannel: harness.privateChannel,
     connectionStatus: { value: 'connected' }
   })
 }))
@@ -712,7 +720,67 @@ describe('patient detail laboratory tab (F5 #316)', () => {
     const wrapper = await mountPage()
 
     expect(wrapper.find('#tab-laboratorio').exists()).toBe(false)
-    expect(wrapper.findAll('[role="tab"]')).toHaveLength(6)
+    // Finanzas holds neither `view.lab_case` nor `manage.specialty_record`, so
+    // the drawer keeps the five tabs it always had for that desk.
+    expect(wrapper.findAll('[role="tab"]')).toHaveLength(5)
+
+    wrapper.unmount()
+  })
+})
+
+// #313 (decision D1) — the specialty record is a clinical act with surgical
+// narrative, so the desk that cannot read it neither offers it nor asks for it.
+// The two cases pin both sides of the same boundary on the patient drawer: the
+// technician never sees the tab, never calls the aggregate endpoint and never
+// opens the broadcast channel; a role that holds `manage.specialty_record`
+// keeps all three.
+describe('patient detail specialty tab boundary (#313)', () => {
+  beforeEach(() => {
+    harness.apiGet.mockReset()
+    harness.privateChannel.mockClear()
+    installGet(happyGet)
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.body.innerHTML = ''
+  })
+
+  it('hides the specialty tab, its read and its channel from the laboratory desk', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 30, role: 'tecnico_dental' }))
+
+    const wrapper = await mountPage()
+
+    const tabs = wrapper.findAll('[role="tab"]').map(tab => tab.text())
+    expect(tabs).not.toContain('Especialidades')
+    expect(wrapper.find('[data-patient-tab-panel="specialties"]').exists()).toBe(false)
+    expect(
+      wrapper.findAll('[data-patient-tab-panel]').map(panel => panel.attributes('data-tab'))
+    ).toEqual(['data', 'treatment-plans', 'quotations', 'medical-records', 'laboratorio', 'audit'])
+
+    // The absence is a gate, not a failed mount: the other reads still run.
+    const requested = harness.apiGet.mock.calls.map(([url]) => url)
+    expect(requested).toContain(URLS.treatment)
+    expect(requested).not.toContain(URLS.specialty)
+
+    // Same for the realtime pipe: the channel is never opened, the others are.
+    const channels = harness.privateChannel.mock.calls.map(([name]) => name)
+    expect(channels).toContain('patients')
+    expect(channels).not.toContain('specialty-records')
+
+    wrapper.unmount()
+  })
+
+  it('keeps the specialty tab, its read and its channel for a clinician role', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 31, role: 'odontologo' }))
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.findAll('[role="tab"]').map(tab => tab.text())).toContain('Especialidades')
+    expect(wrapper.find('[data-patient-tab-panel="specialties"]').exists()).toBe(true)
+
+    expect(harness.apiGet.mock.calls.map(([url]) => url)).toContain(URLS.specialty)
+    expect(harness.privateChannel.mock.calls.map(([name]) => name)).toContain('specialty-records')
 
     wrapper.unmount()
   })

@@ -116,8 +116,11 @@ Broadcast::channel('specialty-records', function ($user) {
         return false;
     }
 
+    // #313 (decision D1): the channel publishes the whole specialty record,
+    // surgical narrative included, so the laboratory desk is out of it and its
+    // prosthetic case (`lab-cases`) carries what the workshop needs.
     return in_array($user->role ?? null, [
-        'administrador', 'odontologo', 'implantologo', 'tecnico_dental',
+        'administrador', 'odontologo', 'implantologo',
     ], true);
 });
 

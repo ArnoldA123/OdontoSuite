@@ -139,7 +139,7 @@ docs/
   architecture/decisions/  # índice de ADRs (README.md) + cuerpos 0007, 0008 y 0010-0015
 
 .github/workflows/
-  ci.yml                   # CI con 3 jobs: quality (lint), backend-tests (MySQL 8.0 service), frontend-build
+  ci.yml                   # CI con 4 jobs: quality (lint), backend-tests (MySQL), frontend-build, security (gitleaks)
 ```
 
 ---
@@ -287,8 +287,8 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   diagnóstico codificado contra el catálogo CIE-10 y firma del profesional; el
   acto firmado publica su hash de integridad y `GET /api/encounters/{id}/record`
   emite el registro imprimible de la norma.
-- CI/CD con GitHub Actions (3 jobs desacoplados: quality, backend-tests MySQL,
-  frontend-build; ver §10 para qué bloquea y qué es aviso explícito)
+- CI/CD con GitHub Actions (4 jobs desacoplados: quality, backend-tests MySQL,
+  frontend-build y security; ver §10 para qué bloquea y qué es aviso explícito)
 - CREDENTIALS.md sincronizado (tests automáticos lo validan)
 - Catálogo con aplicabilidad (#293): `procedure_catalog.site_type`
   (`none|tooth|surface|quadrant|arch`) y `procedure_external_codes` con los
@@ -316,8 +316,10 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   taller (paciente, pieza, trabajo, material, fecha de envío, fecha prometida y
   técnico asignado) con cinco fases que sólo avanzan; entrar en `delivered`
   emite `LabCaseReady` y el caso aparece en `GET /api/my-day` bajo
-  `ready_lab_cases`. El escritorio de laboratorio ya no lee la historia clínica
-  ni el acto clínico, y sus registros de especialidad y planes siguen intactos.
+  `ready_lab_cases`. El escritorio de laboratorio ya no lee la historia clínica,
+  el acto clínico ni los registros de especialidad (#313), y la cita dejó de
+  llevar la conducta clínica a cualquier lector (#314): sus insumos son el caso
+  protésico, el plan de tratamiento y la agenda operativa (ADR-0016).
 
 ### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
 
@@ -515,15 +517,16 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ## 10. CI/CD
 
-`.github/workflows/ci.yml` con 3 jobs desacoplados (ninguno bloquea a otro: un
+`.github/workflows/ci.yml` con 4 jobs desacoplados (ninguno bloquea a otro: un
 lint en rojo nunca esconde si los tests pasan). El workflow es la fuente de
 verdad; esta tabla lo resume sin repetir su contenido.
 
-| Job              | Qué verifica                                                                                                                                       |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `quality`        | Bloqueantes: PHP syntax, validación JSON, Pint (`vendor/bin/pint --test`), ESLint, Vitest smoke (`pnpm test:js`) y Prettier (`pnpm format:check`). |
-| `backend-tests`  | MySQL 8.0 real como service: `php artisan migrate --force` + suite completa.                                                                       |
-| `frontend-build` | `pnpm build` + upload del artifact.                                                                                                                |
+| Job              | Qué verifica                                                                                                                                                                                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quality`        | Bloqueantes: PHP syntax, validación JSON, Pint (`vendor/bin/pint --test`), ESLint, Vitest smoke (`pnpm test:js`) y Prettier (`pnpm format:check`).                                                                     |
+| `backend-tests`  | MySQL 8.0 real como service: `php artisan migrate --force` + suite completa.                                                                                                                                           |
+| `frontend-build` | `pnpm build` + upload del artifact.                                                                                                                                                                                    |
+| `security`       | Bloqueante: `gitleaks` fijado y verificado por checksum sobre los commits que publica el run (rango del PR o del push), con las reglas de `.gitleaks.toml`; la credencial histórica de `SECURITY.md` no se re-escanea. |
 
 **Triggers**: push a `main`/`fix/*`/`feat/*`/`chore/*`/`refactor/*` + PRs a
 `main`.
@@ -584,6 +587,78 @@ documentada y no bloquea producción.
   `useContinuity` y el smoke de la cola), 46 del laboratorio (`labCaseMeta`,
   `useLabCases`, listado, formulario, pestaña del paciente y cierre) y 7 del
   escritorio de Mi día. `scripts/audit/doc-drift.mjs` en verde.
+
+- **2026-10-23 (frontera de la narrativa clínica: especialidades, cita y
+  difusión, #313/#314/#315)** — La frontera que #285 fijó en el módulo de
+  historia clínica se cierra en las otras tres superficies que publicaban la
+  misma narrativa; la decisión vive en ADR-0016. **Registros de especialidad
+  (#313)**: el registro es un acto clínico con narrativa quirúrgica
+  (`surgical_notes`, `post_surgical_notes`, `complications`, `follow_up_notes` y
+  sus equivalentes) y no es insumo del trabajo protésico —el caso `lab_cases` ya
+  publica pieza, trabajo, material, fechas y técnico—, así que
+  `manage.specialty_record` queda en administración y escritorio clínico: el
+  técnico recibe 403 en todo el módulo, la navegación no ofrece
+  `/specialty-records`, el tab de especialidades del detalle de paciente se
+  oculta sin el permiso, y el canal `specialty-records` deja de autorizarlo.
+  `SPECIALTY_RECORD_ROLES` sustituye al uso compartido de `TREATMENT_ROLES`; los
+  planes de tratamiento y `view.dental_piece` no cambian. **Cita (#314)**:
+  `appointments.treatment_notes` es la conducta clínica copiada de la evolución,
+  no un resumen operativo. El cierre deja de escribirla
+  (`ConsultationService::projectOnAppointment`), la cita conserva `notes` y la
+  solicitud de continuidad, y `AppointmentResource` publica el campo sólo a
+  quien lee la historia clínica (`manage.medical_record`): recepción y
+  laboratorio reciben la cita sin la clave. Las filas históricas no se
+  reescriben, pero tampoco se publican fuera del escritorio clínico, y ningún
+  evento de cita difunde el campo (`AppointmentBroadcastPayload` recorta el
+  payload de `AppointmentCreated`, `AppointmentUpdated`, `AppointmentCompleted`
+  y `AppointmentCheckedIn`; `ReminderSent` recorta la cita que embebe, porque
+  publica por `reminders` y `appointments`, canales de recepción y laboratorio).
+  **Difusión (#315)**: un canal no puede variar su payload por rol, así que un
+  evento de documento clínico viaja sólo por el canal de los escritorios que lo
+  leen. `MedicalRecordCreated` publica sólo en `medical-records`, y
+  `SpecialtyRecordCreated`/`SpecialtyRecordUpdated` sólo en `specialty-records`;
+  ninguno en `dashboard-updates`, que autoriza a los siete roles. Sin rutas,
+  controllers, modelos ni migraciones nuevas: §4 no cambia. Tests:
+  `TechnicianClinicalRecordScopeTest` extendido (403 en las cinco puertas del
+  módulo y 200 de los tres roles que lo conservan),
+  `AppointmentTreatmentNotesDeskTest` (ambos lados: quién ve el campo y quién
+  no), `ConsultationClosureTest` (la cita cerrada ya no copia el plan),
+  `AppointmentBroadcastPayloadTest`, `ClinicalEventsChannelBoundaryTest`,
+  `DashboardUpdatesPrivateChannelTest` (14 publicadores), más
+  `PermissionCatalogTest`, `DeskMatrixTest`,
+  `SpecialtiesNavigationDisambiguationTest`, `DomainChannelsAuthorizationTest`,
+  `FrontendPermissionContractTest` y el fixture de permisos regenerado.
+  `CREDENTIALS.md` suma las dos filas de la frontera y
+  `docs/architecture/desks.md` retira el acto del escritorio de laboratorio.
+- **2026-10-23 (seguridad: credencial local redactada y gate de secretos)** — La
+  nota ODD de la interfaz de métodos de pago publicaba en su log la contraseña
+  del MariaDB local de XAMPP; la misma clave aparecía en una nota de auditoría
+  sin versionar. Se redactaron las dos, junto con las rutas absolutas de otras
+  cinco notas. El valor sigue recuperable en la historia (`b914f45`, `2fd17a2`)
+  y en cuatro cabeceras de PR cerradas: la decisión de aceptar el riesgo, sus
+  condiciones (base local, `skip-networking`, phpMyAdmin bajo `Require local`,
+  sin datos reales) y sus disparadores de rotación viven en `SECURITY.md`. Nuevo
+  job `security` en CI: `gitleaks` 8.30.1 fijado y verificado contra el checksum
+  publicado, corriendo sobre los commits que publica cada run (rango del PR o
+  del push) con las reglas de `.gitleaks.toml` (contraseña de base escrita como
+  valor, forma `root/<clave>` y allowlist de marcadores documentados). No
+  re-escanea la historia: el hallazgo conocido ya está publicado. Guard
+  `SecretScanGateTest` (3). Sin rutas, modelos, migraciones ni primitivas UI
+  nuevas: los conteos de §4 no cambian.
+
+- **2026-10-23 (asistente de cierre: el formulario se rearma entre atenciones,
+  #311)** — `ConsultationWizard` vive montado en `/my-day` y `/calendar` y sólo
+  alterna su visibilidad, así que su `payload` local sobrevivía entre una cita y
+  la siguiente: el motivo de consulta, la evolución SOAP, los diagnósticos
+  CIE-10, los materiales y los ítems del plan de la atención anterior seguían
+  editables y viajaban al firmar el acto de otro paciente. El payload se
+  construye ahora desde `createInitialPayload()` y `resetForm()` lo rearma
+  completo —paso inicial, firma, ítems y búsquedas en vuelo— cuando cambia la
+  cita y en cada apertura del asistente (`openForAppointment()`), no sólo la
+  contraseña de firma. Sin rutas, modelos, migraciones ni primitivas UI nuevas:
+  los conteos de §4 no cambian. Tests: `consultation-wizard-reset.test.js` (2) y
+  el caso de firma de `consultation-closure-nts139.test.js` ajustado al paso
+  inicial.
 
 - **2026-10-23 (caja: vocabulario del dinero y estado de cuenta del paciente,
   #287)** — La caja y la deuda del paciente dejan de compartir un solo

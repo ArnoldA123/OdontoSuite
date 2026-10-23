@@ -262,7 +262,6 @@
     "manage.reminder",
     "send.reminder",
     "manage.treatment_plan",
-    "manage.specialty_record",
     "view.dental_piece",
     "manage.procedure_favorite"
   ],
