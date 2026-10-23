@@ -17,11 +17,13 @@ use Tests\TestCase;
  * Contract guard for the cash report arithmetic (caja interface redesign, T2).
  *
  * The period report separates completed sales into `total_income`
- * (payment/income) and `total_expenses` (refund/expense), and every payment
- * method percentage divides by the mix total, never by `closing_amount`.
- * The daily report keeps its own session payload, whose cash flow comes from
- * the movement ledger (`cash_in`/`cash_out`/`net_flow`), not from a
- * `movements_total` sum that mixed snapshots with flows.
+ * (payment/income) and `total_expenses` (refund/expense). #287 (T4, S7) nets
+ * the refunds inside the method mix, so the mix total is the net money the day
+ * collected: 100 cash + 50 card − 20 refunded in cash = 130, and every
+ * percentage divides by that 130, never by `closing_amount`. The daily report
+ * keeps its own session payload, whose cash flow comes from the movement
+ * ledger (`cash_in`/`cash_out`/`net_flow`), not from a `movements_total` sum
+ * that mixed snapshots with flows.
  *
  * Must run against the MySQL harness (AGENTS.md §6).
  */
@@ -29,7 +31,7 @@ class CashReportPeriodTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const MIX_TOTAL = 170.0;
+    private const MIX_TOTAL = 130.0;
 
     private User $admin;
 
@@ -149,9 +151,13 @@ class CashReportPeriodTest extends TestCase
 
         $byMethod = collect($analysis)->keyBy('payment_method');
 
-        $this->assertEqualsWithDelta(120.0, $byMethod['Efectivo']['total'], 0.001);
-        $this->assertEqualsWithDelta(70.59, $byMethod['Efectivo']['percentage'], 0.001);
-        $this->assertEqualsWithDelta(29.41, $byMethod['Tarjeta']['percentage'], 0.001);
+        // #287, S7: the 20 refunded in cash reduces the cash row, not the mix.
+        $this->assertEqualsWithDelta(80.0, $byMethod['Efectivo']['total'], 0.001);
+        $this->assertEqualsWithDelta(40.0, $byMethod['Efectivo']['average'], 0.001);
+        $this->assertEqualsWithDelta(61.54, $byMethod['Efectivo']['percentage'], 0.001);
+        $this->assertEqualsWithDelta(50.0, $byMethod['Tarjeta']['total'], 0.001);
+        $this->assertEqualsWithDelta(50.0, $byMethod['Tarjeta']['average'], 0.001);
+        $this->assertEqualsWithDelta(38.46, $byMethod['Tarjeta']['percentage'], 0.001);
 
         $sum = 0.0;
         foreach ($analysis as $item) {
@@ -173,8 +179,8 @@ class CashReportPeriodTest extends TestCase
 
         $summary = collect($report['summary_by_payment_method'])->keyBy('payment_method');
 
-        $this->assertEqualsWithDelta(70.59, $summary['Efectivo']['percentage'], 0.001);
-        $this->assertEqualsWithDelta(29.41, $summary['Tarjeta']['percentage'], 0.001);
+        $this->assertEqualsWithDelta(61.54, $summary['Efectivo']['percentage'], 0.001);
+        $this->assertEqualsWithDelta(38.46, $summary['Tarjeta']['percentage'], 0.001);
         $this->assertEqualsWithDelta(100.0, $summary->sum('percentage'), 0.01);
 
         $this->assertCount(1, $report['sessions']);

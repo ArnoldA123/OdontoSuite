@@ -153,6 +153,11 @@ final class Permissions
 
     public const MANAGE_CASH_MOVEMENT = 'manage.cash_movement';
 
+    // #287 (T4, S5/S7): the bank deposit. Registering one is counter work like
+    // the withdraw it performs on the drawer; reading the list follows the
+    // same grant as the rest of the register.
+    public const MANAGE_CASH_DEPOSIT = 'manage.cash_deposit';
+
     public const MANAGE_TRANSACTION = 'manage.transaction';
 
     public const CREATE_TRANSACTION = 'create.transaction';
@@ -366,6 +371,7 @@ final class Permissions
         self::OPEN_CASH_REGISTER => self::CASH_ROLES,
         self::CLOSE_CASH_REGISTER => self::CASH_ROLES,
         self::MANAGE_CASH_MOVEMENT => self::FINANCE_ROLES,
+        self::MANAGE_CASH_DEPOSIT => self::CASH_ROLES,
         self::MANAGE_TRANSACTION => self::CASH_ROLES,
         self::CREATE_TRANSACTION => self::CASH_ROLES,
         self::VOID_TRANSACTION => ['administrador'],

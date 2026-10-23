@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\BranchController;
+use App\Http\Controllers\Api\CashDepositController;
 use App\Http\Controllers\Api\CashMovementController;
 use App\Http\Controllers\Api\CashRegisterController;
 use App\Http\Controllers\Api\CashReportController;
@@ -508,6 +509,16 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:'.Permissions::OPEN_CASH_REGISTER);
     Route::post('cash-register/close', [CashRegisterController::class, 'close'])
         ->middleware('permission:'.Permissions::CLOSE_CASH_REGISTER);
+
+    // #287 (T4, S5/S7) — the bank deposit. Registering one moves money out of
+    // the gaveta, so it is counter work (`manage.cash_deposit`); reading the
+    // list keeps the register grant. It carries no `cash.session` on the list:
+    // reading what was deposited is not a drawer operation. The service checks
+    // the sede of the session and that the drawer is still open before writing.
+    Route::post('cash-register/deposits', [CashDepositController::class, 'store'])
+        ->middleware('permission:'.Permissions::MANAGE_CASH_DEPOSIT);
+    Route::get('cash-register/deposits', [CashDepositController::class, 'index'])
+        ->middleware('permission:'.Permissions::VIEW_CASH_REGISTER);
 
     // Pending payments (issue #191). The alias is consumed by the frontend
     // Cobros tab.

@@ -112,10 +112,15 @@ class TransactionService
                 'processed_at' => now(),
             ]);
 
-            // Only the cash types write a movement; the ledger entries do not.
+            // Only the cash types write a movement, and only when the method is
+            // physical cash: a card, transfer or wallet sale is money collected
+            // for the patient but it never enters the drawer, so counting it in
+            // `expected_amount` would make the arqueo and the deposit lie.
             $cashMovement = null;
 
-            if ($cashSession instanceof CashRegisterSession && MoneyVocabulary::movesCash($type)) {
+            if ($cashSession instanceof CashRegisterSession
+                && MoneyVocabulary::movesCash($type)
+                && ($paymentMethod = PaymentMethod::find($data['payment_method_id'] ?? null))?->isCash()) {
                 $cashMovement = $this->createCashMovement($transaction, $cashSession);
             }
 
@@ -635,10 +640,10 @@ class TransactionService
     }
 
     /**
-     * Flow a void has to reverse: the ledger row the transaction actually wrote,
-     * or the vocabulary when no row exists (a transaction seeded without its
-     * movement, or a legacy `income`/`expense` row). A non-cash entry reverses
-     * nothing.
+     * Flow a void has to reverse: the ledger row the transaction actually wrote.
+     * A card/wallet sale never wrote one, and a non-cash entry reverses nothing,
+     * so the void follows the recorded flow instead of the type's vocabulary.
+     * Legacy `income`/`expense` rows keep their own type when no row is found.
      */
     private function reversalMovementType(Transaction $transaction): ?string
     {
@@ -646,8 +651,6 @@ class TransactionService
             ->where('transaction_id', $transaction->id)
             ->where('reference', $transaction->transaction_number)
             ->value('type');
-
-        $flow ??= MoneyVocabulary::cashMovementType($transaction->type);
 
         if ($flow === null && in_array($transaction->type, ['income', 'expense'], true)) {
             $flow = $transaction->type;
