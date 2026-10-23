@@ -96,11 +96,11 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 46 controllers API (45 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 47 controllers API (46 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 69 modelos Eloquent
-  Services/                # 34 services + Reports/ (9 report services)
+  Models/                  # 70 modelos Eloquent
+  Services/                # 35 services + Reports/ (9 report services)
   Events/                  # 36 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
@@ -119,7 +119,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 151 migraciones
+  migrations/              # 152 migraciones
   seeders/                 # 17 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, DiagnosisCatalogSeeder,
                            #   AppointmentTypeSeeder, EnvironmentSeeder, ProcedureCatalogSeeder,
@@ -128,7 +128,7 @@ database/
                            #   ToothSurfaceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 253 rutas API (medido con php artisan route:list --json: uris api/…; 266 totales con web)
+  api.php                  # 254 rutas API (medido con php artisan route:list --json: uris api/…; 267 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -184,7 +184,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 69 modelos, 46 controllers API, 36 eventos (10 listener classes / 13 cableos
+- 70 modelos, 47 controllers API, 36 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 13 modelos con SoftDeletes (la historia clínica y sus evoluciones ya no lo
   usan: #292)
@@ -239,7 +239,17 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   de cuenta pero no escribe movimiento de gaveta. Como consecuencia de D7, la
   guarda `cash.session` deja de estar en las rutas de creación y anulación de
   transacciones: la regla vive en `TransactionService`, que sigue exigiendo la
-  sesión de la transacción abierta para anular.
+  sesión de la transacción abierta para anular. #321 añade la imputación como
+  vista (`POST /api/transactions/{transaction}/allocations` y `allocations` en
+  el alta del pago, `patient_charge_allocations`): un pago cubre uno o varios
+  cargos de su paciente sin pasar de su importe ni del importe del cargo, y el
+  estado de cuenta publica `charge_balances` y `unallocated_payments` sin mover
+  el total. #322 deja `cash:repair-electronic-movements` (`--dry-run`,
+  idempotente) para marcar los movimientos de gaveta históricos de métodos
+  electrónicos; #323 cierra la ventana de concurrencia (pago, devolución,
+  depósito y cierre comparten el lock de la sesión) y hace que el bloqueo
+  contable del depósito se evalúe sobre `deposited_at` con
+  `lock_override_reason`.
 - BI (8 report services) + export
 - Catálogo de procedimientos con favoritos (admin/clínico/recep)
 - Estadísticas del catálogo (`/api/admin/procedure-stats`)
@@ -368,12 +378,14 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   desde `treatment_plan_id`, así que el bloqueo del path `generateQuotation`
   (fix C-1 del Sprint 0) ya no existe.
 
-- **#287 declaró fuera de alcance tres cosas**: la UI de caja para devoluciones,
-  depósitos y estado de cuenta (la issue es `area:backend`); la imputación de un
-  pago a un cargo concreto —no hay abono por cargo, así que la corrección de un
-  cargo va por ajuste—; y los movimientos de gaveta electrónicos escritos antes
-  de la regla sólo-efectivo, que siguen contando en las sesiones antiguas porque
-  el ledger no se reescribe.
+- **#287 declaró fuera de alcance tres cosas y las tres se cerraron después**:
+  la UI de caja para devoluciones, depósitos y estado de cuenta sigue pendiente
+  (las issues son `area:backend`); la imputación de un pago a un cargo existe
+  desde #321 como vista (`patient_charge_allocations`, ADR-0016) y el saldo del
+  paciente sigue siendo la regla de #287, así que la corrección de un cargo va
+  por ajuste; y los movimientos de gaveta electrónicos escritos antes de la
+  regla sólo-efectivo se reparan con `cash:repair-electronic-movements` (#322),
+  que los marca sin reescribir las columnas de la sesión.
 
 ### 🔧 Notas de entorno
 
@@ -503,8 +515,9 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 | `docs/architecture/decisions/0013-plan-versioning-and-continuity.md`      | El plan aceptado es una versión inmutable; la continuidad es una solicitud que recepción materializa con validación de agenda.                   |
 | `docs/architecture/decisions/0014-clinical-record-signature-and-cie10.md` | El registro de atención es un documento firmado: motivo, CIE-10 y firma electrónica simple con hash de integridad.                               |
 | `docs/architecture/decisions/0015-money-vocabulary-and-patient-ledger.md` | Pago, descuento, condonación, devolución y ajuste son conceptos distintos; el cargo es un libro del paciente y sólo el efectivo mueve la gaveta. |
+| `docs/architecture/decisions/0016-payment-charge-allocation.md`           | La imputación de un pago a un cargo es una vista sobre el mismo dinero, no una segunda contabilidad.                                             |
 
-> **Estado**: los ocho cuerpos de la tabla están escritos y el índice resuelve
+> **Estado**: los nueve cuerpos de la tabla están escritos y el índice resuelve
 > sus enlaces. El índice vive en `docs/architecture/decisions/README.md` y su
 > integridad la fija
 > `tests/Unit/Documentation/ArchitectureDecisionsIndexTest.php`.
@@ -530,7 +543,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 46 controllers API, 69
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 47 controllers API, 70
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -542,6 +555,40 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-23 (caja: imputación de pagos, gaveta histórica y concurrencia,
+  #321/#322/#323)** — Tres consecuencias de #287 que quedaron declaradas.
+  **Imputación (#321)**: `patient_charge_allocations` (`patient_charge_id`,
+  `transaction_id`, `amount` decimal(12,2), `created_by`, único por par) dice
+  qué cargo pagó un pago, sin mover dinero. `PatientChargeAllocationService`
+  verifica las dos sumas —un pago no imputa más que su importe y un cargo no
+  recibe más que el suyo— sobre filas bloqueadas en orden de `id` (cargos) y
+  después el pago; sólo un pago `completed` cubre un cargo y una fila anulada
+  deja de contar. Las puertas son `allocations` en `POST /api/transactions`
+  (dentro de la misma transacción del pago) y
+  `POST /api/transactions/{transaction}/allocations` (`manage.patient_charge`,
+  sin `cash.session`: el ledger es del paciente). El estado de cuenta añade
+  `charge_balances` (importe, imputado y saldo por cargo a la fecha de corte) y
+  `unallocated_payments`; `summary`, `opening_balance` y `closing_balance` no
+  cambian, y una devolución libera cobertura en proporción al pago que la
+  originó. Los datos previos se leen como no imputados, sin backfill. Decisión
+  en ADR-0016. **Gaveta histórica (#322)**: `cash:repair-electronic-movements`
+  (`--dry-run`, idempotente) marca con soft delete y `audit_logs`
+  (`cash_movement_repaired`) los movimientos ligados a métodos
+  `card|transfer|wallet`, conserva los de método no comprobable y no reescribe
+  ninguna columna de la sesión: el arqueo guardado queda como registro histórico
+  y el esperado vivo se recalcula sin esas filas. **Concurrencia y bloqueo
+  (#323)**: pago, devolución, depósito y cierre toman el lock de la fila de
+  `cash_register_sessions` antes de leer o escribir la gaveta, y el depósito
+  evalúa el bloqueo contable del módulo `cash_movements` sobre `deposited_at`
+  (no sobre la fecha en que se escribe), con `lock_override_reason` de
+  administrador y `accounting_lock_blocked`/`accounting_lock_overridden` en
+  `audit_logs`. §4 sincronizado con valores medidos: 47 controllers API, 70
+  modelos, 152 migraciones, 254 rutas API y 267 totales con web; §9 suma
+  ADR-0016 y su índice. Sin cambios de UI ni de §5 (las tres issues son
+  `area:backend`). Tests: `PatientChargeAllocationTest` (13),
+  `RepairElectronicCashMovementsCommandTest`, `CashDrawerLockTest` (4),
+  `CashDepositAccountingLockTest` (5) y el guard de índice de ADR.
 
 - **2026-10-23 (caja: vocabulario del dinero y estado de cuenta del paciente,
   #287)** — La caja y la deuda del paciente dejan de compartir un solo
@@ -596,8 +643,8 @@ documentada y no bloquea producción.
   y la conciliación siguen acotados por sede. Permisos nuevos (los tres con
   `CASH_ROLES`): `manage.patient_charge`, `view.patient_statement` y
   `manage.cash_deposit`. Decisión en ADR-0015. §4 sincronizado con valores
-  medidos: 46 controllers API, 69 modelos, 34 services + 9 report services, 151
-  migraciones, 253 rutas API y 266 totales con web; sin cambios de UI ni de §5
+  medidos: 47 controllers API, 70 modelos, 35 services + 9 report services, 152
+  migraciones, 254 rutas API y 267 totales con web; sin cambios de UI ni de §5
   (la issue es `area:backend`). Tests: `MoneyVocabularyTest` unitario (8),
   `MoneyVocabularyTest` de API (18), `PatientChargeLedgerTest` (12),
   `BackfillPatientChargesCommandTest` (4), `PatientStatementTest` (9),
