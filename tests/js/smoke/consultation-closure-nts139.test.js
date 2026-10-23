@@ -288,6 +288,66 @@ describe('consultation closure NTS 139 smoke (#286)', () => {
     wrapper.unmount()
   })
 
+  // F5 (#316) — el caso de laboratorio es una entidad propia: el cierre ofrece
+  // la puerta, abre el mismo formulario que la ficha del paciente con el
+  // paciente de la cita precargado y no añade ningún miembro al payload.
+  it('offers the laboratory door and opens the form with the patient of the act', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 2, role: 'odontologo' }))
+    const wrapper = await mountWizard()
+
+    await goToStep('next')
+    expect(element('[data-wizard-lab-case]')).toBeTruthy()
+    expect(element('[data-wizard-lab-case-new]').textContent).toContain(
+      'Registrar caso de laboratorio'
+    )
+
+    element('[data-wizard-lab-case-new]').click()
+    await flushPromises()
+
+    expect(element('[data-lab-case-form]')).toBeTruthy()
+    expect(element('[data-lab-case-form-patient-fixed]').textContent).toContain('Ana Pérez')
+    expect(document.querySelector('[data-lab-case-form-patient]')).toBeFalsy()
+
+    localStorage.removeItem('user')
+    wrapper.unmount()
+  })
+
+  it('hides the laboratory door from a profile that cannot write the module', async () => {
+    localStorage.removeItem('user')
+    const wrapper = await mountWizard()
+
+    await goToStep('next')
+
+    expect(document.querySelector('[data-wizard-lab-case]')).toBeFalsy()
+    expect(document.querySelector('[data-wizard-lab-case-new]')).toBeFalsy()
+
+    wrapper.unmount()
+  })
+
+  it('keeps the closure payload free of laboratory members', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 2, role: 'odontologo' }))
+    const wrapper = await mountWizard()
+
+    await goToStep('evolution')
+    await fillSoap()
+    await setValue('#cw-reason', REASON)
+    await searchDiagnosis('caries')
+    await addFirstDiagnosis()
+
+    await goToStep('signature')
+    await setValue('#cw-signature', PASSWORD)
+
+    submitButton().click()
+    await flushPromises()
+
+    const [, init] = harness.fetch.mock.calls[0]
+    expect([...init.body.keys()].filter(key => key.toLowerCase().includes('lab'))).toEqual([])
+    expect(init.body.get('reason_for_consultation')).toBe(REASON)
+
+    localStorage.removeItem('user')
+    wrapper.unmount()
+  })
+
   it('keeps the three NTS 139 members in the wizard payload defaults', () => {
     const source = readFileSync(
       resolve(ROOT, 'resources/js/modules/appointments/ConsultationWizard.vue'),

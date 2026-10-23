@@ -541,6 +541,99 @@
             </PatientTabPanel>
           </template>
 
+          <template #laboratorio>
+            <!-- Laboratorio protésico (F5 #316): las órdenes de trabajo del
+                 taller son una entidad propia y se leen aquí sin entrar al
+                 acto clínico. -->
+            <PatientTabPanel
+              state="laboratorio"
+              data-patient-lab-cases
+              :loading="labCasesLoading"
+              loading-text="Cargando casos de laboratorio..."
+              :error="labCasesError"
+              error-title="No pudimos cargar los casos de laboratorio"
+              error-description="Revisa tu conexión e inténtalo de nuevo."
+              :empty="labCases.length === 0"
+              empty-title="Sin casos de laboratorio"
+              empty-description="Este paciente no tiene órdenes de trabajo del taller."
+              @retry="loadLabCases"
+            >
+              <template #header>
+                <h3 class="text-lg font-semibold text-theme-primary">Laboratorio protésico</h3>
+                <UiButton
+                  v-if="can.manageLabCase?.value"
+                  variant="secondary"
+                  class="flex items-center gap-2"
+                  data-patient-lab-case-new
+                  @click="createLabCase"
+                >
+                  <template #icon-left>
+                    <PlusIcon class="w-4 h-4" aria-hidden="true" />
+                  </template>
+                  Nuevo caso
+                </UiButton>
+              </template>
+              <template #empty-action>
+                <p data-patient-lab-cases-empty class="text-xs text-theme-secondary">
+                  Las órdenes de trabajo del taller aparecerán aquí.
+                </p>
+              </template>
+
+              <UiDataTable
+                :data="labCases"
+                :columns="labCaseColumns"
+                :searchable="false"
+                :pagination="false"
+                :show-header="false"
+                row-key="id"
+                data-patient-lab-cases-table
+              >
+                <template #cell-work="{ row }">
+                  <span class="text-sm font-medium text-theme-primary" data-patient-lab-case-work>
+                    {{ row.work }}
+                  </span>
+                </template>
+
+                <template #cell-dental_piece="{ row }">
+                  <span class="text-sm text-theme-primary tabular-nums">
+                    {{ pieceLabel(row.dental_piece) }}
+                  </span>
+                </template>
+
+                <template #cell-promised_at="{ row }">
+                  <span class="text-sm text-theme-primary tabular-nums">
+                    {{ formatCaseDate(row.promised_at) }}
+                  </span>
+                </template>
+
+                <template #cell-technician="{ row }">
+                  <span class="text-sm text-theme-primary">{{ row.technician?.name || '—' }}</span>
+                </template>
+
+                <template #cell-status="{ row }">
+                  <UiStatusBadge
+                    :variant="phaseBadgeVariant(row.status)"
+                    :label="phaseLabel(row.status)"
+                    size="sm"
+                    data-patient-lab-case-status
+                  />
+                </template>
+
+                <template #actions="{ row }">
+                  <UiButton
+                    v-if="can.manageLabCase?.value"
+                    variant="secondary"
+                    size="sm"
+                    data-patient-lab-case-edit
+                    @click.stop="editLabCase(row)"
+                  >
+                    Editar
+                  </UiButton>
+                </template>
+              </UiDataTable>
+            </PatientTabPanel>
+          </template>
+
           <template #audit>
             <!-- Historial de Auditoría -->
             <PatientTabPanel
@@ -628,6 +721,15 @@
       </section>
     </div>
 
+    <!-- Laboratorio protésico (F5 #316): alta y edición del caso -->
+    <LabCaseFormModal
+      v-model="labCaseFormOpen"
+      :lab-case="labCaseEditing"
+      :patient-id="patient?.id ?? null"
+      :patient-name="patientFullNameLabel"
+      @saved="handleLabCaseSaved"
+    />
+
     <!-- Edit Patient Modal -->
     <PatientFormModal
       v-if="showEditModal"
@@ -645,6 +747,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   AcademicCapIcon,
   ArrowDownTrayIcon,
+  BeakerIcon,
   ClipboardDocumentListIcon,
   ClockIcon,
   DocumentTextIcon,
@@ -670,8 +773,16 @@ import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
 import UiTabs from '../../components/ui/Tabs.vue'
+import UiDataTable from '../../components/ui/DataTable.vue'
 import PatientFormModal from './PatientFormModal.vue'
 import PatientTabPanel from './PatientTabPanel.vue'
+import LabCaseFormModal from '../lab-cases/LabCaseFormModal.vue'
+import {
+  formatDate as formatCaseDate,
+  phaseBadgeVariant,
+  phaseLabel,
+  pieceLabel
+} from '../lab-cases/labCaseMeta'
 
 export default {
   name: 'PatientDetailPage',
@@ -687,8 +798,10 @@ export default {
     UiBadge,
     UiStatusBadge,
     UiTabs,
+    UiDataTable,
     PatientFormModal,
-    PatientTabPanel
+    PatientTabPanel,
+    LabCaseFormModal
   },
   setup() {
     const route = useRoute()
@@ -714,16 +827,21 @@ export default {
     const quotations = ref([])
     const medicalRecords = ref([])
     const specialtyRecords = ref([])
+    const labCases = ref([])
     const treatmentPlansLoading = ref(false)
     const quotationsLoading = ref(false)
     const medicalRecordsLoading = ref(false)
     const specialtyRecordsLoading = ref(false)
+    const labCasesLoading = ref(false)
     const treatmentPlansError = ref(false)
     const quotationsError = ref(false)
     const medicalRecordsError = ref(false)
     const specialtyRecordsError = ref(false)
+    const labCasesError = ref(false)
     const exporting = ref(false)
     const showEditModal = ref(false)
+    const labCaseFormOpen = ref(false)
+    const labCaseEditing = ref(null)
 
     const breadcrumbs = [{ to: '/patients', label: 'Pacientes' }]
 
@@ -738,7 +856,9 @@ export default {
       return Math.max(0, Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000)))
     })
 
-    const tabs = [
+    // F5 (#316): las pestañas clínicas conservan su definición. La del taller y
+    // la de auditoría se ordenan aparte porque la primera depende del permiso.
+    const clinicalTabs = [
       {
         id: 'data',
         name: 'Datos',
@@ -763,13 +883,40 @@ export default {
         id: 'specialties',
         name: 'Especialidades',
         icon: AcademicCapIcon
-      },
-      {
-        id: 'audit',
-        name: 'Historial',
-        icon: ClockIcon
       }
     ]
+
+    const laboratorioTab = {
+      id: 'laboratorio',
+      name: 'Laboratorio',
+      icon: BeakerIcon
+    }
+
+    const auditTab = {
+      id: 'audit',
+      name: 'Historial',
+      icon: ClockIcon
+    }
+
+    const tabs = computed(() => [
+      // F5 (#316): la pestaña del taller es trabajo de despacho y solo existe
+      // para quien puede leer el módulo; el resto de pestañas no cambia.
+      ...clinicalTabs,
+      ...(can.viewLabCase?.value ? [laboratorioTab] : []),
+      auditTab
+    ])
+
+    const labCaseColumns = [
+      { key: 'work', label: 'Trabajo' },
+      { key: 'dental_piece', label: 'Pieza' },
+      { key: 'promised_at', label: 'Prometido' },
+      { key: 'technician', label: 'Técnico' },
+      { key: 'status', label: 'Fase' }
+    ]
+
+    const patientFullNameLabel = computed(() =>
+      [patient.value?.first_name, patient.value?.last_name].filter(Boolean).join(' ')
+    )
 
     // Methods
     const loadPatient = async () => {
@@ -840,6 +987,35 @@ export default {
       } finally {
         specialtyRecordsLoading.value = false
       }
+    }
+
+    const loadLabCases = async () => {
+      if (!patient.value) return
+      labCasesLoading.value = true
+      labCasesError.value = false
+      try {
+        const response = await get(`/api/lab-cases?patient_id=${patient.value.id}&per_page=50`)
+        labCases.value = response?.data ?? []
+      } catch (error) {
+        labCasesError.value = true
+      } finally {
+        labCasesLoading.value = false
+      }
+    }
+
+    const createLabCase = () => {
+      labCaseEditing.value = null
+      labCaseFormOpen.value = true
+    }
+
+    const editLabCase = row => {
+      labCaseEditing.value = row
+      labCaseFormOpen.value = true
+    }
+
+    const handleLabCaseSaved = async () => {
+      labCaseFormOpen.value = false
+      await loadLabCases()
     }
 
     const loadAuditLogs = async () => {
@@ -1068,6 +1244,9 @@ export default {
       if (newTab === 'audit' && patient.value) {
         loadAuditLogs()
       }
+      if (newTab === 'laboratorio' && patient.value) {
+        loadLabCases()
+      }
     })
 
     // Lifecycle
@@ -1271,6 +1450,21 @@ export default {
       quotations,
       medicalRecords,
       specialtyRecords,
+      labCases,
+      labCaseColumns,
+      labCasesLoading,
+      labCasesError,
+      labCaseFormOpen,
+      labCaseEditing,
+      patientFullNameLabel,
+      loadLabCases,
+      createLabCase,
+      editLabCase,
+      handleLabCaseSaved,
+      formatCaseDate,
+      phaseBadgeVariant,
+      phaseLabel,
+      pieceLabel,
       treatmentPlansLoading,
       quotationsLoading,
       medicalRecordsLoading,
