@@ -271,6 +271,23 @@ describe('consultation closure NTS 139 smoke (#286)', () => {
     wrapper.unmount()
   })
 
+  it('does not reuse the signature password when the wizard opens for another act', async () => {
+    const wrapper = await mountWizard()
+
+    await goToStep('signature')
+    await setValue('#cw-signature', PASSWORD)
+    expect(element('#cw-signature').value).toBe(PASSWORD)
+
+    // F6 (#286): la firma es del acto que se cierra. Otra cita es otra
+    // re-autenticación, aunque el asistente siga montado.
+    await wrapper.setProps({ appointment: { ...APPOINTMENT, id: 502 } })
+    await flushPromises()
+
+    expect(element('#cw-signature').value).toBe('')
+
+    wrapper.unmount()
+  })
+
   it('keeps the three NTS 139 members in the wizard payload defaults', () => {
     const source = readFileSync(
       resolve(ROOT, 'resources/js/modules/appointments/ConsultationWizard.vue'),
