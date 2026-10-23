@@ -36,6 +36,12 @@ const reportPayload = {
   average_difference: -1.04,
   total_income: 4321.5,
   total_expenses: 210.75,
+  reconciliation: {
+    cash: { count: 9, total: 1250.5 },
+    electronic: { count: 3, total: 880.25 },
+    deposits: { count: 2, total: 1000 },
+    pending_deposit: 250.5
+  },
   daily_summary: [
     {
       date: '2026-10-01',
@@ -149,6 +155,68 @@ describe('cash reports (T9)', () => {
 
     expect(wrapper.find('[data-report-table="summary-branches"]').exists()).toBe(false)
     expect(wrapper.find('[data-report-table="summary-users"]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('renders the reconciliation block between sales and the payment-method mix', async () => {
+    const wrapper = mountReports()
+    await flushPromises()
+
+    const section = wrapper.find('[data-report-reconciliation]')
+    expect(section.exists()).toBe(true)
+
+    const sales = wrapper.find('[data-sales-line]').element
+    const table = wrapper.find('[data-report-table="payment-methods"]').element
+    expect(sales.compareDocumentPosition(section.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    )
+    expect(section.element.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    )
+
+    expect(wrapper.find('[data-reconciliation="cash"]').text()).toContain('1,250.50')
+    expect(wrapper.find('[data-reconciliation="electronic"]').text()).toContain('880.25')
+    expect(wrapper.find('[data-reconciliation="deposits"]').text()).toContain('1,000.00')
+    expect(wrapper.find('[data-reconciliation="pending"]').text()).toContain('250.50')
+
+    expect(wrapper.find('[data-reconciliation-value="cash"]').text()).toContain('1,250.50')
+    expect(wrapper.find('[data-reconciliation-value="electronic"]').text()).toContain('880.25')
+    expect(wrapper.find('[data-reconciliation-value="deposits"]').text()).toContain('1,000.00')
+    expect(wrapper.find('[data-reconciliation-value="pending"]').text()).toContain('250.50')
+
+    expect(wrapper.find('[data-reconciliation-count="cash"]').text()).toContain('9')
+    expect(wrapper.find('[data-reconciliation-count="electronic"]').text()).toContain('3')
+    expect(wrapper.find('[data-reconciliation-count="deposits"]').text()).toContain('2')
+
+    wrapper.unmount()
+  })
+
+  it('renders the rest of the report with N/D when the payload has no reconciliation', async () => {
+    const legacyPayload = { ...reportPayload }
+    delete legacyPayload.reconciliation
+    getMock.mockResolvedValue({ data: legacyPayload })
+
+    const wrapper = mountReports()
+    await flushPromises()
+
+    expect(wrapper.find('[data-report-error]').exists()).toBe(false)
+    expect(wrapper.find('[data-report-kpi="sessions"]').text()).toBe('12')
+    expect(wrapper.find('[data-report-table="payment-methods"]').text()).toContain('Efectivo')
+
+    const section = wrapper.find('[data-report-reconciliation]')
+    expect(section.exists()).toBe(true)
+    expect(wrapper.find('[data-reconciliation-value="cash"]').text()).toBe('N/D')
+    expect(wrapper.find('[data-reconciliation-value="electronic"]').text()).toBe('N/D')
+    expect(wrapper.find('[data-reconciliation-value="deposits"]').text()).toBe('N/D')
+    expect(wrapper.find('[data-reconciliation-value="pending"]').text()).toBe('N/D')
+    expect(wrapper.find('[data-reconciliation-count="cash"]').text()).toBe('N/D')
+    expect(wrapper.find('[data-reconciliation-count="electronic"]').text()).toBe('N/D')
+    expect(wrapper.find('[data-reconciliation-count="deposits"]').text()).toBe('N/D')
+
+    await wrapper.find('[data-export="csv"]').trigger('click')
+    await flushPromises()
+    expect(downloadMock).toHaveBeenCalledTimes(1)
 
     wrapper.unmount()
   })

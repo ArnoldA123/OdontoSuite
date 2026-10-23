@@ -156,6 +156,35 @@
       </div>
     </UiCard>
 
+    <section aria-label="Conciliación" data-report-reconciliation class="space-y-3">
+      <h3 class="text-base font-semibold text-label">Conciliación</h3>
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <UiCard
+          v-for="card in reconciliationCards"
+          :key="card.key"
+          variant="glass"
+          padding="sm"
+          :data-reconciliation="card.key"
+          :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        >
+          <p class="text-xs font-medium uppercase text-theme-secondary">{{ card.label }}</p>
+          <p
+            class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+            :data-reconciliation-value="card.key"
+          >
+            {{ card.value }}
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary">
+            <template v-if="card.count !== null">
+              <span :data-reconciliation-count="card.key">{{ card.count }}</span>
+              operaciones ·
+            </template>
+            {{ card.caption }}
+          </p>
+        </UiCard>
+      </div>
+    </section>
+
     <template v-if="!error">
       <section aria-label="Participación por método de pago" class="space-y-3">
         <h3 class="text-base font-semibold text-label">Participación por método de pago</h3>
@@ -454,6 +483,50 @@ const paymentMethods = computed(() => report.value?.payment_methods_analysis ?? 
 const dailySummary = computed(() => report.value?.daily_summary ?? [])
 const branchSummary = computed(() => report.value?.summary_by_branch ?? [])
 const userSummary = computed(() => report.value?.summary_by_user ?? [])
+
+const notAvailable = 'N/D'
+
+// A missing bucket (older payload, filtered field) must render `N/D` instead of
+// `S/ 0.00`: `Number(null)` is 0, so the guard checks for nullish first.
+const countOrFallback = value => {
+  if (value === null || value === undefined || value === '') return notAvailable
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? String(numeric) : notAvailable
+}
+
+const currencyOrFallback = value => {
+  if (value === null || value === undefined || value === '') return notAvailable
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? formatCurrency(numeric) : notAvailable
+}
+
+const reconciliationCards = computed(() => {
+  const source = ready.value ? report.value?.reconciliation : null
+
+  const buckets = [
+    { key: 'cash', label: 'Efectivo', caption: 'neto de devoluciones' },
+    { key: 'electronic', label: 'Electrónico', caption: 'medios electrónicos' },
+    { key: 'deposits', label: 'Depósitos', caption: 'al banco en el período' }
+  ]
+
+  const cards = buckets.map(({ key, label, caption }) => ({
+    key,
+    label,
+    caption,
+    count: countOrFallback(source?.[key]?.count),
+    value: currencyOrFallback(source?.[key]?.total)
+  }))
+
+  cards.push({
+    key: 'pending',
+    label: 'Pendiente de depósito',
+    caption: 'efectivo del período menos depósitos',
+    count: null,
+    value: currencyOrFallback(source?.pending_deposit)
+  })
+
+  return cards
+})
 
 const messageOf = (err, fallback) => err?.response?.data?.message || err?.message || fallback
 
