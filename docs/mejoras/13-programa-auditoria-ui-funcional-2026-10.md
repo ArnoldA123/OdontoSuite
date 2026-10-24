@@ -1062,3 +1062,19 @@ navegador: señala dónde mirar primero.
   además `index.html`, una galería de capturas ordenadas por ruta y rol, para
   revisar la pantalla como la ve una persona sin abrir carpetas. Se actualizó
   el cuerpo del issue #363 (U0) en el mismo sentido.
+- **2026-10-24 (U0 entregado: arnés y línea base)** — El instrumento entra al
+  árbol y se mide contra `odontosuite_audit` en `2a0c74a`.
+  `scripts/audit/ui-manifest.mjs` deriva 36 superficies de las 38 rutas
+  declaradas (2 redirects), 509 acciones con 0 sin clasificar, 59 diálogos, 140
+  endpoints y el permiso de cada superficie desde `routes/api.php`;
+  `tests/e2e/audit/harness.js` + `surface.spec.js` ejecutan 120 tests (84 de
+  render × rol con capturas explícitas 1440×900 y 390×844, 36 de contrato de
+  primitivas) y `scripts/audit/ui-pass.mjs` publica el resumen de 36 filas, el
+  gate y la galería `index.html`. La corrida sale 0: 35 renderizan, 1 excluida
+  con motivo (`/medical-records/:id`: el seed no siembra historias), 0
+  `pageerror`, 0 acciones sin clasificar, 6 diálogos medidos y 1 fila de
+  contrato fallida. El arnés se corrigió con lo que la propia corrida midió
+  (asentamiento del contenido, móvil por recarga a 390, lectura de `h1` sin
+  autoespera, `localStorage` en frames opacos y `pageerror` de primitivas dentro
+  del gate). Hallazgos y seguimientos en `odd/tasks/audit-ui-u0.md`; U0 no toca
+  producto.
