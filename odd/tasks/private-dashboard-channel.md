@@ -46,3 +46,9 @@ L6. `php artisan sdd:check-events` → 33 event classes, 0 orphan.
 
 L7. Los canales públicos de dominio restantes quedaron mapeados en la issue #249
 (inventario medido y consumidores). Esta entrega cierra solo `dashboard-updates`.
+
+L8. El fanout que L4 dejó abierto también se cerró: #249 movió los 27 eventos
+restantes a canales privados y `DomainChannelsPrivateTest` lo fija. Ningún
+`Channel(` público queda en `app/Events` (medido: 93 usos de `PrivateChannel`,
+cero del público). Esta nota queda como historia de #183, no como deuda viva
+(#359, `R1-doc-public-channel-fanout`).
