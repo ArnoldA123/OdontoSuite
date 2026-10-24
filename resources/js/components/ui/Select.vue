@@ -18,7 +18,7 @@
           <span v-if="selectedOption" class="truncate text-theme-primary">
             {{ selectedOption.label }}
           </span>
-          <span v-else class="text-theme-secondary">
+          <span v-else class="truncate text-theme-secondary">
             {{ placeholder }}
           </span>
         </div>

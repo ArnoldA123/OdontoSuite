@@ -77,7 +77,7 @@
             :options="professionalOptions"
             :disabled="loadingOptions"
             label="Profesional"
-            placeholder="Seleccionar profesional"
+            placeholder="Seleccionar"
             searchable
           />
           <p

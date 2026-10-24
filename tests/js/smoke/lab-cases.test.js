@@ -177,9 +177,12 @@ describe('lab-cases desk', () => {
 
     const lateRow = wrapper.find('[data-lab-case-row="11"]').element.closest('tr')
     expect(lateRow.querySelector('[data-lab-case-patient]').textContent).toContain('Ana Torres')
-    expect(lateRow.querySelector('[data-lab-case-work]').textContent).toContain(
-      'Corona metal-cerámica'
-    )
+    // #346 — the work name keeps the row on one line and the full text stays
+    // reachable through the native tooltip.
+    const work = lateRow.querySelector('[data-lab-case-work]')
+    expect(work.textContent.trim()).toBe('Corona metal-cerámica')
+    expect(work.classList.contains('truncate')).toBe(true)
+    expect(work.getAttribute('title')).toBe('Corona metal-cerámica')
     expect(lateRow.textContent).toContain('16')
     expect(lateRow.textContent).toContain('01 ene 2020')
     expect(lateRow.querySelector('[data-lab-case-status]').textContent).toContain('En laboratorio')
