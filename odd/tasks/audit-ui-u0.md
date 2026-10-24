@@ -1,6 +1,6 @@
 # Task: U0 — arnés de audit-test y línea base de las 36 rutas
 
-Status: IN PROGRESS. Rama `feat/audit-ui-u0` desde `30f7ef1`.
+Status: DONE. Rama `feat/audit-ui-u0` desde `30f7ef1`; línea base en `2a0c74a`.
 
 ## Specs
 
@@ -54,10 +54,10 @@ monolito de 1 770.
 ## Tasks
 
 - [x] **T1** · S2, S9 · `inline` · Manifiesto estático `scripts/audit/ui-manifest.mjs` (rutas de `app.js`, roles de `AppLayout.navigation`, pestañas, diálogos, acciones clasificadas, endpoints y permiso de ruta) con test unitario determinista. Commits `ea1295f`, `ff49753`, `644743a`, `3761339` (+ capa de montaje).
-- [ ] **T2** · S3, S4, S5, S6 · `inline` · Arnés `tests/e2e/audit/harness.js` (login por API por rol, token en `localStorage`, diagnóstico, capturas explícitas, contrato de diálogo) y `tests/e2e/audit/surface.spec.js` (capas 2 y 3 parametrizadas por manifiesto). Commit `feat(audit): arnés de navegador por rol y contrato de primitivas`.
-- [ ] **T3** · S1, S7 · `inline` · Envoltorio `scripts/audit/ui-pass.mjs`: resumen de 36 filas clasificadas, galería `index.html` ordenada por ruta y rol, y código de salida. Commit `feat(audit): ui-pass con resumen por ruta y galería`.
-- [ ] **T4** · S1, S5, S8 · `inline` · Corrida en vivo sobre `odontosuite_audit` (migrate --seed, app, Vite y Reverb arriba), correcciones del arnés que la corrida destape y evidencia en `.atl/qa-evidence/audit/ui/U0/`. Commit `fix(audit): correcciones del arnés medidas en la línea base`.
-- [ ] **T5** · S1, S2, S3, S8, S9 · `inline` · Cierre: nota ODD con los números medidos, changelog del plan #13, `pnpm lint:check`, `pnpm format:check`, `pnpm test:js` y `pnpm exec playwright test --list`. Commit `docs(audit): línea base de las 36 rutas (U0)`.
+- [x] **T2** · S3, S4, S5, S6 · `inline` · Arnés `tests/e2e/audit/harness.js` (login por API por rol, token en `localStorage`, diagnóstico, capturas explícitas, contrato de diálogo) y `tests/e2e/audit/surface.spec.js` (capas 2 y 3 parametrizadas por manifiesto). Commit `45676f8`.
+- [x] **T3** · S1, S7 · `inline` · Envoltorio `scripts/audit/ui-pass.mjs`: resumen de 36 filas clasificadas, galería `index.html` ordenada por ruta y rol, y código de salida. Commit `a5236a3`.
+- [x] **T4** · S1, S5, S8 · `inline` · Corrida en vivo sobre `odontosuite_audit` (migrate --seed, app, Vite y Reverb arriba), correcciones del arnés que la corrida destape y evidencia en `.atl/qa-evidence/audit/ui/U0/`. Commit `2a0c74a`.
+- [x] **T5** · S1, S2, S3, S8, S9 · `inline` · Cierre: nota ODD con los números medidos, changelog del plan #13, `pnpm lint:check`, `pnpm format:check`, `pnpm test:js` y `pnpm exec playwright test --list`. Commit `docs(audit): línea base de las 36 rutas (U0)`.
 
 ## Log
 
@@ -78,3 +78,67 @@ monolito de 1 770.
   (`/cash-register/ready-to-bill`) y del listado para los detalles; `permission`
   sale de `routes/api.php` (pila de grupos + constantes de
   `App\Authorization\Permissions`), no de una lista inventada.
+
+- **L5** — Entorno de la corrida: `odontosuite_audit` recreada con
+  `migrate --seed --force` (18 s), `php artisan serve` en `:8000`, Vite en
+  `:5173` y Reverb en `:8081`, `BROADCAST_CONNECTION=reverb`. Los siete roles se
+  autentican una vez por API con los usuarios de `CREDENTIALS.md`; el throttle
+  de login (3/min) se respeta por construcción.
+- **L6** — Datos del seed que usan las muestras de detalle: 100 pacientes, 15
+  usuarios, 8 sillones, 8 tipos de cita, 41 procedimientos, 3 sedes y **0
+  historias clínicas**. Los siete detalles se resuelven con el token de
+  administración; `/medical-records/:id` queda excluida con motivo.
+- **L7** — Instrumento corregido por la corrida, no por intuición:
+  1. medir en el primer paint clasificaba seis superficies como vacías porque el
+     skeleton no tiene texto; el arnés espera el asentamiento (≤12 s) antes de
+     medir y capturar;
+  2. redimensionar a 390 después de pintar en 1440 conservaba anchos de
+     escritorio e inventó overflow en 31 superficies; el móvil se mide ahora con
+     una recarga del documento a 390 (contraprueba: `/quotations`,
+     `/treatment-plans` y `/patients` dan `scrollWidth 390`);
+  3. un plan negativo sin `h1` consumía los 30 s del test en un `innerText` con
+     autoespera; el encabezado se lee del DOM sin esperar;
+  4. el `addInitScript` del token tocaba `localStorage` en un frame opaco y
+     producía un `pageerror` en el probe de `/calendar`; ahora está guardado;
+  5. `ui-pass` cuenta también los `pageerror` del probe de primitivas y clasifica
+     «no renderiza» como hallazgo (el criterio de #363), con guarda de defecto de
+     plataforma si más de la mitad del alcance no renderiza.
+
+## Línea base medida
+
+- Revisión: `2a0c74a`, árbol limpio.
+- Comando: `node scripts/audit/ui-pass.mjs --all` → **exit 0**.
+- Manifiesto: 36 superficies de 38 rutas (2 redirects), 509 acciones
+  clasificadas y 0 sin clasificar, 59 diálogos, 140 endpoints, 3 permisos sin
+  resolver (las dos rutas anónimas y el catch-all).
+- Playwright: 120 tests (84 de render × rol + 36 de contrato), 114 pasan, 6
+  saltan con motivo y 0 fallan.
+- Filas: 36 · **35 renderizan** · **1 excluida con motivo** · 0 sin evidencia ·
+  **0 `pageerror`** · **0 acciones sin clasificar**.
+- Capa 3: 6 diálogos abiertos y medidos sobre 43 disparadores candidatos; 1 fila
+  de contrato fallida (F2).
+- Diagnóstico: 33 mensajes de `console.error` (los 403 de canales) y 171
+  solicitudes ≤ 400 declaradas en la allowlist (F1).
+- Evidencia (`.atl/`, ignorado): `manifest.json`, `render/` (84 filas),
+  `primitives/` (34), `shots/` (162 PNG), `render.json`, `primitives.json`,
+  `run.json` e `index.html` con 36 secciones.
+
+## Hallazgos
+
+| F# | Superficie | Acción | Esperado | Obtenido | Capa | Origen | Severidad | Causa | Issue | Reproducción |
+| -- | ---------- | ------ | -------- | -------- | ---- | ------ | --------- | ----- | ----- | ------------ |
+| F1 | Shell, toda superficie autenticada con rol no clínico | Cargar la página | El shell sólo se suscribe a canales que el rol puede autorizar | `POST /api/broadcasting/auth` → 403 para `medical-records`/`specialty-records`; 171 solicitudes esperadas en la corrida | 2 | MEDIDO | `crit:media` | `resources/js/composables/useWebSocketNotifications.js` se suscribe a los nueve canales sin mirar el rol; `BroadcastingAuthController` autoriza por rol | no publicado (decisión del dueño) | login por API como `recepcionista_test`, abrir `/dashboard`, filtrar `broadcasting/auth` en la pestaña Red |
+| F2 | `/ai-analysis` | Pulsar «Nuevo análisis» | El sheet atrapa el foco | `focus-trapped` observado `outside` | 3 | MEDIDO | `crit:media` | `Sheet.vue` arma la trampa con la ref vacía cuando se abre por `v-model` | no publicado | abrir `/ai-analysis` como `elizabet`, pulsar el botón del hero y tabular |
+| F3 | `/medical-records/:id` | Abrir el detalle | Render con una historia del seed | Excluida: 0 historias sembradas | 2 | MEDIDO | `crit:baja` | El seed no crea historias; U7 las creará al recorrer el alta | no publicado | `SELECT COUNT(*) FROM medical_records` en `odontosuite_audit` → 0 |
+| F4 | Instrumento (cerrado en T4) | Medir 390 tras redimensionar | Cargar el documento a 390 | Falso overflow en 31 superficies | 2 | MEDIDO | — | La ventana redimensionada conserva anchos calculados a 1440 | corregido en `2a0c74a` | recargar a 390 y comparar `scrollWidth` con `innerWidth` |
+
+**Veredicto**: el instrumento cumple el criterio de salida de #363. Los
+hallazgos quedan registrados con evidencia; U0 no corrige producto (S9).
+
+## Seguimientos
+
+- Los scripts `.mjs` no entran en `pnpm lint:check` (la extensión no está en el
+  script). Incluirlos falla hoy con 9 errores preexistentes en 7 scripts
+  (`doc-drift`, `probe-*`, `realtime-map`, `build-tokens-css`); la limpieza y la
+  inclusión son un cambio de CI, fuera de U0.
+- F1 y F2 necesitan issue propio antes de U11 (consistencia transversal).
