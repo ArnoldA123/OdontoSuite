@@ -209,18 +209,27 @@ class AuditBaselineCheckTest extends TestCase
     }
 
     /**
+     * The password in every case is the `<clave>` marker, not a literal value.
+     *
+     * The fixture used to carry a plausible password, and the `security` job
+     * scans the commits a push publishes: the first change to this file would
+     * have made `project-db-password` red without anything being wrong (#360).
+     * The marker cannot be captured at all — the rule's value class excludes
+     * `<` and `>` — so touching these lines stays green, while the assertion
+     * still proves `mask_secrets()` replaces whatever follows `DB_PASSWORD=`.
+     *
      * @return array<string, array{string, string}>
      */
     public static function maskSecretsCases(): array
     {
         return [
             'simple value' => [
-                'env DB_PASSWORD=secret123 DB_DATABASE=t',
+                'env DB_PASSWORD=<clave> DB_DATABASE=t',
                 'env DB_PASSWORD=*** DB_DATABASE=t',
             ],
-            // The finding: masking to the first space printed `bar`.
+            // The finding: masking to the first space printed the tail.
             'password with a space' => [
-                'env DB_HOST=127.0.0.1 DB_PASSWORD=foo bar DB_URL= DB_DATABASE=t php artisan test',
+                'env DB_HOST=127.0.0.1 DB_PASSWORD=<clave> <resto> DB_URL= DB_DATABASE=t php artisan test',
                 'env DB_HOST=127.0.0.1 DB_PASSWORD=*** DB_URL= DB_DATABASE=t php artisan test',
             ],
             'empty password' => [
@@ -228,11 +237,11 @@ class AuditBaselineCheckTest extends TestCase
                 'env DB_PASSWORD=*** DB_URL=x',
             ],
             'equals inside the password' => [
-                'env DB_PASSWORD=p@ss=w0rd DB_URL=x',
+                'env DB_PASSWORD=<clave>=1 DB_URL=x',
                 'env DB_PASSWORD=*** DB_URL=x',
             ],
             'password at end of line' => [
-                'env DB_URL=x DB_PASSWORD=trailing secret',
+                'env DB_URL=x DB_PASSWORD=<clave>',
                 'env DB_URL=x DB_PASSWORD=***',
             ],
             'line without a password is untouched' => [
