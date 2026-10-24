@@ -581,6 +581,24 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-23 (caja sólo con permiso, #345)** — `DashboardPage` deja de pedir
+  la sesión de caja a los roles que no pueden leerla: la carga y la suscripción
+  al canal privado `cash-register` quedan detrás de `can.viewCashRegister`, así
+  que odontología y laboratorio ya no reciben el 403 de
+  `/api/cash-register/current` en la consola de su pantalla de aterrizaje y los
+  tres roles de caja conservan sesión, totales y refresco en vivo. Sin rutas,
+  permisos, payloads ni migraciones nuevas: los conteos de §4/§5 no cambian.
+  Test: `dashboard-cash-permission.test.js` (5), que falla si el escritorio
+  vuelve a pedir la sesión o el canal a un rol sin el permiso.
+- **2026-10-23 (nits de continuidad y laboratorio, #346)** — El placeholder del
+  profesional en el modal de agenda pierde el sustantivo («Seleccionar») y
+  `UiSelect` trunca cualquier placeholder en una línea, como ya hacía con el
+  valor elegido. En laboratorio la columna Trabajo se trunca en una línea con el
+  nombre completo en el `title`, así las filas mantienen el mismo ritmo y el
+  scroll horizontal sigue siendo del primitivo. Sin cambios de contrato,
+  permisos ni payloads. Tests: `select-placeholder-single-line.test.js` (2) y
+  los smokes de continuidad y laboratorio extendidos.
+
 - **2026-10-23 (UI de caja: devoluciones, depósitos, cargos manuales y estado de
   cuenta, #320)** — La superficie web del dinero que #287 dejó fuera de alcance.
   **Devolución**: el modal de Caja deja de ofrecer «Egreso» como si fuera un

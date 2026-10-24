@@ -343,7 +343,7 @@
             the useCashRegister state.
           -->
           <UiCard
-            v-if="can.viewCashRegister?.value"
+            v-if="canViewCashRegister"
             variant="glass"
             padding="sm"
             data-stat-card="cash-balance"
@@ -756,6 +756,12 @@ const { can } = usePermissions()
 const { currentSession, hasActiveSession, isOpen, realTimeTotals, loadCurrentSession } =
   useCashRegister()
 const { privateChannel, echo } = useEcho()
+
+// #345 - the cash register is a permission-gated surface: a role without
+// `view.cash_register` cannot read the session (the API answers 403 by
+// design), so the dashboard must not ask for it. The same flag gates the
+// card, the load and the channel subscription that refreshes it.
+const canViewCashRegister = computed(() => can.viewCashRegister?.value === true)
 
 // State
 const loading = ref(false)
@@ -1355,8 +1361,9 @@ const loadDashboardData = async () => {
       pendingError.value = true
     }
 
-    // Load cash session if not already loaded
-    if (!currentSession.value && hasActiveSession.value === false) {
+    // Load cash session if not already loaded. #345: only the roles that can
+    // read the register ask for it.
+    if (canViewCashRegister.value && !currentSession.value && hasActiveSession.value === false) {
       await loadCurrentSession()
     }
   } finally {
@@ -1465,8 +1472,10 @@ onMounted(async () => {
     router.replace({ query: {} })
   }
 
-  // Cargar sesión de caja primero
-  await loadCurrentSession()
+  // Cargar sesión de caja primero, sólo si el rol puede leerla (#345)
+  if (canViewCashRegister.value) {
+    await loadCurrentSession()
+  }
 
   // Luego cargar datos del dashboard
   await loadDashboardData()
@@ -1526,25 +1535,29 @@ onMounted(async () => {
         })
     }
 
-    cashRegisterChannel = privateChannel('cash-register')
-    if (cashRegisterChannel) {
-      cashRegisterChannel
-        .listen('.cash-session.opened', async () => {
-          await loadCurrentSession()
-          debouncedLoadDashboardData()
-        })
-        .listen('.cash-session.closed', async () => {
-          await loadCurrentSession()
-          debouncedLoadDashboardData()
-        })
-        .listen('.payment.registered', async () => {
-          await loadCurrentSession()
-          debouncedLoadDashboardData()
-        })
-        .listen('.cash-movement.created', async () => {
-          await loadCurrentSession()
-          debouncedLoadDashboardData()
-        })
+    // #345 - the channel publishes the desk's money, so a role without
+    // view.cash_register is not authorized to subscribe either.
+    if (canViewCashRegister.value) {
+      cashRegisterChannel = privateChannel('cash-register')
+      if (cashRegisterChannel) {
+        cashRegisterChannel
+          .listen('.cash-session.opened', async () => {
+            await loadCurrentSession()
+            debouncedLoadDashboardData()
+          })
+          .listen('.cash-session.closed', async () => {
+            await loadCurrentSession()
+            debouncedLoadDashboardData()
+          })
+          .listen('.payment.registered', async () => {
+            await loadCurrentSession()
+            debouncedLoadDashboardData()
+          })
+          .listen('.cash-movement.created', async () => {
+            await loadCurrentSession()
+            debouncedLoadDashboardData()
+          })
+      }
     }
   } catch (error) {
     // Reverb unreacheable in dev is expected.

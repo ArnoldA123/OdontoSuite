@@ -364,6 +364,20 @@ describe('continuity desk actions', () => {
     expect(bodyField('[data-schedule-patient]').textContent).toContain('Luis Rojas')
     expect(bodyField('[data-sc-scheduled-at] input').value).toBe('2026-11-02T09:00')
 
+    // #346 — both placeholders stay on one line: the professional field uses
+    // the short copy and the select primitive never wraps a placeholder.
+    const userPlaceholder = bodyField(
+      '[data-sc-user] button[aria-haspopup="true"] span.text-theme-secondary'
+    )
+    expect(userPlaceholder.textContent.trim()).toBe('Seleccionar')
+    expect(userPlaceholder.classList.contains('truncate')).toBe(true)
+
+    const chairPlaceholder = bodyField(
+      '[data-sc-chair] button[aria-haspopup="true"] span.text-theme-secondary'
+    )
+    expect(chairPlaceholder.textContent.trim()).toBe('Seleccionar sillón')
+    expect(chairPlaceholder.classList.contains('truncate')).toBe(true)
+
     await chooseOption('[data-sc-user]', 'Dra. Elena Paredes')
     await chooseOption('[data-sc-chair]', 'Sillón 1')
     await submitSchedule()

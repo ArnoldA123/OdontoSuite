@@ -168,7 +168,13 @@
           </template>
 
           <template #cell-work="{ row }">
-            <span class="text-sm text-theme-primary" data-lab-case-work>{{ row.work }}</span>
+            <span
+              class="block max-w-[16rem] truncate text-sm text-theme-primary"
+              :title="row.work"
+              data-lab-case-work
+            >
+              {{ row.work }}
+            </span>
           </template>
 
           <template #cell-dental_piece="{ row }">
