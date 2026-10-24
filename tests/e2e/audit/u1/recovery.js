@@ -296,10 +296,15 @@ test('@U1 recovery · logout from the user menu returns to login and clears the 
     evidence.urlAfter = page.url()
 
     evidence.storage = await page
-      .evaluate(() => ({
-        authToken: localStorage.getItem('auth_token'),
-        user: localStorage.getItem('user')
-      }))
+      .evaluate(() => {
+        // The token is a live credential: the row records its presence and
+        // length, never the value (R1 of the U1 review).
+        const token = localStorage.getItem('auth_token')
+        return {
+          authToken: token ? `present(${token.length})` : null,
+          user: localStorage.getItem('user')
+        }
+      })
       .catch(error => ({ authToken: null, user: null, error: error.message }))
 
     evidence.pageErrors = [...diagnostics.pageErrors]

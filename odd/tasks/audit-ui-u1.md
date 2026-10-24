@@ -139,6 +139,12 @@ importa los tres módulos.
   inexistente y los nombres de archivo (`render/shell-<rol>.json`) habrían
   sobrescrito la evidencia del shell. `hrefFor` honra `surface.href` para
   cualquier consumidor futuro.
+- **L12** — Revisión nativa del candidato: aprobada tras tres rechazos del
+  admitidor nativo (dos `stream`/payload truncados y un payload de 151 KB),
+  todos resueltos releyendo STATUS y corriendo solo el slot reofrecido, nunca
+  reenviando los bytes rechazados. Los ocho hallazgos asesores quedan como
+  trabajo posterior; solo `R1` (token vivo en la evidencia de logout) se
+  corrigió en el acto por higiene de credenciales.
 - **L11** — El `a[href="/dashboard"]` del logo colapsado competía con la primera
   entrada del sidebar y Playwright rechazaba el clic por ambigüedad; la sonda y
   la matriz leen `#primary-sidebar nav a`.
@@ -212,7 +218,25 @@ importa los tres módulos.
 producto): contrato de diálogos que ignoraba `role="alertdialog"`; token
 compartido revocado por el flujo de logout (`freshLogin()`); superficie
 `(shell)` metida en el bucle genérico de rutas; selector ambiguo del logo
-colapsado.
+colapsado; y el token vivo que la fila de logout escribía en su evidencia
+(R1 de la revisión nativa, corregido después).
+
+## Revisión nativa (RDD)
+
+- Linaje `review-334f3de36776a394`, nivel `medium`, lentes `risk`,
+  `readability` y `reliability`; candidato de 10 archivos y 2 297 líneas
+  autoradas sobre `a4ea683`.
+- Iteraciones del relé: el grupo de tres lentes no llegó a someter nada en
+  dos intentos (un `stream` cortado y un payload truncado de `risk`); el
+  slot de `risk` se capturó solo, `readability` entró en el grupo de dos y
+  `reliability` solo, tras un rechazo por payload truncado de 151 KB. Cada
+  rechazo lo decidió el admitidor nativo, no el criterio del agente.
+- Veredicto: **aprobado**, autoridad consumida (`authority: burned`). Ocho
+  hallazgos asesores, todos informativos y no bloqueantes: `R1` (token vivo
+  en la evidencia de logout, corregido aquí), `R2-001`–`R2-004` (legibilidad
+  del arnés y de la suite) y `R3-reliability-1`–`3` (sugerencias de la
+  suite). Ninguno abrió corrección ni reabre el candidato.
+- Entrega: política ordinaria del repositorio; la revisión no autoriza push.
 
 ## Veredicto
 
