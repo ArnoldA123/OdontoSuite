@@ -33,6 +33,18 @@ commits que publica cada push o PR, con el juego por defecto más las reglas de
 conocido de arriba ya está publicado y teñiría todas las corridas. La regla es
 que **ninguna credencial nueva se publica**.
 
+**Alcance y punto ciego.** El gate reconoce formas —una contraseña de base
+escrita como valor, la forma `root/<clave>` y los tokens de proveedor—, no una
+credencial suelta dentro de una frase: el valor local citado en una nota ODD
+pasó el escaneo sin coincidir y sólo lo detectó un barrido manual. La regla es
+que **ninguna credencial se escribe en notas, issues, PRs ni conversaciones**, y
+el remedio de una ya publicada es la rotación, no la redacción.
+
+**Rutas personales.** Un documento versionado no lleva rutas absolutas del
+equipo (`/home/<usuario>/...`, `C:/Users/<usuario>/...`): se usa el marcador
+`<ruta-local>`. `tests/Unit/Tooling/PersonalPathLeakGuardTest.php` falla si
+alguna vuelve a aparecer.
+
 ## Reportar un secreto
 
 No abra una issue pública con el valor. Repórtelo en privado al mantenedor del
