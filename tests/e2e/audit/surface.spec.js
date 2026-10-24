@@ -33,6 +33,8 @@ import {
 // live in their own modules and are registered here so that
 // `--grep @U1` selects them from this spec.
 import './u1/shell.js'
+import './u1/login.js'
+import './u1/recovery.js'
 
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
