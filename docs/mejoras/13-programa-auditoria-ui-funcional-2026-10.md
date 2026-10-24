@@ -186,10 +186,14 @@ administración y un rol excluido para la puerta negativa):
    declarada (por ejemplo, la propia prueba de 403).
 3. Longitud de contenido renderizado por encima del umbral del módulo (el truco
    que destapó `QuotationCard` en #12 A7).
-4. Captura `desktop 1440×900` y `mobile 390×844`.
+4. Captura `desktop 1440×900` y `mobile 390×844`, **siempre y explícita**
+   (`page.screenshot()`): `playwright.config.js` usa `only-on-failure`, así que
+   la config no deja registro visual por sí sola.
 5. Sin scroll horizontal de documento en 390 px.
 
-Artefacto: `render.json` + `shots/<slug>-<rol>-<viewport>.png`.
+Artefacto: `render.json` + `shots/<slug>-<rol>-<viewport>.png` + `index.html`,
+una galería que lista las capturas de la sesión para revisarlas como las ve una
+persona, sin abrir carpetas.
 
 ### Capa 3 — Contrato de primitivas (Playwright, automático)
 
@@ -327,7 +331,10 @@ entorno, no se edita).
 commitean**. Cada sesión deja:
 
 - `.atl/qa-evidence/audit/ui/<sesión>/` — artefactos crudos (local, durante la
-  vida del issue).
+  vida del issue): `manifest.json`, `render.json`, `primitives.json`,
+  `shots/*.png`, `walkthrough.md`, `ux-rubric.md` y `index.html`, la galería de
+  capturas que se abre en el navegador para revisar la sesión como la ve un
+  usuario.
 - `odd/tasks/audit-ui-<sesión>.md` — resumen versionado: revisión, base, rutas,
   tabla de hallazgos, enlaces a issues y veredicto. Es lo que sobrevive.
 - El cuerpo de cada issue — la evidencia mínima reproducible.
@@ -401,10 +408,12 @@ superficies; cualquier sesión posterior lo reusa sin escribir infraestructura.
    colector de diagnóstico — reusando lo que ya hace `tests/e2e/smoke.spec.js`.
 3. `tests/e2e/audit/surface.spec.js`: capas 2 y 3 parametrizadas por manifiesto.
 4. `scripts/audit/ui-pass.mjs`: envoltorio CLI al estilo `browser-pass.mjs`
-   (resumen por página, exit 0 solo si renderiza y no hay `pageerror`).
+   (resumen por página, exit 0 solo si renderiza y no hay `pageerror`) y galería
+   `index.html` con las capturas de la corrida ordenadas por ruta y rol.
 
 **Entregable**: script + spec + manifiesto de las 36 rutas +
-`.atl/qa-evidence/audit/ui/U0/` + `odd/tasks/audit-ui-u0.md`.
+`.atl/qa-evidence/audit/ui/U0/` (con `index.html` de galería) +
+`odd/tasks/audit-ui-u0.md`.
 
 **Criterio de salida**: `node scripts/audit/ui-pass.mjs --all` deja 36 filas
 clasificadas (renderiza / no renderiza / excluida con motivo) y el manifiesto
@@ -1047,3 +1056,9 @@ navegador: señala dónde mirar primero.
   los 10 encabezados del formulario coinciden en orden y las etiquetas
   (`type:eje`, `crit:*`, `area:*`) coinciden con §8.5. El repositorio no tenía
   issues abiertas antes de esta publicación.
+- **2026-10-23 (evidencia visual)** — La Capa 2 fija que la captura es siempre
+  explícita (`page.screenshot()`): `playwright.config.js` usa
+  `only-on-failure` y no deja registro visual por sí sola. Cada sesión entrega
+  además `index.html`, una galería de capturas ordenadas por ruta y rol, para
+  revisar la pantalla como la ve una persona sin abrir carpetas. Se actualizó
+  el cuerpo del issue #363 (U0) en el mismo sentido.
