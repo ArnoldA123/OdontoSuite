@@ -166,3 +166,93 @@ describe('ui manifest · tabs, dialogs and actions', () => {
     expect(byLabel('Solo vencidos')).toBeUndefined()
   })
 })
+
+describe('ui manifest · navigation and shell', () => {
+  it('publishes the sidebar contract with the permission keys resolved through the SPA map', () => {
+    // AppLayout.allItems declares 25 sidebar entries.
+    expect(manifest.navigation).toHaveLength(25)
+
+    for (const item of manifest.navigation) {
+      expect(Object.keys(item)).toEqual(
+        expect.arrayContaining([
+          'name',
+          'to',
+          'roles',
+          'permissions',
+          'permissionStrings',
+          'unresolvedPermissions'
+        ])
+      )
+      expect(item.to).toMatch(/^\//)
+      expect(item.roles.length).toBeGreaterThan(0)
+      expect(item.unresolvedPermissions).toEqual([])
+    }
+
+    expect(manifest.navigation.find(item => item.name === 'Bloqueo Contable')).toEqual({
+      name: 'Bloqueo Contable',
+      to: '/settings/accounting-locks',
+      roles: ['administrador'],
+      permissions: ['manageAccountingLock'],
+      permissionStrings: ['manage.accounting_lock'],
+      unresolvedPermissions: []
+    })
+
+    expect(manifest.navigation.find(item => item.to === '/dashboard').permissionStrings).toEqual([])
+  })
+
+  it('keeps the shell out of the all-routes manifest', () => {
+    expect(manifest.surfaces).toHaveLength(36)
+    expect(manifest.surfaces.some(item => item.route === '(shell)')).toBe(false)
+    expect(manifest.surfaces.some(item => item.kind === 'shell')).toBe(false)
+  })
+
+  it('selects the union of a comma-separated module list in app.js route order', () => {
+    const expected = ['/login', '/reset-password', '/:pathMatch(.*)*', '(shell)']
+
+    expect(buildManifest({ module: 'auth,layout' }).surfaces.map(item => item.route)).toEqual(
+      expected
+    )
+    expect(buildManifest({ module: ['auth', 'layout'] }).surfaces.map(item => item.route)).toEqual(
+      expected
+    )
+    expect(buildManifest({ module: 'layout,auth' }).surfaces.map(item => item.route)).toEqual(
+      expected
+    )
+  })
+
+  it('selects only the catch-all and the shell for the layout module', () => {
+    const selected = buildManifest({ module: 'layout' })
+
+    expect(selected.surfaces.map(item => item.route)).toEqual(['/:pathMatch(.*)*', '(shell)'])
+    expect(selected.surfaces.filter(item => item.kind === 'shell')).toHaveLength(1)
+  })
+
+  it('declares the shell surface with its own roles, page and href', () => {
+    const shell = buildManifest({ module: 'layout' }).surfaces.find(item => item.kind === 'shell')
+
+    expect(shell).toMatchObject({
+      route: '(shell)',
+      kind: 'shell',
+      name: 'app-layout',
+      page: 'resources/js/components/layout/AppLayout.vue',
+      href: '/dashboard',
+      rolesSource: 'shell',
+      permission: null,
+      permissions: [],
+      permissionSource: 'unresolved',
+      sample: null,
+      tabs: []
+    })
+    expect(shell.roles).toEqual(ALL_ROLES)
+    expect(shell.dialogs.map(dialog => dialog.primitive)).toEqual(['sheet'])
+    expect(shell.actions.length).toBeGreaterThan(0)
+    expect(shell.actions.every(action => action.kind !== 'unclassified')).toBe(true)
+  })
+
+  it('keeps navigation on every selection and drops repeated module names', () => {
+    const scoped = buildManifest({ module: 'auth,auth' })
+
+    expect(scoped.surfaces.map(item => item.route)).toEqual(['/login', '/reset-password'])
+    expect(scoped.navigation).toHaveLength(manifest.navigation.length)
+  })
+})

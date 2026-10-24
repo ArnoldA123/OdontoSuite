@@ -25,7 +25,7 @@ export { buildManifest, summarize } from './manifest/build.mjs'
 const USAGE = `Usage: node scripts/audit/ui-manifest.mjs [options]
 
   --all                every screen surface (default)
-  --module=<name>      keep surfaces whose page or route belongs to the module
+  --module=<names>     comma-separated modules (e.g. --module=auth,layout); repeatable
   --route=<path>       keep a single router path (e.g. --route=/patients)
   --out=<file>         write the manifest JSON to <file>
   --json               print the manifest JSON
@@ -33,7 +33,7 @@ const USAGE = `Usage: node scripts/audit/ui-manifest.mjs [options]
   --help               show this help`
 
 const parseArgv = argv => {
-  const options = { all: true, json: false, list: false, help: false, out: null }
+  const options = { all: true, json: false, list: false, help: false, out: null, module: [] }
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]
@@ -43,7 +43,9 @@ const parseArgv = argv => {
     else if (arg === '--json') options.json = true
     else if (arg === '--list') options.list = true
     else if (arg.startsWith('--module=') || arg === '--module') {
-      options.module = arg.includes('=') ? arg.slice('--module='.length) : argv[(i += 1)]
+      const value = arg.includes('=') ? arg.slice('--module='.length) : argv[(i += 1)]
+      if (value == null) return { error: 'missing value for --module' }
+      options.module.push(value)
     } else if (arg.startsWith('--route=') || arg === '--route') {
       options.route = arg.includes('=') ? arg.slice('--route='.length) : argv[(i += 1)]
     } else if (arg.startsWith('--out=') || arg === '--out') {
@@ -52,12 +54,13 @@ const parseArgv = argv => {
       return { error: `unknown argument: ${arg}` }
     }
 
-    if ((arg === '--module' || arg === '--route' || arg === '--out') && argv[i] == null) {
+    if ((arg === '--route' || arg === '--out') && argv[i] == null) {
       return { error: `missing value for ${arg}` }
     }
   }
 
-  if (options.module && options.route) return { error: 'use either --module or --route' }
+  if (options.module.length && options.route) return { error: 'use either --module or --route' }
+  if (options.module.length === 0) options.module = undefined
 
   return { options }
 }

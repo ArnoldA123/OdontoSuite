@@ -90,8 +90,29 @@ export const loadManifest = () => {
   return JSON.parse(trimmed)
 }
 
-// Mirrors `applyFilter` in scripts/audit/ui-manifest.mjs so the spec and the
+// Mirrors `applyFilter` in scripts/audit/manifest/build.mjs so the spec and the
 // manifest CLI select the same surfaces for the same scope.
+const scopeModules = value => [
+  ...new Set(
+    String(value ?? '')
+      .split(',')
+      .map(name => name.trim().replace(/^\/+|\/+$/g, ''))
+      .filter(Boolean)
+  )
+]
+
+const inModule = (surface, name) =>
+  surface.route === `/${name}` ||
+  surface.route.startsWith(`/${name}/`) ||
+  surface.page.includes(`/modules/${name}/`)
+
+const selectedByScope = (surface, modules) =>
+  modules.some(
+    name =>
+      inModule(surface, name) ||
+      (name === 'layout' && (surface.route.includes(':pathMatch') || surface.kind === 'shell'))
+  )
+
 export const applyScope = (manifest, scope = 'all') => {
   const surfaces = manifest?.surfaces ?? []
 
@@ -103,16 +124,13 @@ export const applyScope = (manifest, scope = 'all') => {
   }
 
   if (scope.startsWith('module:')) {
-    const name = scope.slice('module:'.length).replace(/^\/+|\/+$/g, '')
-    return surfaces.filter(
-      surface =>
-        surface.route === `/${name}` ||
-        surface.route.startsWith(`/${name}/`) ||
-        surface.page.includes(`/modules/${name}/`)
-    )
+    const modules = scopeModules(scope.slice('module:'.length))
+    return surfaces.filter(surface => selectedByScope(surface, modules))
   }
 
-  throw new Error(`unknown AUDIT_SCOPE "${scope}" (expected all, module:<name> or route:<path>)`)
+  throw new Error(
+    `unknown AUDIT_SCOPE "${scope}" (expected all, module:<name>[,<name>] or route:<path>)`
+  )
 }
 
 // The desk owner is the first visible non-admin role: the menu entry exists for

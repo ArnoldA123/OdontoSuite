@@ -2,8 +2,11 @@
 
 import { readApiRoutes, resolvePermission, segmentsOf } from './api-routes.mjs'
 import {
+  ROLES,
+  buildNavigation,
   readAppRoutes,
   readNavigation,
+  readPermissionMap,
   resolveRoles,
   isDetailRoute,
   buildSample,
@@ -51,25 +54,69 @@ export const summarize = manifest => {
   }
 }
 
+const LAYOUT_MODULE = 'layout'
+const SHELL_ROUTE = '(shell)'
+const SHELL_PAGE = 'resources/js/components/layout/AppLayout.vue'
+const SHELL_HREF = '/dashboard'
+
+const normalizeModules = value => {
+  const values = Array.isArray(value) ? value : [value]
+  const names = values
+    .flatMap(item => String(item ?? '').split(','))
+    .map(name => name.trim().replace(/^\/+|\/+$/g, ''))
+    .filter(Boolean)
+
+  return [...new Set(names)]
+}
+
+const inModule = (surface, name) =>
+  surface.route === `/${name}` ||
+  surface.route.startsWith(`/${name}/`) ||
+  surface.page.includes(`/modules/${name}/`)
+
+// The catch-all renders the 404 inside the shell, so the `layout` module owns it.
+const selectedBy = (surface, modules) =>
+  modules.some(
+    name =>
+      inModule(surface, name) || (name === LAYOUT_MODULE && surface.route.includes(':pathMatch'))
+  )
+
 const applyFilter = (surfaces, options) => {
   if (options.route) return surfaces.filter(surface => surface.route === options.route)
 
-  if (options.module) {
-    const name = options.module.replace(/^\/+|\/+$/g, '')
-    return surfaces.filter(
-      surface =>
-        surface.route === `/${name}` ||
-        surface.route.startsWith(`/${name}/`) ||
-        surface.page.includes(`/modules/${name}/`)
-    )
-  }
+  const modules = normalizeModules(options.module)
+  if (modules.length === 0) return surfaces
 
-  return surfaces
+  return surfaces.filter(surface => selectedBy(surface, modules))
+}
+
+// The shell is not a router route, so no app-route surface represents it.
+const buildShellSurface = () => {
+  const sources = gatherSources(SHELL_PAGE)
+
+  return {
+    route: SHELL_ROUTE,
+    kind: 'shell',
+    name: 'app-layout',
+    page: SHELL_PAGE,
+    href: SHELL_HREF,
+    roles: [...ROLES],
+    rolesSource: 'shell',
+    tabs: [],
+    dialogs: collectDialogs(sources),
+    actions: collectActions(sources),
+    endpoints: visibleEndpoints(collectEndpoints(sources), SHELL_ROUTE),
+    permission: null,
+    permissions: [],
+    permissionSource: 'unresolved',
+    sample: null
+  }
 }
 
 export const buildManifest = (options = {}) => {
   const appRoutes = readAppRoutes()
   const navigation = readNavigation()
+  const navigationRows = buildNavigation(navigation, readPermissionMap())
   const apiRoutes = readApiRoutes()
 
   const excluded = []
@@ -144,10 +191,12 @@ export const buildManifest = (options = {}) => {
   for (const surface of surfaces) surface.sample = buildSample(surface, surfacesByRoute)
 
   const filtered = applyFilter(surfaces, options)
+  const withShell = !options.route && normalizeModules(options.module).includes(LAYOUT_MODULE)
   const manifest = {
     revision: readRevision(),
-    surfaces: filtered,
+    surfaces: withShell ? [...filtered, buildShellSurface()] : filtered,
     excluded,
+    navigation: navigationRows,
     summary: null
   }
   manifest.summary = summarize(manifest)
