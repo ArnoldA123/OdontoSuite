@@ -2,7 +2,7 @@
 
 Issue #320 (`[UI] Caja: devoluciones, depósitos, cargos manuales y estado de
 cuenta`, `area:frontend`, `crit:media`, `type:feature`). Rama
-`feat/ui-caja-320`, worktree `/home/chomb/proyectos/odontosuite-320`, base
+`feat/ui-caja-320`, worktree `<ruta-local>/odontosuite-320`, base
 `main` @ `5c44daa`. #287 entregó el contrato del dinero en el backend; esta
 entrega es su superficie web.
 
