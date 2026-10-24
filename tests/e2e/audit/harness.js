@@ -37,6 +37,20 @@ export const EVIDENCE_DIR = process.env.AUDIT_OUT || '.atl/qa-evidence/audit/ui/
 export const CONTENT_THRESHOLDS = {}
 
 const DENIED_STATUSES = new Set([401, 403, 404])
+
+// Layer 2 allows a declared allowlist of HTTP failures. The session shell
+// subscribes to every private channel it can name, and the channel authorizer
+// grants them by role, so a non-clinical role gets a 403 for the clinical
+// channels on every surface. The baseline records it as finding F1 of U0 (the
+// surface asks for a channel it cannot authorize); it is not a page defect and
+// it is reported, not hidden: the row keeps the channel and the pass counts it.
+export const EXPECTED_DENIALS = [
+  {
+    endpoint: /\/api\/broadcasting\/auth$/,
+    statuses: [403],
+    reason: 'session shell subscribes to channels outside the role (U0 F1)'
+  }
+]
 const EDGE_TOLERANCE = 8
 const DIALOG_KINDS = new Set(['create', 'open', 'edit', 'action'])
 const PREFERRED_TRIGGER_LABEL = /nuevo|nueva|agregar|crear|abrir|ver|editar|registrar|detalle/i
@@ -167,15 +181,45 @@ export const loginAs = async (request, role) => {
 }
 
 // The SPA reads its session from localStorage before the router guards run, so
-// the token must be written before the first document script executes.
+// the token must be written before the first document script executes. Init
+// scripts also run in every frame, including opaque ones where localStorage is
+// denied; a frame without storage is not a surface failure.
 export const primeSession = async (page, session) => {
   await page.addInitScript(
     state => {
-      localStorage.setItem('auth_token', state.token)
-      localStorage.setItem('user', JSON.stringify(state.user))
+      try {
+        localStorage.setItem('auth_token', state.token)
+        localStorage.setItem('user', JSON.stringify(state.user))
+      } catch {
+        // Opaque frame created by a widget; the app frame seeds the session.
+      }
     },
     { token: session.token, user: session.user }
   )
+}
+
+// Two frames are enough for the responsive layout to reflow after a resize.
+export const settleLayout = page =>
+  page.evaluate(
+    () =>
+      new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+  )
+
+// A surface is ready when its content clears the threshold. The wait is bounded
+// so a genuinely blank surface still gets measured and classified.
+export const settleSurface = async (page, threshold, timeout = 12000) => {
+  await page
+    .waitForFunction(
+      value => {
+        const surface = document.querySelector('main') ?? document.querySelector('#app')
+        return (surface?.innerText.trim().length ?? 0) > value
+      },
+      threshold,
+      { timeout, polling: 150 }
+    )
+    .catch(() => {})
+
+  await settleLayout(page)
 }
 
 // Same shape as tests/e2e/smoke.spec.js so the wrapper reads one vocabulary.
@@ -194,9 +238,18 @@ export const collectDiagnostics = page => {
   })
 
   page.on('response', response => {
-    if (response.status() >= 400) {
-      failedRequests.push({ status: response.status(), url: response.url() })
+    if (response.status() < 400) return
+
+    const failure = { status: response.status(), url: response.url() }
+
+    // The channel name is the only body detail the evidence needs: it names
+    // which subscription the authorizer denied.
+    if (response.url().endsWith('/api/broadcasting/auth')) {
+      const body = response.request().postDataJSON?.()
+      if (body?.channel_name) failure.channel = body.channel_name
     }
+
+    failedRequests.push(failure)
   })
 
   page.on('requestfailed', request => {
@@ -212,16 +265,21 @@ export const collectDiagnostics = page => {
 
 // For a negative plan the 401/403/404 responses — and the requests that never
 // completed because the API denied them — are the expected outcome of rendering
-// a surface to a role without its permission. Anything else stays a defect.
+// a surface to a role without its permission. Anything else stays a defect
+// unless EXPECTED_DENIALS declares it.
 export const classifyFailures = (failures, expectation) => {
   const expected = []
   const unexpected = []
 
   for (const failure of failures ?? []) {
+    const declared = EXPECTED_DENIALS.find(
+      entry => entry.endpoint.test(failure.url ?? '') && entry.statuses.includes(failure.status)
+    )
     const isDenial =
       expectation === 'negative' && (failure.status == null || DENIED_STATUSES.has(failure.status))
 
     if (isDenial) expected.push(failure)
+    else if (declared) expected.push({ ...failure, reason: declared.reason })
     else unexpected.push(failure)
   }
 

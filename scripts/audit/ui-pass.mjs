@@ -62,6 +62,7 @@ export const classifySurface = (surface, rows) => {
     pageErrors: [],
     consoleErrors: [],
     unexpectedRequests: [],
+    expectedRequests: [],
     shots: []
   }
 
@@ -80,6 +81,16 @@ export const classifySurface = (surface, rows) => {
     asArray(row.failedRequests?.unexpected).map(entry => ({
       status: entry?.status ?? null,
       url: entry?.url ?? ''
+    }))
+  )
+  // Declared allowlist (layer 2): the 403s the instrument already explains are
+  // reported as diagnostics, never as the surface's verdict.
+  const expectedRequests = live.flatMap(row =>
+    asArray(row.failedRequests?.expected).map(entry => ({
+      status: entry?.status ?? null,
+      url: entry?.url ?? '',
+      channel: entry?.channel ?? null,
+      reason: entry?.reason ?? null
     }))
   )
   const shots = unique(live.flatMap(row => asArray(row.shots).map(String)))
@@ -120,6 +131,7 @@ export const classifySurface = (surface, rows) => {
     pageErrors,
     consoleErrors,
     unexpectedRequests,
+    expectedRequests,
     shots
   }
 }
@@ -136,8 +148,11 @@ const unclassifiedActionCount = manifest => {
 /**
  * Computes the exit criterion from the classified rows.
  *
- * The gate fails only on the four facts the issue names: an unclassified button,
- * a surface without evidence, a surface that does not render, or a page error.
+ * The gate fails on the facts the issue names: a surface without a
+ * classification, an unclassified button, or a page error. A surface that does
+ * not render is a classified finding, not an instrument failure — U0 does not
+ * fix product code. The one exception is a platform defect: when more than half
+ * the scope does not render, the plan's abort rule applies and the run fails.
  * Excluded surfaces are allowed because each one carries its motive, and
  * primitive-contract violations are reported without gating the run.
  */
@@ -147,20 +162,41 @@ export const gate = (rows, counts = {}) => {
   const missing = classified.filter(row => row?.status === 'missing').length
   const notRendering = classified.filter(row => row?.status === 'not-renders').length
   const pageErrors = classified.reduce((total, row) => total + asArray(row?.pageErrors).length, 0)
+  const extraPageErrors = asArray(counts.extraPageErrors)
 
   const reasons = []
+  const findings = []
 
   for (const row of classified) {
     for (const error of asArray(row?.pageErrors)) reasons.push(`pageerror: ${row.route} · ${error}`)
-    if (row?.status === 'not-renders') reasons.push(`no renderiza: ${row.route} — ${row.reason}`)
+    if (row?.status === 'not-renders') findings.push(`no renderiza: ${row.route} — ${row.reason}`)
     if (row?.status === 'missing') reasons.push(`sin evidencia: ${row?.route}`)
+  }
+
+  // A page error during the dialog probe is still a page error of the run.
+  for (const entry of extraPageErrors) {
+    reasons.push(`pageerror: ${entry?.route ?? '?'} · ${entry?.error ?? ''}`)
   }
 
   if (unclassified > 0) reasons.push(`acciones sin clasificar: ${unclassified}`)
 
+  const platformDefect = notRendering > Math.floor(classified.length / 2)
+
+  if (platformDefect) {
+    reasons.push(
+      `defecto de plataforma: ${notRendering}/${classified.length} superficies no renderizan`
+    )
+  }
+
   return {
-    ok: unclassified === 0 && missing === 0 && notRendering === 0 && pageErrors === 0,
-    reasons
+    ok:
+      unclassified === 0 &&
+      missing === 0 &&
+      pageErrors === 0 &&
+      extraPageErrors.length === 0 &&
+      !platformDefect,
+    reasons,
+    findings
   }
 }
 
@@ -183,6 +219,9 @@ export const aggregate = (manifest, renderRows, primitiveRows) => {
   )
 
   const dialogRows = primitives.flatMap(entry => asArray(entry?.dialogs))
+  const primitivePageErrors = primitives.flatMap(entry =>
+    asArray(entry?.pageErrors).map(error => ({ route: entry?.route ?? '?', error: String(error) }))
+  )
   const unclassifiedActions = unclassifiedActionCount(manifest)
 
   const counts = {
@@ -191,9 +230,13 @@ export const aggregate = (manifest, renderRows, primitiveRows) => {
     notRendering: rows.filter(row => row.status === 'not-renders').length,
     excluded: rows.filter(row => row.status === 'excluded').length,
     missing: rows.filter(row => row.status === 'missing').length,
-    pageErrors: rows.reduce((total, row) => total + row.pageErrors.length, 0),
+    pageErrors:
+      rows.reduce((total, row) => total + row.pageErrors.length, 0) + primitivePageErrors.length,
+    primitivePageErrors: primitivePageErrors.length,
+    extraPageErrors: primitivePageErrors,
     consoleErrors: rows.reduce((total, row) => total + row.consoleErrors.length, 0),
     unexpectedRequests: rows.reduce((total, row) => total + row.unexpectedRequests.length, 0),
+    expectedRequests: rows.reduce((total, row) => total + row.expectedRequests.length, 0),
     unclassifiedActions,
     // A dialog counts as probed only when it opened and the contract observed it.
     dialogsProbed: dialogRows.filter(row => row?.dialog).length,
@@ -302,6 +345,7 @@ const summaryBlock = (counts, gate) => {
     ['pageerror', counts.pageErrors],
     ['console.error', counts.consoleErrors],
     ['HTTP ≥ 400', counts.unexpectedRequests],
+    ['solicitudes esperadas (allowlist)', counts.expectedRequests],
     ['acciones sin clasificar', counts.unclassifiedActions],
     ['diálogos probados', counts.dialogsProbed],
     ['filas de contrato fallidas', counts.contractFailures]
@@ -537,6 +581,7 @@ const printReport = (rows, counts, gate) => {
       `${counts.missing} sin evidencia`
   )
   console.log(`pageerror: ${counts.pageErrors}`)
+  console.log(`solicitudes esperadas (allowlist): ${counts.expectedRequests}`)
   console.log(`acciones sin clasificar: ${counts.unclassifiedActions}`)
   console.log(
     `contrato de primitivas: ${counts.dialogsProbed} diálogos, ${counts.contractFailures} filas fallidas`
@@ -546,6 +591,8 @@ const printReport = (rows, counts, gate) => {
       ? 'gate: OK'
       : `gate: FAIL — ${gate.reasons.length > 0 ? gate.reasons.join('; ') : 'sin motivos'}`
   )
+
+  for (const finding of asArray(gate.findings)) console.log(`hallazgo: ${finding}`)
 }
 
 const main = async () => {

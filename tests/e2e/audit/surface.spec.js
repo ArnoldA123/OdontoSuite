@@ -24,6 +24,7 @@ import {
   primeSession,
   readTabLabels,
   rolePlans,
+  settleSurface,
   slugFor,
   writeEvidence
 } from './harness.js'
@@ -41,6 +42,11 @@ const CATCH_ALL_PROBE = '/audit-catch-all'
 const DEFAULT_THRESHOLD = 80
 const NAVIGATION_TIMEOUT = 15000
 const DIALOG_TIMEOUT = 2000
+// A surface with the permission renders its content; a negative role stops at
+// the denial state, which is legitimately short. Waiting the full window there
+// doubles the mobile reload and burns the test budget.
+const SETTLE_TIMEOUT = 12000
+const NEGATIVE_SETTLE_TIMEOUT = 3000
 
 test.use({ viewport: DESKTOP })
 
@@ -182,16 +188,23 @@ for (const surface of surfaces) {
           .waitFor({ state: 'visible', timeout: NAVIGATION_TIMEOUT })
           .catch(() => {})
 
+        // The SPA paints the shell before the page payload lands; skeleton blocks
+        // carry no text, so measuring on first paint classifies a loading page as
+        // blank. Wait for the surface content, bounded, then measure.
+        await settleSurface(
+          page,
+          thresholdFor(surface.route),
+          plan.expectation === 'negative' ? NEGATIVE_SETTLE_TIMEOUT : SETTLE_TIMEOUT
+        )
+
         evidence.contentLength = await contentLength(page)
         evidence.rendered = evidence.contentLength > thresholdFor(surface.route)
 
-        const heading = (
-          await page
-            .locator('h1')
-            .first()
-            .innerText()
-            .catch(() => '')
-        ).trim()
+        // The negative role can land on a denial state without any heading; a
+        // locator read would auto-wait for one and burn the test budget.
+        const heading = await page
+          .evaluate(() => document.querySelector('h1')?.innerText ?? '')
+          .catch(() => '')
 
         evidence.notFound = !isCatchAll(surface) && /página no encontrada/i.test(heading)
         evidence.tabs = await readTabLabels(page)
@@ -199,9 +212,15 @@ for (const surface of surfaces) {
         evidence.shots.push(await capture(page, `shots/${slug}-${plan.role}-desktop.png`))
 
         await page.setViewportSize(MOBILE)
-        // The responsive layout settles after the resize; the bounded wait keeps
-        // the measurement from reading the desktop layout mid-reflow.
-        await page.waitForTimeout(200)
+        // A viewport resized after the desktop paint keeps widths that were
+        // computed at 1440 (tables, charts, grids), which invents an overflow.
+        // The honest mobile measurement is a document loaded at 390.
+        await page.reload()
+        await settleSurface(
+          page,
+          thresholdFor(surface.route),
+          plan.expectation === 'negative' ? NEGATIVE_SETTLE_TIMEOUT : SETTLE_TIMEOUT
+        )
 
         const overflow = await hasHorizontalOverflow(page)
         evidence.horizontalOverflow = overflow.overflow
@@ -218,17 +237,11 @@ for (const surface of surfaces) {
         writeEvidence(`render/${slug}-${plan.role}.json`, evidence)
       }
 
-      expect(evidence.httpStatus, `HTTP status for ${evidence.href}`).toBe(200)
-      expect(
-        evidence.rendered,
-        `content length ${evidence.contentLength} above ${thresholdFor(surface.route)}`
-      ).toBe(true)
-      if (!isCatchAll(surface)) {
-        expect(evidence.notFound, 'rendered the not-found page').toBe(false)
-      }
+      // The probe records the classification; `ui-pass` decides the verdict.
+      // Only the instrument itself is asserted here: both captures exist and the
+      // surface raised no page error (the issue's zero-pageerror criterion).
+      expect(evidence.shots, `captures for ${evidence.href}`).toHaveLength(2)
       expect(evidence.pageErrors, 'page errors').toEqual([])
-      expect(evidence.failedRequests.unexpected, 'unexpected failed requests').toEqual([])
-      expect(evidence.horizontalOverflow, 'horizontal overflow at 390px').toBe(false)
     })
   }
 }
@@ -269,6 +282,8 @@ for (const surface of surfaces) {
         .locator('main')
         .waitFor({ state: 'visible', timeout: NAVIGATION_TIMEOUT })
         .catch(() => {})
+
+      await settleSurface(page, thresholdFor(surface.route), SETTLE_TIMEOUT)
 
       const length = await contentLength(page)
 

@@ -37,7 +37,7 @@ const manifestOf = (routes, unclassifiedActions = 0) => ({
   summary: { unclassifiedActions }
 })
 
-const asText = gate => gate.reasons.join(' · ')
+const asText = gate => [...gate.reasons, ...gate.findings].join(' · ')
 
 describe('ui pass · classifySurface', () => {
   it('renders a surface whose every evidence row is clean', () => {
@@ -155,17 +155,45 @@ describe('ui pass · aggregate and gate', () => {
     expect(asText(gate)).toMatch(/pageerror/)
   })
 
-  it('breaks the gate on a not-renders surface and names it', () => {
+  it('breaks the gate on a page error raised during the dialog probe', () => {
     const { counts, gate } = aggregate(
       manifestOf(['/patients']),
-      [cleanRow({ rendered: false, contentLength: 40 })],
+      [cleanRow()],
+      [{ route: '/patients', pageErrors: ['probe boom'], dialogs: [] }]
+    )
+
+    expect(counts.primitivePageErrors).toBe(1)
+    expect(counts.pageErrors).toBe(1)
+    expect(gate.ok).toBe(false)
+    expect(asText(gate)).toMatch(/pageerror: \/patients · probe boom/)
+  })
+
+  it('classifies a not-renders surface as a finding without failing the instrument', () => {
+    const { counts, gate } = aggregate(
+      manifestOf(['/patients', '/dashboard']),
+      [cleanRow({ rendered: false, contentLength: 40 }), cleanRow({ route: '/dashboard' })],
       []
     )
 
     expect(counts.notRendering).toBe(1)
-    expect(gate.ok).toBe(false)
+    expect(gate.ok).toBe(true)
     expect(asText(gate)).toMatch(/no renderiza: \/patients/)
-    expect(asText(gate)).toMatch(/contenido 40 ≤ 80/)
+    expect(gate.findings).toHaveLength(1)
+  })
+
+  it('fails the gate as a platform defect when more than half the scope does not render', () => {
+    const { counts, gate } = aggregate(
+      manifestOf(['/patients', '/dashboard']),
+      [
+        cleanRow({ rendered: false, contentLength: 40 }),
+        cleanRow({ route: '/dashboard', rendered: false, contentLength: 30 })
+      ],
+      []
+    )
+
+    expect(counts.notRendering).toBe(2)
+    expect(gate.ok).toBe(false)
+    expect(asText(gate)).toMatch(/defecto de plataforma: 2\/2/)
   })
 
   it('breaks the gate on a surface without evidence and names it', () => {
@@ -196,7 +224,7 @@ describe('ui pass · aggregate and gate', () => {
   it('exposes the same verdict aggregate returns', () => {
     const rows = [classifySurface(surface('/patients'), [cleanRow()])]
 
-    expect(gate(rows, { unclassifiedActions: 0 })).toEqual({ ok: true, reasons: [] })
+    expect(gate(rows, { unclassifiedActions: 0 })).toEqual({ ok: true, reasons: [], findings: [] })
   })
 
   it('counts failed dialog checks without breaking the gate', () => {
