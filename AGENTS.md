@@ -589,10 +589,13 @@ documentada y no bloquea producción.
   de `.prettierignore`, que evita reformatear notas. El contenido pasó por el
   gate de secretos con la misma versión fijada de `gitleaks` y la misma
   configuración de CI, y se sustituyeron por marcadores el valor literal de
-  `DB_PASSWORD`, una clave local y una ruta local
-  (`security-secret-gate.md:24,59,84`). Sin cambios de código: los conteos de
-  §4/§5 no cambian. Se entrega en una cadena de seis PRs por tema, cada uno
-  dentro del presupuesto del revisor nativo.
+  `DB_PASSWORD`, una clave local y una ruta local; la nota
+  `odd/tasks/security-secret-gate.md` los nombra en su tarea T1 (las rutas), su
+  log L2 (la clave local) y su hallazgo F3 (`DB_PASSWORD=<valor literal>`), sin
+  anclar por número de línea: el ancla numérica envejece en cada edición, y la
+  de esta entrada ya no apuntaba a lo que decía (#359, R3-001). Sin cambios de
+  código: los conteos de §4/§5 no cambian. Se entrega en una cadena de seis PRs
+  por tema, cada uno dentro del presupuesto del revisor nativo.
 
 - **2026-10-23 (caja sólo con permiso, #345)** — `DashboardPage` deja de pedir
   la sesión de caja a los roles que no pueden leerla: la carga y la suscripción
