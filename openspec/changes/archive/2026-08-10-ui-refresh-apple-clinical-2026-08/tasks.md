@@ -34,7 +34,7 @@ Chain strategy: stacked-to-main
 
 - `node` >= 18 available (used by `scripts/build-tokens-css.mjs`).
 - `pnpm` available for `pnpm tokens:build` + `pnpm build`.
-- Playwright CLI per `C:/Users/chomb/.claude/skills/playwright-cli/SKILL.md`.
+- Playwright CLI per `<ruta-local>/.claude/skills/playwright-cli/SKILL.md`.
 - **No network access required** (Newsreader woff2 is deleted, not downloaded).
 
 ---
