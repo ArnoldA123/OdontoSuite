@@ -31,6 +31,16 @@ const ROLE_ORDER = Object.keys(ROLE_USERNAMES)
 
 export const EVIDENCE_DIR = process.env.AUDIT_OUT || '.atl/qa-evidence/audit/ui/U0'
 
+// A session that is not U0 (the instrument's own baseline) points its own rows
+// here, so `pnpm exec playwright test ... --grep @U1` writes into the session's
+// evidence directory without an extra environment variable.
+export const SESSION_EVIDENCE_DIR = process.env.AUDIT_OUT || '.atl/qa-evidence/audit/ui/U1'
+
+// A dialog is either a modal (role=dialog) or the global confirm, which the
+// primitive renders as role=alertdialog; measuring only role=dialog skipped the
+// confirm contract entirely.
+export const DIALOG_SELECTOR = '[role="dialog"]:visible, [role="alertdialog"]:visible'
+
 // A surface whose shell renders fewer characters than this is treated as blank.
 // The map exists for measured exceptions: a route that legitimately renders less
 // gets its own entry instead of lowering the default for everyone.
@@ -57,8 +67,8 @@ const PREFERRED_TRIGGER_LABEL = /nuevo|nueva|agregar|crear|abrir|ver|editar|regi
 
 // Evidence paths are declared relative to EVIDENCE_DIR; an absolute path is
 // honoured as-is so a caller can point outside the run directory on purpose.
-const absoluteEvidencePath = relPath =>
-  isAbsolute(relPath) ? relPath : resolve(process.cwd(), EVIDENCE_DIR, relPath)
+const absoluteEvidencePath = (relPath, baseDir) =>
+  isAbsolute(relPath) ? relPath : resolve(process.cwd(), baseDir ?? EVIDENCE_DIR, relPath)
 
 const round = value => Math.round(value * 10) / 10
 
@@ -168,34 +178,44 @@ const sessions = new Map()
 export const loginAs = async (request, role) => {
   if (sessions.has(role)) return sessions.get(role)
 
-  const username = ROLE_USERNAMES[role]
-  if (!username) throw new Error(`no seeded user for role "${role}" (see CREDENTIALS.md)`)
-
-  const pending = (async () => {
-    const response = await request.post(`${BASE_URL}/api/auth/login`, {
-      data: { username, password: PASSWORD }
-    })
-
-    if (!response.ok()) {
-      const body = await response.text().catch(() => '')
-      throw new Error(
-        `login failed for ${role} (${username}): HTTP ${response.status()} ${body}`.trim()
-      )
-    }
-
-    const body = await response.json()
-    const token = body?.data?.token
-    const user = body?.data?.user
-
-    if (!token || !user) {
-      throw new Error(`login for ${role} returned no token/user: ${JSON.stringify(body)}`)
-    }
-
-    return { role, token, user }
-  })()
+  const pending = freshLogin(request, role)
 
   sessions.set(role, pending)
   return pending
+}
+
+/**
+ * Authenticates a role without touching the memoized session.
+ *
+ * A flow that signs out (U1's logout, for instance) revokes the token the API
+ * issued, so reusing the shared one would leave every later row of the same
+ * run unauthenticated: the shell channel authorizations answer 401 instead of
+ * their usual 403. Bounded extra callers get their own token this way.
+ */
+export const freshLogin = async (request, role) => {
+  const username = ROLE_USERNAMES[role]
+  if (!username) throw new Error(`no seeded user for role "${role}" (see CREDENTIALS.md)`)
+
+  const response = await request.post(`${BASE_URL}/api/auth/login`, {
+    data: { username, password: PASSWORD }
+  })
+
+  if (!response.ok()) {
+    const body = await response.text().catch(() => '')
+    throw new Error(
+      `login failed for ${role} (${username}): HTTP ${response.status()} ${body}`.trim()
+    )
+  }
+
+  const body = await response.json()
+  const token = body?.data?.token
+  const user = body?.data?.user
+
+  if (!token || !user) {
+    throw new Error(`login for ${role} returned no token/user: ${JSON.stringify(body)}`)
+  }
+
+  return { role, token, user }
 }
 
 // The SPA reads its session from localStorage before the router guards run, so
@@ -321,15 +341,15 @@ export const hasHorizontalOverflow = page =>
 
 // Captures are always explicit: playwright.config.js keeps `only-on-failure`, so
 // without this call a passing surface leaves no visual record.
-export const capture = async (page, filePath) => {
-  const absolute = absoluteEvidencePath(filePath)
+export const capture = async (page, filePath, options = {}) => {
+  const absolute = absoluteEvidencePath(filePath, options.dir)
   mkdirSync(dirname(absolute), { recursive: true })
   await page.screenshot({ path: absolute, fullPage: true })
   return filePath
 }
 
-export const writeEvidence = (relPath, payload) => {
-  const absolute = absoluteEvidencePath(relPath)
+export const writeEvidence = (relPath, payload, options = {}) => {
+  const absolute = absoluteEvidencePath(relPath, options.dir)
   mkdirSync(dirname(absolute), { recursive: true })
   writeFileSync(absolute, `${JSON.stringify(payload, null, 2)}\n`)
   return relPath
@@ -381,10 +401,10 @@ const describeDialog = dialog =>
  * `escape-closes` runs last because it closes the dialog.
  */
 export const assertDialogContract = async (page, options = {}) => {
-  const dialog = options.dialog ?? page.locator('[role="dialog"]:visible').last()
+  const dialog = options.dialog ?? page.locator(DIALOG_SELECTOR).last()
 
   if ((await dialog.count()) === 0) {
-    throw new Error('dialog contract: no visible [role="dialog"]')
+    throw new Error(`dialog contract: no visible ${DIALOG_SELECTOR}`)
   }
 
   const box = await dialog.boundingBox()
@@ -518,7 +538,7 @@ export const dialogTriggers = (surface, limit = 2) => {
 
 const dismissDialog = async page => {
   try {
-    const dialog = page.locator('[role="dialog"]:visible').last()
+    const dialog = page.locator(DIALOG_SELECTOR).last()
     if ((await dialog.count()) === 0) return
     await page.keyboard.press('Escape')
     await dialog.waitFor({ state: 'hidden', timeout: 2000 })
@@ -542,7 +562,7 @@ export const openDialog = async (page, action, timeout = 1000) => {
     return null
   }
 
-  const dialog = page.locator('[role="dialog"]:visible').last()
+  const dialog = page.locator(DIALOG_SELECTOR).last()
 
   try {
     await dialog.waitFor({ state: 'visible', timeout })

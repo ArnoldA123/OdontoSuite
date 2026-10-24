@@ -29,11 +29,22 @@ import {
   writeEvidence
 } from './harness.js'
 
+// U1 (issue #364) audits the session and the shell, not a page module: its rows
+// live in their own modules and are registered here so that
+// `--grep @U1` selects them from this spec.
+import './u1/shell.js'
+
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
 
 const manifest = loadManifest()
-const surfaces = applyScope(manifest, SCOPE)
+
+// The shell is a declared surface, not a route: the session suite measures it
+// (one row per role, plus the mobile sheet and the global confirm), so the
+// generic route loops below would only navigate to a path that does not exist
+// and overwrite that evidence with the same file names.
+const renderable = surface => surface.kind !== 'shell'
+const surfaces = applyScope(manifest, SCOPE).filter(renderable)
 
 const DESKTOP = { width: 1440, height: 900 }
 const MOBILE = { width: 390, height: 844 }
@@ -58,6 +69,8 @@ const isCatchAll = surface => surface.route.includes(CATCH_ALL_SEGMENT)
 const thresholdFor = route => CONTENT_THRESHOLDS[route] ?? DEFAULT_THRESHOLD
 
 const hrefFor = (surface, id) => {
+  if (surface.href) return surface.href
+
   if (surface.sample && id != null) {
     const segments = surface.route.split('/')
     for (let index = segments.length - 1; index >= 0; index -= 1) {
