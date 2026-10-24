@@ -581,6 +581,19 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-23 (las notas ODD se versionan)** — Las 47 notas de tarea que
+  quedaban sin seguimiento en `odd/tasks/` entran al repositorio junto a las 43
+  ya versionadas: son la especificación que leen los subagentes (`S#`, tareas y
+  log) y el rastro de cada entrega, así que en un repositorio público su sitio
+  es el historial. `odd/` nunca estuvo en `.gitignore`; la única exclusión es la
+  de `.prettierignore`, que evita reformatear notas. El contenido pasó por el
+  gate de secretos con la misma versión fijada de `gitleaks` y la misma
+  configuración de CI, y se sustituyeron por marcadores el valor literal de
+  `DB_PASSWORD`, una clave local y una ruta local
+  (`security-secret-gate.md:24,59,84`). Sin cambios de código: los conteos de
+  §4/§5 no cambian. Se entrega en una cadena de seis PRs por tema, cada uno
+  dentro del presupuesto del revisor nativo.
+
 - **2026-10-23 (caja sólo con permiso, #345)** — `DashboardPage` deja de pedir
   la sesión de caja a los roles que no pueden leerla: la carga y la suscripción
   al canal privado `cash-register` quedan detrás de `can.viewCashRegister`, así
