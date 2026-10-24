@@ -16,7 +16,7 @@ const harness = vi.hoisted(() => {
 })
 
 const cashCurrent = {
-  session: { id: 7, status: 'open', opened_at: '2026-10-04T08:30:00-05:00' },
+  session: { id: 7, status: 'open', opened_at: '2026-10-04T08:30:00' },
   summary: {
     opening_amount: '100.00',
     total_income: '200.00',
