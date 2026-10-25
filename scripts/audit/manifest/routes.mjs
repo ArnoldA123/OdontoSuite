@@ -18,7 +18,7 @@ import { resolveSpecifier, resolveStaticImport } from './sources.mjs'
 
 import { affinityVocabulary, routeAffinity, segmentsOf } from './api-routes.mjs'
 
-const ROLES = [
+export const ROLES = [
   'administrador',
   'recepcionista',
   'odontologo',
@@ -115,6 +115,40 @@ export const readNavigation = () => {
 
   return items
 }
+
+// The SPA resolves a navigation `permissions` key through this map; the manifest
+// publishes both sides so a declared gate that no longer resolves stays visible.
+const PERMISSION_MAP_SOURCE = 'resources/js/composables/usePermissions.js'
+
+export const readPermissionMap = () => {
+  const source = stripComments(readRepoText(PERMISSION_MAP_SOURCE) ?? '')
+  const start = source.indexOf('const PERMISSION_BY_KEY = {')
+  if (start === -1) return new Map()
+
+  const open = source.indexOf('{', start)
+  const close = findBalanced(source, open, '{', '}')
+  if (close === -1) return new Map()
+
+  const map = new Map()
+  for (const [key, value] of parseObjectEntries(source.slice(open + 1, close))) {
+    const permission = literalText(value)
+    if (permission) map.set(key, permission)
+  }
+
+  return map
+}
+
+export const buildNavigation = (items, permissionMap) =>
+  items.map(item => ({
+    name: item.name,
+    to: item.to,
+    roles: [...item.roles],
+    permissions: [...item.permissions],
+    permissionStrings: item.permissions
+      .map(key => permissionMap.get(key))
+      .filter(permission => Boolean(permission)),
+    unresolvedPermissions: item.permissions.filter(key => !permissionMap.has(key))
+  }))
 
 // --- sample for detail routes ----------------------------------------------
 
