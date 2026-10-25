@@ -57,6 +57,12 @@ import './u4/detail.js'
 import './u4/primitives.js'
 import './u4/api-matrix.js'
 
+// U5 (issue #368) audits the money surfaces — the cash register and the list of
+// appointments ready to bill. The fixtures and the row modules live together so
+// `--grep @U5` selects the session.
+import './u5/fixtures.js'
+import './u5/render.js'
+
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
 
