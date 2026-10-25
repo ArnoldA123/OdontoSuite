@@ -1,10 +1,9 @@
 # Task: U4 — Pacientes: lista y ficha (auditoría UI, plan #13)
 
-Status: IN PROGRESS (cierre pendiente). Ramas y commits: `feat/audit-ui-u4`
-desde `4f072f0`; instrumento en `tests/e2e/audit/u4/`, evidencia en
-`.atl/qa-evidence/audit/ui/U4/` (gitignored), esta nota en el commit de
-documentación y hallazgos publicados en #399–#405. No se toca código de
-producto.
+Status: DONE. Rama `feat/audit-ui-u4` desde `4f072f0`; instrumento en
+`tests/e2e/audit/u4/` (`43b71e9`), esta nota en el commit de documentación
+y hallazgos publicados en #399–#405 (más un comentario medido en #387). No se
+toca código de producto.
 
 ## Specs
 
@@ -105,9 +104,11 @@ delete), declarados como residuo.
   `walkthrough.md`, `ux-rubric.md`, `api-matrix.json`, galería `index.html` y
   esta nota; hallazgos agrupados por clase raíz y publicados #399–#405, más un
   comentario medido en #387.
-- [ ] **T5** · S5, S11, S12 · `inline` · Cierre: `pnpm format:check`,
+- [x] **T5** · S5, S11, S12 · `inline` · Cierre: `pnpm format:check`,
   `pnpm lint:check`, `pnpm test:js`, `pnpm exec playwright test --list`,
-  commits, revisión nativa y PR.
+  commits, revisión nativa y PR. Resultado: formato y lint en verde (0 errores,
+  36 avisos preexistentes), **141 archivos y 1 225 tests de Vitest**, 224 tests
+de navegador listados, revisión nativa aprobada y autoridad consumida.
 
 ## Log
 
@@ -158,7 +159,12 @@ delete), declarados como residuo.
   perezosos nacen en vacío) no abre issue propio: se midió como comentario en
   #387, que ya es dueño de la clase; F8 se publica aparte porque la causa es el
   *ownership* de títulos del shell, no la ficha.
-- **L9** — El cargo de la sesión queda en la base de auditoría por diseño
+- **L9** — Cierre: `pnpm format:check` y `pnpm lint:check` en verde (0 errores;
+  36 avisos preexistentes de `vue/one-component-per-file`), `pnpm test:js` →
+  **1 225 tests en 141 archivos**, `pnpm exec playwright test --list` → 224
+  tests en 15 archivos. Revisión nativa: grupo de 3 lentes aprobado y autoridad
+  consumida.
+- **L10** — El cargo de la sesión queda en la base de auditoría por diseño
   (ADR-0015: el libro no tiene puerta de borrado) y el presupuesto en soft
   delete; toda fila visible se retiró. Se declaran como residuo en
   `fixtures.json`, no se ocultan.
@@ -212,6 +218,40 @@ Observaciones sin issue: el filtro de sede funciona y devuelve 0 filas porque lo
 acumulan visibles mientras se encadenan intentos; la atribución de peticiones de
 los tabs que cargan al montar es aproximada en el instrumento (el status se toma
 de la fila de render del rol).
+
+## Revisión nativa (RDD)
+
+- Linaje `review-e11a588ac4f59c86`, nivel `high` (motivo `process_boundary`:
+  `api-matrix.js` lanza `php` y `git`), lentes `risk`, `readability` y
+  `reliability`; candidato de 8 archivos y 4 047 líneas sobre `4f072f0`
+  (los dos commits de la unidad). Previsión de 3 ejecuciones de modelo por el
+  relé del host; el grupo se capturó en una sola corrida (3/3 revisores
+  preparados y enviados).
+- Veredicto: **aprobado**; autoridad consumida (`authority: burned`), entrega
+  según la política ordinaria del repositorio.
+- Quince hallazgos asesores, todos **no bloqueantes** e informativos: ninguno
+  abrió corrección ni reabre el candidato.
+
+| Id | Lente | Ubicación | Severidad |
+| -- | ----- | --------- | --------- |
+| R1-001 | risk | `fixtures.js:220-232` | WARNING |
+| R2-adddays-unused | readability | `helpers.js:77-82` | SUGGESTION |
+| R2-delete-path-role-param | readability | `api-matrix.js:150-158` | SUGGESTION |
+| R2-fragment-duplication | readability | `detail.js:97-108` | SUGGESTION |
+| R2-hardcoded-marker-string | readability | `detail.js:668-671` | SUGGESTION |
+| R2-request-log-listener-accumulation | readability | `detail.js:142-158` | WARNING |
+| R2-retire-fixtures-dead-export | readability | `fixtures.js:373-377` | SUGGESTION |
+| R2-roles-duplicated | readability | `detail.js:45-55` | WARNING |
+| R2-threshold-unexplained | readability | `helpers.js:16` | SUGGESTION |
+| R3-001 | reliability | `api-matrix.js:352-370` | WARNING |
+| R3-002 | reliability | `api-matrix.js:252-282` | WARNING |
+| R3-003 | reliability | `fixtures.js:168-232` | WARNING |
+| R3-004 | reliability | `api-matrix.js:60-104` | SUGGESTION |
+| R3-005 | reliability | `detail.js:1015-1123` | SUGGESTION |
+| R3-006 | reliability | `helpers.js:57-82` | SUGGESTION |
+
+- La entrega sigue la política ordinaria: la revisión no autoriza push ni merge
+  por sí sola.
 
 ## Criterio de salida (S5)
 
