@@ -188,6 +188,21 @@ cita de mañana para el estado con contenido de «Próximos días», clasificaci
 del `abort` propio como solicitud esperada y status del reintento en la
 evidencia.
 
+## Revisión nativa (RDD)
+
+- Linaje `review-a5ac30d23f80e77d`, nivel `medium`, lentes `readability` y
+  `reliability`; candidato de 5 archivos y 2 190 líneas sobre `b9103f7` (árbol
+  de `09babf3`). Previsión: 2 ejecuciones de modelo por el relé del host.
+- El grupo de dos lentes se sometió en una sola captura (prompts de 98 457 y
+  98 436 bytes; resultados de 4 994 y 5 872). Veredicto: **aprobado**;
+  autoridad consumida (`authority: burned`).
+- Once hallazgos asesores, todos informativos y no bloqueantes: `R2-1`–`R2-6`
+  (legibilidad del arnés y de la suite) y `R3-001`–`R3-005` (sugerencias de la
+  suite). Ninguno abrió corrección ni reabre el candidato; quedan como trabajo
+  posterior.
+- La entrega sigue la política ordinaria del repositorio: la revisión no
+  autoriza push ni merge por sí sola.
+
 ## Veredicto
 
 El criterio de salida de #365 se cumple en tres de sus cuatro partes:
