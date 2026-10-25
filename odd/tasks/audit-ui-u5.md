@@ -247,7 +247,30 @@ la cotización generada nace `sent` y no se puede borrar.
 
 ## Revisión nativa (RDD)
 
-- Pendiente de ejecutar sobre los commits de la unidad.
+- **Candidato completo** (`origin/main` → `bed824f`, 9 archivos y 6 758 líneas):
+  el START fue rechazado en preflight con `lens_context_budget_exceeded`; **no se
+  creó autoridad**. La continuación que indicó el proveedor fue partir la unidad
+  en cortes revisables, que es lo que se hizo.
+- **Cortes**: `dd890f1` (2 084 líneas), `978e921` (3 223), `6f13a8e` (1 189) y
+  `bed824f` (262, la nota).
+- **Corte 1/4** (`dd890f1`, base `origin/main`): START creado en nivel `high`,
+  lentes `risk`, `readability` y `reliability`, linaje
+  `review-e2661e52d02e4a7b`. El grupo previó 3 ejecuciones de modelo; `risk` y
+  `readability` fueron admitidas. `reliability` fue rechazada dos veces por el
+  relé del host: primero un payload sin JSON completo (9 objetos abiertos, 8
+  cerrados), después un `id` de hallazgo con espacio y un carácter no ASCII.
+  Tras el segundo rechazo, el slot que STATUS reofreció llevaba
+  `expected-revision b0edb3f…` mientras la autoridad estaba en `880f81d…`, así
+  que el reenvío se rechazó como *stale*. **No hubo veredicto de esa lente.**
+- **Decisión del usuario**: abandonar el linaje bloqueado
+  (`review abandon`, razón `operator_disposition`, commit
+  `2026-10-25T23:35:17Z`) y entregar con la revisión parcial declarada. La
+  autoridad quedó en cuarentena (`…/quarantine/review-e2661e52d02e4a7b-2688000388`);
+  el trabajo descartado incluía los resultados de `risk` y `readability` con
+  hallazgos. Los cortes 2/4 a 4/4 no se revisaron.
+- **Entrega**: la revisión no aprobó ni autorizó la entrega (no se consumió
+  ninguna aprobación); el push y el PR siguen la política ordinaria del
+  repositorio y el PR declara la revisión parcial y su causa.
 
 ## Criterio de salida (S5)
 
