@@ -222,4 +222,18 @@ móvil del asistente captura la primitiva abierta y la cierra con su botón.
 
 ## Revisión nativa (RDD)
 
-Pendiente al cerrar T5.
+- Linaje `review-24c5643b0262bf78`, nivel `high`, lentes `readability` y
+  `reliability`; candidato de 6 archivos y 4 246 líneas sobre `94eb1f9`
+  (`d4a2283` + `4f5c59c`). Previsión de 2 ejecuciones de modelo por el relé del
+  host.
+- El grupo de dos lentes se sometió con una sola captura; el relé del revisor
+  de `reliability` falló porque intentó una llamada a herramienta
+  (`pi-host-relay-transport-failure`, 0 revisores preparados, 0 enviados). No se
+  repitió la captura desde la transcripción: STATUS volvió a ofrecer los dos
+  slots y se capturó uno por uno con su binding exacto.
+- Veredicto: **aprobado**; autoridad consumida (`authority: burned`).
+- Trece hallazgos asesores, todos no bloqueantes e informativos: `R2-01`–`R2-08`
+  (legibilidad del instrumento) y `R3-001`–`R3-005` (sugerencias de la suite).
+  Ninguno abrió corrección ni reabre el candidato.
+- La entrega sigue la política ordinaria: la revisión no autoriza push ni merge
+  por sí sola.
