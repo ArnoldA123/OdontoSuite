@@ -145,6 +145,8 @@ importa los tres módulos.
   reenviando los bytes rechazados. Los ocho hallazgos asesores quedan como
   trabajo posterior; solo `R1` (token vivo en la evidencia de logout) se
   corrigió en el acto por higiene de credenciales.
+- **L14** — Hallazgos publicados tras la autorización del dueño («si hacelo
+  publica»): cinco issues agrupados por clase raíz, enlazados desde #364.
 - **L13** — Decisión del dueño, verbatim: «si ya verificaste por afuera y validaste
   con test pues omite las lentes, si todo esta okey has push pr merge y limpia
   todo lo que ya no uses». Se abandonó el segundo linaje
@@ -212,13 +214,13 @@ importa los tres módulos.
 
 | F# | Superficie | Acción | Esperado | Obtenido | Capa | Origen | Severidad | Causa | Issue | Reproducción |
 | -- | ---------- | ------ | -------- | -------- | ---- | ------ | --------- | ----- | ----- | ------------ |
-| F1 | Shell, toda superficie autenticada (heredado de U0) | Cargar la página | El shell sólo se suscribe a canales que el rol puede autorizar | 403 por rol: 0/2/2/3/8/8/5 (`cash-register`, `medical-records`, `specialty-records`, `treatment-plans`, `quotations`, `appointments`, `reminders`) | 2 | MEDIDO | `crit:media` | `useWebSocketNotifications.js` se suscribe a los nueve canales sin mirar el rol; `BroadcastingAuthController` autoriza por rol | pendiente de publicación (decisión del dueño) | login por API como `recepcionista_test`, abrir `/dashboard`, filtrar `broadcasting/auth` |
-| F2 | Sheet de navegación móvil | Abrir el menú y tabular | El foco queda dentro del diálogo | `focus-trapped` observado `outside`; Tab escapa | 3 | MEDIDO | `crit:media` | `Sheet.vue:242-249` activa la trampa en el `watch` sin `nextTick`; `Modal.vue:282` sí lo hace | pendiente | `/dashboard` a 390 px, abrir «Abrir menú» y tabular |
-| F3 | Sheet de navegación móvil | Abrir el menú | Nombre accesible con el título «Navegación» | `accessible-name` vacío; el id de `aria-labelledby` no existe en el DOM | 3 | MEDIDO | `crit:media` | `Sheet.vue:28/39` enlaza el `h2` que vive en el slot por defecto y `AppLayout` lo reemplaza con `#header`; `Modal.vue:28/142` ya resuelve ese caso | pendiente | abrir el sheet y leer `aria-labelledby` con lector de pantalla o inspector |
-| F4 | Menú de usuario del shell | Pulsar «Perfil», «Configuración», «Apariencia» | Abrir la superficie prometida | Sin navegación, diálogo, request ni toast; «Apariencia» es una etiqueta sin control | 4 | MEDIDO | `crit:media` | `AppLayout.vue:425-449`: dos `button` sin `@click` y un `<p>` de sección vacío | pendiente | `/dashboard` como administrador, abrir el menú del avatar |
-| F5 | Catch-all 404 | Abrir una ruta inexistente | Un solo `h1` visible | Dos `h1`: «OdontoSuite» del topbar y «Página no encontrada» de la página | 2 | MEDIDO | `crit:baja` | `AppLayout.vue:1155-1192`: `/404` no está en `pageTitledRoutes` ni en `pageOwnedHeadingPrefixes` | pendiente | `/audit-catch-all` con sesión, contar `h1` |
-| F6 | `/reset-password` sin token | Abrir la ruta a secas | Explicar que falta el enlace | Formulario de login, sin diálogo ni explicación: indistinguible de `/login` | 4 | MEDIDO | `crit:baja` | La ruta es pública y `LoginPage` sólo abre el diálogo si la URL trae `token` o `email` | pendiente | abrir `/reset-password` sin query |
-| F7 | Diálogo de reset | Restablecer con el enlace del correo | No pedir lo que el enlace ya trae | Campo «Código de recuperación» vacío y habilitado aunque `props.token` ya se usa al enviar | 4 | MEDIDO | `crit:media` | `ResetPasswordModal.vue:44-53` pinta el campo siempre; `:421` prefiere `props.token` | pendiente | abrir el enlace del correo y mirar el campo |
+| F1 | Shell, toda superficie autenticada (heredado de U0) | Cargar la página | El shell sólo se suscribe a canales que el rol puede autorizar | 403 por rol: 0/2/2/3/8/8/5 (`cash-register`, `medical-records`, `specialty-records`, `treatment-plans`, `quotations`, `appointments`, `reminders`) | 2 | MEDIDO | `crit:media` | `useWebSocketNotifications.js` se suscribe a los nueve canales sin mirar el rol; `BroadcastingAuthController` autoriza por rol | #378 | login por API como `recepcionista_test`, abrir `/dashboard`, filtrar `broadcasting/auth` |
+| F2 | Sheet de navegación móvil | Abrir el menú y tabular | El foco queda dentro del diálogo | `focus-trapped` observado `outside`; Tab escapa | 3 | MEDIDO | `crit:media` | `Sheet.vue:242-249` activa la trampa en el `watch` sin `nextTick`; `Modal.vue:282` sí lo hace | #379 | `/dashboard` a 390 px, abrir «Abrir menú» y tabular |
+| F3 | Sheet de navegación móvil | Abrir el menú | Nombre accesible con el título «Navegación» | `accessible-name` vacío; el id de `aria-labelledby` no existe en el DOM | 3 | MEDIDO | `crit:media` | `Sheet.vue:28/39` enlaza el `h2` que vive en el slot por defecto y `AppLayout` lo reemplaza con `#header`; `Modal.vue:28/142` ya resuelve ese caso | #379 | abrir el sheet y leer `aria-labelledby` con lector de pantalla o inspector |
+| F4 | Menú de usuario del shell | Pulsar «Perfil», «Configuración», «Apariencia» | Abrir la superficie prometida | Sin navegación, diálogo, request ni toast; «Apariencia» es una etiqueta sin control | 4 | MEDIDO | `crit:media` | `AppLayout.vue:425-449`: dos `button` sin `@click` y un `<p>` de sección vacío | #380 | `/dashboard` como administrador, abrir el menú del avatar |
+| F5 | Catch-all 404 | Abrir una ruta inexistente | Un solo `h1` visible | Dos `h1`: «OdontoSuite» del topbar y «Página no encontrada» de la página | 2 | MEDIDO | `crit:baja` | `AppLayout.vue:1155-1192`: `/404` no está en `pageTitledRoutes` ni en `pageOwnedHeadingPrefixes` | #381 | `/audit-catch-all` con sesión, contar `h1` |
+| F6 | `/reset-password` sin token | Abrir la ruta a secas | Explicar que falta el enlace | Formulario de login, sin diálogo ni explicación: indistinguible de `/login` | 4 | MEDIDO | `crit:baja` | La ruta es pública y `LoginPage` sólo abre el diálogo si la URL trae `token` o `email` | #382 | abrir `/reset-password` sin query |
+| F7 | Diálogo de reset | Restablecer con el enlace del correo | No pedir lo que el enlace ya trae | Campo «Código de recuperación» vacío y habilitado aunque `props.token` ya se usa al enviar | 4 | MEDIDO | `crit:media` | `ResetPasswordModal.vue:44-53` pinta el campo siempre; `:421` prefiere `props.token` | #382 | abrir el enlace del correo y mirar el campo |
 
 **Correcciones del instrumento** (cerradas en `82a019a`, no son hallazgos de
 producto): contrato de diálogos que ignoraba `role="alertdialog"`; token
@@ -268,9 +270,11 @@ del arnés de U0 (F1).
 
 ## Seguimientos
 
-- Publicar los hallazgos como issues es decisión del dueño; los cuerpos están
-  listos uno por clase raíz (sheet, menú de usuario, 404, `/reset-password`) y
-  F1 ya viene de U0.
+- Hallazgos publicados y enlazados en #364: #378 (canales por rol, F1), #379
+  (sheet sin foco ni nombre, F2+F3), #380 (menú de usuario, F4), #381 (404 con
+  dos `h1`, F5) y #382 (`/reset-password`, F6+F7).
+- Las correcciones no son de este programa: cada issue trae su alcance y sus
+  criterios de aceptación.
 - Los criterios de la rúbrica en `1` en dos o más superficies (aquí sólo el `5`:
   login y reset comparten la ausencia de skeleton) son la entrada de U11.
 - `.atl/qa-evidence/audit/ui/U1/` no se commitea (S7); esta nota es lo que
