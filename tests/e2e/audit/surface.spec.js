@@ -41,6 +41,13 @@ import './u1/recovery.js'
 import './u2/dashboard.js'
 import './u2/my-day.js'
 
+// U3 (issue #366) audits the agenda and the consultation close: the fixtures and
+// the three row modules live together so `--grep @U3` selects the session.
+import './u3/fixtures.js'
+import './u3/calendar.js'
+import './u3/wizard.js'
+import './u3/api-matrix.js'
+
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
 
