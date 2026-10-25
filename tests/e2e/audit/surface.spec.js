@@ -48,6 +48,15 @@ import './u3/calendar.js'
 import './u3/wizard.js'
 import './u3/api-matrix.js'
 
+// U4 (issue #367) audits the patients directory and the patient file: the
+// fixtures and the four row modules live together so `--grep @U4` selects the
+// session.
+import './u4/fixtures.js'
+import './u4/list.js'
+import './u4/detail.js'
+import './u4/primitives.js'
+import './u4/api-matrix.js'
+
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
 
