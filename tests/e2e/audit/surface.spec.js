@@ -62,6 +62,8 @@ import './u4/api-matrix.js'
 // `--grep @U5` selects the session.
 import './u5/fixtures.js'
 import './u5/render.js'
+import './u5/walk.js'
+import './u5/primitives.js'
 
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
