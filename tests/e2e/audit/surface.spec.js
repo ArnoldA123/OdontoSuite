@@ -36,6 +36,11 @@ import './u1/shell.js'
 import './u1/login.js'
 import './u1/recovery.js'
 
+// U2 (issue #365) audits the landing surface and the professional's desk: the
+// rows live in their own modules so `--grep @U2` selects both.
+import './u2/dashboard.js'
+import './u2/my-day.js'
+
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
 
