@@ -145,6 +145,12 @@ importa los tres módulos.
   reenviando los bytes rechazados. Los ocho hallazgos asesores quedan como
   trabajo posterior; solo `R1` (token vivo en la evidencia de logout) se
   corrigió en el acto por higiene de credenciales.
+- **L13** — Decisión del dueño, verbatim: «si ya verificaste por afuera y validaste
+  con test pues omite las lentes, si todo esta okey has push pr merge y limpia
+  todo lo que ya no uses». Se abandonó el segundo linaje
+  (`operator_disposition`) en vez de reintentar una lente inestable por cuarta
+  vez, y la entrega sigue el camino ordinario: push, PR y merge una vez verde
+  el CI, más la limpieza del entorno de auditoría.
 - **L11** — El `a[href="/dashboard"]` del logo colapsado competía con la primera
   entrada del sidebar y Playwright rechazaba el clic por ambigüedad; la sonda y
   la matriz leen `#primary-sidebar nav a`.
@@ -236,6 +242,15 @@ colapsado; y el token vivo que la fila de logout escribía en su evidencia
   en la evidencia de logout, corregido aquí), `R2-001`–`R2-004` (legibilidad
   del arnés y de la suite) y `R3-reliability-1`–`3` (sugerencias de la
   suite). Ninguno abrió corrección ni reabre el candidato.
+- Segundo linaje `review-2928e782f234a092`, abierto sobre el candidato que ya
+  incluye el arreglo de R1 con las lentes `risk` y `reliability`: `risk` quedó
+  admitida (4 808 bytes) y `reliability` no fue capturable —dos payloads
+  truncados (76 KB y 151 KB) y un flujo cortado a los 383 s, siempre rechazados
+  por el admitidor sin consumir el slot—. El dueño decidió no insistir y
+  abandonar ese linaje (`operator_disposition`, actor `pi`); la autoridad quedó
+  reclamada y en cuarentena, el candidato sin aprobación de seguimiento y el
+  arreglo de R1 respaldado por la suite de recuperación (3/3) y por la evidencia
+  (`authToken: null` tras el logout).
 - Entrega: política ordinaria del repositorio; la revisión no autoriza push.
 
 ## Veredicto
