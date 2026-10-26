@@ -83,6 +83,8 @@ import './u6/primitives.js'
 import './u7/fixtures.js'
 import './u7/render.js'
 import './u7/primitives.js'
+import './u7/walk-records.js'
+import './u7/walk-specialties.js'
 
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
