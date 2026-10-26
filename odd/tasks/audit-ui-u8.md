@@ -122,8 +122,9 @@ nunca resolvería una tarifa.
   **#416** y **#420**.
 - [x] **T5** · S5, S10, S11 · `inline` · Cierre: Prettier y ESLint en verde,
   `playwright test --list` → 20 tests en 8 archivos, commits y nota. Revisión
-  nativa: `assess` medio sin veredicto (§Revisión nativa); push/PR a decisión
-  del dueño.
+  nativa: `assess` medio y `start` bloqueado en preflight
+  (`lens_context_budget_exceeded`, sin autoridad; §Revisión nativa). PR #438
+  abierto; el merge a decisión del dueño.
 
 ## Log
 
@@ -259,13 +260,25 @@ nunca resolvería una tarifa.
 
 ## Revisión nativa (RDD)
 
-`gentle_review assess` sobre el candidato no comprometido respondió
-`risk: medium` con `nativeRisk: unassessable`: el proveedor pidió declarar los
-archivos no rastreados (`untracked files require an explicit declaration`) y no
-emitió veredicto. El plan resultante es el camino RDD-encendido sin escalación:
-autoverificación del escritor, **ningún verificador independiente** (ningún ítem
-de alto riesgo de Task Size) y `closed: unknown`. No se abrió linaje de revisión:
-`reviewDue` no fue verdadero y la sesión no pidió revisión explícita. La
+**Sin veredicto: el proveedor no admitió el candidato y no creó autoridad.** Dos
+intentos, ambos declarados por el contrato nativo:
+
+| Paso | Respuesta |
+| --- | --- |
+| `gentle_review assess` (candidato sin comprometer) | `risk: medium`, `nativeRisk: unassessable` — el proveedor pidió declarar los archivos no rastreados (`untracked files require an explicit declaration`). Plan: autoverificación del escritor, ningún verificador independiente, `closed: unknown`. Sin `reviewDue` verdadero. |
+| `gentle_review inspect` (tras comprometer y empujar) | `ready`, `action: start`, target `sha256:96cd8233…`, `base-ref 5c90e45`, `committed-only`, linaje `review-4a1ff6e45f9b698a`, 12 archivos. |
+| `gentle_review start` (modo ordinary; lentes `risk`, `reliability`, `readability`) | **`blocked`** en `preflight`: `lens_context_budget_exceeded`. `mutation_performed: false`; no se creó autoridad, no hay consentimiento que responder ni linaje que abandonar. `next_action: stop`. |
+
+El proveedor prescribe la continuación: «split it into a chained sequence of
+smaller reviewable commits, each under the budget, then refresh the exact native
+next transition … for the reduced scope». El candidato completo mide 7 956
+líneas en 12 archivos; sus cortes (`dad3384`, `9df1802`, `8ab42e2`, `bd97d8d`, la
+mayoría sobre 1 000–3 100 líneas) ya existen y el mayor queda por encima del
+presupuesto que el preflight aplicó a una sola unidad. No se reescribió la rama
+ni se reenvió el candidato: la regla es no reintentar exactamente el mismo
+candidato.
+
+Consecuencia: no hay aprobación, corrección ni consumo de autoridad. La
 verificación independiente la ejecutó el padre (L8–L9) sobre la misma base y la
 misma revisión. PR #438 abierto; el merge queda a decisión del dueño.
 
