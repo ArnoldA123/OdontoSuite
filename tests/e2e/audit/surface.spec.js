@@ -81,6 +81,8 @@ import './u6/primitives.js'
 // records and the AI decision-support module. The fixtures and the row modules
 // live together so `--grep @U7` selects the session.
 import './u7/fixtures.js'
+import './u7/render.js'
+import './u7/primitives.js'
 
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
