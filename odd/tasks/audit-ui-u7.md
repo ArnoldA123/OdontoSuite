@@ -72,7 +72,7 @@ producto. La **revisión nativa quedó bloqueada por un defecto del relé del ho
 
 ## Estrategia de entrega
 
-Un instrumento de medición en `tests/e2e/audit/u7/` (10 módulos, 7 957 líneas)
+Un instrumento de medición en `tests/e2e/audit/u7/` (10 módulos, 7 956 líneas)
 registrado en `surface.spec.js` sólo por su bloque de imports, igual que
 U2–U6. Se entregó en cuatro cortes revisables: **1/4** `b7a84a4` (helpers,
 fixtures y el puente tinker guardado), **2/4** `c564bfa` (render y contrato de
@@ -96,7 +96,7 @@ se declara como fixture, nunca como comportamiento observado.
   diálogos, 29 endpoints, 0 permisos sin resolver**; 2 rutas `excluded` por
   `redirect`.
 - [x] **T2** · S1–S9, S12 · `delegated` · Instrumento `@U7` en
-  `tests/e2e/audit/u7/` (10 módulos, 7 957 líneas) registrado en
+  `tests/e2e/audit/u7/` (10 módulos, 7 956 líneas) registrado en
   `surface.spec.js` sólo con imports. Commits `b7a84a4`, `c564bfa`, `38b54fc`,
   `da147f8`. Delegado a un escritor acotado y verificado por lectura propia
   (L7–L10).
@@ -141,7 +141,7 @@ se declara como fixture, nunca como comportamiento observado.
   y el único borrado clínico vivo es el del adjunto, que deja marcador de
   archivo (#244).
 - **L7** — El instrumento se delegó a un escritor acotado (*context backstop* de
-  la sesión): 10 módulos, 7 957 líneas, registro sólo en el bloque de imports,
+  la sesión): 10 módulos, 7 956 líneas, registro sólo en el bloque de imports,
   evidencia en `.atl/qa-evidence/audit/ui/U7` (gitignored).
 - **L8** — Verificación propia: se releyeron el manifiesto, las 19 filas de
   render, los 13 diálogos, las cinco caminatas y la matriz de 161 filas; se
@@ -265,7 +265,7 @@ satisfacer el rechazo: se respetó la regla de no reenviar los bytes rechazados.
 ## Delegación
 
 Instrumento delegado a `gentle-ai-worker` (task `mvoqj495-1-sc1u`, background):
-10 módulos y 7 957 líneas. El padre verificó la evidencia, corrigió dos
+10 módulos y 7 956 líneas. El padre verificó la evidencia, corrigió dos
 referencias del informe y tres filas de la rúbrica, y ejecutó la corrida
 definitiva por su cuenta.
 
