@@ -198,8 +198,8 @@ nunca resolvería una tarifa.
 - **L12** — Instrucción del dueño, verbatim: «okey no te olvides de cerrar tu
   issue tambien al hacer el pr». El plan §8.1 reserva el cierre de los issues de
   sesión a otra sesión; la instrucción del dueño prevalece para esta unidad: el
-  PR #438 declara `Closes #371` y su merge cierra el issue de sesión. El issue
-  #371 se leyó de vuelta después del merge (L13).
+  PR #438 declara `Closes #371` y su merge cierra el issue de sesión; el cierre
+  se verifica en la conversación del PR.
 
 ## Línea base medida
 
