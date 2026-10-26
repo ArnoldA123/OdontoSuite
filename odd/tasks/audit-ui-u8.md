@@ -3,8 +3,8 @@
 Status: DONE (sesión de auditoría). Rama `feat/audit-ui-u8` desde `5c90e45`
 (`main`); instrumento en `tests/e2e/audit/u8/` entregado en cuatro cortes y esta
 nota en el suyo. No se toca código de producto. Hallazgos publicados **#431–#437**
-y las dos filas de clase ya abierta registradas en **#416** y **#420**. La
-entrega (push/PR) queda a decisión del dueño.
+y las dos filas de clase ya abierta registradas en **#416** y **#420**. PR
+**#438** abierto; el merge queda a decisión del dueño.
 
 ## Specs
 
@@ -267,7 +267,7 @@ autoverificación del escritor, **ningún verificador independiente** (ningún �
 de alto riesgo de Task Size) y `closed: unknown`. No se abrió linaje de revisión:
 `reviewDue` no fue verdadero y la sesión no pidió revisión explícita. La
 verificación independiente la ejecutó el padre (L8–L9) sobre la misma base y la
-misma revisión. Push/PR queda a decisión del dueño.
+misma revisión. PR #438 abierto; el merge queda a decisión del dueño.
 
 ## Delegación
 
