@@ -5,6 +5,16 @@ código de producto: la sesión mide y documenta. La ejecución pesada del
 instrumento corre en un job de CI (`.github/workflows/audit-ui.yml`) y su
 evidencia se descarga como artefacto.
 
+## Estrategia de entrega
+
+El presupuesto de ~400 líneas aplica a correcciones, no a un instrumento nuevo
+completo: un corte sólo es ejecutable cuando su capa y sus fixtures están
+completos. Mismo criterio declarado en U0–U8. La entrega va en cortes revisables:
+**1** workflow de CI y nota; **2** instrumento de capas 1–3 y 5 (helpers,
+fixtures, render, primitivas, matriz); **3** caminatas de los ocho ABM;
+**4** informe, rúbrica, triage e issues. El merge y la publicación quedan a
+decisión del dueño.
+
 ## Specs
 
 - **S1** — Objetivo (issue #372, verbatim): «Verificar los ocho ABM del escritorio
