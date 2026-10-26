@@ -77,6 +77,11 @@ import './u6/walk.js'
 import './u6/walk-plans.js'
 import './u6/primitives.js'
 
+// U7 (issue #370) audits the clinical desk — the history, the five specialty
+// records and the AI decision-support module. The fixtures and the row modules
+// live together so `--grep @U7` selects the session.
+import './u7/fixtures.js'
+
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
 
