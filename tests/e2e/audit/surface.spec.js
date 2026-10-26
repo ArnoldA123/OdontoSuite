@@ -72,6 +72,7 @@ import './u5/api-matrix.js'
 // plan the versioned record keeps. The fixtures and the row modules live
 // together so `--grep @U6` selects the session.
 import './u6/fixtures.js'
+import './u6/render.js'
 
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
