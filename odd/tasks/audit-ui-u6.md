@@ -3,7 +3,8 @@
 Status: DONE. Rama `feat/audit-ui-u6` desde `7da7ceb`; instrumento en
 `tests/e2e/audit/u6/` entregado en tres cortes (`2d350fe`, `37b15bd`,
 `0ee422f`), esta nota en su commit de documentación y hallazgos publicados en
-#414–#420 (más el registro de sesión en el comentario de #369). No se toca
+#414–#420 (más el registro de sesión en el comentario de #369). Los tres cortes
+pasaron la revisión nativa (tres linajes aprobados y consumidos). No se toca
 código de producto.
 
 ## Specs
@@ -233,3 +234,37 @@ descuento > 0 % no se caminó por la interfaz (los fixtures cubren 0 %).
 | El modal anidado cierra sólo el superior | **Cumple la pila** (2→1, detalle montado con su contenido); **no cumple la salud** (F9) |
 | Cero `pageerror` | **No cumple**: 0 en las 8 filas de render, los 2 probes de carga, los 2 de error y la caminata de presupuestos; **1** en la pila anidada de planes (F9) |
 | Rúbrica puntuada | **Cumple**: 17/24 y 16/24 (`ux-rubric.md`) |
+
+## Revisión nativa (RDD)
+
+El candidato completo (`origin/main` → `a29528e`, 12 archivos y 5 779 líneas)
+**no pudo revisarse como una sola unidad**: `review.start` respondió en preflight
+`lens_context_budget_exceeded` y **no creó autoridad** (`mutation_performed:
+false`). La continuación que indicó el proveedor es partir la unidad en
+candidatos más pequeños; como los cortes ya existían como commits, cada uno se
+revisó como candidato propio desde un *worktree* de este mismo clon
+(`.atl/review-cut1`, `.atl/review-cut2`, `.atl/review-cut3`, ignorados por git),
+con el `baseRef` del corte anterior.
+
+| Corte | Linaje | Nivel | Lentes | Resultado |
+| ----- | ------ | ----- | ------ | --------- |
+| `2d350fe` (fixtures y helpers) | `review-6b156558d0c16738` | high | risk, readability, reliability | **approved** y consumido; 19 hallazgos informativos |
+| `37b15bd` (render) | `review-752175e9393f2ce0` | medium | readability, reliability | **approved** y consumido; 7 hallazgos informativos |
+| `0ee422f` (caminatas y diálogos) | `review-87a5123a420dcb5f` | medium | readability, reliability | **approved** y consumido; 13 hallazgos informativos |
+
+- El único motivo de nivel `high` fue `process_boundary` en
+  `tests/e2e/audit/u6/fixtures-guarded.js` (el tinker guardado); quedó aislado en
+  el corte 1, que es el que lo revisó.
+- Ningún hallazgo bloqueó: los 39 son `informational` (sugerencias y avisos de
+  legibilidad y de fiabilidad del instrumento). Los más citables como trabajo
+  posterior: `R3-005` (cobertura del parser PDF), `R2-PDF-MISSING-ASYMMETRY`
+  (simetría de la comparación de filas faltantes), `R3-firstpaint-timing-race`
+  (ventana del primer pintado), `R3-classifyfailures-expectation-swap`
+  (expectativa de la allowlist) y `R2-PLAN-PRICE-MISMATCH` (precio del fixture de
+  plan contra su propio cálculo). No se abren issues por el tope de §8.1.
+- Dos intentos del relé del host fueron rechazados en admisión antes de lograrlo
+  (un payload de `reliability` truncado en el corte 1 y uno de `readability` con
+  arreglos desbalanceados en el corte 3). En ambos casos se consultó STATUS y se
+  reejecutó **sólo** el slot reofrecido, sin reenviar los bytes rechazados.
+- La revisión no autoriza la entrega: push y PR siguen la política ordinaria del
+  repositorio.
