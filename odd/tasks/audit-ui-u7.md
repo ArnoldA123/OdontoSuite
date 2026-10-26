@@ -112,7 +112,7 @@ se declara como fixture, nunca como comportamiento observado.
 - [x] **T5** · S5, S10, S11 · `inline` · Cierre: `pnpm exec prettier --check`
   en verde, `eslint` 0 errores, `playwright test --list` → 286 tests en 31
   archivos, commits y nota. **Revisión nativa bloqueada por el relé** (§Revisión
-  nativa); PR pendiente de decisión.
+  nativa); PR #430 abierto, merge a decisión del dueño.
 
 ## Log
 
