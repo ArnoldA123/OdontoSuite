@@ -3,8 +3,9 @@
 Status: DONE. Rama `feat/audit-ui-u6` desde `7da7ceb`; instrumento en
 `tests/e2e/audit/u6/` entregado en tres cortes (`2d350fe`, `37b15bd`,
 `0ee422f`), esta nota en su commit de documentación y hallazgos publicados en
-#414–#420 (más el registro de sesión en el comentario de #369). Los tres cortes
-pasaron la revisión nativa (tres linajes aprobados y consumidos). No se toca
+#414–#420 (más el registro de sesión en el comentario de #369). Los tres cortes de
+código y esta nota pasaron la revisión nativa (cuatro linajes aprobados y
+consumidos). No se toca
 código de producto.
 
 ## Specs
@@ -251,6 +252,7 @@ con el `baseRef` del corte anterior.
 | `2d350fe` (fixtures y helpers) | `review-6b156558d0c16738` | high | risk, readability, reliability | **approved** y consumido; 19 hallazgos informativos |
 | `37b15bd` (render) | `review-752175e9393f2ce0` | medium | readability, reliability | **approved** y consumido; 7 hallazgos informativos |
 | `0ee422f` (caminatas y diálogos) | `review-87a5123a420dcb5f` | medium | readability, reliability | **approved** y consumido; 13 hallazgos informativos |
+| `7e91de1` (esta nota) | `review-218b376c05ca7ed7` | low | — (documentación pasiva) | **approved** y consumido; sin hallazgos |
 
 - El único motivo de nivel `high` fue `process_boundary` en
   `tests/e2e/audit/u6/fixtures-guarded.js` (el tinker guardado); quedó aislado en
