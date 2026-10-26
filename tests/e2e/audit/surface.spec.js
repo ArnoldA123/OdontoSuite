@@ -67,6 +67,12 @@ import './u5/primitives.js'
 import './u5/ready-to-bill.js'
 import './u5/api-matrix.js'
 
+// U6 (issue #369) audits the budget surface and the treatment plans: the money
+// the estimate explains, the block an approved document puts on editing and the
+// plan the versioned record keeps. The fixtures and the row modules live
+// together so `--grep @U6` selects the session.
+import './u6/fixtures.js'
+
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
 
