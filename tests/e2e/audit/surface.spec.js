@@ -89,6 +89,20 @@ import './u7/walk-ai.js'
 import './u7/api-matrix.js'
 import './u7/report.js'
 
+// U8 (issue #371) audits the procedure catalogue and its tariff: the list, the
+// detail with its four tabs, the usage statistics, the clinical favourites and
+// the reception consult. The fixtures and the row modules live together so
+// `--grep @U8` selects the session.
+import './u8/fixtures.js'
+import './u8/render.js'
+import './u8/primitives.js'
+import './u8/walk-catalog.js'
+import './u8/walk-detail.js'
+import './u8/walk-stats.js'
+import './u8/walk-favorites.js'
+import './u8/api-matrix.js'
+import './u8/report.js'
+
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
 
