@@ -1,0 +1,198 @@
+name: Audit UI
+
+# Plan #13 (issue #363) — the browser pass of one audit session, run as a job
+# instead of on the operator's machine.
+#
+# Why CI: layers 2–6 boot the app, move a real browser and take minutes, so the
+# session that writes the instrument would sit waiting on them. This workflow
+# runs the same instrument, on a disposable MySQL database, and uploads the
+# evidence the triage reads: `manifest.json`, `render.json`, `primitives.json`,
+# the walkthrough, the rubric, the raw walk JSON and every screenshot.
+#
+# Guardrails (plan #13 §9): the run only writes `odontosuite_audit`, which the
+# service creates for this job; the database is thrown away with the runner.
+# `.atl/` is gitignored, so the evidence leaves as an artifact, never a commit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      session:
+        description: 'Audit session (evidence directory under .atl/qa-evidence/audit/ui)'
+        required: true
+        default: 'U9'
+      scope:
+        description: 'AUDIT_SCOPE for the spec (module:<a,b> or route:<path>)'
+        required: true
+        default: 'module:professionals,environments,appointment-types,specialties,settings,branch-transfers,accounting-locks'
+      grep:
+        description: 'Playwright --grep selector'
+        required: true
+        default: '@U9'
+  push:
+    branches: ['feat/audit-ui-*']
+
+concurrency:
+  group: audit-ui-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_ENV: local
+  APP_DEBUG: true
+  APP_URL: http://127.0.0.1:8000
+  LOG_CHANNEL: stderr
+  BROADCAST_CONNECTION: 'null'
+  MAIL_MAILER: log
+  CACHE_STORE: array
+  QUEUE_CONNECTION: sync
+  SESSION_DRIVER: file
+
+jobs:
+  surface-audit:
+    name: Surface audit (${{ inputs.session || 'U9' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: odontosuite_audit
+          MYSQL_USER: odontosuite
+          MYSQL_PASSWORD: secret
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u odontosuite -psecret"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: odontosuite_audit
+      DB_USERNAME: odontosuite
+      DB_PASSWORD: secret
+      AUDIT_SESSION: ${{ inputs.session || 'U9' }}
+      AUDIT_SCOPE_INPUT: ${{ inputs.scope || 'module:professionals,environments,appointment-types,specialties,settings,branch-transfers,accounting-locks' }}
+      AUDIT_GREP: ${{ inputs.grep || '@U9' }}
+      AUDIT_SCOPE: ${{ inputs.scope || 'module:professionals,environments,appointment-types,specialties,settings,branch-transfers,accounting-locks' }}
+      AUDIT_OUT: .atl/qa-evidence/audit/ui/${{ inputs.session || 'U9' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, bcmath, intl, mysql, pdo_mysql, gd, zip
+          coverage: none
+
+      # Ordering matters: `cache: 'pnpm'` shells out to `pnpm store path`, so
+      # pnpm must exist before setup-node builds the cache key (same rule as
+      # ci.yml).
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare application key
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+
+      # The audit is served by `php artisan serve`, not by the Vite dev server:
+      # the job builds the assets once and Laravel serves them from
+      # public/build, which is what a production reader sees.
+      - name: Build frontend
+        run: pnpm build
+
+      - name: Wait for MySQL ready
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -u odontosuite -psecret --silent 2>/dev/null; then
+              echo "MySQL ready"
+              break
+            fi
+            echo "Waiting for MySQL... ($i)"
+            sleep 2
+          done
+
+      - name: Migrate and seed the audit database
+        run: php artisan migrate --seed --force
+
+      - name: Start the application
+        run: |
+          nohup php artisan serve --host=127.0.0.1 --port=8000 > /tmp/serve.log 2>&1 &
+          for i in {1..30}; do
+            if curl -sf -o /dev/null http://127.0.0.1:8000/login; then
+              echo "Application ready"
+              exit 0
+            fi
+            echo "Waiting for the application... ($i)"
+            sleep 2
+          done
+          echo "::error::The application never answered /login"
+          cat /tmp/serve.log
+          exit 1
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Layer 1 — static manifest
+        run: |
+          node scripts/audit/ui-manifest.mjs \
+            --module="$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^module://')" \
+            --out="${AUDIT_OUT}/manifest.json"
+
+      - name: Layers 2–4 — render, dialogs and walks
+        env:
+          AUDIT_MANIFEST: ${{ env.AUDIT_OUT }}/manifest.json
+        run: |
+          pnpm exec playwright test tests/e2e/audit/surface.spec.js \
+            --grep "${AUDIT_GREP}" \
+            --output="${AUDIT_OUT}/playwright"
+
+      - name: Layers 5–6 — aggregate, gallery and verdict
+        if: always()
+        run: |
+          node scripts/audit/ui-pass.mjs --no-run \
+            --module="$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^module://')" \
+            --out="${AUDIT_OUT}"
+
+      - name: Upload the evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-${{ env.AUDIT_SESSION }}-evidence
+          path: ${{ env.AUDIT_OUT }}
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload the server log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-${{ env.AUDIT_SESSION }}-server-log
+          path: /tmp/serve.log
+          retention-days: 7
