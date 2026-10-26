@@ -4,7 +4,8 @@ Status: DONE (sesión de auditoría). Rama `feat/audit-ui-u8` desde `5c90e45`
 (`main`); instrumento en `tests/e2e/audit/u8/` entregado en cuatro cortes y esta
 nota en el suyo. No se toca código de producto. Hallazgos publicados **#431–#437**
 y las dos filas de clase ya abierta registradas en **#416** y **#420**. PR
-**#438** abierto; el merge queda a decisión del dueño.
+**#438** abierto; su merge cierra **#371** por instrucción del dueño (L12) y
+queda a decisión del dueño.
 
 ## Specs
 
@@ -194,6 +195,11 @@ nunca resolvería una tarifa.
 - **L11** — Cierre de comprobaciones: Prettier en verde sobre `tests/e2e/audit/u8`
   y `surface.spec.js`; ESLint 0 errores; `--list` → 20 tests en 8 archivos, todos
   `@U8`.
+- **L12** — Instrucción del dueño, verbatim: «okey no te olvides de cerrar tu
+  issue tambien al hacer el pr». El plan §8.1 reserva el cierre de los issues de
+  sesión a otra sesión; la instrucción del dueño prevalece para esta unidad: el
+  PR #438 declara `Closes #371` y su merge cierra el issue de sesión. El issue
+  #371 se leyó de vuelta después del merge (L13).
 
 ## Línea base medida
 
