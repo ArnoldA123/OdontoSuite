@@ -208,8 +208,8 @@ nunca resolvería una tarifa.
 - **Envoltorio** · `ui-pass --no-run` → **gate OK**; 5/5 superficies renderizan;
   **0 `pageerror`**; 5 solicitudes esperadas en allowlist; 0 acciones sin
   clasificar; **6 diálogos y 0 filas fallidas** del contrato.
-- **Render por rol** · 12 filas (5 superficies × sus roles, 2 de ellas
-  negativas): 0 `pageerror`, 1 `h1` por fila, **0 scroll horizontal a 390 px**;
+- **Render por rol** · 12 filas (5 superficies × sus roles, con una fila
+  negativa por superficie): 0 `pageerror`, 1 `h1` por fila, **0 scroll horizontal a 390 px**;
   la fila negativa de recepción declara **6 controles** (`denial.writeAffordances`)
   y 9 puertas de escritura con `403`; 31 mensajes de consola, todos de la puerta
   negativa declarada (0 inesperados).
