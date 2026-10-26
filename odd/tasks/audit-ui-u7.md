@@ -254,6 +254,7 @@ linaje:
 | ------ | --------- | ------ | --------- |
 | `review-4d9de24c631629bb` | corte 1 (2 325 líneas) | risk, readability, reliability | `risk` y `readability` admitidos (2 resultados enviados); `reliability` rechazada en admisión dos veces (`review-reliability-1-89775071e47b.json`, `…-b0591473f16c.json`) y luego **expirada a los 982 200 ms** de un límite de 982 196 ms. Slot declarado `unachievable`; linaje detenido |
 | `review-4d89e49a8d88c36e` | c2 reducido (1 049 líneas) | risk, readability, reliability | `risk` rechazada en admisión (`review-risk-1-f5398a4c4346.json`, 2 469 bytes, llaves balanceadas). 0 revisores enviados; linaje detenido |
+| `review-c8e70e0db8d9f806` | rama completa (8 259 líneas, 12 archivos) | risk, readability, reliability | **preflight** `lens_context_budget_exceeded`: el proveedor no creó autoridad (`mutation_performed: false`) y prescribe partir en commits más pequeños; los cortes 1/4–4/4 ya existen y su revisión es la que falló por el relé |
 
 Los payloads rechazados se conservan en
 `.git/gentle-ai/rejected-results/<linaje>/` (fuera del árbol y de la evidencia
