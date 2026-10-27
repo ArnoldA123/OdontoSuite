@@ -109,13 +109,15 @@ Frontera del primer corte: commit `fc4285e` (`helpers.js`, `fixtures.js`,
   puerta negativa de cada escritorio respondiendo 403.
 - **Capa 3** · 3 diálogos, **21 comprobaciones**, **1 falla**: el modal de agenda
   de continuidad no tiene nombre accesible.
-- **Capa 4** · **61 acciones clasificadas**: 52 `OK`, 2 `DEFECTO`, 2 `NO-OP`, 5
-  `CONFUSO`; 0 `pageerror` y 0 request inesperado.
+- **Capa 4** · **62 acciones clasificadas: 52 `OK`, 3 `DEFECTO`, 2 `NO-OP`, 5
+  `CONFUSO`, 0 `NO PROBADO`**; 0 `pageerror` y 0 request inesperado de página (los
+  siete 500 del estado de error se declaran y no cuentan).
 - **Capa 5** · **168 filas sobre 24 endpoints × 7 roles, 168/168 conformes**, 0
   desvíos; los 403 esperados se derivan del catálogo de permisos y se observaron
   con token real.
-- **Rúbrica** · ver `ux-rubric.md` (doce criterios × BI, continuidad, laboratorio
-  y sesión, con la justificación y el `NO MEDIDO` de cada puntuación).
+- **Rúbrica** · **BI 12/24 · continuidad 11/24 · laboratorio 13/24 · sesión 9/24**
+  (`ux-rubric.md`, doce criterios × cuatro ámbitos, cada puntuación con su
+  justificación y su `NO MEDIDO`).
 - **Gate** · `gate.json` → `ok: false` con un solo motivo: el contrato del
   diálogo sin nombre accesible. Es el criterio de salida incumplido, no ruido.
 
@@ -129,10 +131,10 @@ Frontera del primer corte: commit `fc4285e` (`helpers.js`, `fixtures.js`,
 | F04 | BI | «Utilización de Ambientes» | tarjeta de vacío | 8 filas | 4 | MEDIDO | `crit:media` | la misma | #447 |
 | F05 | BI | «Limpiar filtros» | los filtros publican la población aplicada | profesional y ambiente siguen en «Seleccionar...» | 4 | MEDIDO | `crit:media` | `UiSelect` con opción de valor vacío | #402 (comentario) |
 | F06 | Continuidad | abrir el modal de agenda | diálogo con nombre accesible | `aria-labelledby` ausente y `aria-label` vacío | 3 | MEDIDO | `crit:media` | `#header` propio sin `title`/`labelledby` | #429 (comentario) |
-| F07 | Laboratorio | buscar alta y edición | la superficie las ofrece | sólo «Actualizar» y «Ver» | 4 | MEDIDO | `crit:media` | la superficie se entregó sin ellas y el changelog dice lo contrario | #448 |
-| F08 | Laboratorio | editar el caso de otro técnico | 403 | `PUT` 200 con el token del otro técnico | 4 | MEDIDO | `crit:media` | `update` sin regla de pertenencia | #449 |
-| F09 | BI | renderizar como `recepcionista` | sin escrituras | «Excel», «CSV» y «PDF» habilitados; puerta 403 | 2 | MEDIDO | `crit:media` | la página no consulta `usePermissions()` | #439 (comentario) |
-| F10 | Agenda | repetir la ventana de una cita **borrada** | 422 con conflicto | **500** `SQLSTATE[23000]` en alta y en agenda de continuidad | 4 | MEDIDO | `crit:media` | el índice único cuenta las filas con soft delete y `findConflicts` no | #392 (comentario) |
+| F07 | Laboratorio | buscar alta y edición (filas crudas F07 y F09) | la superficie las ofrece | sólo «Actualizar» y «Ver» | 4 | MEDIDO | `crit:media` | la superficie se entregó sin ellas y el changelog dice lo contrario | #448 |
+| F08 | Laboratorio | editar el caso de otro técnico (fila cruda F08) | 403 | `PUT` 200 con el token del otro técnico | 4 | MEDIDO | `crit:media` | `update` sin regla de pertenencia | #449 |
+| F10 | BI | renderizar como `recepcionista` | sin escrituras | «Excel», «CSV» y «PDF» habilitados; puerta 403 | 2 | MEDIDO | `crit:media` | la página no consulta `usePermissions()` | #439 (comentario) |
+| F11 | Continuidad | agendar un recall sobre la ventana de una cita que la sesión acaba de borrar | 422 con conflicto | **500** «Error al agendar la cita de control» (cita 201, borrada 200) | 4 | MEDIDO | `crit:media` | el índice único cuenta las filas con soft delete y `findConflicts` no las ve | #392 (comentario) |
 
 ### Backlog del programa (§8.4)
 
@@ -149,7 +151,7 @@ Frontera del primer corte: commit `fc4285e` (`helpers.js`, `fixtures.js`,
 | -------- | --------- |
 | Cada reporte tiene sus tres estados | **No cumple**: 4 de 7 no tienen vacío (#447); datos y error sí están en los siete |
 | El export coincide con la pantalla | **Cumple**: seis reportes exportables con cabeceras normalizadas, filas contra el total declarado y una muestra de valor; el consolidado declara que no se exporta |
-| El conflicto de agenda deja la solicitud pendiente y lo dice | **Cumple**: `POST` 422 con «Conflicto de horario detectado…» en `scheduled_at`, la fila sigue `pending` y la cola la conserva |
+| El conflicto de agenda deja la solicitud pendiente y lo dice | **Cumple** con un matiz: `POST` 422 con «Conflicto de horario detectado…» en `scheduled_at`, la fila sigue `pending` y la cola la conserva; pero la ventana que ocupa una cita **borrada** no se puede reusar y revienta en 500 (F11) |
 | La fase de laboratorio no retrocede y el mensaje cae en su campo | **Cumple**: la puerta sólo ofrece fases posteriores, el retroceso forzado responde 422 con `errors.phase[0]` y la fase no cambia |
 | Cero `pageerror` | **Cumple**: 0 en las 9 filas de render, los 3 diálogos y las 61 acciones |
 | Rúbrica puntuada | **Cumple**: `ux-rubric.md` con doce criterios × cuatro ámbitos y su justificación |
@@ -177,9 +179,36 @@ que es justo el hecho F10.
 
 ## Revisión nativa (RDD)
 
-Pendiente de la corrida definitiva: candidato = los commits del instrumento en
-`feat/audit-ui-u10`. Se registra aquí el resultado que devuelva el proveedor, sin
-inventar autoridad.
+**Sin veredicto: el proveedor no produjo autoridad y no hay nada que consumir.**
+
+| Paso | Respuesta |
+| --- | --- |
+| `inspect` | `ready`, `action: start`, candidato `base-diff` `c6180b3..HEAD` con 11 archivos. |
+| `start` (3 lentes: riesgo, legibilidad, fiabilidad) | `blocked` en `preflight`, `lens_context_budget_exceeded`: «The candidate's complete reviewer evidence exceeds the native context budget (…) retrying this exact candidate cannot succeed (…) split it into a chained sequence of smaller reviewable commits»; `mutation_outcome: none`, sin linaje ni autoridad. |
+| `assess` | `nativeReviewOutcome: unavailable` (explícito), `nativeRisk: unassessable`, plan sin verificador independiente. |
+| `assess` con `escalate` item 5 | `risk: high`, `independentVerifier: true`: el candidato modifica un workflow de CI (entorno de entrega). |
+
+Consecuencia: no se consumió autoridad, no hay corrección pendiente y el
+proveedor declara que el candidato completo no cabe en su presupuesto. La
+verificación independiente la ejecuta `gentle-ai-verify` sobre el rango
+`c6180b3..HEAD` y su veredicto se registra en el cierre. Queda declarado como
+revisión nativa no obtenida, igual que en U9.
+
+### Verificación independiente (`gentle-ai-verify`)
+
+| Afirmación | Resultado |
+| --- | --- |
+| No se toca código de producto | **PASS** — 11 archivos, ninguno en `resources/`, `app/`, `routes/`, `database/`, `config/` |
+| El workflow de CI es seguro y consistente | **PASS** — base desechable `odontosuite_audit`, sin mutación del repositorio ni credenciales en claro |
+| El instrumento mide y no afirma sobre el producto | **PASS** — ningún defecto medido se convirtió en `OK` |
+| La evidencia es consistente | **PASS** — `gate.json` = los `counts` de cada caminata, 10 filas crudas, 168/168 de matriz, matriz BI 7 × 4 |
+| Guardarraíles de datos | **PASS en datos** (0 filas de la sesión en `odontosuite`, sin `migrate:fresh`); **FAIL en estado del árbol**: la nota estaba sin commitear y así se declaró |
+| La nota es fiel | **FAIL parcial** — la numeración F09/F10 no seguía al artefacto y la fila del 500 no tenía evidencia en el artefacto |
+
+Corregido en el cierre: la nota adopta los ids del artefacto (F10 = affordance de
+exportación de BI, F11 = ventana borrada) y la ventana borrada pasa a ser un paso
+medido (`09-deleted-window`): crea la cita, la borra y pide la misma ventana →
+**500** en vez del 422 que el producto promete.
 
 ## Delegación
 
@@ -193,6 +222,28 @@ modal abierto tapando la fila siguiente, el reloj del conflicto convertido con l
 zona del runner y el teardown que trataba un 422 como residuo.
 
 ## Log
+
+- **L12** — Primera corrida de CI (`40539553371`): verde, y destapó un defecto del
+  instrumento, no del producto: el hueco de conflicto se convertía con la zona del
+  runner (UTC) y en CI medía un hueco libre (201 en vez de 422), lo que dejaba dos
+  pasos sin medir. Corregido con el reloj literal del API (Laravel serializa con el
+  offset de la aplicación, así que la hora literal es el reloj de pared).
+- **L13** — Revisión nativa: `start` rechazado en `preflight` por
+  `lens_context_budget_exceeded`; `assess` con la escalación del ítem 5 (workflow de
+  CI = entorno de entrega) pide verificador independiente. Sin autoridad creada.
+- **L14** — Verificación independiente: seis afirmaciones, cuatro PASS y dos FAIL
+  corregidos (nota sin commitear y numeración/evidencia de F10). La ventana que
+  ocupa una cita borrada se midió como paso propio: **500** en la agenda de
+  continuidad tras crear y borrar la cita (`09-deleted-window`).
+- **L15** — Corrida definitiva de CI `40544841390` sobre `6e96d8f`: **verde**
+  (4m21s). 62 acciones clasificadas (52 `OK` / 3 `DEFECTO` / 2 `NO-OP` / 5
+  `CONFUSO` / 0 `NO PROBADO`), **11 filas crudas** (4 `DEFECTO`, 2 `NO-OP`, 5
+  `CONFUSO`), 168/168 filas de matriz, 0 `pageerror`, 0 request inesperado. La
+  puerta de sesión queda en `ok: false` con **un solo motivo**: el contrato del
+  diálogo de agenda sin nombre accesible; la ventana de la cita borrada y el
+  reset de filtros son acciones `DEFECTO` del recorrido, no motivos de puerta. La
+  rúbrica cierra en BI 12/24 · continuidad 11/24 · laboratorio 13/24 · sesión
+  9/24.
 
 - **L1** — Pedido del usuario, verbatim: «haz la issue 373-U10».
 - **L2** — Cuerpo de #373 (S1–S5 verbatim), plan #13 §4 (capas 2–6), §5
