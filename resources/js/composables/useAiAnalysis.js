@@ -170,7 +170,11 @@ export function useAiAnalysis() {
 
       return response.data
     } catch (err) {
-      error(err.response?.data?.message || 'Error al anular análisis')
+      // A cited analysis is rejected with 422 and the reason in `errors`; the
+      // generic `message` of a validation failure says nothing to the reader.
+      const errors = err.response?.data?.errors
+      const detail = errors && typeof errors === 'object' ? Object.values(errors).flat()[0] : null
+      error(detail || err.response?.data?.message || 'Error al anular análisis')
       throw err
     } finally {
       loading.value = false
