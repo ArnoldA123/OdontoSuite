@@ -1078,3 +1078,15 @@ navegador: señala dónde mirar primero.
   autoespera, `localStorage` en frames opacos y `pageerror` de primitivas dentro
   del gate). Hallazgos y seguimientos en `odd/tasks/audit-ui-u0.md`; U0 no toca
   producto.
+- **2026-10-27 (U12 — cierre del programa)** — La sesión de consolidación cierra
+  el plan: cruce de los doce informes por clase raíz, dedupe contra los 71
+  issues abiertos, una publicación (#459: el desglose de una cita sin ítems
+  contradice su propio total), cinco aceptaciones escritas con motivo y el
+  veredicto de las 36 rutas en
+  [`13-informe-final-2026-10.md`](13-informe-final-2026-10.md). El tablero final:
+  36 superficies auditadas, 12 ejes transversales con veredicto, 29 superficies
+  puntuadas (506/696) y 68 defectos con issue; dos rutas sin defecto abierto
+  (`/login` y `/settings/accounting-locks`). El tope global de 25 issues del §7
+  U12 no se cumplió: las sesiones publicaron 67 hallazgos antes de llegar aquí;
+  U12 lo registra y no reabre esa decisión. Sin cambios de producto; el detalle
+  vive en `odd/tasks/audit-ui-u12.md`.
