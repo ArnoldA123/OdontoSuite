@@ -385,3 +385,36 @@ los Sprints 3-6.
 
 Si encuentras un anti-patron que no esta en esta lista, anotalo en el siguiente
 sprint de pulido (Sprint 7) o en un code review de seguimiento.
+
+## 11. Formato de datos
+
+Una sola forma de escribir dinero, fechas y horas en toda la interfaz. El módulo
+`resources/js/composables/useFormatters.js` es la única fuente; ninguna página
+declara su propio formateador.
+
+| Dato           | Helper              | Forma canónica      |
+| -------------- | ------------------- | ------------------- |
+| Moneda (PEN)   | `formatCurrency`    | `S/ 1,234.50`       |
+| Moneda (USD)   | `formatUsd`         | `USD 0.0042`        |
+| Número         | `formatNumber`      | `1,234.5`           |
+| Fecha          | `formatDate`        | `27/10/2026`        |
+| Fecha con hora | `formatDateTime`    | `27/10/2026, 15:07` |
+| Hora           | `formatTime`        | `15:07`             |
+| Hora compacta  | `formatCompactTime` | `15:07`             |
+
+- Locale única: `es-PE`. Reloj único: 24 h (`hourCycle: 'h23'`).
+- `formatCurrency` ya emite el prefijo `S/`: nunca se escribe `S/ {{ ... }}`
+  delante del helper.
+- Una fecha `YYYY-MM-DD` se lee por componentes locales.
+  `new Date('YYYY-MM-DD')` la interpreta como UTC y retrocede un día fuera de
+  UTC.
+- Un campo de tipo fecha (nacimiento, fecha prometida, vencimiento de recall) es
+  un día calendario: se normaliza con `dateOnly(value)` y se pinta con
+  `formatDate`. Un instante (creado, entregado, agendado) usa `formatDateTime`.
+- Un valor no numérico se pinta como `S/ 0.00`; nunca `S/ NaN`.
+- Prohibido en `resources/js` fuera del módulo canónico: `Intl.NumberFormat` con
+  `currency`, `Intl.DateTimeFormat` y cualquier `toLocale*`. El guard
+  `tests/Unit/Composables/FormatPENLabelTest` falla con archivo y línea.
+- Excepción declarada: `components/ui/CurrencyInput.vue` conserva un
+  `Intl.NumberFormat('es-PE', {minimumFractionDigits})` sin `currency` para el
+  texto dentro del campo de importe.
