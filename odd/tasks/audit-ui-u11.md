@@ -255,25 +255,36 @@ las 72 capturas y los JSON se publican como artefacto de CI, no como commit.
 
 ## Revisión nativa (RDD)
 
-**No cerró: el proveedor emitió un hallazgo y su ruta de corrección quedó
-rechazada por la fachada de Pi.** No se consumió autoridad ni se acusó recibo, y
-no se inventó un veredicto.
+**Aprobada en el segundo linaje: `review-1717bb61178bd9be`, `state: approved`,
+autoridad quemada con `native-approved-acknowledgement-completed`.** El primer
+linaje (`review-052a34206fb71cc1`) quedó en `correction_required` por un defecto
+de la fachada al enviar el plan de corrección; su hallazgo se corrigió igual y el
+candidato corregido se volvió a revisar desde cero.
+
+### Linaje 1 — `review-052a34206fb71cc1` (candidato original)
 
 | Paso | Respuesta |
 | --- | --- |
 | `assess` | `reviewDue: true` (`high_risk`), `nativeRisk: high`, `agentEscalation` ítem 5 (workflow de CI) → `independentVerifier: true`. |
-| `inspect` | `ready`, `action: start`, candidato `base-diff` `5b1cc02..HEAD` con 9 archivos. |
-| `start` (4 lentes: riesgo, resiliencia, legibilidad, fiabilidad) | `created`, `state: reviewing`, `risk_tier: high`, `correction_budget: 200`, linaje `review-052a34206fb71cc1`. |
-| Revisores (4 corridas anunciadas) | Riesgo, resiliencia y legibilidad admitidos; **fiabilidad rechazado dos veces en admisión**: `reviewer artifact admission out_of_scope` y `reviewer finding ID does not match the native ASCII schema` (los payloads quedaron preservados en `.git/gentle-ai/rejected-results/`). La tercera corrida fue admitida. |
-| Refuter (1 corrida) | Un hallazgo grave causado por el candidato: **R3-001** — «un artefacto de render se escribe antes de medir y `evaluate()` sólo comprueba existencia, así que una superficie saltada cuenta como medida y recibe doce veredictos fabricados con el gate en verde». `state: correction_required`. |
-| Corrección (20 líneas de diff) | Aplicada: `measured` sólo se escribe tras capturar ambos viewports y leer los ejes; el reporte descarta filas con `measured !== true` o sin `axes` y las trata como `NO PROBADO`/`missing`. El instrumento se reejecutó: **62 tests verdes, 36/36 filas medidas, gate OK, los mismos 62 hallazgos**. |
-| Plan de corrección | **Rechazado por la fachada** dos veces con `capture-binding-rejected: collectBinding does not carry one non-empty matching provider lineage and target token`, sobre el binding exacto emitido por STATUS (idéntico byte a byte en las dos llamadas, y con el árbol ya devuelto al candidato revisado). |
+| `start` (4 lentes: riesgo, resiliencia, legibilidad, fiabilidad) | `created`, `state: reviewing`, `correction_budget: 200`. |
+| Revisores | Riesgo, resiliencia y legibilidad admitidos; fiabilidad rechazado dos veces en admisión (`reviewer artifact admission out_of_scope` y `reviewer finding ID does not match the native ASCII schema`) y admitido en la tercera. |
+| Refuter | Un hallazgo grave del candidato: **R3-001** — «un artefacto de render se escribe antes de medir y `evaluate()` sólo comprueba existencia, así que una superficie saltada cuenta como medida y recibe doce veredictos fabricados con el gate en verde». `state: correction_required`. |
+| Corrección | Aplicada (20 líneas de diff): `measured` sólo se escribe tras capturar ambos viewports y leer los ejes; el reporte descarta filas con `measured !== true` o sin `axes` y las trata como `NO PROBADO`/`missing`. Reejecución: 62 verdes, 36/36 medidas, gate OK, los mismos 62 hallazgos. |
+| Plan de corrección | **Rechazado por la fachada** dos veces con `capture-binding-rejected: collectBinding does not carry one non-empty matching provider lineage and target token`, sobre el binding exacto de STATUS. La autoridad quedó en `correction_required` sin cierre ni acuse. |
 
-Consecuencia: la autoridad queda en `correction_required` sin cierre, con el
-hallazgo ya corregido en código. La sesión no declara la revisión nativa como
-obtenida. Es un defecto de la fachada de Pi en la ruta `capture-correction-plan`
-(el binding del proveedor no se acepta), no una corrección pendiente del
-candidato.
+### Linaje 2 — `review-1717bb61178bd9be` (candidato corregido)
+
+| Paso | Respuesta |
+| --- | --- |
+| `inspect` | `ready`, `fresh_target_ready`, target `06266ff05…`, mismo diff de 9 archivos / 2 778 líneas. |
+| `start` (4 lentes) | `created`; presupuesto de corrección 200. |
+| Revisores (4 corridas) | Riesgo, resiliencia y legibilidad admitidos; fiabilidad rechazado una vez por payload truncado (472 objetos abiertos / 471 cerrados) y **admitido en el segundo intento**. |
+| Cierre | **`approved`**: 22 hallazgos informativos (9 de fiabilidad, 7 de legibilidad, 4 de resiliencia, 1 de riesgo, 1 de formato), **0 bloqueantes, ninguna corrección abierta**. Severidades `WARNING` y `SUGGESTION`, `disposition: informational`; el proveedor indica tratarlos como trabajo posterior y nunca como motivo para repetir la revisión. |
+| `acknowledge-approved` | `native-approved-acknowledgement-completed`, `authority: burned`, `delivery: ordinary-repository-policy`. |
+
+Los 22 hallazgos informativos quedan como seguimiento posterior (mayoría
+`WARNING` de legibilidad y fiabilidad sobre el instrumento); no abren corrección
+ni bloquean esta entrega.
 
 ### Verificación independiente (`gentle-ai-verify`)
 
@@ -363,6 +374,11 @@ duplicación; cuenta el dato que aparece en KPI y tabla o fuera de tabla).
   de STATUS y con el árbol ya devuelto al candidato revisado; la autoridad queda
   en `correction_required` sin cierre y sin acuse. Se declara la revisión nativa
   **no obtenida**.
+- **L11** — Segunda revisión nativa sobre el candidato corregido: `approved`.
+  4 lentes, 22 hallazgos informativos (0 bloqueantes, 0 correcciones) y
+  `acknowledge-approved` con autoridad quemada (`1c09c7c5…`). El linaje anterior
+  queda en `correction_required` por el rechazo de la fachada a su plan; el
+  hallazgo que lo abrió está corregido y re-medido.
 - **L10** — Verificación independiente: ocho afirmaciones, siete PASS y un FAIL
   de higiene (esta nota sin commitear) corregido en el cierre. La verificación
   confirmó que las 36 filas están medidas, que el gate no puede quedar verde con
