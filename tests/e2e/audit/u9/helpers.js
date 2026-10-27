@@ -1018,6 +1018,54 @@ export const pickOption = async (page, trigger, optionText, timeout = 8000) => {
 }
 
 /**
+ * Opens a `UiSelect` trigger and returns the option labels it published.
+ *
+ * `pickOption` chooses one option; a walkthrough that has to prove the catalogue
+ * offers exactly the rows the API published needs the list itself, not a choice.
+ * The listbox is closed with Escape so the trigger stays addressable.
+ */
+export const readSelectOptions = async (page, trigger, timeout = 8000) => {
+  const locator = typeof trigger === 'string' ? page.locator(trigger).first() : trigger
+
+  try {
+    if (!(await locator.isVisible().catch(() => false))) {
+      return { ok: false, reason: 'trigger not visible' }
+    }
+    if (!(await locator.isEnabled().catch(() => false))) {
+      return { ok: false, reason: 'trigger disabled' }
+    }
+    await locator.click({ timeout })
+  } catch (thrown) {
+    return {
+      ok: false,
+      reason: `trigger not clickable: ${String(thrown?.message ?? thrown).slice(0, 200)}`
+    }
+  }
+
+  const listbox = page.locator('[role="listbox"]:visible').last()
+  const opened = await listbox
+    .waitFor({ state: 'visible', timeout })
+    .then(() => true)
+    .catch(() => false)
+
+  if (!opened) return { ok: false, reason: 'listbox did not open' }
+
+  const options = (
+    await listbox
+      .locator('button')
+      .allInnerTexts()
+      .catch(() => [])
+  )
+    .map(label => label.trim().replace(/\s+/g, ' '))
+    .filter(Boolean)
+
+  await page.keyboard.press('Escape').catch(() => {})
+  await listbox.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {})
+
+  return { ok: true, options }
+}
+
+/**
  * Moves instrument-induced HTTP failures out of `unexpected`.
  *
  * A probe that presses a door the API must refuse, or forces a load error to
