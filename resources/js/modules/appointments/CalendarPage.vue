@@ -631,7 +631,11 @@ import NewAppointmentModal from '../../components/appointments/NewAppointmentMod
 import ConsultationWizard from './ConsultationWizard.vue'
 import { useConsultation } from '../../composables/useConsultation'
 import { useConfirm } from '../../composables/useConfirm'
-import { formatCompactTimeRange } from '../../composables/useFormatters'
+import {
+  formatCompactTimeRange,
+  formatDateTime as formatCanonicalDateTime,
+  formatTime
+} from '../../composables/useFormatters'
 import {
   APPOINTMENT_CHIP_BASE_CLASSES,
   APPOINTMENT_STATUS_KEYS,
@@ -854,15 +858,7 @@ export default {
     }
 
     const formatTimeRange = (start, end) => {
-      const startStr = new Date(start).toLocaleTimeString('es-PE', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-      const endStr = new Date(end).toLocaleTimeString('es-PE', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-      return `${startStr}-${endStr}`
+      return `${formatTime(start)}-${formatTime(end)}`
     }
 
     const appointmentTimeRange = appointment => {
@@ -1235,7 +1231,7 @@ export default {
     }
 
     const formatDateTime = dateTime => {
-      return new Date(dateTime).toLocaleString('es-ES', {
+      return formatCanonicalDateTime(dateTime, {
         year: 'numeric',
         month: 'long',
         day: 'numeric',

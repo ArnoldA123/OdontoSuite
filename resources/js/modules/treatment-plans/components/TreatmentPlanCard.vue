@@ -188,7 +188,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { useConfirm } from '@/composables/useConfirm'
-import { formatCurrency } from '@/composables/useFormatters'
+import { formatCurrency, formatDate as formatCanonicalDate } from '@/composables/useFormatters'
 import UiButton from '@/components/ui/Button.vue'
 import UiProgressBar from '@/components/ui/ProgressBar.vue'
 import PlanStatusBadge from './PlanStatusBadge.vue'
@@ -275,14 +275,9 @@ const availableStatuses = computed(() => {
   return map[props.plan.status] || []
 })
 
-const formatDate = date => {
-  if (!date) return '—'
-  return new Date(date).toLocaleDateString('es-PE', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
+// issue 451: canonical short date; the visible fallback stays at the call site.
+const formatDate = date =>
+  formatCanonicalDate(date, { year: 'numeric', month: 'short', day: 'numeric' }) || '—'
 
 const changeStatus = status => {
   showStatusMenu.value = false

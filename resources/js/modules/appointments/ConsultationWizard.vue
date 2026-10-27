@@ -118,7 +118,7 @@
                       {{ item.procedure_name }}
                     </div>
                     <div class="text-xs text-theme-secondary">
-                      Fase {{ item.phase_number }} · S/ {{ item.unit_cost }} · Status:
+                      Fase {{ item.phase_number }} · {{ formatCurrency(item.unit_cost) }} · Status:
                       {{ item.status }}
                     </div>
                   </div>
@@ -330,7 +330,8 @@
                           {{ opt.label }}
                         </div>
                         <div class="text-xs text-theme-secondary">
-                          {{ opt.specialty || 'general' }} · S/ {{ opt.default_cost }} ·
+                          {{ opt.specialty || 'general' }} ·
+                          {{ formatCurrency(opt.default_cost) }} ·
                           {{ opt.default_duration_minutes || '—' }} min
                         </div>
                       </li>
@@ -453,7 +454,7 @@
                         </span>
                         <span class="text-xs text-theme-secondary whitespace-nowrap">
                           {{ opt.unit || '' }}
-                          <span v-if="opt.cost_price">· S/ {{ opt.cost_price }}</span>
+                          <span v-if="opt.cost_price">· {{ formatCurrency(opt.cost_price) }}</span>
                         </span>
                       </button>
                     </div>
@@ -701,6 +702,7 @@ import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import DiagnosisPicker from '@/components/procedures/DiagnosisPicker.vue'
 import LabCaseFormModal from '../lab-cases/LabCaseFormModal.vue'
 import { usePermissions } from '../../composables/usePermissions'
+import { formatCurrency, formatDateTime } from '../../composables/useFormatters'
 
 const props = defineProps({
   appointment: { type: Object, default: null }
@@ -1125,11 +1127,5 @@ const handleSubmit = async () => {
   } catch (e) {
     // submit ya muestra el toast de error
   }
-}
-
-const formatDateTime = iso => {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return d.toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' })
 }
 </script>

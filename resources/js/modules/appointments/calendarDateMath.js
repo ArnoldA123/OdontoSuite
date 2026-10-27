@@ -6,6 +6,8 @@
 // single start-of-week computation, so weekDays/monthDays/periodTitle/
 // dateRangeForView stay consistent through their shared source.
 
+import { formatDate } from '../../composables/useFormatters'
+
 export const WEEK_DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 export function buildHours(startHour = 6, endHour = 21) {
@@ -69,10 +71,13 @@ export function monthDays(date, today = new Date()) {
   return cells
 }
 
+// Titles render through the canonical format module (issue 451): one locale and one
+// field set. `undefined` drops a field the module's defaults would otherwise
+// keep (the week start carries no year, the month title carries no day).
 export function periodTitle(date, view) {
   switch (view) {
     case 'day':
-      return date.toLocaleDateString('es-ES', {
+      return formatDate(date, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -81,10 +86,16 @@ export function periodTitle(date, view) {
     case 'week': {
       const start = startOfWeek(date)
       const end = addDays(start, 6)
-      return `${start.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      const startTitle = formatDate(start, {
+        day: 'numeric',
+        month: 'short',
+        year: undefined
+      })
+      const endTitle = formatDate(end, { day: 'numeric', month: 'short', year: 'numeric' })
+      return `${startTitle} - ${endTitle}`
     }
     case 'month':
-      return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })
+      return formatDate(date, { year: 'numeric', month: 'long', day: undefined })
     default:
       return ''
   }

@@ -230,12 +230,13 @@ describe('periodTitle', () => {
   })
 
   it('produces the exact week titles the component shows today', () => {
-    expect(periodTitle(d(2026, 3, 11), 'week')).toBe('9 mar - 15 mar 2026')
-    expect(periodTitle(d(2026, 3, 9), 'week')).toBe('9 mar - 15 mar 2026')
+    // #451: canonical es-PE abbreviation keeps a period after the short month.
+    expect(periodTitle(d(2026, 3, 11), 'week')).toBe('9 mar. - 15 mar. 2026')
+    expect(periodTitle(d(2026, 3, 9), 'week')).toBe('9 mar. - 15 mar. 2026')
     // D11 fix: a Sunday reference titles the week that CONTAINS it.
-    expect(periodTitle(d(2026, 2, 1), 'week')).toBe('26 ene - 1 feb 2026')
+    expect(periodTitle(d(2026, 2, 1), 'week')).toBe('26 ene. - 1 feb. 2026')
     // Cross-year week.
-    expect(periodTitle(d(2026, 1, 1), 'week')).toBe('29 dic - 4 ene 2026')
+    expect(periodTitle(d(2026, 1, 1), 'week')).toBe('29 dic. - 4 ene. 2026')
   })
 
   it('produces the exact month titles the component shows today', () => {
