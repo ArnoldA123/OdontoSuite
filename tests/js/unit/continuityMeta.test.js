@@ -58,19 +58,19 @@ describe('continuityMeta kindLabel', () => {
 describe('continuityMeta preferredWindow', () => {
   it('renders a same-day range with the end time only', () => {
     expect(preferredWindow('2026-11-02T09:00:00', '2026-11-02T09:30:00')).toBe(
-      '02 nov 2026, 09:00 – 09:30'
+      '02 nov. 2026, 09:00 – 09:30'
     )
   })
 
   it('repeats the date when the range crosses midnight', () => {
     expect(preferredWindow('2026-11-02T22:00:00', '2026-11-03T01:00:00')).toBe(
-      '02 nov 2026, 22:00 – 03 nov 2026, 01:00'
+      '02 nov. 2026, 22:00 – 03 nov. 2026, 01:00'
     )
   })
 
   it('keeps the start only when there is no end', () => {
-    expect(preferredWindow('2026-11-02T09:00:00', null)).toBe('02 nov 2026, 09:00')
-    expect(preferredWindow('2026-11-02T09:00:00', '')).toBe('02 nov 2026, 09:00')
+    expect(preferredWindow('2026-11-02T09:00:00', null)).toBe('02 nov. 2026, 09:00')
+    expect(preferredWindow('2026-11-02T09:00:00', '')).toBe('02 nov. 2026, 09:00')
   })
 
   it('collapses to a dash with no endpoints at all', () => {
@@ -95,9 +95,11 @@ describe('continuityMeta compliancePercent', () => {
 })
 
 describe('continuityMeta formatDate', () => {
+  // #451: the canonical `es-PE` form owns the label, so the short month keeps
+  // its period (`oct.`) instead of the desk stripping it by hand.
   it('renders the day the API named, not the UTC day', () => {
-    expect(formatDate('2026-10-20')).toBe('20 oct 2026')
-    expect(formatDate('2026-11-02T09:00:00')).toBe('02 nov 2026')
+    expect(formatDate('2026-10-20')).toBe('20 oct. 2026')
+    expect(formatDate('2026-11-02T09:00:00')).toBe('02 nov. 2026')
   })
 
   it('shows a dash for an empty value', () => {

@@ -179,7 +179,7 @@ import UiSectionEmpty from '../../../components/ui/UiSectionEmpty.vue'
 import UiStatusBadge from '../../../components/ui/StatusBadge.vue'
 import LoadingSpinner from '../../../components/ui/LoadingSpinner.vue'
 import { useApi } from '../../../composables/useApi'
-import { formatCurrency, formatDateOnly } from '../../../utils/formatters'
+import { formatCurrency, formatDate } from '../../../composables/useFormatters'
 import {
   statementKindLabel,
   statementKindVariant,
@@ -261,7 +261,7 @@ const columns = [
   { key: 'balance', label: 'Saldo' }
 ]
 
-const formatEntryDate = value => formatDateOnly(value) || '—'
+const formatEntryDate = value => formatDate(value) || '—'
 
 const load = async () => {
   if (!props.patient?.id) return

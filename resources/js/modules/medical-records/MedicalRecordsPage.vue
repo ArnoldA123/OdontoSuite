@@ -636,7 +636,7 @@ import { useEcho } from '@/composables/useEcho'
 import { useToast } from '@/composables/useToast'
 import { useSpring } from '@/composables/useSpring'
 import { prefersReducedMotion } from '@/composables/useSpringMath'
-import { formatDateOnly } from '@/utils/formatters'
+import { formatDate as formatCanonicalDate } from '@/composables/useFormatters'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import DentalMotifLayer from '@/components/ui/DentalMotifLayer.vue'
 import UiCard from '@/components/ui/Card.vue'
@@ -736,7 +736,7 @@ const recordNumbersLabel = computed(() => {
   return numbers.length > 0 ? numbers.join(' · ') : 'Sin historia registrada'
 })
 
-const formatDate = value => formatDateOnly(value) || 'Sin fecha'
+const formatDate = value => formatCanonicalDate(value) || 'Sin fecha'
 
 const pluralize = (count, singular, plural) => {
   const total = Number(count) || 0

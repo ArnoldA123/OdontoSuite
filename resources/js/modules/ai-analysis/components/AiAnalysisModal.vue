@@ -336,6 +336,7 @@
 <script setup>
 import { computed, reactive } from 'vue'
 import { CpuChipIcon, NoSymbolIcon, PhotoIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { formatDateTime, formatUsd } from '../../../composables/useFormatters'
 import { useConfirm } from '../../../composables/useConfirm'
 import { usePermissions } from '../../../composables/usePermissions'
 import UiButton from '../../../components/ui/Button.vue'
@@ -466,25 +467,22 @@ const ASSISTIVE_NOTICE_FALLBACK =
   'Apoyo a la decisión asistido por IA. No sustituye el diagnóstico profesional.'
 const assistiveNotice = computed(() => props.analysis.assistive_notice || ASSISTIVE_NOTICE_FALLBACK)
 
-const dateFormatter = new Intl.DateTimeFormat('es-ES', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit'
+const formatAnalysisDate = value => formatDateTime(value, { month: 'short' }) || '—'
+
+const createdAt = computed(() => formatAnalysisDate(props.analysis.created_at))
+const reviewedAt = computed(() => formatAnalysisDate(props.analysis.reviewed_at))
+const voidedAt = computed(() => formatAnalysisDate(props.analysis.voided_at))
+const noticeAcknowledgedAt = computed(() =>
+  formatAnalysisDate(props.analysis.notice_acknowledged_at)
+)
+
+const estimatedCost = computed(() => {
+  const value = props.analysis.estimated_cost
+  if (value === null || value === undefined || value === '') return '—'
+
+  return formatUsd(value, { minimumFractionDigits: 4, maximumFractionDigits: 4 })
 })
 
-const formatDate = value => {
-  if (!value) return '—'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '—' : dateFormatter.format(date)
-}
-
-const createdAt = computed(() => formatDate(props.analysis.created_at))
-const reviewedAt = computed(() => formatDate(props.analysis.reviewed_at))
-const voidedAt = computed(() => formatDate(props.analysis.voided_at))
-const noticeAcknowledgedAt = computed(() => formatDate(props.analysis.notice_acknowledged_at))
-const estimatedCost = computed(() => formatUsd(props.analysis.estimated_cost))
 const reviewDecisionLabel = computed(
   () => REVIEW_DECISION_LABELS[props.analysis.review_decision] || '—'
 )
@@ -494,19 +492,6 @@ const voidedByName = computed(() => props.analysis.voided_by?.name || '—')
 const voidReasonText = computed(() => props.analysis.void_reason || '—')
 
 const noticeAcknowledgedByName = computed(() => props.analysis.notice_acknowledged_by?.name || '—')
-
-const usdFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 4,
-  maximumFractionDigits: 4
-})
-
-const formatUsd = value => {
-  if (value === null || value === undefined || value === '') return '—'
-  const numeric = Number(value)
-  return Number.isNaN(numeric) ? '—' : usdFormatter.format(numeric)
-}
 
 const submitReview = () => {
   if (!reviewForm.decision) return

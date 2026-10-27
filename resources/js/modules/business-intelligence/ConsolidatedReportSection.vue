@@ -78,7 +78,7 @@
 import { computed } from 'vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
-import { formatCurrency } from '../../composables/useFormatters'
+import { formatCurrency, formatNumber } from '../../composables/useFormatters'
 
 const props = defineProps({
   report: {
@@ -86,8 +86,6 @@ const props = defineProps({
     required: true
   }
 })
-
-const formatNumber = value => Number(value || 0).toLocaleString('es-PE')
 
 const moneyColumns = [
   { key: 'net', label: 'Ingresos netos', align: 'right', formatter: formatCurrency },

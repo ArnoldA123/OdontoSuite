@@ -142,8 +142,8 @@
               class="mt-auto flex items-center justify-between gap-2 border-t border-hairline pt-3"
             >
               <p class="text-xs text-theme-secondary tabular-nums" data-attachment-date>
-                <span v-if="formatDateOnly(attachment.created_at)">
-                  Subido el {{ formatDateOnly(attachment.created_at) }}
+                <span v-if="formatDate(attachment.created_at)">
+                  Subido el {{ formatDate(attachment.created_at) }}
                 </span>
                 <span v-else>Sin fecha</span>
               </p>
@@ -198,7 +198,7 @@
             <span aria-hidden="true">·</span>
             {{ previewAttachment.file_size_human || '—' }}
             <span aria-hidden="true">·</span>
-            {{ formatDateOnly(previewAttachment.created_at) || 'Sin fecha' }}
+            {{ formatDate(previewAttachment.created_at) || 'Sin fecha' }}
           </p>
           <a
             :href="fileUrl(previewAttachment)"
@@ -225,7 +225,7 @@ import {
   PhotoIcon,
   TrashIcon
 } from '@heroicons/vue/24/outline'
-import { formatDateOnly } from '@/utils/formatters'
+import { formatDate } from '@/composables/useFormatters'
 import { useConfirm } from '@/composables/useConfirm'
 import { usePermissions } from '@/composables/usePermissions'
 import UiButton from '@/components/ui/Button.vue'

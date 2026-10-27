@@ -746,7 +746,7 @@ import { prefersReducedMotion } from '../../composables/useSpringMath'
 import { usePermissions } from '../../composables/usePermissions'
 import { useCashRegister } from '../../composables/useCashRegister'
 import { useEcho } from '../../composables/useEcho'
-import { formatPENLabel } from '@/composables/useFormatters'
+import { formatDate, formatPENLabel, formatTime } from '@/composables/useFormatters'
 
 const router = useRouter()
 const route = useRoute()
@@ -959,7 +959,7 @@ const firstName = computed(() => {
 })
 
 const getTodayDate = () => {
-  return new Date().toLocaleDateString('es-ES', {
+  return formatDate(new Date(), {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -967,39 +967,14 @@ const getTodayDate = () => {
   })
 }
 
-// Short Spanish month names for the pending rows ("3 oct").
-const SPANISH_MONTHS_SHORT = [
-  'ene',
-  'feb',
-  'mar',
-  'abr',
-  'may',
-  'jun',
-  'jul',
-  'ago',
-  'sep',
-  'oct',
-  'nov',
-  'dic'
-]
-
 /**
- * T7b - short local date for a pending row, e.g. "3 oct". Returns an empty
- * string for an unparseable value so the row simply omits the date.
+ * T7b - short local date for a pending row, e.g. "3 oct.". The canonical
+ * helper renders the same fields the row always carried; `year: undefined`
+ * drops the year its defaults would otherwise add. Empty for an unparseable
+ * value, so the row simply omits the date.
  */
-const formatPendingDate = dateTime => {
-  const date = new Date(dateTime)
-  if (Number.isNaN(date.getTime())) return ''
-  return `${date.getDate()} ${SPANISH_MONTHS_SHORT[date.getMonth()]}`
-}
-
-const formatTime = dateTime => {
-  if (!dateTime) return ''
-  return new Date(dateTime).toLocaleTimeString('es-ES', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+const formatPendingDate = dateTime =>
+  formatDate(dateTime, { day: 'numeric', month: 'short', year: undefined })
 
 /**
  * Patient display name for the today list. AppointmentResource emits

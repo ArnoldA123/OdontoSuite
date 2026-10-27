@@ -1,4 +1,4 @@
-import { formatCurrency } from '../../composables/useFormatters'
+import { formatCurrency, formatDate } from '../../composables/useFormatters'
 
 export const TARIFF_STATUSES = ['vigente', 'futuro', 'vencido', 'inactivo']
 
@@ -57,13 +57,7 @@ export const tariffStatusVariant = status => TARIFF_STATUS_VARIANTS[status] ?? '
 
 export const formatTariffPrice = value => formatCurrency(value)
 
-export const formatTariffDate = value => {
-  const iso = dateOnly(value)
-  if (!iso) return ''
-
-  const [year, month, day] = iso.split('-')
-  return `${day}/${month}/${year}`
-}
+export const formatTariffDate = value => formatDate(dateOnly(value))
 
 export const formatValidityWindow = (validFrom, validTo) => {
   const from = formatTariffDate(validFrom)

@@ -504,7 +504,7 @@ import { ArrowPathIcon, ArrowUturnLeftIcon } from '@heroicons/vue/24/outline'
 import { colors } from '../../design-system/tokens.js'
 import { useApi } from '../../composables/useApi'
 import { useAuth } from '../../composables/useAuth'
-import { formatCurrency } from '../../composables/useFormatters'
+import { formatCurrency, formatDate, formatNumber } from '../../composables/useFormatters'
 import { useToast } from '../../composables/useToast'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
@@ -627,12 +627,7 @@ const daysBack = days => {
   return toISODate(date)
 }
 
-const formatShortDate = isoDate => (isoDate || '').split('-').reverse().join('/')
-
-const formatNumber = value =>
-  Number(value || 0).toLocaleString('es-PE', { maximumFractionDigits: 1 })
-
-const formatPercent = value => `${formatNumber(value)}%`
+const formatPercent = value => `${formatNumber(value, { maximumFractionDigits: 1 })}%`
 
 const defaultRange = () => ({ from: daysBack(29), to: daysBack(0) })
 
@@ -686,7 +681,7 @@ const rangeError = computed(() => {
 
 const appliedLabel = computed(() => {
   const preset = presets.find(item => item.id === appliedPreset.value)
-  const range = `${formatShortDate(applied.value.from)} — ${formatShortDate(applied.value.to)}`
+  const range = `${formatDate(applied.value.from)} — ${formatDate(applied.value.to)}`
   return `${range} · ${preset ? preset.label : 'rango manual'}`
 })
 

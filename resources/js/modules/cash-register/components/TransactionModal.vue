@@ -298,7 +298,7 @@ import AccountingLockNotice from '@/components/money/AccountingLockNotice.vue'
 import { useTransactions } from '@/composables/useTransactions'
 import { useApi } from '@/composables/useApi'
 import { useAccountingLock } from '@/composables/useAccountingLock'
-import { formatCurrency } from '@/composables/useFormatters'
+import { formatCurrency, formatDate } from '@/composables/useFormatters'
 import {
   AUTHORIZATION_REASON_FIELD,
   AUTHORIZATION_REASON_MAX_LENGTH,
@@ -605,7 +605,7 @@ const retryWithOverride = async () => {
 
 const formatAppointment = appointment => {
   const typeName = appointment.appointment_type?.name || 'Cita'
-  const date = new Date(appointment.scheduled_at).toLocaleDateString('es-PE')
+  const date = formatDate(appointment.scheduled_at)
   return `${typeName} - ${date}`
 }
 

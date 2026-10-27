@@ -88,17 +88,27 @@ describe('labCaseMeta isOverdue', () => {
 })
 
 describe('labCaseMeta formatting', () => {
+  // #451: the canonical `es-PE` form owns the label, so the short month keeps
+  // its period (`oct.`) instead of the module carrying its own month table.
   it('prints a short Spanish date and falls back to an em dash', () => {
-    expect(formatDate('2026-10-20')).toBe('20 oct 2026')
-    expect(formatDate('2026-11-02')).toBe('02 nov 2026')
+    expect(formatDate('2026-10-20')).toBe('20 oct. 2026')
+    expect(formatDate('2026-11-02')).toBe('02 nov. 2026')
     expect(formatDate(null)).toBe('—')
     expect(formatDate('')).toBe('—')
     expect(formatDate('not-a-date')).toBe('—')
   })
 
   it('prints the delivery and placement instants with their time', () => {
-    expect(formatDateTime('2026-11-02T09:00:00.000000Z')).toBe('02 nov 2026, 09:00')
-    expect(formatDateTime('2026-11-02 09:00:00')).toBe('02 nov 2026, 09:00')
+    // The API sends an instant (`...Z`); the canonical helper renders it in the
+    // session clock instead of slicing the UTC wall clock, so the expectation
+    // is built from the same local rendering to stay timezone-independent.
+    const instant = '2026-11-02T09:00:00.000000Z'
+    const local = new Date(instant)
+    const clock = `${String(local.getHours()).padStart(2, '0')}:${String(local.getMinutes()).padStart(2, '0')}`
+
+    expect(formatDateTime(instant)).toContain(clock)
+    expect(formatDateTime(instant)).toBe(formatDateTime(local))
+    expect(formatDateTime('2026-11-02 09:00:00')).toBe('02 nov. 2026, 09:00')
     expect(formatDateTime(null)).toBe('—')
     expect(formatDateTime('')).toBe('—')
   })

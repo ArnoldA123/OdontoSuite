@@ -52,7 +52,11 @@ describe('useAuditLogs.getChangesSummary appointment-type fields', () => {
       { price: 150, default_duration_minutes: 45 }
     )
 
-    expect(changes.price).toEqual({ field: 'Precio', old: 'S/ 100.00', new: 'S/ 150.00' })
+    expect(changes.price).toEqual({
+      field: 'Precio',
+      old: 'S/\u00a0100.00',
+      new: 'S/\u00a0150.00'
+    })
     expect(changes.default_duration_minutes).toEqual({
       field: 'Duración (minutos)',
       old: '30 minutos',

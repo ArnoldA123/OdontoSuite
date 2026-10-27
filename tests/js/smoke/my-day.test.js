@@ -251,7 +251,7 @@ describe('my-day ready laboratory cases', () => {
     expect(card.text()).toContain('Corona metal-cerámica')
     expect(card.text()).toContain('Rosa Vega')
     expect(card.text()).toContain('Pieza 26')
-    expect(card.text()).toContain('Prometido 25 oct 2026')
+    expect(card.text()).toContain('Prometido 25 oct. 2026')
     expect(card.text()).toContain('Recibido del taller')
 
     wrapper.unmount()

@@ -251,7 +251,10 @@ import { useAuth } from '../../composables/useAuth'
 import { useConsultation } from '../../composables/useConsultation'
 import { useMyDay } from '../../composables/useMyDay'
 import { usePermissions } from '../../composables/usePermissions'
-import { formatCompactTime } from '../../composables/useFormatters'
+import {
+  formatCompactTime,
+  formatDate as formatCanonicalDate
+} from '../../composables/useFormatters'
 
 const { user } = useAuth()
 const { can } = usePermissions()
@@ -281,10 +284,11 @@ const getGreeting = () => {
 
 const firstName = computed(() => (user.value?.name || '').split(' ')[0] || 'equipo')
 
-const todayLabel = new Date().toLocaleDateString('es-ES', {
+const todayLabel = formatCanonicalDate(new Date(), {
   weekday: 'long',
   day: 'numeric',
-  month: 'long'
+  month: 'long',
+  year: undefined
 })
 
 const statCards = [

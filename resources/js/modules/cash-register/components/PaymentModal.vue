@@ -244,7 +244,7 @@ import { useApi } from '@/composables/useApi'
 import { useTransactions } from '@/composables/useTransactions'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
-import { formatCurrency } from '@/composables/useFormatters'
+import { formatCurrency, formatDateTime } from '@/composables/useFormatters'
 import MercadoPagoCheckout from '@/modules/cash-register/components/MercadoPagoCheckout.vue'
 
 const props = defineProps({
@@ -335,14 +335,14 @@ const patientOptions = computed(() => {
 const appointmentOptions = computed(() => {
   const options = patientAppointments.value.map(appointment => ({
     value: appointment.id,
-    label: `${formatDate(appointment.date)} - ${appointment.appointment_type?.name || 'Consulta'}`
+    label: `${formatDateTime(appointment.date, { day: 'numeric', month: 'short' })} - ${appointment.appointment_type?.name || 'Consulta'}`
   }))
 
   const preset = props.selectedAppointment
   if (preset?.id && !options.some(option => option.value === preset.id)) {
     options.unshift({
       value: preset.id,
-      label: `${formatDate(preset.date)} - ${preset.appointment_type?.name || 'Consulta'}`
+      label: `${formatDateTime(preset.date, { day: 'numeric', month: 'short' })} - ${preset.appointment_type?.name || 'Consulta'}`
     })
   }
 
@@ -618,16 +618,6 @@ const resetForm = () => {
   }
   adHocPatient.value = null
   errors.value = {}
-}
-
-const formatDate = date => {
-  return new Date(date).toLocaleDateString('es-PE', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
 }
 
 watch(

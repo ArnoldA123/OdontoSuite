@@ -1,3 +1,5 @@
+import { formatDate } from '../../../composables/useFormatters'
+
 export const getBranchStatusVariant = isActive => (isActive ? 'success' : 'neutral')
 
 export const getBranchStatusLabel = isActive => (isActive ? 'Activa' : 'Inactiva')
@@ -14,15 +16,5 @@ export const formatBranchCoordinates = branch => {
   return `${branch.latitude}, ${branch.longitude}`
 }
 
-export const formatBranchDate = value => {
-  if (!value) return 'No registrada'
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'No registrada'
-
-  return date.toLocaleDateString('es-PE', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  })
-}
+export const formatBranchDate = value =>
+  formatDate(value, { day: '2-digit', month: 'short', year: 'numeric' }) || 'No registrada'

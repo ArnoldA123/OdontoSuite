@@ -86,8 +86,7 @@
               </div>
               <div class="text-xs opacity-70">
                 {{ proc.specialty_name || 'Sin especialidad' }} ·
-                {{ proc.default_duration_minutes }} min · S/
-                {{ Number(proc.default_cost).toFixed(2) }}
+                {{ proc.default_duration_minutes }} min · {{ formatCurrency(proc.default_cost) }}
               </div>
             </div>
           </button>
@@ -113,6 +112,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useProcedureFavorites } from '../../composables/useProcedureFavorites'
+import { formatCurrency } from '../../composables/useFormatters'
 import LoadingSpinner from '../ui/LoadingSpinner.vue'
 
 const props = defineProps({

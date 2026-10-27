@@ -74,7 +74,7 @@ import UiCard from '@/components/ui/Card.vue'
 import UiButton from '@/components/ui/Button.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { usePermissions } from '@/composables/usePermissions'
-import { formatDateOnly } from '@/utils/formatters'
+import { formatDate } from '@/composables/useFormatters'
 
 const props = defineProps({
   record: {
@@ -91,7 +91,7 @@ const { can } = usePermissions()
 const canView = computed(() => can.viewMedicalRecord?.value ?? false)
 
 const recordNumberLabel = computed(() => props.record.record_number || 'Sin número asignado')
-const firstVisitLabel = computed(() => formatDateOnly(props.record.first_visit_date) || 'Sin fecha')
+const firstVisitLabel = computed(() => formatDate(props.record.first_visit_date) || 'Sin fecha')
 const createdByLabel = computed(() => props.record.createdBy?.name || '')
 const chiefComplaintLabel = computed(
   () => props.record.chief_complaint || 'Sin motivo de consulta registrado'

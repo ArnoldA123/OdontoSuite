@@ -586,7 +586,7 @@ const handlePaymentSuccess = async paymentData => {
   toast.success(
     'Cobro registrado exitosamente\n' +
       `Paciente: ${patient?.name || 'N/A'}\n` +
-      `Monto: S/ ${amount}\n` +
+      `Monto: ${formatCurrency(amount)}\n` +
       `Concepto: ${concept}\n` +
       `Método: ${paymentMethod?.name || 'N/A'}\n` +
       `N° Transacción: ${transactionNumber}`,

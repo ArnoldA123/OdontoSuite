@@ -2,18 +2,14 @@
 // no Vue import: the page and its unit suite consume the same contract.
 // `compliancePercent` deliberately only formats the API's `compliance_rate`; it
 // never derives the rate from the counts, because the backend owns that rule.
+// Date and time rendering belongs to the canonical module (issue 451 / S1, S4).
+import {
+  dateOnly,
+  formatDate as formatCanonicalDate,
+  formatTime
+} from '../../composables/useFormatters'
 
-const DATE_FORMATTER = new Intl.DateTimeFormat('es-PE', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric'
-})
-
-const TIME_FORMATTER = new Intl.DateTimeFormat('es-PE', {
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23'
-})
+const SHORT_DATE = { day: '2-digit', month: 'short', year: 'numeric' }
 
 const INTERVAL_LABELS = {
   3: '3 meses',
@@ -40,12 +36,11 @@ const toDate = value => {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-// es-PE renders the short month as `nov.`; the desk writes `nov`.
-const dateLabel = date => DATE_FORMATTER.format(date).replace(/\./g, '').replace(/\s+/g, ' ').trim()
+// es-PE renders the short month with its period (`nov.`), which is the shape
+// every desk shares now that one module owns the locale.
+const dateLabel = value => formatCanonicalDate(dateOnly(value), SHORT_DATE)
 
-const timeLabel = date => TIME_FORMATTER.format(date)
-
-const pointLabel = date => `${dateLabel(date)}, ${timeLabel(date)}`
+const pointLabel = value => `${dateLabel(value)}, ${formatTime(value)}`
 
 export function patientFullName(patient) {
   if (!patient) return 'Paciente'
@@ -72,19 +67,19 @@ export function kindLabel(kind) {
 }
 
 export function preferredWindow(from, to) {
-  const start = toDate(from)
-  const end = toDate(to)
+  const start = dateLabel(from)
+  const end = dateLabel(to)
 
   if (!start && !end) return '—'
-  if (!end) return pointLabel(start)
-  if (!start) return pointLabel(end)
+  if (!end) return pointLabel(from)
+  if (!start) return pointLabel(to)
 
   // Same day: the reader already knows the date from the start of the range.
-  if (dateLabel(start) === dateLabel(end)) {
-    return `${pointLabel(start)} – ${timeLabel(end)}`
+  if (start === end) {
+    return `${pointLabel(from)} – ${formatTime(to)}`
   }
 
-  return `${pointLabel(start)} – ${pointLabel(end)}`
+  return `${pointLabel(from)} – ${pointLabel(to)}`
 }
 
 export function compliancePercent(rate) {
@@ -95,8 +90,7 @@ export function compliancePercent(rate) {
 }
 
 export function formatDate(value) {
-  const date = toDate(value)
-  return date ? dateLabel(date) : '—'
+  return dateLabel(value) || '—'
 }
 
 // `datetime-local` speaks the session's wall clock (`YYYY-MM-DDTHH:mm`) while

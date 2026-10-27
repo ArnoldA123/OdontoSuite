@@ -69,8 +69,8 @@
             @select="onProcedureSelected"
           />
           <p v-if="selectedProcedure" class="mt-1 text-xs text-theme-secondary">
-            Duracion {{ selectedProcedure.default_duration_minutes }} min · S/
-            {{ Number(selectedProcedure.default_cost).toFixed(2) }}
+            Duracion {{ selectedProcedure.default_duration_minutes }} min ·
+            {{ formatCurrency(selectedProcedure.default_cost) }}
           </p>
         </div>
       </div>
@@ -119,6 +119,7 @@ import { useApi } from '../../composables/useApi'
 import { useOptionsTransform } from '../../composables/useOptionsTransform'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
+import { formatCurrency } from '../../composables/useFormatters'
 import UiButton from '../ui/Button.vue'
 import UiInput from '../ui/Input.vue'
 import UiSelect from '../ui/Select.vue'

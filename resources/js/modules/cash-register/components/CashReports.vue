@@ -390,7 +390,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import UiDataTable from '@/components/ui/DataTable.vue'
-import { formatCurrency } from '@/composables/useFormatters'
+import { formatCurrency, formatDate } from '@/composables/useFormatters'
 import { useApi } from '@/composables/useApi'
 import { ArrowDownTrayIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 
@@ -572,10 +572,7 @@ const formatPercentage = value => {
   return `${Number(safe.toFixed(1))}%`
 }
 
-const formatReportDate = value => {
-  const [year, month, day] = String(value ?? '').split('-')
-  return year && month && day ? `${day}/${month}/${year}` : String(value ?? '')
-}
+const formatReportDate = value => formatDate(value) || String(value ?? '')
 
 const saveBlob = (blob, filename) => {
   const url = URL.createObjectURL(blob)

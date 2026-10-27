@@ -222,7 +222,7 @@
                       por {{ entry.log.user?.name || 'Sistema' }}
                     </span>
                     <span class="text-xs text-theme-secondary">
-                      {{ formatDate(entry.log.created_at) }}
+                      {{ formatAuditDate(entry.log.created_at) }}
                     </span>
                   </div>
                   <div v-if="entry.changes.length > 0" class="mt-2 text-sm">
@@ -278,6 +278,7 @@ import {
   ClockIcon,
   ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline'
+import { formatDate } from '../../composables/useFormatters'
 import { useApi } from '../../composables/useApi'
 import { useAuditLogs } from '../../composables/useAuditLogs'
 import { getStatusText, getStatusVariant } from './environmentStatus'
@@ -380,14 +381,7 @@ const loadAuditLogs = async () => {
   }
 }
 
-const formatDate = date => {
-  if (!date) return 'Fecha no disponible'
-  try {
-    return new Date(date).toLocaleDateString('es-ES')
-  } catch {
-    return date
-  }
-}
+const formatAuditDate = value => formatDate(value) || 'Fecha no disponible'
 
 const getAuditActionVariant = action => {
   const normalized = typeof action === 'string' ? action : ''

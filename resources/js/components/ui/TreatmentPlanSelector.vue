@@ -59,7 +59,7 @@
             </span>
             <span class="flex items-center">
               <CurrencyDollarIcon class="w-3 h-3 mr-1" />
-              S/ {{ formatCurrency(plan.total_amount || 0) }}
+              {{ formatCurrency(plan.total_amount || 0) }}
             </span>
           </div>
           <div v-if="plan.description" class="mt-1">
@@ -84,7 +84,7 @@
             Plan seleccionado: {{ selectedPlan.title || 'Plan de Tratamiento' }}
           </p>
           <p class="text-xs text-primary-700">
-            Total: S/ {{ formatCurrency(selectedPlan.total_amount || 0) }}
+            Total: {{ formatCurrency(selectedPlan.total_amount || 0) }}
           </p>
         </div>
         <button class="text-primary-600 hover:text-primary-800" @click="clearSelection">
@@ -106,6 +106,7 @@ import {
   XMarkIcon
 } from '@heroicons/vue/24/outline'
 import { useApi } from '@/composables/useApi'
+import { formatCurrency, formatDate } from '@/composables/useFormatters'
 
 const props = defineProps({
   modelValue: {
@@ -194,18 +195,6 @@ const selectPlan = plan => {
 const clearSelection = () => {
   selectedPlan.value = null
   emit('update:modelValue', null)
-}
-
-const formatDate = date => {
-  if (!date) return ''
-  return new Date(date).toLocaleDateString('es-PE')
-}
-
-const formatCurrency = amount => {
-  return new Intl.NumberFormat('es-PE', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount)
 }
 
 // Watch for external changes

@@ -331,7 +331,11 @@
 <script setup>
 import { computed } from 'vue'
 import { DocumentDuplicateIcon, PencilIcon, XMarkIcon } from '@heroicons/vue/24/outline'
-import { formatCurrency } from '@/composables/useFormatters'
+import {
+  formatCurrency,
+  formatDate as formatCanonicalDate,
+  formatDateTime as formatCanonicalDateTime
+} from '@/composables/useFormatters'
 import UiModal from '@/components/ui/Modal.vue'
 import PlanStatusBadge from './PlanStatusBadge.vue'
 import QuotationStatusBadge from '@/modules/quotations/components/QuotationStatusBadge.vue'
@@ -390,29 +394,11 @@ const itemTotal = item =>
 
 const closeModal = () => emit('close')
 
-const formatDate = date => {
-  if (!date) return 'No especificada'
-  const parsed = new Date(date)
-  if (Number.isNaN(parsed.getTime())) return 'No especificada'
+// issue 451: both labels consume the canonical module; the visible fallbacks stay
+// at the call site because the helpers return '' for missing input.
+const formatDate = date =>
+  formatCanonicalDate(date, { year: 'numeric', month: 'long', day: 'numeric' }) || 'No especificada'
 
-  return parsed.toLocaleDateString('es-PE', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-}
-
-const formatDateTime = date => {
-  if (!date) return '—'
-  const parsed = new Date(date)
-  if (Number.isNaN(parsed.getTime())) return '—'
-
-  return parsed.toLocaleDateString('es-PE', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+const formatDateTime = date =>
+  formatCanonicalDateTime(date, { year: 'numeric', month: 'long', day: 'numeric' }) || '—'
 </script>

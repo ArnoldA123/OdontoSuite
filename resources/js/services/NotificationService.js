@@ -1,3 +1,5 @@
+import { formatCurrency, formatDateTime } from '@/composables/useFormatters'
+
 /**
  * Servicio para convertir eventos WebSocket en notificaciones
  */
@@ -12,7 +14,7 @@ export class NotificationService {
     const mappings = {
       'appointment.created': {
         title: 'Nueva cita programada',
-        message: `Cita creada para ${patientName} el ${this.formatDate(appointment.scheduled_at)}`,
+        message: `Cita creada para ${patientName} el ${formatDateTime(appointment.scheduled_at)}`,
         type: 'info',
         category: 'appointments',
         action: () => {
@@ -112,7 +114,7 @@ export class NotificationService {
   static mapQuotationEvent(eventName, data) {
     const quotation = data.quotation || data
     const patientName = quotation.patient?.full_name || quotation.patient?.name || 'Paciente'
-    const amount = this.formatCurrency(quotation.total_amount || 0)
+    const amount = formatCurrency(quotation.total_amount || 0)
 
     const mappings = {
       'quotation.created': {
@@ -221,7 +223,7 @@ export class NotificationService {
   static mapPaymentEvent(eventName, data) {
     const transaction = data.transaction || data
     const patientName = transaction.patient?.full_name || transaction.patient?.name || 'Paciente'
-    const amount = this.formatCurrency(transaction.amount || 0)
+    const amount = formatCurrency(transaction.amount || 0)
 
     const mappings = {
       'payment.registered': {
@@ -282,31 +284,6 @@ export class NotificationService {
       type: 'info',
       category: 'system'
     }
-  }
-
-  /**
-   * Formatear fecha
-   */
-  static formatDate(dateString) {
-    if (!dateString) return ''
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  /**
-   * Formatear moneda
-   */
-  static formatCurrency(amount) {
-    return new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN'
-    }).format(amount)
   }
 
   /**

@@ -283,7 +283,7 @@
                             {{ plan.status }}
                           </UiBadge>
                         </span>
-                        <span>Costo: S/ {{ plan.total_cost }}</span>
+                        <span>Costo: {{ formatCurrency(plan.total_cost) }}</span>
                         <span>Fecha: {{ formatDate(plan.created_at) }}</span>
                       </div>
                     </div>
@@ -370,7 +370,7 @@
                             size="sm"
                           />
                         </span>
-                        <span>Total: S/ {{ quotation.total_amount }}</span>
+                        <span>Total: {{ formatCurrency(quotation.total_amount) }}</span>
                         <span>Fecha: {{ formatDate(quotation.quotation_date) }}</span>
                       </div>
                     </div>
@@ -796,7 +796,7 @@ import { useEcho } from '../../composables/useEcho'
 import { useAuditLogs } from '../../composables/useAuditLogs'
 import { useSpring } from '../../composables/useSpring'
 import { prefersReducedMotion } from '../../composables/useSpringMath'
-import { formatDateOnly } from '../../utils/formatters'
+import { formatCurrency, formatDate as formatCanonicalDate } from '../../composables/useFormatters'
 import { getStatusMeta } from '../quotations/quotationMeta'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import Breadcrumbs from '../../components/ui/Breadcrumbs.vue'
@@ -1102,7 +1102,7 @@ export default {
     }
 
     const formatDate = date => {
-      return formatDateOnly(date) || 'No especificada'
+      return formatCanonicalDate(date) || 'No especificada'
     }
 
     const genderLabel = gender => {
@@ -1568,6 +1568,7 @@ export default {
       loadSpecialtyRecords,
       loadAuditLogs,
       formatDate,
+      formatCurrency,
       genderLabel,
       getStatusVariant,
       getStatusMeta,

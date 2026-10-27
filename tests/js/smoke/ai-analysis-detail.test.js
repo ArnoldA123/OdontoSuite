@@ -165,7 +165,9 @@ describe('ai analysis detail surface', () => {
     expect(metadata.text()).toContain('Costo estimado')
     expect(wrapper.find('[data-ai-meta="notice-date"]').text()).toContain('2026')
     expect(wrapper.find('[data-ai-meta="notice-by"]').text()).toBe('Dr. Pérez')
-    expect(wrapper.find('[data-ai-meta="cost"]').text()).toBe('$0.0312')
+    // #451 — the canonical module renders USD in `es-PE`, so the label is
+    // `USD <nbsp>0.0312` instead of the previous `en-US` `$0.0312`.
+    expect(wrapper.find('[data-ai-meta="cost"]').text()).toBe('USD\u00a00.0312')
 
     wrapper.unmount()
   })

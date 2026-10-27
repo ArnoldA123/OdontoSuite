@@ -145,7 +145,7 @@ import { computed } from 'vue'
 import { CakeIcon, ClockIcon, EnvelopeIcon, PhoneIcon } from '@heroicons/vue/24/outline'
 import UiBadge from '../../components/ui/Badge.vue'
 import UiButton from '../../components/ui/Button.vue'
-import { formatDateOnly } from '../../utils/formatters'
+import { formatDate } from '../../composables/useFormatters'
 
 const props = defineProps({
   patient: { type: Object, required: true },
@@ -166,7 +166,7 @@ const initials = computed(
 const displayName = computed(() =>
   `${props.patient.first_name || ''} ${props.patient.last_name || ''}`.trim()
 )
-const birthLabel = computed(() => formatDateOnly(props.patient.birth_date) || 'N/A')
+const birthLabel = computed(() => formatDate(props.patient.birth_date) || 'N/A')
 const ageLabel = computed(() => (props.patient.age != null ? `${props.patient.age} años` : '—'))
 const statusVariant = computed(() => (props.patient.is_active ? 'success' : 'error'))
 const statusLabel = computed(() => (props.patient.is_active ? 'Activo' : 'Inactivo'))

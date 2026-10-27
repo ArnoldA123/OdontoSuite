@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useApi } from './useApi'
 import { useToast } from './useToast'
+import { formatCurrency, formatDate } from './useFormatters'
 
 export function useAuditLogs() {
   const { get } = useApi()
@@ -216,13 +217,7 @@ export function useAuditLogs() {
       if (oldVal === null || oldVal === undefined || oldVal === '') {
         oldValueStr = '(vacío)'
       } else if (key === 'birth_date' && oldVal) {
-        // Formatear fecha
-        try {
-          const date = new Date(oldVal)
-          oldValueStr = date.toLocaleDateString('es-ES')
-        } catch {
-          oldValueStr = String(oldVal)
-        }
+        oldValueStr = formatDate(oldVal) || String(oldVal)
       } else if (key === 'is_active') {
         oldValueStr = oldVal ? 'Activo' : 'Inactivo'
       } else if (booleanFlagFields.includes(key)) {
@@ -263,7 +258,7 @@ export function useAuditLogs() {
         }
         oldValueStr = roleMap[oldVal] || oldVal
       } else if (key === 'price') {
-        oldValueStr = typeof oldVal === 'number' ? `S/ ${oldVal.toFixed(2)}` : String(oldVal)
+        oldValueStr = typeof oldVal === 'number' ? formatCurrency(oldVal) : String(oldVal)
       } else if (key === 'default_duration_minutes') {
         oldValueStr = `${oldVal} minutos`
       } else {
@@ -273,13 +268,7 @@ export function useAuditLogs() {
       if (newVal === null || newVal === undefined || newVal === '') {
         newValueStr = '(vacío)'
       } else if (key === 'birth_date' && newVal) {
-        // Formatear fecha
-        try {
-          const date = new Date(newVal)
-          newValueStr = date.toLocaleDateString('es-ES')
-        } catch {
-          newValueStr = String(newVal)
-        }
+        newValueStr = formatDate(newVal) || String(newVal)
       } else if (key === 'is_active') {
         newValueStr = newVal ? 'Activo' : 'Inactivo'
       } else if (booleanFlagFields.includes(key)) {
@@ -320,7 +309,7 @@ export function useAuditLogs() {
         }
         newValueStr = roleMap[newVal] || newVal
       } else if (key === 'price') {
-        newValueStr = typeof newVal === 'number' ? `S/ ${newVal.toFixed(2)}` : String(newVal)
+        newValueStr = typeof newVal === 'number' ? formatCurrency(newVal) : String(newVal)
       } else if (key === 'default_duration_minutes') {
         newValueStr = `${newVal} minutos`
       } else {

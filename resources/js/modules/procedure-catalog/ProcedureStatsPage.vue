@@ -174,7 +174,7 @@
           class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
           data-kpi-value="total"
         >
-          {{ formatCount(catalog.total) }}
+          {{ formatNumber(catalog.total) }}
         </p>
         <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="total">En el catálogo</p>
       </UiCard>
@@ -190,7 +190,7 @@
           class="mt-2 text-2xl font-bold leading-none text-systemGreen-600 tabular-nums"
           data-kpi-value="active"
         >
-          {{ formatCount(catalog.active) }}
+          {{ formatNumber(catalog.active) }}
         </p>
         <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="active">
           Disponibles para uso clínico
@@ -208,7 +208,7 @@
           class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
           data-kpi-value="inactive"
         >
-          {{ formatCount(catalog.inactive) }}
+          {{ formatNumber(catalog.inactive) }}
         </p>
         <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="inactive">
           Fuera del flujo clínico
@@ -226,7 +226,7 @@
           class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
           data-kpi-value="period-usage"
         >
-          {{ formatCount(periodUsage) }}
+          {{ formatNumber(periodUsage) }}
         </p>
         <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="period-usage">
           {{ formatCurrency(periodRevenue) }} en ingresos
@@ -312,10 +312,10 @@
             <span class="text-theme-primary">{{ row.name }}</span>
           </template>
           <template #cell-usage_count="{ row }">
-            <span class="tabular-nums">{{ formatCount(row.usage_count) }}</span>
+            <span class="tabular-nums">{{ formatNumber(row.usage_count) }}</span>
           </template>
           <template #cell-total_quantity="{ row }">
-            <span class="tabular-nums">{{ formatCount(row.total_quantity) }}</span>
+            <span class="tabular-nums">{{ formatNumber(row.total_quantity) }}</span>
           </template>
           <template #cell-total_revenue="{ row }">
             <span class="tabular-nums">{{ formatCurrency(row.total_revenue) }}</span>
@@ -345,7 +345,7 @@
                     {{ row.specialty_name || 'Sin especialidad' }}
                   </p>
                   <p class="mt-1 text-xs text-theme-secondary tabular-nums">
-                    {{ formatCount(row.usage_count) }} usos ·
+                    {{ formatNumber(row.usage_count) }} usos ·
                     {{ formatCurrency(row.total_revenue) }}
                   </p>
                 </div>
@@ -384,7 +384,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { colors } from '../../design-system/tokens.js'
 import { useApi } from '../../composables/useApi'
-import { formatCurrency } from '../../composables/useFormatters'
+import { formatCurrency, formatDate, formatNumber } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiBadge from '../../components/ui/Badge.vue'
 import UiButton from '../../components/ui/Button.vue'
@@ -448,10 +448,6 @@ const daysBack = days => {
   return toISODate(date)
 }
 
-const formatCount = value => Number(value || 0).toLocaleString('es-PE')
-
-const formatShortDate = isoDate => (isoDate || '').split('-').reverse().join('/')
-
 const router = useRouter()
 const { get } = useApi()
 
@@ -483,7 +479,7 @@ const rangeError = computed(() => {
 
 const appliedLabel = computed(() => {
   const preset = presets.find(item => item.id === appliedPreset.value)
-  const range = `${formatShortDate(applied.value.from)} — ${formatShortDate(applied.value.to)}`
+  const range = `${formatDate(applied.value.from)} — ${formatDate(applied.value.to)}`
   return `${range} · ${preset ? preset.label : 'rango manual'} · Top ${applied.value.limit}`
 })
 

@@ -113,6 +113,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { formatDate as formatCanonicalDate } from '../../../composables/useFormatters'
 import LoadingSpinner from '../../../components/ui/LoadingSpinner.vue'
 import UiBadge from '../../../components/ui/Badge.vue'
 import UiSectionEmpty from '../../../components/ui/UiSectionEmpty.vue'
@@ -209,21 +210,14 @@ const attachmentBars = computed(() => {
   }))
 })
 
-// Date-only payloads (YYYY-MM-DD) are read from their parts so a UTC parse
-// never shifts the day by one in a negative-offset timezone.
+// Date-only payloads (YYYY-MM-DD) are read from their parts by the shared
+// helper, so a UTC parse never shifts the day by one in a negative-offset
+// timezone.
 const formatDate = value => {
   if (!value) return 'Sin fecha'
 
-  const parts = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/)
-
-  if (!parts) return String(value)
-
-  const parsed = new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]))
-
-  return parsed.toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  })
+  return (
+    formatCanonicalDate(value, { day: '2-digit', month: 'short', year: 'numeric' }) || String(value)
+  )
 }
 </script>

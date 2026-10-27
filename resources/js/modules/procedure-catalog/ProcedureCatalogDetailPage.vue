@@ -355,7 +355,7 @@
                     por {{ log.user?.name || 'Sistema' }}
                   </span>
                 </div>
-                <p class="text-sm text-theme-secondary">{{ formatDate(log.created_at) }}</p>
+                <p class="text-sm text-theme-secondary">{{ formatAuditDate(log.created_at) }}</p>
               </div>
               <div v-if="auditChanges(log).length" class="mt-3 space-y-2">
                 <div
@@ -418,7 +418,9 @@
                     por {{ version.changed_by?.name || 'Sistema' }}
                   </span>
                 </div>
-                <p class="text-sm text-theme-secondary">{{ formatDate(version.changed_at) }}</p>
+                <p class="text-sm text-theme-secondary">
+                  {{ formatAuditDate(version.changed_at) }}
+                </p>
               </div>
               <div v-if="changedFieldEntries(version).length" class="mt-3 space-y-1">
                 <p
@@ -459,7 +461,7 @@ import { useApi } from '../../composables/useApi'
 import { useAuditLogs } from '../../composables/useAuditLogs'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
-import { formatCurrency } from '../../composables/useFormatters'
+import { formatCurrency, formatDateTime } from '../../composables/useFormatters'
 import { SITE_TYPE_LABELS } from './procedureSite'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
@@ -526,12 +528,7 @@ const tabs = computed(() => {
   return available
 })
 
-const formatDate = value => {
-  if (!value) return 'Fecha no registrada'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' })
-}
+const formatAuditDate = value => formatDateTime(value) || 'Fecha no registrada'
 
 const auditActionLabel = action => {
   const labels = {

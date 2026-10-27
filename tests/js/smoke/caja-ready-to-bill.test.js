@@ -80,8 +80,18 @@ const rows = [
 
 const meta = { current_page: 1, last_page: 2, per_page: 20, total: 21 }
 
+// #451 — the page renders through the canonical `formatDateTime`, so the
+// expectation pins the `es-PE`/24 h shape (`dd/mm/yyyy, HH:mm`) itself instead
+// of deriving it from the module under test.
 const formattedDate = value =>
-  new Date(value).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' })
+  new Intl.DateTimeFormat('es-PE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23'
+  }).format(new Date(value))
 
 const preview = {
   appointment: { id: 41, patient: rows[0].patient, completed_at: rows[0].completed_at },

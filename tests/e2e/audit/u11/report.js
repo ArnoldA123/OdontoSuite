@@ -246,6 +246,14 @@ const mdTable = (headers, rows) => {
 // different separator or order stays a second shape.
 const shapeOf = value => String(value ?? '').replace(/\d+/g, '#')
 
+// The format axis asks for one money *format*, not one magnitude: CLDR adds the
+// thousands separator once the amount reaches four digits, so `S/ 480.00` and
+// `S/ 1,200.00` are both canonical `formatCurrency` output and used to read as
+// two shapes. Drop the group separator before collapsing digit runs; a real
+// format change (decimals vs none, another glyph or sign) still yields a second
+// shape.
+const currencyShapeOf = value => shapeOf(String(value ?? '').replace(/,/g, ''))
+
 const countOf = (list, predicate) => (list ?? []).filter(predicate).length
 
 // --- evidence ---------------------------------------------------------------
@@ -580,7 +588,7 @@ const evaluate = (axis, context) => {
   }
 
   if (axis === 'format') {
-    const currencyShapes = unique((measured.format?.currency ?? []).map(shapeOf))
+    const currencyShapes = unique((measured.format?.currency ?? []).map(currencyShapeOf))
     const dateShapes = unique((measured.format?.dates ?? []).map(shapeOf))
     const rendersDates = (measured.format?.dates ?? []).length > 0
     const rendersMoney = (measured.format?.currency ?? []).length > 0
