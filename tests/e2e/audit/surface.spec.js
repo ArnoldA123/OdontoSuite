@@ -131,6 +131,14 @@ import './u10/api-matrix.js'
 import './u10/report.js'
 import './u9/report.js'
 
+// U11 (issue #374) audits cross-module consistency: the twelve axes of the
+// session measured on the same 36 surfaces. Layer 1 is a Node pass
+// (`tests/e2e/audit/u11/static.js`) and the report generator reads every
+// artefact; the two browser modules are registered here so `--grep @U11`
+// selects the session.
+import './u11/render.js'
+import './u11/primitives.js'
+
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
 
