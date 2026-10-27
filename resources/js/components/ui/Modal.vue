@@ -9,7 +9,14 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="modelValue" v-bind="$attrs" :class="backdropClasses" @click="handleBackdropClick">
+      <div
+        v-if="modelValue"
+        v-bind="$attrs"
+        :class="backdropClasses"
+        :style="backdropStyle"
+        data-overlay-backdrop="modal"
+        @click="handleBackdropClick"
+      >
         <Transition
           name="modal-content"
           enter-active-class="transition-all duration-300 ease-out"
@@ -72,37 +79,24 @@
   </Teleport>
 </template>
 
-<script>
-// Module-level so every instance shares one stack. Nested modals (a patient form
-// opened from a treatment plan) must answer Escape and Tab only on the top
-// instance, and releasing the page scroll needs a counter so the inner unmount
-// does not unlock the page an outer modal still owns.
-const openModals = []
-let scrollLocks = 0
-
-const mountModal = token => {
-  if (!openModals.includes(token)) openModals.push(token)
-}
-
-const unmountModal = token => {
-  const index = openModals.indexOf(token)
-  if (index !== -1) openModals.splice(index, 1)
-}
-
-const acquireScrollLock = () => {
-  if (scrollLocks === 0) document.body.style.overflow = 'hidden'
-  scrollLocks += 1
-}
-
-const releaseScrollLock = () => {
-  scrollLocks = Math.max(0, scrollLocks - 1)
-  if (scrollLocks === 0) document.body.style.overflow = ''
-}
-</script>
-
 <script setup>
-import { computed, ref, watch, onMounted, onBeforeUnmount, useId, useSlots, nextTick } from 'vue'
+import {
+  computed,
+  ref,
+  watch,
+  onMounted,
+  onBeforeMount,
+  onBeforeUnmount,
+  useId,
+  useSlots,
+  nextTick
+} from 'vue'
 import { useFocusTrap } from '../../composables/useFocusTrap'
+import {
+  lockPageScroll,
+  unlockPageScroll,
+  useOverlayStack
+} from '../../composables/useOverlayStack'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -128,7 +122,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'close', 'open'])
 
-// Consumer hooks (data attributes, z-index overrides) belong on the teleported
+// Consumer hooks (data attributes, other root hooks) belong on the teleported
 // backdrop, which is the node the component actually renders into <body>.
 defineOptions({ inheritAttrs: false })
 
@@ -154,6 +148,17 @@ const backdropClasses = computed(() => [
   props.variant === 'top' && 'items-start pt-16',
   props.variant === 'bottom' && 'items-end pb-16'
 ])
+
+// The open set owns the layer: whatever was opened last paints and answers
+// input first, so a confirmation asked from inside this modal lands on top.
+const { register, unregister, isTop, zIndex } = useOverlayStack()
+const backdropStyle = computed(() => ({ zIndex: zIndex.value }))
+
+// Static opens (the module pages mount `<XModal v-if="open" />`) must already
+// own their slot on the first paint, not one tick later.
+onBeforeMount(() => {
+  if (props.modelValue) register()
+})
 
 const modalClasses = computed(() => {
   const base = [
@@ -188,34 +193,31 @@ const closeButtonClasses = computed(() => [
 const modalRef = ref(null)
 const focusTrap = useFocusTrap()
 
-const modalToken = Symbol('modal')
 let scrollLocked = false
 let closePending = false
-
-const isTopModal = () => openModals[openModals.length - 1] === modalToken
 
 const lockScroll = () => {
   if (scrollLocked) return
   scrollLocked = true
-  acquireScrollLock()
+  lockPageScroll()
 }
 
 const unlockScroll = () => {
   if (!scrollLocked) return
   scrollLocked = false
-  releaseScrollLock()
+  unlockPageScroll()
 }
 
 // Event handlers
 const handleBackdropClick = () => {
-  if (!isTopModal()) return
+  if (!isTop()) return
   if (props.closeOnBackdrop && !props.persistent) {
     handleClose()
   }
 }
 
 const handleEscape = event => {
-  if (!props.modelValue || !isTopModal()) return
+  if (!props.modelValue || !isTop()) return
   if (props.closeOnEscape && !props.persistent) {
     event.preventDefault()
     event.stopPropagation()
@@ -261,7 +263,6 @@ onMounted(() => {
   // the open branch runs here: locking twice is harmless, while running the
   // closed branch on mount would release a lock owned by a parent modal.
   if (props.modelValue) {
-    mountModal(modalToken)
     lockScroll()
     emit('open')
     focusTrap.activate(modalRef.value)
@@ -273,7 +274,7 @@ watch(
   () => props.modelValue,
   newValue => {
     if (newValue) {
-      mountModal(modalToken)
+      register()
       lockScroll()
       emit('open')
       // The watcher runs before the render that mounts the dialog, so the ref is
@@ -281,7 +282,7 @@ watch(
       // (the repo's other pattern) as trapped as static mounts already were.
       nextTick(() => focusTrap.activate(modalRef.value))
     } else {
-      unmountModal(modalToken)
+      unregister()
       unlockScroll()
       focusTrap.release()
     }
@@ -299,7 +300,7 @@ function handleDocumentEscape(event) {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleDocumentEscape)
-  unmountModal(modalToken)
+  unregister()
   unlockScroll()
   focusTrap.release()
 })

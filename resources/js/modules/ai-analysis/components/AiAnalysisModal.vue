@@ -1,17 +1,19 @@
 <template>
-  <UiModal model-value size="xl" @close="emit('close')">
+  <UiModal model-value size="xl" :labelledby="titleId" @close="emit('close')">
     <template #header>
       <div class="flex w-full items-start justify-between gap-4">
         <div class="min-w-0">
-          <p
-            class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-theme-secondary"
-          >
-            <CpuChipIcon class="h-4 w-4" aria-hidden="true" />
-            Análisis de IA
-          </p>
-          <h2 data-ai-detail-patient class="mt-2 truncate text-2xl font-semibold text-label">
-            {{ patientName }}
-          </h2>
+          <div :id="titleId">
+            <p
+              class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-theme-secondary"
+            >
+              <CpuChipIcon class="h-4 w-4" aria-hidden="true" />
+              Análisis de IA
+            </p>
+            <h2 data-ai-detail-patient class="mt-2 truncate text-2xl font-semibold text-label">
+              {{ patientName }}
+            </h2>
+          </div>
           <div class="mt-2 flex flex-wrap items-center gap-2">
             <span
               data-ai-detail-category
@@ -350,6 +352,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'review', 'void'])
+
+// The consumer supplies its own `#header`, so the modal cannot name the dialog
+// by itself. The heading block is what the reader already sees.
+const titleId = computed(() => `ai-analysis-title-${props.analysis.id}`)
 
 const { can } = usePermissions()
 const { confirm } = useConfirm()

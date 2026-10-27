@@ -9,7 +9,13 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="modelValue" :class="backdropClasses" @click="handleBackdropClick">
+      <div
+        v-if="modelValue"
+        :class="backdropClasses"
+        :style="backdropStyle"
+        data-overlay-backdrop="sheet"
+        @click="handleBackdropClick"
+      >
         <Transition
           :name="sheetTransition"
           :enter-active-class="enterActiveClass"
@@ -25,7 +31,8 @@
             :class="sheetClasses"
             :role="role"
             tabindex="-1"
-            :aria-labelledby="titleId"
+            :aria-labelledby="labelledby || (hasDefaultHeader ? titleId : undefined)"
+            :aria-label="!labelledby && !hasDefaultHeader && title ? title : undefined"
             :aria-describedby="descriptionId"
             :aria-modal="role === 'dialog' ? 'true' : undefined"
             @click.stop
@@ -75,8 +82,13 @@
 </template>
 
 <script setup>
-import { computed, watch, ref, onBeforeUnmount, useId } from 'vue'
+import { computed, watch, ref, onBeforeUnmount, useId, useSlots, nextTick } from 'vue'
 import { useFocusTrap } from '../../composables/useFocusTrap'
+import {
+  lockPageScroll,
+  unlockPageScroll,
+  useOverlayStack
+} from '../../composables/useOverlayStack'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -96,7 +108,8 @@ const props = defineProps({
   closeOnEscape: { type: Boolean, default: true },
   persistent: { type: Boolean, default: false },
   showHandle: { type: Boolean, default: true },
-  role: { type: String, default: 'dialog' }
+  role: { type: String, default: 'dialog' },
+  labelledby: { type: String, default: undefined }
 })
 
 const emit = defineEmits(['update:modelValue', 'close', 'open'])
@@ -105,6 +118,13 @@ const emit = defineEmits(['update:modelValue', 'close', 'open'])
 const _id = useId ? useId() : `sheet-${Math.random().toString(36).slice(2, 10)}`
 const titleId = computed(() => `sheet-title-${_id}`)
 const descriptionId = computed(() => `sheet-description-${_id}`)
+
+// A consumer that supplies its own `#header` replaces the default <h2>, so
+// `aria-labelledby` would point at an id that never renders. Name the panel from
+// the `title` prop instead; consumers with a custom header pass `labelledby`
+// when they want the panel named by their own heading.
+const slots = useSlots()
+const hasDefaultHeader = computed(() => !slots.header && Boolean(props.title))
 
 const closeLabel = computed(() => 'Cerrar panel')
 
@@ -212,14 +232,18 @@ const closeButtonClasses = computed(() => [
 // Event handlers
 const sheetRef = ref(null)
 const focusTrap = useFocusTrap()
+const { register, unregister, isTop, zIndex } = useOverlayStack()
+const backdropStyle = computed(() => ({ zIndex: zIndex.value }))
 
 const handleBackdropClick = () => {
+  if (!isTop()) return
   if (props.closeOnBackdrop && !props.persistent) {
     handleClose()
   }
 }
 
 const handleEscape = event => {
+  if (!props.modelValue || !isTop()) return
   if (props.closeOnEscape && !props.persistent) {
     event.preventDefault()
     event.stopPropagation()
@@ -244,12 +268,17 @@ watch(
   newValue => {
     if (newValue) {
       emit('open')
+      register()
       document.addEventListener('keydown', handleDocumentEscape)
-      document.body.style.overflow = 'hidden'
-      focusTrap.activate(sheetRef.value)
+      lockPageScroll()
+      // The watcher runs before the render that mounts the panel, so the ref is
+      // still empty here; arming the trap on the next tick keeps `v-model` opens
+      // as trapped as the modal's static mounts already were.
+      nextTick(() => focusTrap.activate(sheetRef.value))
     } else {
       document.removeEventListener('keydown', handleDocumentEscape)
-      document.body.style.overflow = ''
+      unregister()
+      unlockPageScroll()
       focusTrap.release()
     }
   }
@@ -257,7 +286,8 @@ watch(
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleDocumentEscape)
-  document.body.style.overflow = ''
+  unregister()
+  if (props.modelValue) unlockPageScroll()
   focusTrap.release()
 })
 </script>
