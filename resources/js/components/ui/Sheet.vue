@@ -31,7 +31,8 @@
             :class="sheetClasses"
             :role="role"
             tabindex="-1"
-            :aria-labelledby="titleId"
+            :aria-labelledby="labelledby || (hasDefaultHeader ? titleId : undefined)"
+            :aria-label="!labelledby && !hasDefaultHeader && title ? title : undefined"
             :aria-describedby="descriptionId"
             :aria-modal="role === 'dialog' ? 'true' : undefined"
             @click.stop
@@ -81,7 +82,7 @@
 </template>
 
 <script setup>
-import { computed, watch, ref, onBeforeUnmount, useId } from 'vue'
+import { computed, watch, ref, onBeforeUnmount, useId, useSlots, nextTick } from 'vue'
 import { useFocusTrap } from '../../composables/useFocusTrap'
 import {
   lockPageScroll,
@@ -107,7 +108,8 @@ const props = defineProps({
   closeOnEscape: { type: Boolean, default: true },
   persistent: { type: Boolean, default: false },
   showHandle: { type: Boolean, default: true },
-  role: { type: String, default: 'dialog' }
+  role: { type: String, default: 'dialog' },
+  labelledby: { type: String, default: undefined }
 })
 
 const emit = defineEmits(['update:modelValue', 'close', 'open'])
@@ -116,6 +118,13 @@ const emit = defineEmits(['update:modelValue', 'close', 'open'])
 const _id = useId ? useId() : `sheet-${Math.random().toString(36).slice(2, 10)}`
 const titleId = computed(() => `sheet-title-${_id}`)
 const descriptionId = computed(() => `sheet-description-${_id}`)
+
+// A consumer that supplies its own `#header` replaces the default <h2>, so
+// `aria-labelledby` would point at an id that never renders. Name the panel from
+// the `title` prop instead; consumers with a custom header pass `labelledby`
+// when they want the panel named by their own heading.
+const slots = useSlots()
+const hasDefaultHeader = computed(() => !slots.header && Boolean(props.title))
 
 const closeLabel = computed(() => 'Cerrar panel')
 
@@ -262,7 +271,10 @@ watch(
       register()
       document.addEventListener('keydown', handleDocumentEscape)
       lockPageScroll()
-      focusTrap.activate(sheetRef.value)
+      // The watcher runs before the render that mounts the panel, so the ref is
+      // still empty here; arming the trap on the next tick keeps `v-model` opens
+      // as trapped as the modal's static mounts already were.
+      nextTick(() => focusTrap.activate(sheetRef.value))
     } else {
       document.removeEventListener('keydown', handleDocumentEscape)
       unregister()
