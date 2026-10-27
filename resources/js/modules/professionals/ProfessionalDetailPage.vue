@@ -140,7 +140,7 @@
                 por {{ log.user?.name || 'Sistema' }}
               </span>
             </div>
-            <p class="text-sm text-theme-secondary mb-2">{{ formatDate(log.created_at) }}</p>
+            <p class="text-sm text-theme-secondary mb-2">{{ formatAuditDate(log.created_at) }}</p>
             <div v-if="getChangesSummary(log)" class="mt-2 text-sm">
               <p class="font-medium text-[color:var(--color-text-primary)] mb-1">
                 Cambios realizados:
@@ -188,6 +188,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { UserIcon, ClockIcon } from '@heroicons/vue/24/outline'
+import { formatDate } from '../../composables/useFormatters'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import { useAuditLogs } from '../../composables/useAuditLogs'
@@ -281,14 +282,7 @@ const factRows = computed(() => {
   ]
 })
 
-const formatDate = date => {
-  if (!date) return 'N/D'
-  try {
-    return new Date(date).toLocaleDateString('es-ES')
-  } catch {
-    return date
-  }
-}
+const formatAuditDate = value => formatDate(value) || 'N/D'
 
 const getAuditActionVariant = action => {
   if (action.includes('created')) return 'success'

@@ -66,6 +66,7 @@ vi.mock('../../../resources/js/composables/useToast', () => ({
 }))
 
 import uiComponents from '../../../resources/js/plugins/ui-components'
+import { formatDateTime } from '../../../resources/js/modules/lab-cases/labCaseMeta'
 import Page from '../../../resources/js/modules/lab-cases/LabCasesPage.vue'
 
 const labCase = (id, status, overrides = {}) => ({
@@ -184,7 +185,7 @@ describe('lab-cases desk', () => {
     expect(work.classList.contains('truncate')).toBe(true)
     expect(work.getAttribute('title')).toBe('Corona metal-cerámica')
     expect(lateRow.textContent).toContain('16')
-    expect(lateRow.textContent).toContain('01 ene 2020')
+    expect(lateRow.textContent).toContain('01 ene. 2020')
     expect(lateRow.querySelector('[data-lab-case-status]').textContent).toContain('En laboratorio')
     expect(lateRow.querySelector('[data-lab-case-overdue]')).toBeTruthy()
 
@@ -219,7 +220,7 @@ describe('lab-cases desk', () => {
     expect(detail.textContent).toContain('Ana Torres')
     expect(detail.textContent).toContain('Dr. Luis Rojas')
     expect(detail.textContent).toContain('Zirconio')
-    expect(detail.textContent).toContain('20 oct 2026')
+    expect(detail.textContent).toContain('20 oct. 2026')
   })
 
   it('offers only the phases after the current one', async () => {
@@ -229,8 +230,13 @@ describe('lab-cases desk', () => {
     await flushPromises()
 
     expect(phaseButtons()).toEqual(['placed'])
+    // #451: `delivered_at` is an instant (`...Z`), so the canonical helper
+    // renders it in the session clock instead of slicing the UTC wall clock.
+    // The expectation delegates to the desk's own label so it stays
+    // timezone-independent (the exact date+time rendering is pinned by
+    // `labCaseMeta.test.js`).
     expect(document.body.querySelector('[data-lab-case-detail]').textContent).toContain(
-      '21 oct 2026, 09:00'
+      formatDateTime(DELIVERED.delivered_at)
     )
   })
 

@@ -310,7 +310,7 @@
                   </span>
                 </div>
                 <p class="text-sm text-theme-secondary" data-audit-date>
-                  {{ formatDate(log.created_at) }}
+                  {{ formatAuditDate(log.created_at) }}
                 </p>
               </div>
 
@@ -371,7 +371,7 @@ import {
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import { useAuditLogs } from '../../composables/useAuditLogs'
-import { formatCurrency } from '../../composables/useFormatters'
+import { formatCurrency, formatDate } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
@@ -460,14 +460,7 @@ export default {
       return formatCurrency(price)
     }
 
-    const formatDate = date => {
-      if (!date) return 'No especificada'
-      try {
-        return new Date(date).toLocaleDateString('es-ES')
-      } catch {
-        return date
-      }
-    }
+    const formatAuditDate = value => formatDate(value) || 'No especificada'
 
     const getAuditActionVariant = action => {
       if (action.includes('created')) return 'success'
@@ -518,7 +511,7 @@ export default {
       loadAuditLogs,
       formatPrice,
       formatCurrency,
-      formatDate,
+      formatAuditDate,
       formatAction,
       getChangesSummary,
       getAuditActionVariant,

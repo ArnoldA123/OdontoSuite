@@ -229,6 +229,7 @@ import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'
 import DismissContinuityModal from './DismissContinuityModal.vue'
 import ScheduleContinuityModal from './ScheduleContinuityModal.vue'
+import { formatNumber } from '../../composables/useFormatters'
 import { useContinuity } from '../../composables/useContinuity'
 import { usePermissions } from '../../composables/usePermissions'
 import {
@@ -284,8 +285,6 @@ const REQUEST_COLUMNS = [
   { key: 'origin', label: 'Origen' }
 ]
 
-const formatCount = value => Number(value || 0).toLocaleString('es-PE')
-
 const counts = computed(() => queue.value.counts || { recalls: 0, requests: 0, total: 0 })
 
 const kpis = computed(() => [
@@ -293,19 +292,19 @@ const kpis = computed(() => [
     key: 'recalls',
     label: 'Recalls vencidos',
     caption: 'Sin cita agendada',
-    value: formatCount(counts.value.recalls)
+    value: formatNumber(counts.value.recalls)
   },
   {
     key: 'requests',
     label: 'Solicitudes',
     caption: 'Pendientes de materializar',
-    value: formatCount(counts.value.requests)
+    value: formatNumber(counts.value.requests)
   },
   {
     key: 'total',
     label: 'Total en cola',
     caption: 'Recalls y solicitudes',
-    value: formatCount(counts.value.total)
+    value: formatNumber(counts.value.total)
   },
   {
     key: 'compliance',

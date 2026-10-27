@@ -189,12 +189,12 @@
             </template>
             <template #cell-requested_at="{ row }">
               <span class="text-sm text-theme-secondary tabular-nums">
-                {{ formatDate(row.requested_at) }}
+                {{ formatTransferDate(row.requested_at) }}
               </span>
             </template>
             <template #cell-decided_at="{ row }">
               <span class="text-sm text-theme-secondary tabular-nums">
-                {{ formatDate(row.decided_at) }}
+                {{ formatTransferDate(row.decided_at) }}
               </span>
             </template>
             <template #actions="{ row }">
@@ -266,7 +266,7 @@
                   {{ branchName(row.from_branch) }} → {{ branchName(row.to_branch) }}
                 </p>
                 <p class="text-xs text-theme-secondary tabular-nums">
-                  {{ formatDate(row.requested_at) }}
+                  {{ formatTransferDate(row.requested_at) }}
                 </p>
               </div>
 
@@ -330,6 +330,7 @@ import UiSkeleton from '../../components/ui/Skeleton.vue'
 import UiStatusPill from '../../components/ui/StatusPill.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
 import UiTextarea from '../../components/ui/UiTextarea.vue'
+import { formatDate } from '../../composables/useFormatters'
 import { useAuth } from '../../composables/useAuth'
 import { useBranchTransfers } from '../../composables/useBranchTransfers'
 import { useConfirm } from '../../composables/useConfirm'
@@ -457,12 +458,8 @@ const statusVariant = status => STATUS[status]?.variant || 'neutral'
 
 const branchName = branch => branch?.name || 'Sin sede'
 
-const formatDate = value => {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
-}
+const formatTransferDate = value =>
+  formatDate(value, { day: '2-digit', month: 'short', year: 'numeric' }) || '—'
 
 const messageFor = (thrown, fallback) =>
   thrown?.response?.data?.message || thrown?.message || fallback
