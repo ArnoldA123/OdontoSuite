@@ -9,7 +9,13 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="modelValue" :class="backdropClasses" @click="handleBackdropClick">
+      <div
+        v-if="modelValue"
+        :class="backdropClasses"
+        :style="backdropStyle"
+        data-overlay-backdrop="sheet"
+        @click="handleBackdropClick"
+      >
         <Transition
           :name="sheetTransition"
           :enter-active-class="enterActiveClass"
@@ -77,6 +83,11 @@
 <script setup>
 import { computed, watch, ref, onBeforeUnmount, useId } from 'vue'
 import { useFocusTrap } from '../../composables/useFocusTrap'
+import {
+  lockPageScroll,
+  unlockPageScroll,
+  useOverlayStack
+} from '../../composables/useOverlayStack'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -212,14 +223,18 @@ const closeButtonClasses = computed(() => [
 // Event handlers
 const sheetRef = ref(null)
 const focusTrap = useFocusTrap()
+const { register, unregister, isTop, zIndex } = useOverlayStack()
+const backdropStyle = computed(() => ({ zIndex: zIndex.value }))
 
 const handleBackdropClick = () => {
+  if (!isTop()) return
   if (props.closeOnBackdrop && !props.persistent) {
     handleClose()
   }
 }
 
 const handleEscape = event => {
+  if (!props.modelValue || !isTop()) return
   if (props.closeOnEscape && !props.persistent) {
     event.preventDefault()
     event.stopPropagation()
@@ -244,12 +259,14 @@ watch(
   newValue => {
     if (newValue) {
       emit('open')
+      register()
       document.addEventListener('keydown', handleDocumentEscape)
-      document.body.style.overflow = 'hidden'
+      lockPageScroll()
       focusTrap.activate(sheetRef.value)
     } else {
       document.removeEventListener('keydown', handleDocumentEscape)
-      document.body.style.overflow = ''
+      unregister()
+      unlockPageScroll()
       focusTrap.release()
     }
   }
@@ -257,7 +274,8 @@ watch(
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleDocumentEscape)
-  document.body.style.overflow = ''
+  unregister()
+  if (props.modelValue) unlockPageScroll()
   focusTrap.release()
 })
 </script>
