@@ -199,6 +199,7 @@ for (const surface of surfaces) {
       httpStatus: null,
       contentLength: 0,
       rendered: false,
+      measured: false,
       settled: false,
       mobileSettled: false,
       loadingProbe: null,
@@ -281,6 +282,12 @@ for (const surface of surfaces) {
       evidence.shots.push(
         await capture(page, `shots/${slug}-${owner.role}-mobile.png`, { dir: OUT })
       )
+
+      // The row is evidence only after both viewports were captured and the
+      // axes were read. `finally` writes the file even when the probe skips or
+      // fails (so the reason is recorded), and the report keys on this flag:
+      // an existing file is not a measurement.
+      evidence.measured = true
     } finally {
       evidence.pageErrors = diagnostics.pageErrors.map(error => String(error))
       evidence.consoleErrors = diagnostics.consoleErrors
@@ -288,7 +295,9 @@ for (const surface of surfaces) {
       writeEvidence(`render/${slug}-${owner.role}.json`, evidence, { dir: OUT })
     }
 
-    expect(evidence.shots, `captures of ${surface.route}`).toHaveLength(2)
-    expect(evidence.pageErrors, `page errors of ${surface.route}`).toEqual([])
+    if (evidence.measured) {
+      expect(evidence.shots, `captures of ${surface.route}`).toHaveLength(2)
+      expect(evidence.pageErrors, `page errors of ${surface.route}`).toEqual([])
+    }
   })
 }
