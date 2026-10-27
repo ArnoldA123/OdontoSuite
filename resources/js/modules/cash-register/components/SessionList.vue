@@ -51,7 +51,7 @@
     >
       <template #cell-session="{ row }">
         <div class="text-sm font-medium text-theme-primary tabular-nums">#{{ row.id }}</div>
-        <div class="text-xs text-theme-secondary">{{ formatDate(row.opened_at) }}</div>
+        <div class="text-xs text-theme-secondary">{{ formatDate(row.opened_at) || '—' }}</div>
       </template>
 
       <template #cell-user="{ row }">
@@ -63,7 +63,7 @@
       </template>
 
       <template #cell-opened="{ row }">
-        <div class="text-sm text-theme-primary">{{ formatTime(row.opened_at) }}</div>
+        <div class="text-sm text-theme-primary">{{ formatTime(row.opened_at) || '—' }}</div>
         <div class="text-sm text-theme-secondary tabular-nums">
           {{ formatPENLabel(row.opening_amount) }}
         </div>
@@ -71,7 +71,7 @@
 
       <template #cell-closed="{ row }">
         <div class="text-sm text-theme-primary">
-          {{ row.closed_at ? formatTime(row.closed_at) : '—' }}
+          {{ row.closed_at ? formatTime(row.closed_at) || '—' : '—' }}
         </div>
         <div class="text-sm text-theme-secondary tabular-nums">
           {{ formatAmount(row.closing_amount) }}
@@ -118,7 +118,7 @@ import UiPagination from '@/components/ui/Pagination.vue'
 import UiSelect from '@/components/ui/Select.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import { useApi } from '@/composables/useApi'
-import { formatPENLabel } from '@/composables/useFormatters'
+import { formatDate, formatPENLabel, formatTime } from '@/composables/useFormatters'
 
 const props = defineProps({
   sessions: {
@@ -214,21 +214,6 @@ const formatDifference = amount => {
 const differenceClass = amount => {
   if (amount === 0) return 'text-systemGreen-600'
   return amount > 0 ? 'text-systemBlue-600' : 'text-systemRed-600'
-}
-
-const formatDate = dateTime => {
-  return new Date(dateTime).toLocaleDateString('es-PE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
-}
-
-const formatTime = dateTime => {
-  return new Date(dateTime).toLocaleTimeString('es-PE', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
 }
 
 const getStatusText = status => {

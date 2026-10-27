@@ -13,7 +13,7 @@ import PatientSelector from '@/components/ui/PatientSelector.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import { useApi } from '@/composables/useApi'
 import { useToast } from '@/composables/useToast'
-import { formatCurrency } from '@/composables/useFormatters'
+import { formatCurrency, formatDateTime } from '@/composables/useFormatters'
 
 const { get, post } = useApi()
 const toast = useToast()
@@ -174,15 +174,6 @@ const generateQuotation = async row => {
 const patientName = row =>
   [row.patient?.first_name, row.patient?.last_name].filter(Boolean).join(' ') || '—'
 
-const formatDate = value => {
-  if (!value) return '—'
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-
-  return date.toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' })
-}
-
 watch(
   filters,
   () => {
@@ -319,7 +310,9 @@ onBeforeUnmount(() => {
           data-rtb-table
         >
           <template #cell-completed_at="{ row }">
-            <span class="tabular-nums text-theme-primary">{{ formatDate(row.completed_at) }}</span>
+            <span class="tabular-nums text-theme-primary">
+              {{ formatDateTime(row.completed_at) || '—' }}
+            </span>
           </template>
 
           <template #cell-patient="{ row }">
@@ -419,7 +412,7 @@ onBeforeUnmount(() => {
         <div class="font-medium">{{ patientName(previewData.appointment) }}</div>
         <div class="mt-1 text-xs text-theme-secondary">
           Cita #{{ previewData.appointment?.id }} ·
-          {{ formatDate(previewData.appointment?.completed_at) }}
+          {{ formatDateTime(previewData.appointment?.completed_at) || '—' }}
         </div>
       </div>
 

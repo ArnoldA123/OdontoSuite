@@ -50,7 +50,7 @@
       data-movement-table
     >
       <template #cell-created_at="{ value }">
-        {{ formatTime(value) }}
+        {{ formatTime(value) || '—' }}
       </template>
 
       <template #cell-type="{ row }">
@@ -100,7 +100,7 @@ import UiCard from '@/components/ui/Card.vue'
 import UiDataTable from '@/components/ui/DataTable.vue'
 import UiPagination from '@/components/ui/Pagination.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
-import { formatCurrency } from '@/composables/useFormatters'
+import { formatCurrency, formatTime } from '@/composables/useFormatters'
 import { ArrowPathIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -177,15 +177,6 @@ const totals = computed(() => [
 const reload = () => emit('refresh')
 
 const loadPage = page => emit('refresh', { page })
-
-const formatTime = dateTime => {
-  const date = new Date(dateTime)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleTimeString('es-PE', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
 
 const typeLabel = type => TYPE_LABELS[type] || type
 

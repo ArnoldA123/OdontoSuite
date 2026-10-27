@@ -66,7 +66,9 @@
         </template>
 
         <template #cell-appointment="{ row }">
-          <p class="text-sm text-theme-primary">{{ formatDate(row.appointment?.date) }}</p>
+          <p class="text-sm text-theme-primary">
+            {{ formatDate(row.appointment?.date, { day: 'numeric', month: 'short' }) || '—' }}
+          </p>
           <p class="text-xs text-theme-secondary">
             {{ row.appointment?.appointment_type?.name }}
           </p>
@@ -126,7 +128,7 @@ import UiFilterBar from '@/components/ui/FilterBar.vue'
 import UiInput from '@/components/ui/Input.vue'
 import UiPagination from '@/components/ui/Pagination.vue'
 import { useApi } from '@/composables/useApi'
-import { formatCurrency } from '@/composables/useFormatters'
+import { formatCurrency, formatDate } from '@/composables/useFormatters'
 
 const emit = defineEmits(['payment', 'paymentsLoaded'])
 
@@ -239,19 +241,6 @@ const clearFilters = () => {
     date_from: '',
     date_to: ''
   }
-}
-
-const formatDate = value => {
-  if (!value) return '—'
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-
-  return date.toLocaleDateString('es-PE', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
 }
 
 watch(

@@ -84,7 +84,7 @@
       data-transaction-table
     >
       <template #cell-time="{ row }">
-        <span class="tabular-nums">{{ formatTime(row.created_at) }}</span>
+        <span class="tabular-nums">{{ formatTime(row.created_at) || '—' }}</span>
       </template>
 
       <template #cell-patient="{ row }">
@@ -163,7 +163,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useApi } from '@/composables/useApi'
-import { formatCurrency } from '@/composables/useFormatters'
+import { formatCurrency, formatTime } from '@/composables/useFormatters'
 import UiButton from '@/components/ui/Button.vue'
 import UiDataTable from '@/components/ui/DataTable.vue'
 import UiFilterBar from '@/components/ui/FilterBar.vue'
@@ -266,13 +266,6 @@ const patientName = row => {
 const hasDiscount = row => Number(row.discount_amount) > 0
 
 const isIncomeType = type => type === 'payment'
-
-const formatTime = dateTime => {
-  return new Date(dateTime).toLocaleTimeString('es-PE', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
 
 const getStatusText = status => {
   const texts = {
