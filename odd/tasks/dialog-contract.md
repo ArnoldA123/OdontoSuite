@@ -23,8 +23,8 @@ Creado: 2026-10-27 · Orquestador: el Gentleman
 | T4  | Verificación (suite, lint, e2e)       | S2-S4    | inline | —         |
 | T5  | Docs y cierre                         | S6       | inline | —         |
 
-Presupuesto de revisión: 548 líneas autoradas en cuatro cortes (`a11bc2c` 323,
-`e33fbde` +138, `2f06d95` +28, docs +59). Estrategia de entrega: un solo pull
+Presupuesto de revisión: 629 líneas autoradas en cinco cortes (`a11bc2c` 323,
+`e33fbde` +138, `2f06d95` +28, `9131a4f` +81, docs +59). Estrategia de entrega: un solo pull
 request con los cuatro commits, uno por unidad de comportamiento.
 
 ## Log
@@ -35,3 +35,4 @@ request con los cuatro commits, uno por unidad de comportamiento.
 - **L4.** #379/#385 — sheet (`e33fbde`): `labelledby` como prop, `aria-label` desde `title` cuando el consumidor reemplaza el `#header` («Navegación»), `aria-labelledby` sin apuntar a un id inexistente y trampa de foco armada con `nextTick` en la apertura por `v-model`. `sheetPrimitive.test.js` (5). El criterio e2e de #385 no se ejecutó: el worktree no tiene `.env` y no se leen ni copian credenciales del repositorio; queda declarado, no en verde.
 - **L5.** #429 y verificación — `AiAnalysisModal.vue` (`2f06d95`) nombra el diálogo con su encabezado visible («Análisis de IA» + paciente) y un caso nuevo en `ai-analysis-detail.test.js` (16 en el archivo) fija el nombre accesible. `pnpm test:js` → 143 archivos / 1236 pruebas en verde; `vendor/bin/phpunit tests/Unit/DesignSystem/PrimitivePressTest.php` → 12 pruebas / 144 aserciones en verde. T4 y T5 quedan sin commit propio: la verificación vive en la entrega y este cierre documental lo confirma la revisión del orquestador. Entrega: un solo pull request con `a11bc2c`, `e33fbde` y `2f06d95`.
 - **L6.** Cortes rehechos: el primer intento dejó el cambio de `onBeforeMount` en `Modal.vue` dentro del commit de #429; los tres commits se reconstruyeron desde `main` y los hashes de la tabla son los definitivos. `doc-drift` midió 45 composables y §4 se sincronizó: el guard cierra 14/14. Cierre documental en el mismo commit de §12.
+- **L7.** Navegador real sobre una base dedicada (`odontosuite_dialog_contract_audit`, `php artisan serve :8001` + Vite `:5173` con `VITE_APP_URL` apuntando al mismo origen): el criterio de #385 queda `focus-trapped → inside` y `accessible-name → Nuevo análisis de IA`; el hit test de la confirmación devuelve `ok: true` («Anular») y el `POST …/void` responde 200. La corrida reveló un hallazgo real: el 422 del análisis citado trae el motivo en `errors.analysis` y el aviso mostraba «Error de validación», así que el composable ahora prefiere ese detalle (`9131a4f`, 3 pruebas) y el navegador confirma el motivo visible. La sonda de navegador fue temporal y no se versiona; la evidencia queda en `.atl/qa-evidence/audit/dialog-contract`.

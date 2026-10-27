@@ -593,28 +593,36 @@ documentada y no bloquea producción.
   botón «Anular» nunca recibía el clic; ahora una confirmación pedida desde
   dentro de un modal abierto se pinta encima y el flujo termina donde promete
   (análisis no citado → `POST …/void` `200` y la fila sale de la lista; análisis
-  citado → `422`). Ambos fondos publican `data-overlay-backdrop` (`modal` /
-  `sheet`). **Sheet (#379/#385)**: `Sheet.vue` gana la prop `labelledby`, cae a
-  `aria-label` desde `title` cuando el consumidor reemplaza el slot `#header`
-  —así el sheet de navegación móvil anuncia «Navegación»—, deja de apuntar
-  `aria-labelledby` a un id que nunca se renderiza cuando no hay título y arma
-  la trampa de foco con `nextTick` en las aperturas por `v-model`; el sheet de
-  `/ai-analysis` es la misma primitiva y queda cubierto por el mismo arreglo.
-  **Detalle de IA (#429)**: `AiAnalysisModal.vue` da id a su bloque de
-  encabezado —la etiqueta «Análisis de IA» más el nombre del paciente— y lo pasa
-  como `labelledby` a `UiModal`, con lo que el nombre accesible es «Análisis de
-  IA Ana Torres». Sin cambios de fuente PHP, rutas, controllers, modelos,
-  migraciones ni páginas; §4 sube a 45 composables (el nuevo
-  `useOverlayStack.js`) y §5 no cambia. Tests: `overlayStack.test.js` (5),
-  `sheetPrimitive.test.js` (5) y un caso nuevo en `ai-analysis-detail.test.js`
-  (16 en el archivo); `pnpm test:js` en 143 archivos / 1236 pruebas y
+  citado → `422` **con su motivo en el aviso**: el composable prefiere el primer
+  `errors.*` al `message` genérico de validación). Ambos fondos publican
+  `data-overlay-backdrop` (`modal` / `sheet`). **Sheet (#379/#385)**:
+  `Sheet.vue` gana la prop `labelledby`, cae a `aria-label` desde `title` cuando
+  el consumidor reemplaza el slot `#header` —así el sheet de navegación móvil
+  anuncia «Navegación»—, deja de apuntar `aria-labelledby` a un id que nunca se
+  renderiza cuando no hay título y arma la trampa de foco con `nextTick` en las
+  aperturas por `v-model`; el sheet de `/ai-analysis` es la misma primitiva y
+  queda cubierto por el mismo arreglo. **Detalle de IA (#429)**:
+  `AiAnalysisModal.vue` da id a su bloque de encabezado —la etiqueta «Análisis
+  de IA» más el nombre del paciente— y lo pasa como `labelledby` a `UiModal`,
+  con lo que el nombre accesible es «Análisis de IA Ana Torres». Sin cambios de
+  fuente PHP, rutas, controllers, modelos, migraciones ni páginas; §4 sube a 45
+  composables (el nuevo `useOverlayStack.js`) y §5 no cambia. Tests:
+  `overlayStack.test.js` (5), `sheetPrimitive.test.js` (5),
+  `useAiAnalysis-void.test.js` (3) y un caso nuevo en
+  `ai-analysis-detail.test.js` (16 en el archivo); `pnpm test:js` en 144
+  archivos / 1239 pruebas y
   `vendor/bin/phpunit tests/Unit/DesignSystem/PrimitivePressTest.php` en 12
-  tests / 144 aserciones. El criterio de aceptación e2e de #385
+  tests / 144 aserciones. Medido en navegador real sobre una base dedicada
+  (`odontosuite_dialog_contract_audit`, servidor en `:8001` con Vite en
+  `:5173`): el criterio de #385
   (`AUDIT_SCOPE=route:/ai-analysis pnpm exec playwright test tests/e2e/audit/surface.spec.js --grep "dialog contract /ai-analysis"`)
-  no se ejecutó: este worktree no tiene `.env` y no se leen ni copian
-  credenciales del repositorio, así que no se declara en verde. Se entrega en un
-  solo pull request con tres commits de unidad (`a11bc2c`, `e33fbde`,
-  `2f06d95`).
+  queda `focus-trapped → inside` y `accessible-name → Nuevo análisis de IA`; el
+  hit test de la confirmación devuelve `ok: true` («Anular») y el `POST …/void`
+  responde 200; el análisis citado responde 422 con «No se puede anular un
+  análisis citado en una evolución o en un plan.» visible en el aviso. La sonda
+  de navegador no se versiona: su evidencia queda en
+  `.atl/qa-evidence/audit/dialog-contract`. Se entrega en un solo pull request
+  con cuatro commits de unidad (`a11bc2c`, `e33fbde`, `2f06d95`, `9131a4f`).
 
 - **2026-10-23 (las notas ODD se versionan)** — Las 47 notas de tarea que
   quedaban sin seguimiento en `odd/tasks/` entran al repositorio junto a las 43
