@@ -24,6 +24,13 @@ use PHPUnit\Framework\TestCase;
  *      SessionList.vue to forbid the duplicate-prefix patterns, and
  *      forbids `S/ ${` outside the helper file in `resources/js/**`.
  *
+ *   4. Single-source sweep (#451) — scans all of `resources/js/**` and
+ *      fails with `file:line` when a module builds its own currency
+ *      formatter (Intl.NumberFormat with `currency`) or formats dates and
+ *      times through its own locale APIs. The canonical module
+ *      (useFormatters.js) and the in-field numeric display of
+ *      CurrencyInput.vue are the only declared exceptions.
+ *
  * The test runs under `php artisan test` (Strict TDD oracle) with no
  * Laravel container, no DB connection, and no external services.
  */
@@ -52,6 +59,17 @@ class FormatPENLabelTest extends TestCase
 
     /** Literal `S/ ` MUST appear only inside the helper source file. */
     private const HELPER_FILE_NAME = 'useFormatters.js';
+
+    /** Canonical format module (#451): only place allowed to build locale formats. */
+    private const CANON_REL_PATH = '/resources/js/composables/useFormatters.js';
+
+    /** Whole frontend tree the single-source sweep covers (#451). */
+    private const FRONTEND_ROOT_REL_PATH = '/resources/js';
+
+    /** In-field numeric display: its Intl.NumberFormat has no `currency` key. */
+    private const NUMERIC_INPUT_REL_PATH = '/resources/js/components/ui/CurrencyInput.vue';
+
+    private const LEGACY_FORMATTER_REL_PATH = '/resources/js/utils/formatters.js';
 
     // -------------------------------------------------------------------
     // Layer 1 — Module surface
@@ -527,6 +545,138 @@ class FormatPENLabelTest extends TestCase
     }
 
     // -------------------------------------------------------------------
+    // Layer 5 — single-source sweep over resources/js (#451)
+    //
+    // S7: the guard scans the whole frontend tree, not only the files a
+    // previous slice migrated, and fails with file and line. Two kinds of
+    // divergence are forbidden outside the canonical module:
+    //
+    //   a) building a currency formatter: Intl.NumberFormat(..., {
+    //      currency }) or toLocaleString(..., { style: 'currency' });
+    //   b) formatting dates or times with a locale of its own:
+    //      toLocaleDateString, toLocaleTimeString, toLocaleString,
+    //      Intl.DateTimeFormat, Intl.NumberFormat.
+    //
+    // Declared exceptions: the canonical module itself and CurrencyInput.vue,
+    // whose numeric display is pinned by
+    // `test_currency_input_formatter_unchanged`.
+    // -------------------------------------------------------------------
+
+    #[Test]
+    public function legacy_formatter_module_is_gone(): void
+    {
+        $legacy = self::projectRootPath().self::LEGACY_FORMATTER_REL_PATH;
+
+        $this->assertFileDoesNotExist(
+            $legacy,
+            'resources/js/utils/formatters.js must be deleted: useFormatters.js is the single '
+                .'format module and its callers consume it directly (#451 / S5).'
+        );
+    }
+
+    #[Test]
+    public function no_module_outside_the_canon_builds_a_currency_formatter(): void
+    {
+        $violations = self::sweepFrontend([
+            '/Intl\.NumberFormat\s*\([^)]*currency\s*:/s',
+            '/toLocaleString\s*\([^)]*style\s*:\s*[\'\"]currency[\'\"]/s',
+        ]);
+
+        $this->assertSame(
+            [],
+            $violations,
+            'formatCurrency/formatUsd are the only currency formatters (#451 / S1, S5). '
+                .'Consume useFormatters.js instead of declaring a locale formatter. Offenders:'.
+                "\n".implode("\n", $violations)
+        );
+    }
+
+    #[Test]
+    public function no_module_outside_the_canon_formats_dates_or_times_with_its_own_locale(): void
+    {
+        $violations = self::sweepFrontend([
+            '/toLocaleDateString\s*\(/',
+            '/toLocaleTimeString\s*\(/',
+            '/toLocaleString\s*\(/',
+            '/Intl\.DateTimeFormat\s*\(/',
+            '/Intl\.NumberFormat\s*\(/',
+        ]);
+
+        $this->assertSame(
+            [],
+            $violations,
+            'One locale, one clock (#451 / S1, S4): dates, times and numbers consume '
+                .'useFormatters.js (formatDate, formatDateTime, formatTime, formatNumber). '
+                .'Offenders:'."\n".implode("\n", $violations)
+        );
+    }
+
+    #[Test]
+    public function only_one_file_declares_the_pen_currency_formatter(): void
+    {
+        $declarations = [];
+
+        foreach (self::collectFrontendFiles() as $path) {
+            $source = (string) file_get_contents($path);
+            if (preg_match(
+                "/Intl\.NumberFormat\s*\(\s*'es-PE'\s*,\s*\{[^}]*style\s*:\s*'currency'/s",
+                self::stripCommentsKeepingLines($source)
+            )) {
+                $declarations[] = self::relativePath($path);
+            }
+        }
+
+        $this->assertSame(
+            [self::relativePath(self::helperPath())],
+            $declarations,
+            'The issue acceptance asks for exactly one declaration of '
+                ."Intl.NumberFormat('es-PE', { style: 'currency' }) in resources/js (#451 / S8)."
+        );
+    }
+
+    #[Test]
+    public function canonical_module_declares_the_canonical_locale_and_clock(): void
+    {
+        $source = (string) file_get_contents(self::helperPath());
+
+        $this->assertMatchesRegularExpression(
+            "/style\s*:\s*'currency'/s",
+            $source,
+            'useFormatters.js must declare the canonical PEN currency formatter (#451 / S1).'
+        );
+        $this->assertMatchesRegularExpression(
+            "/currency\s*:\s*'PEN'/s",
+            $source,
+            'useFormatters.js must name the PEN currency (#451 / S1).'
+        );
+        $this->assertMatchesRegularExpression(
+            "/['\"]es-PE['\"]/",
+            $source,
+            'useFormatters.js must be the only locale owner: es-PE (#451 / S1).'
+        );
+    }
+
+    #[Test]
+    public function no_module_renders_a_literal_slash_prefix_before_a_currency_helper(): void
+    {
+        $violations = self::sweepFrontend([
+            '/S\/\s*\{\{\s*format(?:Currency|PENLabel|Usd)\s*\(/s',
+            '/S\/\s*\$\{\s*format(?:Currency|PENLabel|Usd)\s*\(/s',
+            '/S\/\s*\$\{[^}]*\.toFixed\(/s',
+            '/S\/\s*\{\{(?!\s*format(?:Currency|PENLabel|Usd))/s',
+            '/S\/\s*\$\{(?!\s*format(?:Currency|PENLabel|Usd))/s',
+        ]);
+
+        $this->assertSame(
+            [],
+            $violations,
+            'The currency helper already emits the `S/` prefix and a raw interpolation '
+                .'skips the canonical decimals: consume formatCurrency instead of a literal '
+                .'`S/` prefix or a raw amount (#451 / S1). Offenders:'."\n".implode("\n", $violations)
+        );
+    }
+
+    // -------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------
 
@@ -564,6 +714,83 @@ class FormatPENLabelTest extends TestCase
     private static function readFile(string $path): string|false
     {
         return file_get_contents($path);
+    }
+
+    /**
+     * Scan every .js/.vue file under resources/js with the given patterns and
+     * return one `path:line` entry per offending location.
+     *
+     * Comments are blanked before scanning (newlines preserved), so a documented
+     * example does not count as a call site and the reported line stays true.
+     *
+     * @param  string[] $patterns
+     * @return string[]
+     */
+    private static function sweepFrontend(array $patterns): array
+    {
+        $violations = [];
+
+        foreach (self::collectFrontendFiles() as $path) {
+            $relative = self::relativePath($path);
+
+            if (self::isExemptFromSweep($relative)) {
+                continue;
+            }
+
+            $source = self::stripCommentsKeepingLines((string) file_get_contents($path));
+
+            foreach ($patterns as $pattern) {
+                if (! preg_match_all($pattern, $source, $matches, PREG_OFFSET_CAPTURE)) {
+                    continue;
+                }
+
+                foreach ($matches[0] as [, $offset]) {
+                    $line = substr_count(substr($source, 0, $offset), "\n") + 1;
+                    $violations[$relative.':'.$line] = $relative.':'.$line;
+                }
+            }
+        }
+
+        sort($violations);
+
+        return array_values($violations);
+    }
+
+    /**
+     * @return string[] absolute paths to every .js/.vue file under resources/js
+     */
+    private static function collectFrontendFiles(): array
+    {
+        return self::collectJsFiles(self::projectRootPath().self::FRONTEND_ROOT_REL_PATH);
+    }
+
+    private static function isExemptFromSweep(string $relativePath): bool
+    {
+        return in_array($relativePath, [self::CANON_REL_PATH, self::NUMERIC_INPUT_REL_PATH], true);
+    }
+
+    private static function relativePath(string $absolutePath): string
+    {
+        $root = self::projectRootPath();
+
+        return str_starts_with($absolutePath, $root)
+            ? substr($absolutePath, strlen($root))
+            : $absolutePath;
+    }
+
+    /**
+     * Blank block and line comments while keeping every newline, so a pattern
+     * scan reports the file and line of a real call site.
+     */
+    private static function stripCommentsKeepingLines(string $source): string
+    {
+        $withoutBlocks = preg_replace_callback(
+            '#/\*.*?\*/#s',
+            static fn (array $match): string => (string) preg_replace('/[^\n]/', ' ', $match[0]),
+            $source
+        );
+
+        return preg_replace('#//[^\n]*#', '', $withoutBlocks ?? $source) ?? $source;
     }
 
     /**
