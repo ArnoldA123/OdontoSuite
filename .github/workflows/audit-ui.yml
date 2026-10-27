@@ -32,8 +32,16 @@ on:
         description: 'Playwright --grep selector'
         required: true
         default: '@U11'
+  # A measurement is requested with workflow_dispatch. The push trigger exists
+  # to validate the instrument itself, so it only fires when the instrument or
+  # its workflow changes: a 45-minute job on every push to the branch burns the
+  # runner budget without answering a new question.
   push:
     branches: ['feat/audit-ui-*']
+    paths:
+      - '.github/workflows/audit-ui.yml'
+      - 'tests/e2e/audit/**'
+      - 'scripts/audit/**'
 
 concurrency:
   group: audit-ui-${{ github.ref }}
@@ -163,14 +171,19 @@ jobs:
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Layer 1 — static manifest
+      # The CLI form of the scope is resolved once: the manifest step and the
+      # aggregation step both read `SCOPE_ARG`, so the two translations cannot
+      # drift apart.
+      - name: Resolve the audit scope
         run: |
           case "$AUDIT_SCOPE_INPUT" in
-            module:*) SCOPE_ARG="--module=$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^module://')" ;;
-            route:*) SCOPE_ARG="--route=$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^route://')" ;;
-            *) SCOPE_ARG='--all' ;;
+            module:*) echo "SCOPE_ARG=--module=$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^module://')" >> "$GITHUB_ENV" ;;
+            route:*) echo "SCOPE_ARG=--route=$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^route://')" >> "$GITHUB_ENV" ;;
+            *) echo 'SCOPE_ARG=--all' >> "$GITHUB_ENV" ;;
           esac
-          node scripts/audit/ui-manifest.mjs "$SCOPE_ARG" --out="${AUDIT_OUT}/manifest.json"
+
+      - name: Layer 1 — static manifest
+        run: node scripts/audit/ui-manifest.mjs "${SCOPE_ARG:---all}" --out="${AUDIT_OUT}/manifest.json"
 
       - name: Layers 2–4 — render, dialogs and walks
         env:
@@ -182,13 +195,7 @@ jobs:
 
       - name: Layers 5–6 — aggregate, gallery and verdict
         if: always()
-        run: |
-          case "$AUDIT_SCOPE_INPUT" in
-            module:*) SCOPE_ARG="--module=$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^module://')" ;;
-            route:*) SCOPE_ARG="--route=$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^route://')" ;;
-            *) SCOPE_ARG='--all' ;;
-          esac
-          node scripts/audit/ui-pass.mjs --no-run "$SCOPE_ARG" --out="${AUDIT_OUT}"
+        run: node scripts/audit/ui-pass.mjs --no-run "${SCOPE_ARG:---all}" --out="${AUDIT_OUT}"
 
       # U11 aggregates 36 routes × 12 axes, so its static pass and its matrix
       # generator run here: the matrix is the session's deliverable and the gate
@@ -206,7 +213,7 @@ jobs:
           name: audit-${{ env.AUDIT_SESSION }}-evidence
           path: ${{ env.AUDIT_OUT }}
           retention-days: 14
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Upload the server log
         if: failure()

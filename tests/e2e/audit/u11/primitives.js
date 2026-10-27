@@ -50,22 +50,37 @@ const surfaces = applyScope(manifest, SCOPE).filter(
   surface => surface.dialogs.length > 0 || staticRows.get(surface.route)?.axes.dialog.ownOverlay
 )
 
-const hrefFor = (surface, id) => {
-  if (surface.href) return surface.href
+// The sample row is addressed by replacing the last dynamic segment of the
+// route (`/patients/:id` -> `/patients/7`); a route without one keeps its path.
+const withSampleId = (route, id) => {
+  const segments = route.split('/')
 
-  if (surface.sample && id != null) {
-    const segments = surface.route.split('/')
-
-    for (let index = segments.length - 1; index >= 0; index -= 1) {
-      if (segments[index].startsWith(':')) {
-        segments[index] = String(id)
-        break
-      }
+  for (let index = segments.length - 1; index >= 0; index -= 1) {
+    if (segments[index].startsWith(':')) {
+      segments[index] = String(id)
+      break
     }
-
-    return segments.join('/')
   }
 
+  return segments.join('/')
+}
+
+// One administration login per worker. The sample lookup used to log in again
+// for every surface, so a 36-route pass paid 36 extra logins against the login
+// throttle and a 429 surfaced as a false "no-sample-record" skip.
+let sampleToken = null
+const sampleSessionToken = async request => {
+  if (!sampleToken) {
+    const session = await loginAs(request, 'administrador')
+    sampleToken = session.token
+  }
+
+  return sampleToken
+}
+
+const hrefFor = (surface, id) => {
+  if (surface.href) return surface.href
+  if (surface.sample && id != null) return withSampleId(surface.route, id)
   if (surface.route.includes(CATCH_ALL_SEGMENT)) return CATCH_ALL_PROBE
 
   return surface.route
@@ -73,10 +88,10 @@ const hrefFor = (surface, id) => {
 
 const resolveSample = async (request, surface) => {
   const { endpoint, idField } = surface.sample
-  const session = await loginAs(request, 'administrador')
+  const token = await sampleSessionToken(request)
 
   const response = await request.get(`${BASE_URL}${endpoint}`, {
-    headers: { Authorization: `Bearer ${session.token}`, Accept: 'application/json' }
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
   })
 
   if (!response.ok()) return null

@@ -384,3 +384,15 @@ duplicación; cuenta el dato que aparece en KPI y tabla o fuera de tabla).
   confirmó que las 36 filas están medidas, que el gate no puede quedar verde con
   una fila sin medir, que la matriz publicada coincide con los artefactos y que
   los seis issues se sostienen contra `findings.raw.json` y `static.json`.
+- **L12** — Mantenimiento del instrumento (#458): las 22 notas informativas de
+  la revisión nativa se atendieron sin cambiar lo que el instrumento mide ni la
+  matriz publicada. La medición del estado de carga y de repetición publica
+  `truncated` cuando el escaneo topa su presupuesto; el informe falla si falta
+  `manifest.json` y busca la fila de render por ruta y rol en vez de quedarse
+  con la última que leyó; el `slug` de la evidencia tiene una sola
+  implementación (`tests/e2e/audit/slug.js`); las filas estáticas se validan
+  contra los ocho ejes que el pase puede leer; el workflow resuelve el alcance
+  una vez, sólo se dispara por push cuando cambia el instrumento y falla si el
+  artefacto de evidencia queda vacío. Comandos: `pnpm exec eslint
+  tests/e2e/audit/u11` y `pnpm exec prettier --check tests/e2e/audit/u11`, en
+  verde; la re-medición de las 36 rutas queda fuera de alcance por diseño.

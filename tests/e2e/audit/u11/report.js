@@ -21,24 +21,11 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, isAbsolute, resolve } from 'node:path'
 
 const SESSION = 'U11'
+import { AXES } from './static.js'
+
 const ISSUE = '#374'
 const BASE = process.env.BROWSER_PASS_BASE || 'http://localhost:8000'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
-
-const AXES = Object.freeze([
-  'dialog',
-  'list',
-  'title',
-  'buttons',
-  'states',
-  'feedback',
-  'filters',
-  'badges',
-  'format',
-  'responsive',
-  'density',
-  'repetition'
-])
 
 const AXIS_LABELS = Object.freeze({
   dialog: 'Diálogo',
@@ -258,7 +245,17 @@ const countOf = (list, predicate) => (list ?? []).filter(predicate).length
 
 // --- evidence ---------------------------------------------------------------
 
-const manifest = readJson('manifest.json') ?? { surfaces: [] }
+const manifest = readJson('manifest.json')
+
+// Without the manifest the report would publish an empty matrix, count zero
+// expected surfaces and leave the gate green: no evidence must never read as a
+// pass. The manifest step of the workflow writes it before this one runs.
+if (!manifest || !Array.isArray(manifest.surfaces)) {
+  throw new Error(
+    `manifest.json is missing or has no surfaces under ${evidencePath('manifest.json')}; run the manifest step before the report`
+  )
+}
+
 const staticArtifact = readJson('static.json')
 const staticRows = new Map((staticArtifact?.rows ?? []).map(row => [row.route, row]))
 const renderRows = new Map(
@@ -273,7 +270,7 @@ const renderRows = new Map(
     // undefined data and leave the gate green. `measured` is set only after
     // both viewports were captured and the axes were read.
     .filter(([, payload]) => payload.measured === true && payload.axes)
-    .map(([file, payload]) => [payload.route, { file, ...payload }])
+    .map(([file, payload]) => [`${payload.route}::${payload.role}`, { file, ...payload }])
 )
 const primitiveRows = new Map(
   readDir('primitives')
@@ -309,7 +306,7 @@ const routes = manifest.surfaces.map(surface => {
     slug,
     surface,
     expectedFile,
-    render: renderRows.get(surface.route) ?? null,
+    render: renderRows.get(`${surface.route}::${plan.role}`) ?? null,
     primitives: primitiveRows.get(surface.route) ?? null,
     static: staticRows.get(surface.route) ?? null
   }
@@ -846,7 +843,7 @@ const markdownLines = [
   '# U11 — Matriz de consistencia transversal (36 rutas × 12 ejes)',
   '',
   `- **Revisión**: \`${matrixJson.revision ?? 'desconocida'}\``,
-  `- **Base**: ${BASE}`,
+  `- **Base declarada al generar**: ${BASE} (las filas de evidencia no guardan la URL de origen)`,
   `- **Fecha**: ${generatedAt}`,
   `- **Generado por**: \`tests/e2e/audit/u11/report.js\` sobre \`manifest.json\`, \`static.json\`, \`render/*.json\` y \`primitives/*.json\``,
   `- **Alcance del gate**: \`AUDIT_SCOPE=${SCOPE}\` (${expected.length} superficie(s) esperada(s))`,
@@ -955,8 +952,7 @@ markdownLines.push(
   ''
 )
 
-const markdown = `${markdownLines.join('\n')}\n`
-const matrixMarkdown = `${markdown}`
+const matrixMarkdown = `${markdownLines.join('\n')}\n`
 
 writeJson('consistency-matrix.json', matrixJson)
 writeJson('findings.raw.json', {
