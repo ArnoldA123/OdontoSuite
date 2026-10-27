@@ -1,6 +1,6 @@
 # Task: U10 — BI, continuidad y laboratorio (auditoría UI, plan #13)
 
-Status: IN PROGRESS (sesión de auditoría). Rama `feat/audit-ui-u10` desde
+Status: DONE (sesión de auditoría). Rama `feat/audit-ui-u10` desde
 `c6180b3` (`main`). No se toca código de producto: la sesión mide y documenta en
 `tests/e2e/audit/u10/` y deja la evidencia en `.atl/qa-evidence/audit/ui/U10/`.
 
@@ -93,6 +93,104 @@ Frontera del primer corte: commit `fc4285e` (`helpers.js`, `fixtures.js`,
   publicados, `walkthrough.md`, `ux-rubric.md` y `findings.raw.json`.
 - [ ] **T5** · S5, S10 · `inline` · Cierre: Prettier y ESLint en verde,
   `playwright test --list`, commits por corte, esta nota y PR.
+
+
+## Línea base medida
+
+- Revisión medida: `c6180b3` sobre `main`; árbol limpio salvo el instrumento y
+  esta nota. Base `odontosuite_audit` recreada con `migrate:fresh --seed` (15
+  usuarios, 3 sedes, 106 citas, 372 transacciones, 100 pacientes, 20 diagnósticos
+  CIE-10) y fixtures propios de la sesión (dinero con dos cobros y una devolución,
+  continuidad por cierre real de una atención, cuatro casos de laboratorio).
+- **Capa 1** · 3 superficies, **25 acciones (0 sin clasificar)**, 3 diálogos, 16
+  endpoints, **0 permisos sin resolver**; 2 rutas `excluded` por `redirect`.
+- **Capa 2** · **9 filas de render** (3 superficies × sus roles), **0
+  `pageerror`**, **0 scroll horizontal a 390 px**, una sola `h1` en 9/9 y la
+  puerta negativa de cada escritorio respondiendo 403.
+- **Capa 3** · 3 diálogos, **21 comprobaciones**, **1 falla**: el modal de agenda
+  de continuidad no tiene nombre accesible.
+- **Capa 4** · **61 acciones clasificadas**: 52 `OK`, 2 `DEFECTO`, 2 `NO-OP`, 5
+  `CONFUSO`; 0 `pageerror` y 0 request inesperado.
+- **Capa 5** · **168 filas sobre 24 endpoints × 7 roles, 168/168 conformes**, 0
+  desvíos; los 403 esperados se derivan del catálogo de permisos y se observaron
+  con token real.
+- **Rúbrica** · ver `ux-rubric.md` (doce criterios × BI, continuidad, laboratorio
+  y sesión, con la justificación y el `NO MEDIDO` de cada puntuación).
+- **Gate** · `gate.json` → `ok: false` con un solo motivo: el contrato del
+  diálogo sin nombre accesible. Es el criterio de salida incumplido, no ruido.
+
+## Hallazgos
+
+| F# | Superficie | Acción | Esperado | Obtenido | Capa | Origen | Severidad | Causa | Issue |
+| -- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| F01 | BI | «Dashboard General» con un período sin actividad | tarjeta de vacío con CTA | KPI en cero + rendimiento por profesional; sin vacío | 4 | MEDIDO | `crit:media` | `isEmpty` sólo mira el tamaño de la tabla | #447 |
+| F02 | BI | «Reporte de Pacientes» con el mismo período | tarjeta de vacío | 100 filas y contadores en cero | 4 | MEDIDO | `crit:media` | población no acotada por período | #447 |
+| F03 | BI | «Reporte de Profesionales» | tarjeta de vacío | 9 filas | 4 | MEDIDO | `crit:media` | la misma | #447 |
+| F04 | BI | «Utilización de Ambientes» | tarjeta de vacío | 8 filas | 4 | MEDIDO | `crit:media` | la misma | #447 |
+| F05 | BI | «Limpiar filtros» | los filtros publican la población aplicada | profesional y ambiente siguen en «Seleccionar...» | 4 | MEDIDO | `crit:media` | `UiSelect` con opción de valor vacío | #402 (comentario) |
+| F06 | Continuidad | abrir el modal de agenda | diálogo con nombre accesible | `aria-labelledby` ausente y `aria-label` vacío | 3 | MEDIDO | `crit:media` | `#header` propio sin `title`/`labelledby` | #429 (comentario) |
+| F07 | Laboratorio | buscar alta y edición | la superficie las ofrece | sólo «Actualizar» y «Ver» | 4 | MEDIDO | `crit:media` | la superficie se entregó sin ellas y el changelog dice lo contrario | #448 |
+| F08 | Laboratorio | editar el caso de otro técnico | 403 | `PUT` 200 con el token del otro técnico | 4 | MEDIDO | `crit:media` | `update` sin regla de pertenencia | #449 |
+| F09 | BI | renderizar como `recepcionista` | sin escrituras | «Excel», «CSV» y «PDF» habilitados; puerta 403 | 2 | MEDIDO | `crit:media` | la página no consulta `usePermissions()` | #439 (comentario) |
+| F10 | Agenda | repetir la ventana de una cita **borrada** | 422 con conflicto | **500** `SQLSTATE[23000]` en alta y en agenda de continuidad | 4 | MEDIDO | `crit:media` | el índice único cuenta las filas con soft delete y `findConflicts` no | #392 (comentario) |
+
+### Backlog del programa (§8.4)
+
+- **El vacío del laboratorio no existe como tal**: la lista vacía sí tiene
+  `UiEmptyState`, pero con 15 filas de residuo de corridas previas el estado no
+  se alcanza; en una base limpia (CI) se mide con 4 filas y el vacío sigue sin
+  ejercitarse. Se declara como no observable en esta sesión.
+- **La densidad de texto y la información repetida** no tuvieron medición
+  dedicada: la rúbrica las deja en `NO MEDIDO` con el motivo escrito.
+
+## Criterio de salida (S5)
+
+| Criterio | Resultado |
+| -------- | --------- |
+| Cada reporte tiene sus tres estados | **No cumple**: 4 de 7 no tienen vacío (#447); datos y error sí están en los siete |
+| El export coincide con la pantalla | **Cumple**: seis reportes exportables con cabeceras normalizadas, filas contra el total declarado y una muestra de valor; el consolidado declara que no se exporta |
+| El conflicto de agenda deja la solicitud pendiente y lo dice | **Cumple**: `POST` 422 con «Conflicto de horario detectado…» en `scheduled_at`, la fila sigue `pending` y la cola la conserva |
+| La fase de laboratorio no retrocede y el mensaje cae en su campo | **Cumple**: la puerta sólo ofrece fases posteriores, el retroceso forzado responde 422 con `errors.phase[0]` y la fase no cambia |
+| Cero `pageerror` | **Cumple**: 0 en las 9 filas de render, los 3 diálogos y las 61 acciones |
+| Rúbrica puntuada | **Cumple**: `ux-rubric.md` con doce criterios × cuatro ámbitos y su justificación |
+
+## Declarado como no observable
+
+1. El vacío de `/lab-cases`: la base de auditoría acumula los casos de cada
+   corrida (no existe `DELETE`) y el estado se alcanza sólo sobre una base limpia;
+   la corrida de CI lo intenta con la población de la sesión y lo deja declarado.
+2. La edición de un caso ajeno **desde la pantalla**: no hay control de edición
+   (F07), así que la regla de pertenencia sólo se puede medir contra la API.
+3. El nombre accesible de los otros dos diálogos: el de descarte y el de detalle
+   de laboratorio sí lo publican; la falla es del modal de agenda.
+
+## Residuos de datos
+
+La sesión escribió sólo en `odontosuite_audit`. Los fixtures se retiran en su
+`afterAll`: las citas de dinero se borran, la solicitud de continuidad se
+descarta, los recalls se cancelan y la caja que la sesión abrió se cierra con
+diferencia cero. No hay `DELETE` de casos de laboratorio, de solicitudes de
+continuidad ni de una atención cerrada, así que esas filas quedan como residuo
+declarado en `fixtures.json > residues`. La única fila que envejece es el
+consumo de ventanas de agenda: cada corrida ocupa una y la borra (soft delete),
+que es justo el hecho F10.
+
+## Revisión nativa (RDD)
+
+Pendiente de la corrida definitiva: candidato = los commits del instrumento en
+`feat/audit-ui-u10`. Se registra aquí el resultado que devuelva el proveedor, sin
+inventar autoridad.
+
+## Delegación
+
+Instrumento delegado a `gentle-ai-worker`: fundación (helpers, fixtures, render,
+matriz) y caminata de BI, ambas verificadas por reejecución del padre; generador
+de evidencia; y caminatas de continuidad y laboratorio, que el worker dejó
+escritas pero **agotó 30 minutos sin verificarlas**. El padre las registró, las
+ejecutó con cota de tiempo y corrigió cinco defectos del instrumento: la espera
+de las opciones del modal, el `Escape` que cerraba el diálogo al leer el tipo, un
+modal abierto tapando la fila siguiente, el reloj del conflicto convertido con la
+zona del runner y el teardown que trataba un 422 como residuo.
 
 ## Log
 
