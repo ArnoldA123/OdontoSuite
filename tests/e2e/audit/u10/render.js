@@ -140,9 +140,7 @@ const REPORT_PAINTED =
 const settleReport = async (page, surface) => {
   if (surface.route !== '/business-intelligence') return
 
-  await page
-    .waitForSelector(REPORT_PAINTED, { timeout: 20000 })
-    .catch(() => {})
+  await page.waitForSelector(REPORT_PAINTED, { timeout: 20000 }).catch(() => {})
   await settle(page)
 }
 
