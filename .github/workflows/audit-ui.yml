@@ -9,6 +9,10 @@ name: Audit UI
 # evidence the triage reads: `manifest.json`, `render.json`, `primitives.json`,
 # the walkthrough, the rubric, the raw walk JSON and every screenshot.
 #
+# U11 reads the whole catalogue at once (`scope: all`), so the manifest step
+# translates the scope into the flag the CLI understands instead of always
+# assuming `module:`.
+#
 # Guardrails (plan #13 §9): the run only writes `odontosuite_audit`, which the
 # service creates for this job; the database is thrown away with the runner.
 # `.atl/` is gitignored, so the evidence leaves as an artifact, never a commit.
@@ -19,15 +23,15 @@ on:
       session:
         description: 'Audit session (evidence directory under .atl/qa-evidence/audit/ui)'
         required: true
-        default: 'U10'
+        default: 'U11'
       scope:
-        description: 'AUDIT_SCOPE for the spec (module:<a,b> or route:<path>)'
+        description: 'AUDIT_SCOPE for the spec (all, module:<a,b> or route:<path>)'
         required: true
-        default: 'module:business-intelligence,continuity,lab-cases'
+        default: 'all'
       grep:
         description: 'Playwright --grep selector'
         required: true
-        default: '@U10'
+        default: '@U11'
   push:
     branches: ['feat/audit-ui-*']
 
@@ -48,7 +52,7 @@ env:
 
 jobs:
   surface-audit:
-    name: Surface audit (${{ inputs.session || 'U10' }})
+    name: Surface audit (${{ inputs.session || 'U11' }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -75,11 +79,11 @@ jobs:
       DB_DATABASE: odontosuite_audit
       DB_USERNAME: odontosuite
       DB_PASSWORD: secret
-      AUDIT_SESSION: ${{ inputs.session || 'U10' }}
-      AUDIT_SCOPE_INPUT: ${{ inputs.scope || 'module:business-intelligence,continuity,lab-cases' }}
-      AUDIT_GREP: ${{ inputs.grep || '@U10' }}
-      AUDIT_SCOPE: ${{ inputs.scope || 'module:business-intelligence,continuity,lab-cases' }}
-      AUDIT_OUT: .atl/qa-evidence/audit/ui/${{ inputs.session || 'U10' }}
+      AUDIT_SESSION: ${{ inputs.session || 'U11' }}
+      AUDIT_SCOPE_INPUT: ${{ inputs.scope || 'all' }}
+      AUDIT_GREP: ${{ inputs.grep || '@U11' }}
+      AUDIT_SCOPE: ${{ inputs.scope || 'all' }}
+      AUDIT_OUT: .atl/qa-evidence/audit/ui/${{ inputs.session || 'U11' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -161,9 +165,12 @@ jobs:
 
       - name: Layer 1 — static manifest
         run: |
-          node scripts/audit/ui-manifest.mjs \
-            --module="$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^module://')" \
-            --out="${AUDIT_OUT}/manifest.json"
+          case "$AUDIT_SCOPE_INPUT" in
+            module:*) SCOPE_ARG="--module=$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^module://')" ;;
+            route:*) SCOPE_ARG="--route=$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^route://')" ;;
+            *) SCOPE_ARG='--all' ;;
+          esac
+          node scripts/audit/ui-manifest.mjs "$SCOPE_ARG" --out="${AUDIT_OUT}/manifest.json"
 
       - name: Layers 2–4 — render, dialogs and walks
         env:
@@ -176,9 +183,21 @@ jobs:
       - name: Layers 5–6 — aggregate, gallery and verdict
         if: always()
         run: |
-          node scripts/audit/ui-pass.mjs --no-run \
-            --module="$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^module://')" \
-            --out="${AUDIT_OUT}"
+          case "$AUDIT_SCOPE_INPUT" in
+            module:*) SCOPE_ARG="--module=$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^module://')" ;;
+            route:*) SCOPE_ARG="--route=$(echo "$AUDIT_SCOPE_INPUT" | sed 's/^route://')" ;;
+            *) SCOPE_ARG='--all' ;;
+          esac
+          node scripts/audit/ui-pass.mjs --no-run "$SCOPE_ARG" --out="${AUDIT_OUT}"
+
+      # U11 aggregates 36 routes × 12 axes, so its static pass and its matrix
+      # generator run here: the matrix is the session's deliverable and the gate
+      # is its exit criterion. Other sessions keep the generic aggregation.
+      - name: U11 — static axes and consistency matrix
+        if: always() && env.AUDIT_SESSION == 'U11'
+        run: |
+          node tests/e2e/audit/u11/static.js --out="${AUDIT_OUT}/static.json"
+          node tests/e2e/audit/u11/report.js --out="${AUDIT_OUT}"
 
       - name: Upload the evidence
         if: always()
