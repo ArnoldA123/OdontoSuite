@@ -306,6 +306,13 @@ export const fillField = async (page, label, value) => {
 
     if (!(await node.isVisible().catch(() => false))) continue
 
+    // `getByLabel` also matches an `aria-label` on a plain node: the appointment
+    // types' price cells carry `aria-label="Precio S/ 50.00"`, and filling one
+    // silently left the real field empty. Only form controls are addressable.
+    const tag = await node.evaluate(element => element.tagName.toLowerCase()).catch(() => '')
+
+    if (!['input', 'textarea', 'select'].includes(tag)) continue
+
     await node.fill(String(value)).catch(() => {})
     await settleLayout(page)
     return { ok: true, label, value: await node.inputValue().catch(() => null), via: 'label' }
@@ -412,6 +419,10 @@ export const confirmDialog = async (page, text, timeout = 8000) => {
  */
 export const toastText = page =>
   page.evaluate(() => {
+    const text = node => (node?.innerText ?? '').trim().replace(/\s+/g, ' ')
+    const messages = []
+
+    // `Toast.vue`, the design-system primitive: its closer names itself.
     const roots = new Set()
 
     for (const closer of document.querySelectorAll('button[aria-label="Cerrar notificación"]')) {
@@ -423,10 +434,26 @@ export const toastText = page =>
       if (live.querySelector('button[aria-label="Cerrar notificación"]')) roots.add(live)
     }
 
-    return Array.from(roots)
-      .map(node => (node.innerText ?? '').trim().replace(/\s+/g, ' '))
-      .filter(Boolean)
-      .join(' | ')
+    for (const root of roots) messages.push(text(root))
+
+    // `ToastContainer.vue` renders the `useToast()` queue: one card per toast,
+    // closed by a button whose accessible name is an `sr-only` «Cerrar», so it
+    // carries no `aria-label` to address. Only its paragraphs are the message.
+    for (const card of document.querySelectorAll('.pointer-events-auto.max-w-sm')) {
+      const content = Array.from(card.querySelectorAll('p')).map(text).filter(Boolean).join(' ')
+
+      if (content) messages.push(content)
+    }
+
+    // `NotificationToast.vue` renders the `useNotifications()` queue.
+    for (const item of document.querySelectorAll('.notification-item')) {
+      const content = text(item.querySelector('.notification-message')) || text(item)
+      if (content) messages.push(content)
+    }
+
+    // Without these roots the session could not observe the feedback any of the
+    // nine pages under audit raises.
+    return [...new Set(messages.filter(Boolean))].join(' | ')
   })
 
 /**
@@ -571,9 +598,17 @@ export const classifyConsole = (errors, expectation = 'admin', declared = []) =>
   return { expected, unexpected }
 }
 
-/** Dismisses the toasts a probe triggered so they do not cover the next control. */
+/**
+ * Dismisses the toasts a probe triggered so they do not cover the next control.
+ *
+ * The three toast roots of the shell are addressed: the primitive's labelled
+ * closer, the `useToast()` card's sr-only closer and the `useNotifications()`
+ * item, which removes itself on click.
+ */
 export const dismissToasts = async page => {
-  const closers = page.locator('button[aria-label="Cerrar notificación"]:visible')
+  const closers = page.locator(
+    'button[aria-label="Cerrar notificación"]:visible, .pointer-events-auto.max-w-sm button:visible, .notification-item:visible'
+  )
   let dismissed = 0
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
@@ -642,3 +677,396 @@ export const dialogStack = page =>
         }
       })
   })
+
+// --- layer 4: the functional walks ------------------------------------------
+
+/** The five layer-4 verdicts, in the plan's order. */
+export const VERDICTS = Object.freeze(['OK', 'DEFECTO', 'NO-OP', 'CONFUSO', 'NO PROBADO'])
+
+/**
+ * The page's own `/api/` traffic, paired request → response status.
+ *
+ * The walkthrough reports `request` as observed, not inferred: a step reads this
+ * log instead of reconstructing the call it thinks the page made. A response is
+ * paired with the oldest unanswered request of the same method and path, which is
+ * the one that resolved (the appointments index issues several in flight).
+ */
+export const watchRequests = page => {
+  const entries = []
+
+  page.on('request', request => {
+    if (!request.url().includes('/api/')) return
+
+    let url
+    try {
+      url = new URL(request.url())
+    } catch {
+      return
+    }
+
+    entries.push({
+      method: request.method(),
+      path: url.pathname,
+      query: Object.fromEntries(url.searchParams.entries()),
+      status: null
+    })
+  })
+
+  page.on('response', response => {
+    if (!response.url().includes('/api/')) return
+
+    let path
+    try {
+      path = new URL(response.url()).pathname
+    } catch {
+      return
+    }
+
+    const method = response.request().method()
+    const entry = entries.find(
+      row => row.path === path && row.method === method && row.status === null
+    )
+
+    if (entry) entry.status = response.status()
+  })
+
+  return entries
+}
+
+/** The last matching entry of the page's traffic, or `null`. */
+export const lastCall = (entries, method, path) =>
+  [...(entries ?? [])].reverse().find(entry => entry.method === method && entry.path === path) ??
+  null
+
+const matchesCall = (match, method, pathname, query) => {
+  if (match.method && match.method !== method) return false
+  if (match.path instanceof RegExp) {
+    if (!match.path.test(pathname)) return false
+  } else if (match.path && match.path !== pathname) return false
+  if (match.query) {
+    for (const [key, value] of Object.entries(match.query)) {
+      if (query[key] !== value) return false
+    }
+  }
+  return true
+}
+
+/**
+ * Runs a UI action and returns the response it triggered.
+ *
+ * A response that never lands is `{ status: null }`: the step records "no
+ * request", never an exception. The body is parsed when the API answered JSON so
+ * the step can quote the message the surface received.
+ */
+export const respondTo = async (page, match, action, timeout = 15000) => {
+  const pending = page
+    .waitForResponse(
+      candidate => {
+        if (!candidate.url().includes('/api/')) return false
+
+        try {
+          const url = new URL(candidate.url())
+          return matchesCall(
+            match,
+            candidate.request().method(),
+            url.pathname,
+            Object.fromEntries(url.searchParams.entries())
+          )
+        } catch {
+          return false
+        }
+      },
+      { timeout }
+    )
+    .catch(() => null)
+
+  const acted = await Promise.resolve()
+    .then(action)
+    .then(
+      () => ({ ok: true }),
+      thrown => ({ ok: false, reason: String(thrown?.message ?? thrown).slice(0, 200) })
+    )
+  const response = await pending
+
+  if (!response)
+    return { acted, status: null, body: null, method: match.method ?? null, path: null }
+
+  const contentType = response.headers()['content-type'] ?? ''
+  const body = contentType.includes('json') ? await response.json().catch(() => null) : null
+
+  return {
+    acted,
+    status: response.status(),
+    body,
+    method: response.request().method(),
+    path: new URL(response.url()).pathname
+  }
+}
+
+/** The request evidence of a `respondTo` result, in the walk's declared shape. */
+export const requestOf = result =>
+  result && result.status !== null
+    ? { method: result.method, path: result.path, status: result.status }
+    : null
+
+/**
+ * The step recorder of a walkthrough.
+ *
+ * One entry per declared action, with its capture; the step id carries its own
+ * sequence (`01-list`). A probe that throws is recorded as `NO PROBADO` with the
+ * reason instead of ending the walk: the run's hard assertions are "no pageerror"
+ * and "every declared step recorded", so a defect stays evidence.
+ */
+export const walkStep = (page, evidence) => {
+  let index = 0
+
+  return async (id, action, expected, run) => {
+    index += 1
+    const stepId = `${String(index).padStart(2, '0')}-${id}`
+    const entry = {
+      id: stepId,
+      action,
+      expected,
+      obtained: null,
+      verdict: 'NO PROBADO',
+      layer: 4,
+      origin: 'MEDIDO',
+      request: null,
+      shot: null,
+      notes: ''
+    }
+
+    let broken = false
+
+    await dismissToasts(page).catch(() => {})
+
+    try {
+      const result = (await run(entry)) ?? {}
+      Object.assign(entry, result)
+    } catch (thrown) {
+      broken = true
+      entry.notes = `probe error: ${String(thrown?.message ?? thrown).slice(0, 300)}`
+    }
+
+    // The declared fields are the session contract: a probe may fill them, never
+    // reshape them.
+    entry.id = stepId
+    entry.action = action
+    entry.expected = expected
+    entry.layer = 4
+    entry.origin = 'MEDIDO'
+    entry.request ??= null
+    entry.notes ??= ''
+
+    if (!VERDICTS.includes(entry.verdict)) {
+      entry.notes = `${entry.notes} · veredicto inválido «${entry.verdict}» declarado por el paso`
+      entry.verdict = 'NO PROBADO'
+    }
+
+    // A probe that died mid-form leaves its dialog over the page; closing it here
+    // keeps the next step measurable instead of cascading a timeout.
+    if (broken) await closeDialog(page).catch(() => {})
+
+    try {
+      entry.shot = await shot(page, `shots/walk/${evidence.slug}/${stepId}.png`)
+    } catch {
+      entry.shot = null
+    }
+
+    evidence.steps.push(entry)
+    return entry
+  }
+}
+
+/** The `counts` block every walk carries. */
+export const walkCounts = steps => {
+  const count = verdict => (steps ?? []).filter(entry => entry.verdict === verdict).length
+
+  return {
+    total: (steps ?? []).length,
+    ok: count('OK'),
+    defecto: count('DEFECTO'),
+    noOp: count('NO-OP'),
+    confuso: count('CONFUSO'),
+    noProbado: count('NO PROBADO')
+  }
+}
+
+/** Which list primitive the surface mounted, and whether it advertises scroll. */
+export const tablePrimitive = page =>
+  page.evaluate(() => {
+    const box = node =>
+      node ? { clientWidth: node.clientWidth, scrollWidth: node.scrollWidth } : null
+    const dataTables = document.querySelectorAll('main .data-table-container').length
+    const tables = document.querySelectorAll('main table').length
+    const affordance = document.querySelector('main [data-table-scroll-affordance]')
+    const scroll = document.querySelector('main [data-table-scroll]')
+    const overflow = document.querySelector('main .overflow-x-auto')
+
+    return {
+      primitive: dataTables > 0 ? 'UiDataTable' : tables > 0 ? 'tabla propia <table>' : 'sin tabla',
+      dataTables,
+      tables,
+      handRolled: Math.max(0, tables - dataTables),
+      scrollAffordance: Boolean(affordance),
+      scrollHint: (affordance?.innerText ?? '').trim().replace(/\s+/g, ' '),
+      dataTableScroll: box(scroll),
+      overflowWrapper: box(overflow)
+    }
+  })
+
+/** Visible field-level errors: the dialog's own messages and the invalid fields. */
+export const fieldErrors = page =>
+  page.evaluate(() => {
+    const text = node => (node?.innerText ?? '').trim().replace(/\s+/g, ' ')
+    const visible = node => {
+      const box = node.getBoundingClientRect()
+      return box.width > 0 && box.height > 0
+    }
+    const dialogs = Array.from(
+      document.querySelectorAll('[role="dialog"], [role="alertdialog"]')
+    ).filter(visible)
+    const root = dialogs.at(-1) ?? document.querySelector('main')
+
+    if (!root) return { messages: [], invalid: [], nativeInvalid: [] }
+
+    const labelOf = node => {
+      const id = node.getAttribute('id')
+      const explicit = id ? root.querySelector(`label[for="${id}"]`) : null
+
+      return (
+        text(explicit) ||
+        node.getAttribute('aria-label') ||
+        node.getAttribute('placeholder') ||
+        node.getAttribute('name') ||
+        '(sin nombre)'
+      )
+    }
+
+    return {
+      messages: Array.from(root.querySelectorAll('.helper-text p, p.text-error-500, [data-error]'))
+        .filter(visible)
+        .map(text)
+        .filter(Boolean),
+      invalid: Array.from(root.querySelectorAll('[aria-invalid="true"]'))
+        .filter(visible)
+        .map(labelOf),
+      nativeInvalid: Array.from(
+        root.querySelectorAll('input:invalid, textarea:invalid, select:invalid')
+      )
+        .filter(visible)
+        .map(labelOf)
+    }
+  })
+
+/**
+ * Opens a `UiSelect` trigger and clicks the option whose label matches.
+ *
+ * The primitive renders no `label` element, so a select is addressed by its
+ * trigger (the page's `data-*` hook) and the option by its text.
+ */
+export const pickOption = async (page, trigger, optionText, timeout = 8000) => {
+  const locator = typeof trigger === 'string' ? page.locator(trigger).first() : trigger
+
+  try {
+    if (!(await locator.isVisible().catch(() => false))) {
+      return { ok: false, reason: 'trigger not visible' }
+    }
+    if (!(await locator.isEnabled().catch(() => false))) {
+      return { ok: false, reason: 'trigger disabled' }
+    }
+    await locator.click({ timeout })
+  } catch (thrown) {
+    return {
+      ok: false,
+      reason: `trigger not clickable: ${String(thrown?.message ?? thrown).slice(0, 200)}`
+    }
+  }
+
+  const listbox = page.locator('[role="listbox"]:visible').last()
+  const opened = await listbox
+    .waitFor({ state: 'visible', timeout })
+    .then(() => true)
+    .catch(() => false)
+
+  if (!opened) return { ok: false, reason: 'listbox did not open' }
+
+  const options = listbox.locator('button')
+  const labels = (await options.allInnerTexts().catch(() => [])).map(value => value.trim())
+  const wanted = String(optionText ?? '').trim()
+  const exact = labels.findIndex(label => label === wanted)
+  const partial = labels.findIndex(label => label.includes(wanted))
+  const index = exact !== -1 ? exact : partial
+
+  if (index === -1) {
+    await page.keyboard.press('Escape').catch(() => {})
+    return { ok: false, reason: `option "${wanted}" not found`, options: labels }
+  }
+
+  await options
+    .nth(index)
+    .click({ timeout })
+    .catch(() => {})
+  await listbox.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {})
+
+  return {
+    ok: true,
+    selected: labels[index],
+    options: labels,
+    match: exact !== -1 ? 'exact' : 'contains'
+  }
+}
+
+/**
+ * Moves instrument-induced HTTP failures out of `unexpected`.
+ *
+ * A probe that presses a door the API must refuse, or forces a load error to
+ * measure the retry state, is exercising a contract: the failure is reported with
+ * its reason instead of polluting the surface's diagnostics.
+ */
+export const markExpected = (failedRequests, predicate, reason) => {
+  const moved = (failedRequests.unexpected ?? []).filter(predicate)
+  failedRequests.unexpected = (failedRequests.unexpected ?? []).filter(
+    failure => !predicate(failure)
+  )
+  failedRequests.expected = [
+    ...(failedRequests.expected ?? []),
+    ...moved.map(failure => ({ ...failure, reason }))
+  ]
+
+  return failedRequests
+}
+
+/**
+ * The rows the session may not delete, read from the appointments index.
+ *
+ * The delete doors of users and dental chairs answer 409 when the row holds
+ * history; the walkthrough needs a seeded row of each kind to measure it, and it
+ * may not probe DELETE to find out. `appointments.user_id` and
+ * `dental_chair_id` are the same columns those doors count.
+ */
+export const historyIds = async session => {
+  const users = new Set()
+  const chairs = new Set()
+  const pages = []
+  let status = null
+
+  for (let page = 1; page <= 5; page += 1) {
+    const result = await api(session, 'GET', `/api/appointments?per_page=100&page=${page}`)
+    ;({ status } = result)
+
+    const rows = Array.isArray(result.body?.data) ? result.body.data : []
+
+    for (const row of rows) {
+      if (row.user_id) users.add(row.user_id)
+      if (row.user?.id) users.add(row.user.id)
+      if (row.dental_chair_id) chairs.add(row.dental_chair_id)
+    }
+
+    pages.push(rows.length)
+
+    if (rows.length === 0 || page >= (result.body?.meta?.last_page ?? 1)) break
+  }
+
+  return { users: [...users], chairs: [...chairs], pages, status }
+}
