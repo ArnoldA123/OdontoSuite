@@ -1,7 +1,7 @@
 # Task: U9 — Administración y configuración (auditoría UI, plan #13)
 
-Status: IN PROGRESS (instrumento e issues entregados; PR pendiente). Rama
-`feat/audit-ui-u9` desde `174eb90` (`main`). No se toca código de producto: la
+Status: DONE (sesión de auditoría). Rama `feat/audit-ui-u9` desde `174eb90`
+(`main`); PR **#446** abierto, a decisión del dueño. No se toca código de producto: la
 sesión mide y documenta. La ejecución pesada del instrumento corre en un job de
 CI (`.github/workflows/audit-ui.yml`) y su evidencia se descarga como artefacto.
 Hallazgos publicados **#439–#445**.
@@ -95,13 +95,14 @@ decisión del dueño.
   tres cortes y verificado por reejecución propia.
 - [x] **T3** · S2, S5, S12 · `inline` · Corrida en CI: workflow
   `.github/workflows/audit-ui.yml` verde en el corte A (12/12 superficies, 0
-  `pageerror`, 21 diálogos, 188/188 filas) y corrida completa con las 48 filas de
-  la sesión y el informe.
+  `pageerror`, 21 diálogos, 188/188 filas) y corrida definitiva `40447188113`
+  (8m26s, verde) con las 48 filas de la sesión y el informe: `gate.json` ok,
+  12/12 superficies, 0 `pageerror`, 81/81 acciones, 18 filas crudas.
 - [x] **T4** · S1, S5, S8–S11 · `inline` · Triage por clase raíz y **siete
   issues publicados (#439–#445)**; `walkthrough.md`, `ux-rubric.md` (156/192 y
   16/24), `findings.raw.json` (18 filas → 7 clases), `gate.json` y galería.
-- [ ] **T5** · S5, S10, S11 · `inline` · Cierre: Prettier/ESLint en verde,
-  `playwright test --list`, commits por corte, nota ODD y PR.
+- [x] **T5** · S5, S10, S11 · `inline` · Cierre: Prettier y ESLint en verde,
+  `playwright test --list` → 48 tests, commits por corte, esta nota y PR #446.
 
 ## Log
 
@@ -286,3 +287,13 @@ desechable.
   cuentas protegidas (#442), «Editar» del detalle (#443), bandera derivada
   (#444) y lista de métodos de pago (#445). Tres observaciones de `crit:baja`
   quedaron en backlog §8.4.
+
+- **L10** — Corrida definitiva `40447188113` (job `Audit UI`): **verde, 8m26s**.
+  El artefacto confirma sobre base limpia lo medido en local: `gate.json` con
+  `ok: true` y 0 motivos, 12/12 superficies, 0 `pageerror`, 0 solicitudes
+  inesperadas, 21/21 diálogos probados con 0 fallas de contrato, 81/81 acciones
+  clasificadas (69 OK / 8 DEFECTO / 3 CONFUSO / 1 NO PROBADO), 18 filas en
+  `findings.raw.json` y 8 secciones en `walkthrough.md`.
+- **L11** — PR **#446** abierto con `Closes #372` (misma instrucción del dueño que
+  en U8: cerrar el issue de sesión al abrir el PR). La sesión no publica ni
+  fusiona nada más: el merge y el cierre quedan a decisión del dueño.
