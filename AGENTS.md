@@ -690,8 +690,11 @@ documentada y no bloquea producción.
   `./node_modules/.bin/eslint --ext .mjs scripts` y `pnpm lint:check` en verde
   (`eslint . --ext .mjs,.vue,.js,.jsx,.ts,.tsx` sale 0; el wrapper de pnpm no
   corre en el worktree porque `node_modules` es un enlace al repo principal). La
-  re-medición de las 36 rutas de U11 no se repite: el issue lo declara fuera de
-  alcance.
+  re-medición de U11 se ejecutó sobre una base local sembrada: **62 passed** con
+  `AUDIT_SCOPE=all`, 36/36 filas medidas, y el `report.js` de esta rama produce
+  la misma matriz, `gate.json` y JSON que el de `origin/main` sobre el mismo
+  árbol de evidencia; contra la matriz publicada, 35 de 36 filas coinciden (la
+  restante es dato del sembrado).
 
 - **2026-10-23 (las notas ODD se versionan)** — Las 47 notas de tarea que
   quedaban sin seguimiento en `odd/tasks/` entran al repositorio junto a las 43
