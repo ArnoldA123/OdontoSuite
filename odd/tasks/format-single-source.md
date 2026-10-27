@@ -182,7 +182,7 @@ Todas las funciones aceptan `null`/`undefined`/`''`/valor inválido y devuelven
   tests/js/unit/formatters-single-source.test.js` → 25 casos (currency sin
   `NaN`, USD, número, fecha sin desfase bajo `TZ=America/Lima`, reloj 24 h,
   `dateOnly`, robustez).
-- Vitest completo: **1250 pruebas en 142 archivos**, verde.
+- Vitest completo: **1264 pruebas en 145 archivos**, verde.
 - Suite MySQL completa (`vendor/bin/phpunit -c phpunit.mysql.xml` sobre la base
   aislada del worktree): **OK (2783 tests, 16970 assertions)**.
 - Gates: `vendor/bin/pint --test` 891 archivos PASS; `pnpm exec eslint .` 0
@@ -196,11 +196,19 @@ Todas las funciones aceptan `null`/`undefined`/`''`/valor inválido y devuelven
 - U11 capa 1 (`static.js`): 36 superficies con `intl=0`, `locale=0` y
   `legacyModule=0`; 28 superficies consumen el helper de moneda.
 - U11 capa 2 (`report.js`, app servida en `127.0.0.1:8011` sobre una base
-  sembrada propia): eje `format` **OK (13 OK, 0 DIV, 22 N/A, 1 NO PROBADO)**.
-  Antes de la corrección: 10 DIV en ese eje. La fila NO PROBADO es
-  `/medical-records/:id`: la base sembrada de esta corrida no tenía una historia
-  clínica de muestra. El gate de la sesión queda en FAIL por esa fila sin
-  evidencia y por cuatro 403 clínicos de recepción en la ficha del paciente
-  (frontera de escritorio de #313/#314), no por formato. La forma de moneda se
-  mide ahora por formato y no por magnitud: `S/ 480.00` y `S/ 1,200.00` son la
-  misma forma (`currencyShapeOf` en `tests/e2e/audit/u11/report.js`).
+  sembrada propia): **36/36 superficies medidas**, eje `format`
+  **OK (15 OK, 0 DIV, 21 N/A, 0 NO PROBADO)** y **62/62 pruebas de navegador**.
+  Antes de la corrección: 10 DIV en ese eje. La forma de moneda se mide por
+  formato y no por magnitud (`currencyShapeOf` en
+  `tests/e2e/audit/u11/report.js`): `S/ 480.00` y `S/ 1,200.00` son la misma
+  forma. La corrida anterior saltó `/medical-records/:id` con
+  `no-sample-record` porque la base recién sembrada no tenía historia clínica;
+  se sembró una en la base desechable de auditoría y la fila quedó medida (sin
+  datos de producto ni cambios de API).
+- El gate de la sesión conserva **un solo motivo**: cuatro peticiones HTTP
+  inesperadas, todas de recepción en `/patients/:id` contra
+  `/api/treatment-plans?patient_id=…` y `/api/medical-records?patient_id=…`
+  (403). Es la issue abierta **#399** (`crit:alta`), fuera del alcance de #451:
+  la ficha ofrece tabs que el rol no puede leer y convierte el 403 en error o
+  vacío. No se declara como excepción en el instrumento porque es un defecto de
+  producto, no una medida esperada.

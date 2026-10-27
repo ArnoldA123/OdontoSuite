@@ -648,11 +648,12 @@ documentada y no bloquea producción.
   rutas, modelos, migraciones ni permisos nuevos: los conteos de §4/§5 no
   cambian. Tests: `formatters-single-source` (25), guard (27),
   `calendarDateMath`/`labCaseMeta`/`continuityMeta` y sus smokes ajustados al
-  formato `es-PE`; Vitest **1250 pruebas en 142 archivos**; suite MySQL **OK
+  formato `es-PE`; Vitest **1264 pruebas en 145 archivos**; suite MySQL **OK
   (2783 tests, 16970 assertions)**; Pint, ESLint (0 errores), Prettier y
   `pnpm build` en verde; `node scripts/audit/doc-drift.mjs` en verde; U11 capa 1
   con `intl=0`, `locale=0` y `legacyModule=0` en las 36 superficies, y capa 2
-  con el eje `format` en **OK (0 DIV)**.
+  con el eje `format` en **OK (0 DIV)** y 36/36 superficies medidas; el único
+  motivo restante del gate son los 403 clínicos de la ficha, en #399.
 
 - **2026-10-23 (las notas ODD se versionan)** — Las 47 notas de tarea que
   quedaban sin seguimiento en `odd/tasks/` entran al repositorio junto a las 43
