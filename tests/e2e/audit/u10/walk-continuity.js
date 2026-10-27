@@ -1172,6 +1172,120 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
       }
     )
 
+    // The agenda's unique window counts soft-deleted rows while the conflict
+    // query does not see them (`SoftDeletes` hides them from `findConflicts`), so
+    // a slot that a deleted appointment still occupies reaches the database and
+    // the door answers 500 instead of the 422 the product promises. The probe is
+    // deterministic: create, delete, ask for the same window again.
+    await step(
+      'deleted-window',
+      'Agendar un recall sobre la ventana de una cita que la sesión acaba de borrar',
+      'La agenda responde 422 con el conflicto: una cita borrada no puede dejar la ventana en un estado que reviente en 500',
+      async entry => {
+        const patientId = fixtures.continuity.request?.patientId ?? null
+
+        if (!patientId) {
+          entry.obtained = 'la sesión no dejó el paciente de continuidad'
+          entry.verdict = 'NO PROBADO'
+          entry.notes = 'sin paciente no hay recall que sembrar'
+
+          return entry
+        }
+
+        const slotMinute = 1 + (Number(String(token).slice(-4)) % 58)
+        const day = new Date(Date.now() + 8 * 86400000)
+        const slot = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(
+          day.getDate()
+        ).padStart(2, '0')} ${String(8).padStart(2, '0')}:${String(slotMinute).padStart(2, '0')}:00`
+
+        const recall = await api(session, 'POST', '/api/patient-recalls', {
+          patient_id: patientId,
+          interval_months: 6,
+          reason: `${fixtures.marker}-${token} ventana borrada`,
+          due_date: slot.slice(0, 10)
+        })
+
+        const created = await api(session, 'POST', '/api/appointments', {
+          patient_id: patientId,
+          user_id: professional?.id ?? null,
+          dental_chair_id: chairPool[0]?.id ?? null,
+          appointment_type_id: typePool[0]?.id ?? null,
+          scheduled_at: slot,
+          duration_minutes: 30,
+          notes: `${fixtures.marker}-${token} ventana que la sesión borra`
+        })
+
+        const appointmentId = created.body?.data?.id ?? null
+        const deleted = appointmentId
+          ? await api(session, 'DELETE', `/api/appointments/${appointmentId}`)
+          : null
+
+        const scheduling = recall.body?.data?.id
+          ? await api(session, 'POST', `/api/patient-recalls/${recall.body.data.id}/schedule`, {
+              scheduled_at: slot,
+              user_id: professional?.id ?? null,
+              dental_chair_id: chairPool[0]?.id ?? null,
+              appointment_type_id: typePool[0]?.id ?? null,
+              duration_minutes: 30
+            })
+          : null
+
+        if (recall.body?.data?.id) {
+          await api(session, 'POST', `/api/patient-recalls/${recall.body.data.id}/cancel`)
+        }
+
+        const status = scheduling?.status ?? null
+        const message = scheduling?.body?.message ?? null
+
+        evidence.captures.push(await shot(page, 'shots/walk/continuity-deleted-window.png'))
+
+        entry.obtained = `recall ${recall.status} · cita ${created.status} · borrada ${deleted?.status ?? '—'} · agenda sobre la ventana ${status ?? 'sin petición'} «${message ?? '—'}»`
+        entry.request = recall.body?.data?.id
+          ? {
+              method: 'POST',
+              path: `/api/patient-recalls/${recall.body.data.id}/schedule`,
+              status
+            }
+          : null
+        entry.detail = {
+          slot,
+          recall: { status: recall.status, id: recall.body?.data?.id ?? null },
+          appointment: {
+            status: created.status,
+            id: appointmentId,
+            message: created.body?.message ?? null,
+            errors: created.body?.errors ?? null
+          },
+          deleted: deleted
+            ? { status: deleted.status, message: deleted.body?.message ?? null }
+            : null,
+          scheduling: scheduling
+            ? {
+                status,
+                message,
+                errors: scheduling.body?.errors ?? null
+              }
+            : null
+        }
+
+        if (!appointmentId || !deleted?.status || deleted.status >= 400) {
+          entry.verdict = 'NO PROBADO'
+          entry.notes = 'la sesión no pudo sembrar y borrar la cita que ocupa la ventana'
+
+          return entry
+        }
+
+        entry.verdict =
+          status === 500 ? 'DEFECTO' : status === 422 || status === 201 ? 'OK' : 'CONFUSO'
+        entry.notes =
+          status === 500
+            ? 'una ventana que ocupaba una cita borrada revienta en 500: el índice único la cuenta y la validación de conflictos no la ve'
+            : ''
+
+        return entry
+      }
+    )
+
     await step(
       'read-only',
       'Abrir /continuity como odontólogo y probar la puerta de escritura',
@@ -1274,7 +1388,8 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
     '06-dismiss-blank',
     '07-dismiss',
     '08-empty',
-    '09-read-only'
+    '09-deleted-window',
+    '10-read-only'
   ])
   expect(
     evidence.steps.every(entry => Boolean(entry.shot)),
