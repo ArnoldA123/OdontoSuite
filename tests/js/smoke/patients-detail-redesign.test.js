@@ -688,7 +688,7 @@ describe('patient detail laboratory tab (F5 #316)', () => {
     const table = wrapper.get('[data-patient-lab-cases-table]')
     expect(table.text()).toContain('Corona metal-cerámica')
     expect(table.text()).toContain('16')
-    expect(table.text()).toContain('24 oct 2026')
+    expect(table.text()).toContain('24 oct. 2026')
     expect(table.text()).toContain('Tec. Marco Díaz')
     expect(table.text()).toContain('En laboratorio')
     expect(wrapper.find('[data-patient-lab-cases-empty]').exists()).toBe(false)

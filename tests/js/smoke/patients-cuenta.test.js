@@ -23,7 +23,7 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import StatementPanel from '../../../resources/js/modules/patients/components/PatientStatementPanel.vue'
 import ChargeModal from '../../../resources/js/modules/patients/components/PatientChargeModal.vue'
-import { formatCurrency } from '../../../resources/js/utils/formatters.js'
+import { formatCurrency } from '../../../resources/js/composables/useFormatters.js'
 
 const PATIENT = { id: 7, first_name: 'Ana', last_name: 'Torres', document_number: '45678912' }
 
@@ -227,7 +227,7 @@ describe('patient statement panel (#320 S4)', () => {
       formatCurrency(230),
       formatCurrency(240)
     ])
-    expect(values('date')).toEqual(['3/10/2026', '10/10/2026', '12/10/2026'])
+    expect(values('date')).toEqual(['03/10/2026', '10/10/2026', '12/10/2026'])
 
     wrapper.unmount()
     wrapper = null

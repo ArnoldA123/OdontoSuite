@@ -274,7 +274,7 @@
 <script setup>
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import { usePermissions } from '@/composables/usePermissions'
-import { formatDateOnly } from '@/utils/formatters'
+import { formatDate } from '@/composables/useFormatters'
 import UiButton from '@/components/ui/Button.vue'
 import UiCard from '@/components/ui/Card.vue'
 import UiSectionEmpty from '@/components/ui/UiSectionEmpty.vue'
@@ -306,7 +306,7 @@ const { can } = usePermissions()
 
 // The surface names the four SOAP blocks after the payload columns, so a
 // reader can map every block back to `clinical_evolutions`.
-const formatEvolutionDate = value => formatDateOnly(value) || 'Sin fecha'
+const formatEvolutionDate = value => formatDate(value) || 'Sin fecha'
 
 // The row stores the catalog code; the timeline shows the human name and
 // falls back to the code for historical values the catalog no longer has.
@@ -324,7 +324,7 @@ const authorLabel = evolution => {
   return name ? `Registrada por ${name}` : 'Registro clínico'
 }
 
-const addendumDateLabel = addendum => formatDateOnly(addendum.created_at) || 'Sin fecha'
+const addendumDateLabel = addendum => formatDate(addendum.created_at) || 'Sin fecha'
 
 const addendumAuthorLabel = addendum =>
   addendum.author?.name ? `Firmado por ${addendum.author.name}` : 'Firmado por el profesional'

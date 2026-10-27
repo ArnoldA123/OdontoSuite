@@ -174,7 +174,7 @@ import UiButton from '@/components/ui/Button.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import UiSectionEmpty from '@/components/ui/UiSectionEmpty.vue'
 import { usePermissions } from '@/composables/usePermissions'
-import { formatDateOnly } from '@/utils/formatters'
+import { formatDate } from '@/composables/useFormatters'
 
 const props = defineProps({
   record: {
@@ -225,13 +225,13 @@ const recordAddenda = computed(() =>
   (props.record.addenda || []).filter(addendum => !addendum.clinical_evolution_id)
 )
 
-const addendumDateLabel = addendum => formatDateOnly(addendum.created_at) || 'Sin fecha'
+const addendumDateLabel = addendum => formatDate(addendum.created_at) || 'Sin fecha'
 
 const addendumAuthorLabel = addendum =>
   addendum.author?.name ? `Firmado por ${addendum.author.name}` : 'Firmado por el profesional'
 
 const recordNumberLabel = computed(() => props.record.record_number || 'Sin número asignado')
-const firstVisitLabel = computed(() => formatDateOnly(props.record.first_visit_date) || 'Sin fecha')
+const firstVisitLabel = computed(() => formatDate(props.record.first_visit_date) || 'Sin fecha')
 const statusLabel = computed(() => (props.record.is_active ? 'Activa' : 'Inactiva'))
 const statusVariant = computed(() => (props.record.is_active ? 'success' : 'neutral'))
 

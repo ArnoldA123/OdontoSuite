@@ -429,6 +429,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
+import { formatDate as formatCanonicalDate } from '../../composables/useFormatters'
 import { useToast } from '../../composables/useToast'
 import { useConfirm } from '../../composables/useConfirm'
 import { useEcho } from '../../composables/useEcho'
@@ -813,10 +814,7 @@ export default {
       }
     }
 
-    const formatDate = date => {
-      if (!date) return 'N/A'
-      return new Date(date).toLocaleDateString('es-ES')
-    }
+    const formatDate = date => formatCanonicalDate(date) || 'N/A'
 
     const goBack = () => {
       router.back()
