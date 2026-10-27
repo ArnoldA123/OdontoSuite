@@ -115,7 +115,11 @@ líneas aplica a correcciones. Los cinco commits se revisan en este orden:
 3. `928cf6f` — `ci(audit): ejecuta la matriz de U11…`: el job traduce `all` a
    `--all` y corre la capa estática y la matriz en CI.
 4. `eb148ad` — `docs(audit): publica la matriz…`: la matriz 36×12 con el canon.
-5. el commit de cierre — `docs(audit): registra la sesión U11…`: esta nota.
+5. `57e8dd6` — `docs(audit): registra la sesión U11…`: esta nota.
+6. `8118f4e` + `e912574` + `962e57a` — la corrección pedida por el refuter
+   nativo (R3-001): el arreglo, el revert que devuelve el árbol al candidato
+   revisado para intentar el plan de corrección, y su reaplicación. El diff neto
+   es el arreglo (20 líneas); los tres commits cuentan el intento completo.
 
 ## Línea base medida
 
@@ -251,7 +255,42 @@ las 72 capturas y los JSON se publican como artefacto de CI, no como commit.
 
 ## Revisión nativa (RDD)
 
-Pendiente de ejecutar sobre el candidato completo (se registra en el Log).
+**No cerró: el proveedor emitió un hallazgo y su ruta de corrección quedó
+rechazada por la fachada de Pi.** No se consumió autoridad ni se acusó recibo, y
+no se inventó un veredicto.
+
+| Paso | Respuesta |
+| --- | --- |
+| `assess` | `reviewDue: true` (`high_risk`), `nativeRisk: high`, `agentEscalation` ítem 5 (workflow de CI) → `independentVerifier: true`. |
+| `inspect` | `ready`, `action: start`, candidato `base-diff` `5b1cc02..HEAD` con 9 archivos. |
+| `start` (4 lentes: riesgo, resiliencia, legibilidad, fiabilidad) | `created`, `state: reviewing`, `risk_tier: high`, `correction_budget: 200`, linaje `review-052a34206fb71cc1`. |
+| Revisores (4 corridas anunciadas) | Riesgo, resiliencia y legibilidad admitidos; **fiabilidad rechazado dos veces en admisión**: `reviewer artifact admission out_of_scope` y `reviewer finding ID does not match the native ASCII schema` (los payloads quedaron preservados en `.git/gentle-ai/rejected-results/`). La tercera corrida fue admitida. |
+| Refuter (1 corrida) | Un hallazgo grave causado por el candidato: **R3-001** — «un artefacto de render se escribe antes de medir y `evaluate()` sólo comprueba existencia, así que una superficie saltada cuenta como medida y recibe doce veredictos fabricados con el gate en verde». `state: correction_required`. |
+| Corrección (20 líneas de diff) | Aplicada: `measured` sólo se escribe tras capturar ambos viewports y leer los ejes; el reporte descarta filas con `measured !== true` o sin `axes` y las trata como `NO PROBADO`/`missing`. El instrumento se reejecutó: **62 tests verdes, 36/36 filas medidas, gate OK, los mismos 62 hallazgos**. |
+| Plan de corrección | **Rechazado por la fachada** dos veces con `capture-binding-rejected: collectBinding does not carry one non-empty matching provider lineage and target token`, sobre el binding exacto emitido por STATUS (idéntico byte a byte en las dos llamadas, y con el árbol ya devuelto al candidato revisado). |
+
+Consecuencia: la autoridad queda en `correction_required` sin cierre, con el
+hallazgo ya corregido en código. La sesión no declara la revisión nativa como
+obtenida. Es un defecto de la fachada de Pi en la ruta `capture-correction-plan`
+(el binding del proveedor no se acepta), no una corrección pendiente del
+candidato.
+
+### Verificación independiente (`gentle-ai-verify`)
+
+Rango `5b1cc02..HEAD` (8 commits, 9 archivos, 2 703 inserciones / 16
+eliminaciones). Ocho afirmaciones, siete PASS y un FAIL de higiene corregido en
+este mismo cierre (la nota estaba sin commitear).
+
+| Afirmación | Resultado |
+| --- | --- |
+| No hay código de producto | **PASS** — 9 archivos, ninguno en `resources/`, `app/`, `routes/`, `database/`, `config/` ni `public/` |
+| La fila cuenta como medida sólo si midió | **PASS** — `measured = true` es la última sentencia del `try`, después de ambos viewports y de los ejes; el reporte filtra `measured === true && axes`; el skip deja `measured:false` y `reason` en el archivo |
+| El gate no puede quedar verde con una fila sin medir | **PASS** — las filas descartadas caen en `missing` y en `gate.reasons`; los `DIV` van a hallazgos, no al gate |
+| La matriz coincide con la evidencia | **PASS** — 36×12, `gate.json` y conteos por eje idénticos a la nota; `diff` de la matriz contra la copia publicada sin diferencias salvo el `timestamp` |
+| Los seis issues describen lo medido | **PASS** — 10 rutas de formato, 7 de estados, 4 de listas, 2 de insignias, 12 de botonera y 12 de filtros, todas idénticas a `findings.raw.json` y `static.json`; 23 etiquetas alternativas únicas |
+| El workflow de CI es seguro y coherente | **PASS** — `all` se traduce a `--all` en capa 1 y en `ui-pass`; U11 corre estático y matriz; base desechable `odontosuite_audit`; sin secretos del repositorio |
+| El instrumento no afirma sobre el producto | **PASS** — veredictos derivados de `render.axes` y `static.axes`; `ACE` exige `acceptances.json` y los 403 declarados tienen dueño en `denials.json` |
+| Higiene | **FAIL** corregido — Prettier, ESLint y 62 tests en verde; el árbol estaba sucio sólo por esta nota, y se versiona en el cierre |
 
 ## Delegación
 
@@ -309,3 +348,23 @@ duplicación; cuenta el dato que aparece en KPI y tabla o fuera de tabla).
   (#399) y las tres aceptaciones en `acceptances.json`. La matriz completa queda
   en `.atl/qa-evidence/audit/ui/U11/consistency-matrix.md` y su copia versionada
   en `docs/mejoras/13-consistency-matrix-2026-10.md`.
+
+- **L9** — Revisión nativa: `assess` marcó el candidato como `high_risk`
+  (workflow de CI) con `reviewDue: true`; `start` creó el linaje
+  `review-052a34206fb71cc1` con 4 lentes y presupuesto de corrección 200. El
+  revisor de fiabilidad fue rechazado dos veces en admisión (ubicación fuera del
+  candidato y `id` no ASCII) y admitido en la tercera; el refuter devolvió un
+  hallazgo grave del candidato (**R3-001**, «existencia ≠ medición») y
+  `correction_required`. La corrección se aplicó en 20 líneas de diff y el
+  instrumento se reejecutó (62 verdes, 36/36 medidas, gate OK, mismos 62
+  hallazgos). El plan de corrección fue **rechazado por la fachada de Pi** dos
+  veces con `capture-binding-rejected: collectBinding does not carry one
+  non-empty matching provider lineage and target token`, sobre el binding exacto
+  de STATUS y con el árbol ya devuelto al candidato revisado; la autoridad queda
+  en `correction_required` sin cierre y sin acuse. Se declara la revisión nativa
+  **no obtenida**.
+- **L10** — Verificación independiente: ocho afirmaciones, siete PASS y un FAIL
+  de higiene (esta nota sin commitear) corregido en el cierre. La verificación
+  confirmó que las 36 filas están medidas, que el gate no puede quedar verde con
+  una fila sin medir, que la matriz publicada coincide con los artefactos y que
+  los seis issues se sostienen contra `findings.raw.json` y `static.json`.
