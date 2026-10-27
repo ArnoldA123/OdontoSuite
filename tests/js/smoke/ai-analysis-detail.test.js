@@ -121,6 +121,18 @@ describe('ai analysis detail surface', () => {
     wrapper.unmount()
   })
 
+  it('announces the dialog with the header it already shows', () => {
+    const wrapper = mountModal(analysisFixture())
+
+    const labelledBy = wrapper.find('[role="dialog"]').attributes('aria-labelledby')
+    expect(labelledBy).toBeTruthy()
+
+    const name = wrapper.find(`[id="${labelledBy}"]`).text().replace(/\s+/g, ' ').trim()
+    expect(name).toBe('Análisis de IA Ana Torres')
+
+    wrapper.unmount()
+  })
+
   it('renders the empty section copy when findings and recommendations are absent', () => {
     const wrapper = mountModal(analysisFixture({ findings: [], recommendations: null }))
 
