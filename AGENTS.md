@@ -475,6 +475,10 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 - API: SIEMPRE `useApi().request/get/post/...`. NO axios directo.
 - UI: consumir SIEMPRE de `components/ui/`. NO botones/modales ad-hoc.
 - Estilos: Tailwind 3 + design tokens. NO CSS scoped salvo necesidad real.
+- Formato: TODO dinero, fecha y hora sale de `composables/useFormatters.js`
+  (locale `es-PE`, reloj 24 h). NO `Intl.NumberFormat` de moneda,
+  `Intl.DateTimeFormat` ni `toLocale*` fuera de ese módulo; el guard es
+  `tests/Unit/Composables/FormatPENLabelTest`.
 - Iconos: `@heroicons/vue`
 - TypeScript: NO usado. Todo es JS.
 - WebSocket: `useWebSocketNotifications()` escucha canales y dispara toasts.
@@ -623,6 +627,32 @@ documentada y no bloquea producción.
   de navegador no se versiona: su evidencia queda en
   `.atl/qa-evidence/audit/dialog-contract`. Se entrega en un solo pull request
   con cuatro commits de unidad (`a11bc2c`, `e33fbde`, `2f06d95`, `9131a4f`).
+
+- **2026-10-27 (un solo módulo de formato: dinero, fecha y hora, #451)** — El
+  frontend deja de tener dos módulos de formato.
+  `resources/js/composables/useFormatters.js` es la única fuente (locale
+  `es-PE`, reloj 24 h): `formatCurrency` y su alias `formatPENLabel`,
+  `formatUsd`, `formatNumber`, `formatDate`, `formatDateTime`, `formatTime`, los
+  dos helpers compactos de la agenda y `dateOnly` para campos fecha.
+  `resources/js/utils/formatters.js` se elimina: su `formatCurrency` respondía
+  `S/ NaN` a un importe no numérico y su `formatDateShort` retrocedía un día
+  fuera de UTC (`new Date('YYYY-MM-DD')` es UTC). El guard
+  `tests/Unit/Composables/FormatPENLabelTest` barre ahora `resources/js`
+  completo y falla con archivo y línea ante un `Intl.NumberFormat` de moneda, un
+  `Intl.DateTimeFormat`/`toLocale*` o un prefijo `S/` delante del helper o de un
+  importe crudo; quedan exentos el propio módulo y `CurrencyInput.vue` (display
+  numérico del campo). Un campo fecha se lee con `dateOnly` y se pinta con
+  `formatDate`, así una medianoche UTC no retrocede el día; un instante se pinta
+  con `formatDateTime` en el reloj de la sesión. Texto visible canónico: fecha
+  `02/06/1999`, mes corto `20 oct. 2026`, hora `15:07`, USD `USD 0.0042`. Sin
+  rutas, modelos, migraciones ni permisos nuevos: los conteos de §4/§5 no
+  cambian. Tests: `formatters-single-source` (25), guard (27),
+  `calendarDateMath`/`labCaseMeta`/`continuityMeta` y sus smokes ajustados al
+  formato `es-PE`; Vitest **1250 pruebas en 142 archivos**; suite MySQL **OK
+  (2783 tests, 16970 assertions)**; Pint, ESLint (0 errores), Prettier y
+  `pnpm build` en verde; `node scripts/audit/doc-drift.mjs` en verde; U11 capa 1
+  con `intl=0`, `locale=0` y `legacyModule=0` en las 36 superficies, y capa 2
+  con el eje `format` en **OK (0 DIV)**.
 
 - **2026-10-23 (las notas ODD se versionan)** — Las 47 notas de tarea que
   quedaban sin seguimiento en `odd/tasks/` entran al repositorio junto a las 43
