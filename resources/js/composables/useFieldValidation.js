@@ -17,9 +17,11 @@
  *   - errors: reactive map (field → error message)
  *   - successes: reactive map (field → boolean)
  *   - validateField(field), validateAll(), clearField(field) — imperative
+ *   - applyServerErrors(rawErrors) — paint the API's 422 entries on their fields
  */
 import { reactive, watch } from 'vue'
 import { attachValidator } from './fieldValidationMath.js'
+import { mapFieldErrors } from './validationErrors.js'
 
 /**
  * @template T extends Record<string, any>
@@ -32,7 +34,8 @@ import { attachValidator } from './fieldValidationMath.js'
  *   successes: import('vue').Reactive<Record<string, boolean>>,
  *   validateField: (field: keyof T) => void,
  *   validateAll: () => boolean,
- *   clearField: (field: keyof T) => void
+ *   clearField: (field: keyof T) => void,
+ *   applyServerErrors: (rawErrors: Record<string, unknown>) => Record<string, string>
  * }}
  */
 export function useFieldValidation(form, rules, options = {}) {
@@ -60,7 +63,17 @@ export function useFieldValidation(form, rules, options = {}) {
     successes,
     validateField: v.validateField,
     validateAll: v.validateAll,
-    clearField: v.clearField
+    clearField: v.clearField,
+    applyServerErrors: rawErrors => {
+      const mapped = mapFieldErrors(rawErrors, Object.keys(rules))
+
+      for (const [field, message] of Object.entries(mapped)) {
+        errors[field] = message
+        successes[field] = false
+      }
+
+      return mapped
+    }
   }
 }
 

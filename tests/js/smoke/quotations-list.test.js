@@ -66,6 +66,8 @@ const summary = {
   }
 }
 
+const apiState = vi.hoisted(() => ({ postReject: null }))
+
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
     get: async url => {
@@ -73,7 +75,10 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
       if (/\/api\/quotations\/\d+$/.test(String(url))) return { data: rows[0] }
       return { data: rows, meta: { current_page: 1, last_page: 1, per_page: 15, total: 3 } }
     },
-    post: async () => ({ data: {} }),
+    post: async () => {
+      if (apiState.postReject) throw apiState.postReject
+      return { data: {} }
+    },
     put: async () => ({ data: {} }),
     patch: async () => ({ data: {} }),
     delete: async () => ({ data: {} }),
@@ -119,6 +124,7 @@ const mountPage = async () => (await mountPageAt('/quotations')).wrapper
 
 describe('quotations list redesign', () => {
   beforeEach(() => {
+    apiState.postReject = null
     localStorage.setItem('auth_token', 'test-token')
     localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
   })
@@ -175,6 +181,35 @@ describe('quotations list redesign', () => {
     expect(wrapper.findAll('[data-row-action="reject"]')).toHaveLength(2)
     expect(wrapper.findAll('[data-row-action="delete"]')).toHaveLength(1)
     expect(wrapper.findAll('[data-row-action="pdf"]')).toHaveLength(3)
+
+    wrapper.unmount()
+  })
+
+  it('paints the API reason when the approval is rejected with a generic 422', async () => {
+    apiState.postReject = {
+      response: {
+        status: 422,
+        data: {
+          message: 'Error de validación',
+          errors: {
+            status: [
+              'Solo se puede aprobar un presupuesto enviado o visto. Estado actual: approved.'
+            ]
+          }
+        }
+      }
+    }
+
+    const wrapper = await mountPage()
+    await wrapper.find('[data-row-action="approve"]').trigger('click')
+    await flushPromises()
+
+    document.querySelector('[data-modal-action="approve"]').click()
+    await flushPromises()
+
+    expect(document.querySelector('[data-modal-error]').textContent).toContain(
+      'Solo se puede aprobar un presupuesto enviado o visto.'
+    )
 
     wrapper.unmount()
   })

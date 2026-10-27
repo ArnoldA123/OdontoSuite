@@ -356,6 +356,10 @@ import { useQuotations } from '../../../composables/useQuotations'
 import { useApi } from '../../../composables/useApi'
 import { useAccountingLock } from '../../../composables/useAccountingLock'
 import { formatCurrency } from '../../../composables/useFormatters'
+import {
+  normalizeValidationErrors,
+  pickValidationMessage
+} from '../../../composables/validationErrors'
 import { calendarDateKey } from '../quotationMeta'
 import {
   requiredSiteField,
@@ -559,16 +563,6 @@ const buildItemsPayload = () =>
       return payload
     })
 
-const normalizeServerErrors = rawErrors => {
-  if (!rawErrors || typeof rawErrors !== 'object') return {}
-  return Object.fromEntries(
-    Object.entries(rawErrors).map(([field, message]) => [
-      field,
-      Array.isArray(message) ? message[0] : message
-    ])
-  )
-}
-
 const validate = () => {
   const nextErrors = {}
 
@@ -648,8 +642,8 @@ const performSubmit = async override => {
     if (detectLock(error)) return
     if (applyLockValidationErrors(data?.errors)) return
 
-    errors.value = normalizeServerErrors(data?.errors)
-    submitError.value = data?.message || 'No pudimos guardar el presupuesto.'
+    errors.value = normalizeValidationErrors(data?.errors)
+    submitError.value = pickValidationMessage(data, 'No pudimos guardar el presupuesto.')
   } finally {
     saving.value = false
   }
