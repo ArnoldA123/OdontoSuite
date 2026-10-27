@@ -258,6 +258,13 @@ const renderRows = new Map(
     .filter(name => name.endsWith('.json'))
     .map(name => [`render/${name}`, readJson(`render/${name}`)])
     .filter(([, payload]) => payload?.route)
+    // A row file is written in `finally`, so its existence proves the probe ran,
+    // not that it measured. A skipped surface (no sample record) and a probe
+    // that failed before reading the axes both leave a file behind; treating
+    // them as measured would fill twelve cells with a verdict built from
+    // undefined data and leave the gate green. `measured` is set only after
+    // both viewports were captured and the axes were read.
+    .filter(([, payload]) => payload.measured === true && payload.axes)
     .map(([file, payload]) => [payload.route, { file, ...payload }])
 )
 const primitiveRows = new Map(
