@@ -147,7 +147,7 @@ function parseConsumers() {
     }
     const lines = src.split('\n')
     const litRe = /['"`]\/api([^'"`\s?]*?)['"`]/g
-    lines.forEach((line, idx) => {
+    lines.forEach(line => {
       if (isComment(line)) return
       for (const lm of line.matchAll(litRe)) {
         const path = norm(lm[1].replace(/^\/+/, ''))

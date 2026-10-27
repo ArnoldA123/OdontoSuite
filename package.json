@@ -5,8 +5,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "lint": "eslint . --ext .vue,.js,.jsx,.ts,.tsx --fix",
-    "lint:check": "eslint . --ext .vue,.js,.jsx,.ts,.tsx",
+    "lint": "eslint . --ext .mjs,.vue,.js,.jsx,.ts,.tsx --fix",
+    "lint:check": "eslint . --ext .mjs,.vue,.js,.jsx,.ts,.tsx",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint:fix": "pnpm run lint && pnpm run format",

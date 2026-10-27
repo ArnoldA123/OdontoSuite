@@ -460,13 +460,12 @@ for (const mod of MODULES) {
 writeFileSync(resolve(OUT, 'matrix.md'), `${matrixLines.join('\n')}\n`)
 writeFileSync(
   resolve(OUT, 'divergences.md'),
-  `# Divergences (${open.length} open, ${infos.length} informational)\n\n` +
-    divergences
-      .map(
-        d =>
-          `## ${d.id} [${d.severity}]${d.id in acceptances ? ' (accepted)' : ''}\n${d.title}\n\nEvidence: ${d.evidence}\n\nProposal: ${d.proposal}\n`
-      )
-      .join('\n')
+  `# Divergences (${open.length} open, ${infos.length} informational)\n\n${divergences
+    .map(
+      d =>
+        `## ${d.id} [${d.severity}]${d.id in acceptances ? ' (accepted)' : ''}\n${d.title}\n\nEvidence: ${d.evidence}\n\nProposal: ${d.proposal}\n`
+    )
+    .join('\n')}`
 )
 writeFileSync(
   resolve(OUT, 'result.json'),

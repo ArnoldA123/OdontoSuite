@@ -401,11 +401,10 @@ const md = [
     ? ['- none']
     : failures.map(
         r =>
-          `- ${`${r.method} ${r.path}` in acceptances ? '[accepted] ' : ''}\`${r.method} ${r.path}\` (${r.class}) — ` +
-          r.cells
+          `- ${`${r.method} ${r.path}` in acceptances ? '[accepted] ' : ''}\`${r.method} ${r.path}\` (${r.class}) — ${r.cells
             .filter(c => c.class === 'server-error' || c.class === 'unclassified')
             .map(c => `${c.role}: ${c.status}`)
-            .join(', ')
+            .join(', ')}`
       )),
   ``,
   `## Skipped (needs fixture)`,
@@ -422,14 +421,12 @@ const md = [
   `| --- | --- | --- |${roles.map(() => ' --- |').join('')}`,
   ...routes.map(
     r =>
-      `| ${r.method} | ${r.path} | ${r.class} | ` +
-      roles
+      `| ${r.method} | ${r.path} | ${r.class} | ${roles
         .map(role => {
           const c = r.cells.find(x => x.role === role.role)
           return c ? `${c.status}${c.class === 'ok' ? '' : ` (${c.class})`}` : '—'
         })
-        .join(' | ') +
-      ' |'
+        .join(' | ')} |`
   )
 ]
 writeFileSync(resolve(OUT, 'matrix.md'), `${md.join('\n')}\n`)
