@@ -39,7 +39,7 @@
               </div>
             </div>
             <div class="text-right">
-              <div class="font-medium text-primary-600">S/ {{ formatPrice(procedure.price) }}</div>
+              <div class="font-medium text-primary-600">{{ formatCurrency(procedure.price) }}</div>
               <div class="text-xs text-theme-secondary">
                 {{ procedure.category }}
               </div>
@@ -76,7 +76,7 @@
         <div class="flex items-center space-x-2">
           <div class="text-right">
             <div class="font-medium text-primary-600">
-              S/ {{ formatPrice(selectedProcedure.price) }}
+              {{ formatCurrency(selectedProcedure.price) }}
             </div>
             <div class="text-xs text-primary-500">
               {{ selectedProcedure.category }}
@@ -97,6 +97,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { formatCurrency } from '@/composables/useFormatters'
 
 const props = defineProps({
   modelValue: {
@@ -178,13 +179,6 @@ const handleBlur = () => {
     showDropdown.value = false
     highlightedIndex.value = -1
   }, 150)
-}
-
-const formatPrice = price => {
-  return new Intl.NumberFormat('es-PE', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(price)
 }
 
 // Watchers

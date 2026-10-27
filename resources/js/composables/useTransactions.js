@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { useApi } from './useApi'
+import { formatCurrency } from './useFormatters'
 
 export function useTransactions() {
   const { get, post, put, del } = useApi()
@@ -191,12 +192,7 @@ export function useTransactions() {
   }
 
   // Formatear monto para mostrar
-  const formatAmount = amount => {
-    return new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN'
-    }).format(amount || 0)
-  }
+  const formatAmount = amount => formatCurrency(amount)
 
   // Filtrar transacciones localmente
   const filterTransactions = filters => {

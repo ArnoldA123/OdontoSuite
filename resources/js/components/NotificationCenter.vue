@@ -129,6 +129,7 @@
 <script setup>
 import { computed, watch } from 'vue'
 import { useNotifications } from '@/composables/useNotifications'
+import { formatDate } from '@/composables/useFormatters'
 import {
   BellIcon,
   XMarkIcon,
@@ -193,7 +194,7 @@ const formatTime = timestamp => {
   if (minutes < 60) return `Hace ${minutes} min`
   if (hours < 24) return `Hace ${hours} h`
   if (days < 7) return `Hace ${days} días`
-  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+  return formatDate(date, { day: 'numeric', month: 'short' })
 }
 
 const getCategoryLabel = category => {

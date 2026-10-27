@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { useApi } from './useApi'
 import { useToast } from './useToast'
+import { formatDateTime } from './useFormatters'
 
 /**
  * Data layer for the AI analysis module.
@@ -267,16 +268,8 @@ export function useAiAnalysis() {
     return labels[decision] || 'Sin revisar'
   }
 
-  const formatDate = date => {
-    if (!date) return 'N/A'
-    return new Date(date).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const formatDate = date =>
+    date ? formatDateTime(date, { day: 'numeric', month: 'short' }) || 'N/A' : 'N/A'
 
   return {
     // Slice 08 / T-08.10 + T-08.11 canonical shape.

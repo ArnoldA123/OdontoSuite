@@ -169,6 +169,7 @@ import { ref, computed } from 'vue'
 import Modal from './Modal.vue'
 import Button from './Button.vue'
 import { PrinterIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
+import { formatCurrency, formatDateTime } from '@/composables/useFormatters'
 
 const props = defineProps({
   show: {
@@ -198,23 +199,10 @@ const downloading = ref(false)
 // Computed properties
 const receiptData = computed(() => ({
   receipt_number: props.transaction.transaction_number || 'N/A',
-  date: new Date(props.transaction.created_at).toLocaleDateString('es-PE', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  date: formatDateTime(props.transaction.created_at)
 }))
 
 // Methods
-const formatCurrency = amount => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount || 0)
-}
-
 const handlePrint = async () => {
   printing.value = true
 
