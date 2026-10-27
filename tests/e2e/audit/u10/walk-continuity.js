@@ -170,15 +170,17 @@ const waitForQueue = async (page, action, timeout = 15000) =>
 /**
  * A `datetime-local` value for an API instant.
  *
- * The agenda serializes `scheduled_at` with the app offset (`…-05:00`), and the
- * form speaks the session's wall clock: the offset is converted, a naive value is
- * sliced so no timezone shifts the slot the conflict occupies.
+ * The agenda serializes `scheduled_at` in the application's timezone with its
+ * offset (`2026-10-28T10:15:00-05:00`), so the literal date and hour ARE the wall
+ * clock the form speaks. Converting the offset through the runner's timezone
+ * (UTC in CI) moved the conflict slot five hours and the walk measured a free
+ * slot as if it were the occupied one. Only a UTC (`Z`) value needs conversion.
  */
 const wallClock = value => {
   const source = String(value ?? '')
   const naive = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/.exec(source)
 
-  if (naive && !/(?:Z|[+-]\d{2}:?\d{2})$/.test(source)) return `${naive[1]}T${naive[2]}`
+  if (naive && !/Z$/.test(source)) return `${naive[1]}T${naive[2]}`
 
   const date = new Date(source)
   if (Number.isNaN(date.getTime())) return ''

@@ -1561,12 +1561,12 @@ function criterionHeadings(ctx) {
   const hero = heroOf(ctx)
 
   return {
-    score: 1,
+    score: hero ? 2 : 1,
     justification: `un solo h1 en ${ctx.render.length} fila(s) (${ctx.render
       .map(row => row.evidenceFile)
       .join(
         ', '
-      )})${hero ? `; hero «${hero.title}» («${hero.caption ?? '—'}»)` : ''}; el topbar no duplica el título NO MEDIDO`
+      )})${hero ? `; hero «${hero.title}» («${hero.caption ?? '—'}»)` : '; hero NO MEDIDO'}`
   }
 }
 
@@ -1799,7 +1799,14 @@ function criterionAccessibility(ctx) {
     )
   }
 
-  const failing = checks.filter(row => !row.ok)
+  // The walks publish the dialog contract inside the step, not only through the
+  // aggregated rows: a check that failed there is a failure here.
+  const stepFailures = ctx.steps.flatMap(step =>
+    (step.detail?.contract?.failed ?? [])
+      .filter(id => /escape|focus|aria|label|tab|keyboard|trap|contrast|motion/i.test(id))
+      .map(id => ({ step: step.id, id, ok: false }))
+  )
+  const failing = [...checks.filter(row => !row.ok), ...stepFailures]
 
   if (failing.length) {
     return {
