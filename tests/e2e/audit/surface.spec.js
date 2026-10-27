@@ -103,6 +103,23 @@ import './u8/walk-favorites.js'
 import './u8/api-matrix.js'
 import './u8/report.js'
 
+// U9 (issue #372) audits the administration desk — the eight ABMs, the branch
+// transfers and the accounting lock. The fixtures and the row modules live
+// together so `--grep @U9` selects the session.
+import './u9/fixtures.js'
+import './u9/render.js'
+import './u9/primitives.js'
+import './u9/walk-professionals.js'
+import './u9/walk-environments.js'
+import './u9/walk-appointment-types.js'
+import './u9/walk-specialties.js'
+import './u9/walk-branches.js'
+import './u9/walk-payment-methods.js'
+import './u9/walk-accounting-locks.js'
+import './u9/walk-transfers.js'
+import './u9/api-matrix.js'
+import './u9/report.js'
+
 const OUT = process.env.AUDIT_OUT || 'U0'
 const SCOPE = process.env.AUDIT_SCOPE || 'all'
 
