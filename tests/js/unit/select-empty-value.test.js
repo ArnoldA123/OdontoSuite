@@ -14,11 +14,9 @@ const STATUS_OPTIONS = [
   { value: 'inactive', label: 'Inactivos' }
 ]
 
-const mountSelect = props =>
-  mount(Select, { props: { options: STATUS_OPTIONS, ...props } })
+const mountSelect = props => mount(Select, { props: { options: STATUS_OPTIONS, ...props } })
 
-const selectedOptions = wrapper =>
-  wrapper.findAll('[role="listbox"] button[aria-selected="true"]')
+const selectedOptions = wrapper => wrapper.findAll('[role="listbox"] button[aria-selected="true"]')
 
 describe('UiSelect empty string modelValue (#402)', () => {
   it('shows the empty-value option label and marks it selected', async () => {

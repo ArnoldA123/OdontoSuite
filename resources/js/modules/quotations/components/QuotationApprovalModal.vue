@@ -131,10 +131,7 @@ const onApprove = async () => {
     emit('approved', updated)
     emit('close')
   } catch (err) {
-    error.value = pickValidationMessage(
-      err.response?.data,
-      'No pudimos aprobar el presupuesto.'
-    )
+    error.value = pickValidationMessage(err.response?.data, 'No pudimos aprobar el presupuesto.')
   } finally {
     saving.value = false
   }

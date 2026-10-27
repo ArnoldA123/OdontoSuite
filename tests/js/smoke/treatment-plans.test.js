@@ -272,9 +272,7 @@ describe('treatment-plans page', () => {
         data: {
           message: 'Error de validación',
           errors: {
-            status: [
-              'No se puede completar el plan: 2 procedimiento(s) siguen sin ejecutar.'
-            ]
+            status: ['No se puede completar el plan: 2 procedimiento(s) siguen sin ejecutar.']
           }
         }
       }

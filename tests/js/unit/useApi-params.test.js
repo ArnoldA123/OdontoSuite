@@ -76,9 +76,7 @@ describe('useApi request URL (#408)', () => {
     })
 
     const [url] = fetchMock.mock.calls[0]
-    expect(url).toBe(
-      'http://localhost:8000/api/cash-register/pending-payments?page=1&per_page=10'
-    )
+    expect(url).toBe('http://localhost:8000/api/cash-register/pending-payments?page=1&per_page=10')
     expect(url).not.toContain('undefined')
   })
 
