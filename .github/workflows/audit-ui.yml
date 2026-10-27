@@ -19,15 +19,15 @@ on:
       session:
         description: 'Audit session (evidence directory under .atl/qa-evidence/audit/ui)'
         required: true
-        default: 'U9'
+        default: 'U10'
       scope:
         description: 'AUDIT_SCOPE for the spec (module:<a,b> or route:<path>)'
         required: true
-        default: 'module:professionals,environments,appointment-types,specialties,settings,branch-transfers,accounting-locks'
+        default: 'module:business-intelligence,continuity,lab-cases'
       grep:
         description: 'Playwright --grep selector'
         required: true
-        default: '@U9'
+        default: '@U10'
   push:
     branches: ['feat/audit-ui-*']
 
@@ -48,7 +48,7 @@ env:
 
 jobs:
   surface-audit:
-    name: Surface audit (${{ inputs.session || 'U9' }})
+    name: Surface audit (${{ inputs.session || 'U10' }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -75,11 +75,11 @@ jobs:
       DB_DATABASE: odontosuite_audit
       DB_USERNAME: odontosuite
       DB_PASSWORD: secret
-      AUDIT_SESSION: ${{ inputs.session || 'U9' }}
-      AUDIT_SCOPE_INPUT: ${{ inputs.scope || 'module:professionals,environments,appointment-types,specialties,settings,branch-transfers,accounting-locks' }}
-      AUDIT_GREP: ${{ inputs.grep || '@U9' }}
-      AUDIT_SCOPE: ${{ inputs.scope || 'module:professionals,environments,appointment-types,specialties,settings,branch-transfers,accounting-locks' }}
-      AUDIT_OUT: .atl/qa-evidence/audit/ui/${{ inputs.session || 'U9' }}
+      AUDIT_SESSION: ${{ inputs.session || 'U10' }}
+      AUDIT_SCOPE_INPUT: ${{ inputs.scope || 'module:business-intelligence,continuity,lab-cases' }}
+      AUDIT_GREP: ${{ inputs.grep || '@U10' }}
+      AUDIT_SCOPE: ${{ inputs.scope || 'module:business-intelligence,continuity,lab-cases' }}
+      AUDIT_OUT: .atl/qa-evidence/audit/ui/${{ inputs.session || 'U10' }}
 
     steps:
       - uses: actions/checkout@v4

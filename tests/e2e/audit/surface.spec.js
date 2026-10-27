@@ -118,6 +118,17 @@ import './u9/walk-payment-methods.js'
 import './u9/walk-accounting-locks.js'
 import './u9/walk-transfers.js'
 import './u9/api-matrix.js'
+
+// U10 (issue #373) audits the read-and-coordinate desks — business intelligence,
+// continuity and the prosthetic laboratory. The fixtures and the row modules
+// live together so `--grep @U10` selects the session.
+import './u10/fixtures.js'
+import './u10/render.js'
+import './u10/walk-bi.js'
+import './u10/walk-continuity.js'
+import './u10/walk-lab.js'
+import './u10/api-matrix.js'
+import './u10/report.js'
 import './u9/report.js'
 
 const OUT = process.env.AUDIT_OUT || 'U0'
