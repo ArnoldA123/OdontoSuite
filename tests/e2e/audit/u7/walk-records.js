@@ -288,17 +288,32 @@ test('@U7 · U7a historia clínica: tabs, alta, evolución, adjunto, addendum y 
           .waitFor({ state: 'visible', timeout: 10000 })
           .catch(() => {})
 
+        // 3 s: the form refuses the empty act locally, so a long wait only
+        // stalls the walk when no request leaves the SPA.
         const submitted = waitForCall(
           page,
           'POST',
           /\/api\/medical-records\/\d+\/evolutions/,
           () => true,
-          ACTION_TIMEOUT
+          3000
         )
         await page.locator('[data-evolution-submit]').click({ timeout: 10000 })
         const response = await submitted
         const status = response?.status() ?? null
         const body = response ? await response.json().catch(() => null) : null
+
+        // #425: the empty act is refused, so the door that matters is the
+        // inline message the form paints — and the fact that no request left
+        // the SPA at all.
+        const inline = await page.evaluate(() => {
+          const text = node => (node?.innerText ?? '').trim().replace(/\s+/g, ' ')
+
+          return {
+            error: text(document.querySelector('[data-evolution-error]')),
+            formOpen: Boolean(document.querySelector('[data-evolution-form]')),
+            cards: document.querySelectorAll('[data-evolution-card]').length
+          }
+        })
 
         if (body?.data?.id) created.evolutionIds.push(body.data.id)
         await closeAllDialogs(page)
@@ -314,16 +329,26 @@ test('@U7 · U7a historia clínica: tabs, alta, evolución, adjunto, addendum y 
           )
           .catch(() => null)
 
+        const refused = status === null || status === 422
+        const explained = inline.error.length > 0
+        const stayedOpen = inline.formOpen === true
+        const nothingWritten =
+          (body?.data?.id ?? null) === null && (emptyCards === null || emptyCards === 0)
+
         return {
           requestStatus: status,
           request: lastWrite(requests),
-          obtained: `POST …/evolutions → ${status}; ${cards} tarjeta(s) en el timeline, ${emptyCards} sin ningún bloque SOAP`,
-          verdict: status === 201 ? 'DEFECTO' : status === 422 ? 'OK' : 'NO PROBADO',
+          obtained: `POST …/evolutions → ${status ?? 'sin petición'}; mensaje en línea=${JSON.stringify(inline.error)}; modal abierto=${inline.formOpen}; ${cards} tarjeta(s) en el timeline, ${emptyCards} sin ningún bloque SOAP`,
+          verdict: refused && explained && stayedOpen && nothingWritten ? 'OK' : 'DEFECTO',
           detail:
             status === 201
               ? 'Ningún campo SOAP es obligatorio: el envío vacío crea una evolución sin subjetivo, objetivo, evaluación ni plan, y el timeline la pinta como una tarjeta con sólo fecha y autor. El registro clínico gana ruido que ninguna puerta vuelve a corregir (la historia es inmutable).'
-              : null,
-          extra: { evolutionId: body?.data?.id ?? null, cards, emptyCards }
+              : !explained
+                ? 'El envío vacío se rechaza sin decir por qué: el formulario no pinta el motivo junto al bloque SOAP.'
+                : !stayedOpen
+                  ? 'El formulario se cerró con el envío rechazado: el usuario pierde lo que había escrito y el motivo no tiene dónde leerse.'
+                  : null,
+          extra: { evolutionId: body?.data?.id ?? null, cards, emptyCards, inline }
         }
       }
     )
