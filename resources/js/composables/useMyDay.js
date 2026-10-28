@@ -27,15 +27,14 @@ let subscribedUserId = null
 const asList = value => (Array.isArray(value) ? value : [])
 
 /**
- * Same precedence the custody actions already use: the API's `error.message`
- * envelope first (409 `arrival_not_allowed` / `attention_not_allowed`), then
- * the generic message, then the caller's fallback.
+ * #389 - only the API envelope may be echoed: the domain `error.message`
+ * first (409 `arrival_not_allowed` / `attention_not_allowed`), then the
+ * generic message, then the caller's fallback. A transport failure
+ * (`TypeError('Failed to fetch')`) carries no `response` and its `message` is
+ * the browser's English text, so it always falls back to the Spanish copy.
  */
 const messageFor = (thrown, fallback) =>
-  thrown?.response?.data?.error?.message ||
-  thrown?.response?.data?.message ||
-  thrown?.message ||
-  fallback
+  thrown?.response?.data?.error?.message || thrown?.response?.data?.message || fallback
 
 export function useMyDay() {
   /**

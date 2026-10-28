@@ -110,3 +110,9 @@ push y el PR quedan como decisión del señor Arnold.
   bloque de error del resumen «replaces the whole page»; se corrigió la prosa
   (la aserción de unicidad no cambia) para que el guard no describa el contrato
   anterior.
+- **L6** — T3 (#389): `messageFor` deja de leer `thrown.message`; sólo el sobre
+  de la API puede ganar y un fallo de transporte cae al texto español. La misma
+  forma (`thrown?.message`) sobrevive en `useContinuity.js`,
+  `useBranchTransfers.js` y `BranchTransfersPage.vue`; quedan fuera de esta
+  issue (superficies de otra sesión de auditoría) y se reportan como
+  seguimiento, no se tocan.

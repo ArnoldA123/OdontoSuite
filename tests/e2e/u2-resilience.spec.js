@@ -6,7 +6,9 @@ import { freshLogin, primeSession } from './audit/harness.js'
 // #387 (S2) — real browser pass over the first frame of the two desks that
 // painted their empty state before the data landed. Both rows hold a source
 // open with a Playwright route gate, observe the frame while it is in flight,
-// and then release it to prove the page recovers into its content.
+// and then release it to prove the page recovers into its content. #388
+// measures the opposite edge: a failed source keeps its own block, and #389
+// measures a transport failure that must explain itself in Spanish.
 //
 // It is manual on purpose, like the rest of tests/e2e: the app and a database
 // with seeded appointments must exist beforehand. Prepare a dedicated database
@@ -136,4 +138,32 @@ test('@388 a failed summary leaves the other blocks mounted', async ({ page, req
 
   await expect(page.locator('[data-state="error-stats"]')).toBeHidden()
   await expect.poll(() => dashboardBlocks(page)).toEqual(healthyBlocks)
+})
+
+// #389 (S4) - a transport failure has no API envelope to echo. The desk must
+// name the condition in Spanish, never the browser's TypeError, and its retry
+// must recover the queue once the route is reachable again.
+test('@389 my-day network failure explains itself in Spanish and the retry recovers it', async ({
+  page,
+  request
+}) => {
+  mkdirSync(EVIDENCE, { recursive: true })
+
+  const session = await freshLogin(request, 'odontologo')
+  await primeSession(page, session)
+
+  await page.route('**/api/my-day', route => route.abort())
+
+  await page.goto(`${BASE}/my-day`)
+
+  await expect(page.locator('[data-my-day-error]')).toBeVisible()
+  await expect(page.locator('[data-my-day-error-message]')).toHaveText('No se pudo cargar tu día')
+  await expect(page.locator('[data-my-day-error-message]')).not.toContainText('Failed to fetch')
+  await page.screenshot({ path: `${EVIDENCE}/04-my-day-error-transporte.png`, fullPage: true })
+
+  await page.unroute('**/api/my-day')
+  await page.locator('[data-my-day-retry]').click()
+
+  await expect(page.locator('[data-my-day-error]')).toBeHidden()
+  await expect(page.locator('[data-my-day-section]').first()).toBeVisible()
 })
