@@ -31,12 +31,36 @@ const PLAN = {
   is_overdue: true,
   patient: { first_name: 'Ana', last_name: 'Quispe' },
   progress: {
-    total_items: 4,
+    total_items: 2,
     completed_items: 1,
     progress_percentage: 25,
     completed_cost: 0,
     remaining_cost: 1500
-  }
+  },
+  // #417: the index now publishes the lines of every plan, so the row the card
+  // hands to the detail and the edit form is the same document `GET /{id}`
+  // returns.
+  items: [
+    {
+      id: 1,
+      procedure_name: 'Limpieza dental',
+      procedure_description: 'Detartraje supragingival',
+      quantity: 1,
+      unit_cost: 500,
+      total_cost: 500,
+      phase_number: 1
+    },
+    {
+      id: 2,
+      procedure_name: 'Corona de porcelana',
+      procedure_description: 'Pieza 16',
+      quantity: 1,
+      unit_cost: 1000,
+      total_cost: 1000,
+      phase_number: 2,
+      dental_piece_id: 16
+    }
+  ]
 }
 
 const apiState = vi.hoisted(() => ({ postReject: null, plans: [] }))
@@ -186,6 +210,37 @@ describe('treatment-plans page', () => {
     expect(url).not.toContain('status=overdue')
 
     wrapper.unmount()
+  })
+
+  it('opens the detail and the edit form with the lines the list publishes', async () => {
+    const wrapper = await mountPage()
+
+    // The card count comes from the same payload: before #417 the index had no
+    // lines and the card announced "0 procedimientos".
+    expect(wrapper.get('[data-plan-items]').text()).toBe('2')
+
+    wrapper.findComponent(TreatmentPlanCard).vm.$emit('view', PLAN)
+    await flushPromises()
+
+    const detail = document.querySelector('[data-plan-detail]')
+    expect(detail).toBeTruthy()
+    expect(detail.querySelectorAll('[data-detail-item]')).toHaveLength(2)
+    expect(detail.textContent).toContain('Corona de porcelana')
+
+    detail.querySelector('[data-action="edit"]').click()
+    await flushPromises()
+
+    const itemRows = document.querySelectorAll('[data-plan-item]')
+    expect(itemRows).toHaveLength(2)
+    expect(itemRows[0].querySelector('[data-plan-item-field="name"] input').value).toBe(
+      'Limpieza dental'
+    )
+    expect(itemRows[1].querySelector('[data-plan-item-field="name"] input').value).toBe(
+      'Corona de porcelana'
+    )
+
+    wrapper.unmount()
+    document.body.innerHTML = ''
   })
 
   it('duplicates a plan through the plan id, never through the whole object', async () => {

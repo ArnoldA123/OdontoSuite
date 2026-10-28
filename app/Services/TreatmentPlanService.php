@@ -582,7 +582,11 @@ class TreatmentPlanService
 
     public function getPlans(array $filters = [])
     {
-        $query = TreatmentPlan::with(['patient', 'createdBy']);
+        // #417: the list publishes the same lines and progress as the detail
+        // door, so the card count and the edit form never open empty. The
+        // consumptions come along because the resource derives execution from
+        // them; without the eager load each line would query its own history.
+        $query = TreatmentPlan::with(['patient', 'createdBy', 'items.consumptions']);
 
         if (isset($filters['patient_id'])) {
             $query->where('patient_id', $filters['patient_id']);
