@@ -1197,9 +1197,9 @@ export default {
         try {
           const response = await get(url)
           const rows = Array.isArray(response?.data) ? response.data : []
-          return { available: rows.length > 0, options: toOptions(rows) }
+          return { readable: rows.length > 0, options: toOptions(rows) }
         } catch (error) {
-          return { available: false, options: [] }
+          return { readable: false, options: [] }
         }
       }
 
@@ -1211,26 +1211,26 @@ export default {
           ? readSource('/api/users/active', rows =>
               rows.map(row => ({ value: row.id, label: row.name }))
             )
-          : { available: false, options: [] },
+          : { readable: false, options: [] },
         can.viewDentalChair?.value
           ? readSource('/api/dental-chairs/active?status=active', rows =>
               rows.map(row => ({ value: row.id, label: row.name }))
             )
-          : { available: false, options: [] },
+          : { readable: false, options: [] },
         can.viewBranch?.value
           ? readSource('/api/branches/active', rows =>
               rows.map(row => ({ value: row.id, label: row.name }))
             )
-          : { available: false, options: [] }
+          : { readable: false, options: [] }
       ])
 
       professionalOptions.value = withAllOption('Todos los profesionales', professionals.options)
       chairOptions.value = withAllOption('Todos los sillones', chairs.options)
       branchOptions.value = withAllOption('Todas las sedes', branches.options)
       filterAvailability.value = {
-        professional: professionals.available,
-        chair: chairs.available,
-        branch: branches.available
+        professional: professionals.readable,
+        chair: chairs.readable,
+        branch: branches.readable
       }
     }
 
