@@ -10,6 +10,23 @@ import { formatDate } from '../../composables/useFormatters'
 
 export const WEEK_DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
+// Issue 397 (S7): a 390 px la rejilla semanal comprimía cada día a 38 px y el chip a
+// «1.». La vista con la que abre la agenda depende del ancho del viewport: por
+// debajo del punto de quiebre de escritorio abre en día, que es la vista donde
+// hora y paciente se leen. El selector de vista sigue ofreciendo «Semana» a
+// mano, y ahí la rejilla vive en su propio scroll horizontal.
+export const MOBILE_VIEW_BREAKPOINT_PX = 768
+export const MOBILE_DEFAULT_VIEW = 'day'
+export const DESKTOP_DEFAULT_VIEW = 'week'
+
+// A viewport that cannot be measured (SSR, a width of 0) keeps the desktop
+// behaviour: the breakpoint decides for measurable widths only.
+export function initialViewForWidth(width, breakpoint = MOBILE_VIEW_BREAKPOINT_PX) {
+  const measured = Number(width)
+  if (!Number.isFinite(measured) || measured <= 0) return DESKTOP_DEFAULT_VIEW
+  return measured < breakpoint ? MOBILE_DEFAULT_VIEW : DESKTOP_DEFAULT_VIEW
+}
+
 export function buildHours(startHour = 6, endHour = 21) {
   const hours = []
   for (let i = startHour; i <= endHour; i++) {

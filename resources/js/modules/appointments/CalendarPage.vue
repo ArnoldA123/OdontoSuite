@@ -120,6 +120,77 @@
           </UiButton>
         </div>
       </div>
+
+      <!-- #395 S5: la agenda acota por profesional, sillón y sede sobre la
+           misma lectura del rango. Cada filtro sólo aparece si su población se
+           puede leer: un lookup caído oculta su filtro, nunca rompe la página. -->
+      <div
+        v-if="hasVisibleFilters"
+        data-calendar-filters
+        role="search"
+        aria-label="Filtros de la agenda"
+        class="relative mt-4 flex flex-wrap items-end gap-3 border-t border-hairline pt-4"
+      >
+        <div v-if="showProfessionalFilter" class="min-w-[180px] flex-1 sm:flex-none">
+          <label
+            for="calendar-filter-professional"
+            class="mb-1 block text-xs font-medium text-theme-secondary"
+          >
+            Profesional
+          </label>
+          <UiSelect
+            id="calendar-filter-professional"
+            data-calendar-filter="professional"
+            size="sm"
+            placeholder="Todos los profesionales"
+            :model-value="filters.user_id"
+            :options="professionalOptions"
+            @update:model-value="value => setFilter('user_id', value)"
+          />
+        </div>
+        <div v-if="showChairFilter" class="min-w-[160px] flex-1 sm:flex-none">
+          <label
+            for="calendar-filter-chair"
+            class="mb-1 block text-xs font-medium text-theme-secondary"
+          >
+            Sillón
+          </label>
+          <UiSelect
+            id="calendar-filter-chair"
+            data-calendar-filter="chair"
+            size="sm"
+            placeholder="Todos los sillones"
+            :model-value="filters.dental_chair_id"
+            :options="chairOptions"
+            @update:model-value="value => setFilter('dental_chair_id', value)"
+          />
+        </div>
+        <div v-if="showBranchFilter" class="min-w-[160px] flex-1 sm:flex-none">
+          <label
+            for="calendar-filter-branch"
+            class="mb-1 block text-xs font-medium text-theme-secondary"
+          >
+            Sede
+          </label>
+          <UiSelect
+            id="calendar-filter-branch"
+            data-calendar-filter="branch"
+            size="sm"
+            placeholder="Todas las sedes"
+            :model-value="filters.branch_id"
+            :options="branchOptions"
+            @update:model-value="value => setFilter('branch_id', value)"
+          />
+        </div>
+        <div v-if="hasActiveFilters" class="flex items-end">
+          <UiButton variant="ghost" size="sm" data-calendar-clear-filters @click="clearFilters">
+            <template #icon-left>
+              <XMarkIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Limpiar filtros
+          </UiButton>
+        </div>
+      </div>
     </header>
 
     <!-- Calendar Content: quiet surface (canvas + hairline + radius-panel + elevation-2) -->
@@ -153,10 +224,33 @@
         <p class="mt-4 text-theme-secondary">Cargando agenda...</p>
       </div>
 
+      <!-- Load error: a failed range read must never masquerade as a free agenda -->
+      <div
+        v-else-if="loadError"
+        data-calendar-error
+        role="alert"
+        class="flex flex-wrap items-center gap-4 p-4 rounded-ios bg-systemRed-50 border border-hairline"
+      >
+        <ExclamationTriangleIcon
+          class="h-8 w-8 flex-shrink-0 text-systemRed-600"
+          aria-hidden="true"
+        />
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-medium text-theme-primary">No pudimos cargar las citas</p>
+          <p class="mt-1 text-sm text-theme-secondary" data-calendar-error-message>
+            {{ loadError }}
+          </p>
+        </div>
+        <UiButton variant="primary" size="sm" data-calendar-retry @click="loadAppointments">
+          Reintentar
+        </UiButton>
+      </div>
+
       <!-- Empty State (D1/D9) -->
       <div
         v-else-if="appointments.length === 0"
         data-calendar-empty
+        :data-calendar-empty-scope="hasActiveFilters ? 'filtered' : 'period'"
         class="relative overflow-hidden p-6 text-center"
         style="
           background: var(--color-canvas);
@@ -171,15 +265,26 @@
           <p class="mx-auto mt-1 max-w-md text-xs text-theme-secondary">
             {{ emptyStateCopy.description }}
           </p>
-          <UiButton
-            v-if="can.createAppointment?.value"
-            size="sm"
-            class="mt-4"
-            data-calendar-action="empty-new-appointment"
-            @click="openNewAppointmentModal"
-          >
-            Nueva cita
-          </UiButton>
+          <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <UiButton
+              v-if="hasActiveFilters"
+              size="sm"
+              variant="secondary"
+              data-calendar-clear-filters
+              data-calendar-empty-clear-filters
+              @click="clearFilters"
+            >
+              Limpiar filtros
+            </UiButton>
+            <UiButton
+              v-if="can.createAppointment?.value"
+              size="sm"
+              data-calendar-action="empty-new-appointment"
+              @click="openNewAppointmentModal"
+            >
+              Nueva cita
+            </UiButton>
+          </div>
         </div>
       </div>
 
@@ -270,85 +375,135 @@
           class="overflow-hidden bg-canvas"
           style="border: 1px solid var(--color-hairline); border-radius: var(--radius-panel)"
         >
-          <div class="grid grid-cols-8">
-            <!-- Header row -->
-            <div class="border-b border-r border-hairline bg-theme-surface" />
+          <!-- #397 S7: en pantalla angosta la rejilla no se comprime. La hora
+               conserva su columna y cada día su ancho mínimo, así que la
+               semana vive en un scroll horizontal propio y sólo la rejilla se
+               desplaza: la página nunca desborda 390 px. -->
+          <div class="relative">
             <div
-              v-for="day in weekDays"
-              :key="day.date"
-              class="border-b border-r border-hairline bg-theme-surface px-2 py-2 text-center"
+              ref="weekScrollViewport"
+              class="overflow-x-auto"
+              data-calendar-week-scroll
+              @scroll.passive="readWeekScrollState"
             >
-              <div class="text-xs font-semibold uppercase tracking-widest text-theme-secondary">
-                {{ day.name }}
-              </div>
               <div
-                class="text-sm font-medium text-theme-primary"
-                style="font-feature-settings: 'tnum' 1"
+                class="grid"
+                data-calendar-week-grid
+                :data-calendar-week-hour-width="weekHourColumnPx"
+                :data-calendar-week-day-min-width="weekDayColumnMinPx"
+                :style="weekGridStyle"
               >
-                {{ day.number }}
+                <!-- Header row -->
+                <div class="border-b border-r border-hairline bg-theme-surface" />
+                <div
+                  v-for="day in weekDays"
+                  :key="day.date"
+                  class="border-b border-r border-hairline bg-theme-surface px-2 py-2 text-center"
+                >
+                  <div class="text-xs font-semibold uppercase tracking-widest text-theme-secondary">
+                    {{ day.name }}
+                  </div>
+                  <div
+                    class="text-sm font-medium text-theme-primary"
+                    style="font-feature-settings: 'tnum' 1"
+                  >
+                    {{ day.number }}
+                  </div>
+                </div>
+
+                <!-- Hour rows: quiet hairline grid, one slot button per day+hour cell -->
+                <template v-for="hour in weekHours" :key="hour">
+                  <div
+                    class="border-b border-r border-hairline bg-theme-surface px-2 py-1 text-right text-xs text-theme-secondary"
+                    style="font-feature-settings: 'tnum' 1"
+                  >
+                    {{ formatHour(hour) }}
+                  </div>
+                  <div
+                    v-for="day in weekDays"
+                    :key="`${day.date}-${hour}`"
+                    class="relative h-16 border-b border-r border-hairline"
+                    :class="dropTargetClasses(`${day.date}-${hour}`)"
+                    :data-calendar-slot-day="day.date"
+                    :data-calendar-drop-target="`${day.date}-${hour}`"
+                    :data-calendar-drop-active="dropHoverSlot === `${day.date}-${hour}` ? '' : null"
+                  >
+                    <button
+                      v-if="can.createAppointment?.value"
+                      type="button"
+                      class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                      :data-calendar-slot="`${day.date}-${hour}`"
+                      :aria-label="`Crear cita el ${day.date} a las ${formatHour(hour)}`"
+                      @click="openSlotCreate(day.date, hour)"
+                    ></button>
+                    <div class="pointer-events-none absolute inset-1 flex flex-col gap-1">
+                      <button
+                        v-for="appointment in appointmentsForSlot(day.date, hour)"
+                        :key="appointment.id"
+                        type="button"
+                        class="pointer-events-auto min-h-0 flex-1 overflow-hidden px-1.5 py-1 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                        :class="getAppointmentClasses(appointment)"
+                        style="border-radius: var(--radius-panel)"
+                        :title="chipTitle(appointment)"
+                        :data-calendar-appointment="appointment.id"
+                        :data-calendar-draggable="appointment.id"
+                        :data-calendar-drag-state="
+                          draggingAppointmentId === appointment.id ? 'active' : null
+                        "
+                        @pointerdown="onChipPointerDown($event, appointment)"
+                        @click="selectAppointment(appointment)"
+                      >
+                        <span
+                          class="block truncate text-xs font-semibold text-theme-primary"
+                          style="font-feature-settings: 'tnum' 1"
+                          data-calendar-chip-time
+                        >
+                          {{ chipTimeRange(appointment) }}
+                        </span>
+                        <span
+                          class="block truncate text-xs text-theme-primary"
+                          data-calendar-chip-patient
+                        >
+                          {{ appointment.patient?.first_name }}
+                          {{ appointment.patient?.last_name }}
+                        </span>
+                        <span
+                          v-if="appointmentMetaLine(appointment)"
+                          class="block truncate text-xs text-theme-secondary"
+                        >
+                          {{ appointmentMetaLine(appointment) }}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </template>
               </div>
             </div>
-
-            <!-- Hour rows: quiet hairline grid, one slot button per day+hour cell -->
-            <template v-for="hour in weekHours" :key="hour">
-              <div
-                class="border-b border-r border-hairline bg-theme-surface px-2 py-1 text-right text-xs text-theme-secondary"
-                style="font-feature-settings: 'tnum' 1"
-              >
-                {{ formatHour(hour) }}
-              </div>
-              <div
-                v-for="day in weekDays"
-                :key="`${day.date}-${hour}`"
-                class="relative h-16 border-b border-r border-hairline"
-                :class="dropTargetClasses(`${day.date}-${hour}`)"
-                :data-calendar-slot-day="day.date"
-                :data-calendar-drop-target="`${day.date}-${hour}`"
-                :data-calendar-drop-active="dropHoverSlot === `${day.date}-${hour}` ? '' : null"
-              >
-                <button
-                  v-if="can.createAppointment?.value"
-                  type="button"
-                  class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
-                  :data-calendar-slot="`${day.date}-${hour}`"
-                  :aria-label="`Crear cita el ${day.date} a las ${formatHour(hour)}`"
-                  @click="openSlotCreate(day.date, hour)"
-                ></button>
-                <div class="pointer-events-none absolute inset-1 flex flex-col gap-1">
-                  <button
-                    v-for="appointment in appointmentsForSlot(day.date, hour)"
-                    :key="appointment.id"
-                    type="button"
-                    class="pointer-events-auto min-h-0 flex-1 overflow-hidden px-1.5 py-1 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
-                    :class="getAppointmentClasses(appointment)"
-                    style="border-radius: var(--radius-panel)"
-                    :title="chipTitle(appointment)"
-                    :data-calendar-appointment="appointment.id"
-                    :data-calendar-draggable="appointment.id"
-                    :data-calendar-drag-state="
-                      draggingAppointmentId === appointment.id ? 'active' : null
-                    "
-                    @pointerdown="onChipPointerDown($event, appointment)"
-                    @click="selectAppointment(appointment)"
-                  >
-                    <span
-                      class="block truncate text-xs font-semibold text-theme-primary"
-                      style="font-feature-settings: 'tnum' 1"
-                    >
-                      {{ chipTimeRange(appointment) }} · {{ appointment.patient?.first_name }}
-                      {{ appointment.patient?.last_name }}
-                    </span>
-                    <span
-                      v-if="appointmentMetaLine(appointment)"
-                      class="block truncate text-xs text-theme-secondary"
-                    >
-                      {{ appointmentMetaLine(appointment) }}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </template>
+            <!-- Affordance: the same edge gradient telegraphed by DataTable -->
+            <span
+              v-if="weekScrollLeft"
+              class="pointer-events-none absolute inset-y-0 left-0 w-8"
+              data-calendar-week-scroll-edge="left"
+              aria-hidden="true"
+              style="background: linear-gradient(to right, var(--color-canvas), transparent)"
+            />
+            <span
+              v-if="weekScrollRight"
+              class="pointer-events-none absolute inset-y-0 right-0 w-8"
+              data-calendar-week-scroll-edge="right"
+              aria-hidden="true"
+              style="background: linear-gradient(to left, var(--color-canvas), transparent)"
+            />
           </div>
+          <p
+            v-if="weekScrollRight"
+            class="flex items-center justify-end gap-1 px-4 py-2 text-xs font-medium text-theme-secondary"
+            data-calendar-week-scroll-affordance
+            aria-hidden="true"
+          >
+            <ChevronRightIcon class="h-4 w-4" aria-hidden="true" />
+            Desliza para ver la semana completa
+          </p>
         </div>
       </div>
 
@@ -589,6 +744,66 @@
       </div>
     </UiModal>
 
+    <!-- #394: cancelar pide confirmación y motivo; el motivo se guarda en la
+         cita, no en `notes`, que otra edición pisa. -->
+    <UiModal
+      :model-value="!!cancellingAppointment"
+      title="Cancelar Cita"
+      size="sm"
+      :persistent="cancellationSubmitting"
+      :close-on-backdrop="!cancellationSubmitting"
+      :close-on-escape="!cancellationSubmitting"
+      @update:model-value="closeCancellationDialog"
+      @close="closeCancellationDialog"
+    >
+      <form
+        v-if="cancellingAppointment"
+        id="calendar-cancel-form"
+        data-calendar-cancel
+        class="space-y-4"
+        @submit.prevent="submitCancellation"
+      >
+        <p class="text-sm text-theme-secondary">
+          {{ cancellingAppointment.patient?.first_name }}
+          {{ cancellingAppointment.patient?.last_name }} ·
+          {{ formatDateTime(cancellingAppointment.scheduled_at) }}
+        </p>
+        <UiInput
+          ref="cancellationReasonField"
+          v-model="cancellationReason"
+          label="Motivo de la cancelación"
+          placeholder="Indica el motivo de la cancelación"
+          type="textarea"
+          required
+          data-calendar-cancel-reason
+          :error="cancellationError"
+        />
+      </form>
+      <template #footer>
+        <div class="flex w-full items-center justify-end gap-3">
+          <UiButton
+            variant="secondary"
+            size="md"
+            data-calendar-cancel-back
+            :disabled="cancellationSubmitting"
+            @click="closeCancellationDialog"
+          >
+            Volver
+          </UiButton>
+          <UiButton
+            variant="danger"
+            size="md"
+            type="submit"
+            form="calendar-cancel-form"
+            data-calendar-cancel-confirm
+            :loading="cancellationSubmitting"
+          >
+            Cancelar la cita
+          </UiButton>
+        </div>
+      </template>
+    </UiModal>
+
     <!-- New Appointment Modal -->
     <NewAppointmentModal
       v-model="showNewAppointmentModal"
@@ -607,7 +822,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
@@ -619,13 +834,17 @@ import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiModal from '../../components/ui/Modal.vue'
+import UiInput from '../../components/ui/Input.vue'
+import UiSelect from '../../components/ui/Select.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import {
   ArrowLeftIcon,
   CalendarDaysIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  PlusIcon
+  ExclamationTriangleIcon,
+  PlusIcon,
+  XMarkIcon
 } from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import ConsultationWizard from './ConsultationWizard.vue'
@@ -648,6 +867,7 @@ import {
 import {
   WEEK_DAY_NAMES,
   buildHours,
+  initialViewForWidth,
   toLocalDateString,
   weekDays as buildWeekDays,
   monthDays as buildMonthDays,
@@ -672,12 +892,16 @@ export default {
     UiBadge,
     UiStatusBadge,
     UiModal,
+    UiInput,
+    UiSelect,
     DentalMotifLayer,
     ArrowLeftIcon,
     CalendarDaysIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
+    ExclamationTriangleIcon,
     PlusIcon,
+    XMarkIcon,
     NewAppointmentModal,
     ConsultationWizard
   },
@@ -695,9 +919,22 @@ export default {
     // T7: starts true so the D1/D9 empty block never flashes before the
     // first range load (empty state must never appear while loading).
     const loading = ref(true)
-    const currentView = ref('week')
+    // #396: a failed range read is an explicit surface state, never the
+    // empty agenda block.
+    const loadError = ref(null)
+    // #397 S7: a 390 px la rejilla semanal comprimía el día a 38 px y el chip a
+    // «1.». La vista inicial sale del ancho del viewport —por debajo del punto
+    // de quiebre abre en día— y el selector sigue ofreciendo «Semana» a mano.
+    const currentView = ref(initialViewForWidth(window.innerWidth))
     const currentDate = ref(new Date())
     const appointments = ref([])
+    // #395 S5: los filtros viven sobre la misma lectura del rango — cambiarlos
+    // re-lee el período visible, sin navegación ni recarga.
+    const filters = ref({ user_id: '', dental_chair_id: '', branch_id: '' })
+    const professionalOptions = ref([])
+    const chairOptions = ref([])
+    const branchOptions = ref([])
+    const filterAvailability = ref({ professional: false, chair: false, branch: false })
     const selectedAppointment = ref(null)
     const showNewAppointmentModal = ref(false)
     const wizardAppointment = ref(null)
@@ -791,6 +1028,48 @@ export default {
 
     const weekDayNames = WEEK_DAY_NAMES
 
+    // #397 S7: la rejilla semanal conserva una columna de hora y un ancho mínimo
+    // por día para que hora y paciente se lean; cuando no cabe, se desplaza en
+    // horizontal dentro de su propio contenedor.
+    const weekHourColumnPx = 64
+    const weekDayColumnMinPx = 112
+    const WEEK_DAY_COLUMNS = 7
+    const weekGridStyle = {
+      gridTemplateColumns: `${weekHourColumnPx}px repeat(${WEEK_DAY_COLUMNS}, minmax(${weekDayColumnMinPx}px, 1fr))`,
+      minWidth: `${weekHourColumnPx + weekDayColumnMinPx * WEEK_DAY_COLUMNS}px`
+    }
+
+    const weekScrollViewport = ref(null)
+    const weekScrollLeft = ref(false)
+    const weekScrollRight = ref(false)
+
+    // Medido, no supuesto: sin desborde real no hay gradiente ni aviso. jsdom no
+    // calcula layout, así que ahí ambas medidas son 0 y el affordance no aparece.
+    const readWeekScrollState = () => {
+      const element = weekScrollViewport.value
+      if (!element) {
+        weekScrollLeft.value = false
+        weekScrollRight.value = false
+        return
+      }
+      const maxScroll = Math.max(0, element.scrollWidth - element.clientWidth)
+      const hasOverflow = maxScroll > 1
+      weekScrollLeft.value = hasOverflow && element.scrollLeft > 1
+      weekScrollRight.value = hasOverflow && element.scrollLeft < maxScroll - 1
+    }
+
+    // La rejilla sólo existe cuando la vista es semana y hay citas que pintar:
+    // se mide al aparecer y al girar el equipo, nunca sobre un nodo ausente.
+    const weekGridRendered = computed(
+      () =>
+        currentView.value === 'week' &&
+        !loading.value &&
+        !loadError.value &&
+        appointments.value.length > 0
+    )
+
+    watch(weekGridRendered, readWeekScrollState, { flush: 'post' })
+
     const currentPeriodTitle = computed(() => {
       return periodTitle(currentDate.value, currentView.value)
     })
@@ -799,12 +1078,54 @@ export default {
     // entrada en el registro): la leyenda muestra una píldora por estado.
     const legendStatuses = APPOINTMENT_STATUS_KEYS.filter(key => key !== 'in_consultation')
 
+    // #395 S5: la visibilidad de cada filtro la decide la población que la
+    // sesión puede leer, no el rol. Una sede única no se compara consigo
+    // misma —el alcance de la sesión ya acota la lectura—, así que ese filtro
+    // no se ofrece.
+    const showProfessionalFilter = computed(
+      () => filterAvailability.value.professional && professionalOptions.value.length > 1
+    )
+    const showChairFilter = computed(
+      () => filterAvailability.value.chair && chairOptions.value.length > 1
+    )
+    const showBranchFilter = computed(
+      () => filterAvailability.value.branch && branchOptions.value.length > 2
+    )
+    const hasVisibleFilters = computed(
+      () => showProfessionalFilter.value || showChairFilter.value || showBranchFilter.value
+    )
+
+    const hasActiveFilters = computed(() =>
+      Boolean(filters.value.user_id || filters.value.dental_chair_id || filters.value.branch_id)
+    )
+
+    const optionLabel = (options, value) =>
+      options.find(option => option.value === value)?.label || ''
+
+    const appliedFilterSummary = computed(() => {
+      const parts = []
+      if (filters.value.user_id) {
+        parts.push(
+          `el profesional «${optionLabel(professionalOptions.value, filters.value.user_id)}»`
+        )
+      }
+      if (filters.value.dental_chair_id) {
+        parts.push(`el sillón «${optionLabel(chairOptions.value, filters.value.dental_chair_id)}»`)
+      }
+      if (filters.value.branch_id) {
+        parts.push(`la sede «${optionLabel(branchOptions.value, filters.value.branch_id)}»`)
+      }
+      return parts.join(' y ')
+    })
+
     const loadedAppointmentsCaption = computed(() => {
+      if (loadError.value) return 'No se pudieron cargar las citas del rango actual'
       const count = appointments.value.length
-      if (count === 0) return 'Sin citas cargadas en el rango actual'
+      const scope = hasActiveFilters.value ? ' con los filtros aplicados' : ''
+      if (count === 0) return `Sin citas cargadas en el rango actual${scope}`
       return count === 1
-        ? '1 cita cargada en el rango actual'
-        : `${count} citas cargadas en el rango actual`
+        ? `1 cita cargada en el rango actual${scope}`
+        : `${count} citas cargadas en el rango actual${scope}`
     })
 
     const dayDateString = computed(() => toLocalDateString(currentDate.value))
@@ -833,6 +1154,14 @@ export default {
       return dateRangeForView(currentDate.value, currentView.value)
     }
 
+    const activeFilterParams = () => {
+      const params = {}
+      if (filters.value.user_id) params.user_id = filters.value.user_id
+      if (filters.value.dental_chair_id) params.dental_chair_id = filters.value.dental_chair_id
+      if (filters.value.branch_id) params.branch_id = filters.value.branch_id
+      return params
+    }
+
     const loadAppointments = async () => {
       loading.value = true
       try {
@@ -842,19 +1171,82 @@ export default {
           params: {
             start_date: dateRange.start_date,
             end_date: dateRange.end_date,
-            per_page: 1000 // Obtener todas las citas del rango sin paginación
+            per_page: 1000, // Obtener todas las citas del rango sin paginación
+            // Sólo viaja el filtro elegido: un filtro limpio no es "ninguno".
+            ...activeFilterParams()
           }
         })
 
         // La API devuelve { data: [...], meta: {...} }
         // useApi ya parsea el JSON, por lo que response.data es el array directamente
         appointments.value = response?.data || []
+        loadError.value = null
       } catch (error) {
         toast.error('Error al cargar las citas')
+        loadError.value = normalizeError(error, 'Revisa tu conexión y vuelve a intentarlo.')
         appointments.value = []
       } finally {
         loading.value = false
       }
+    }
+
+    const loadFilterOptions = async () => {
+      // #396 lección: cada lookup se liquida por su lado. Uno caído oculta su
+      // filtro y devuelve una lista vacía — nunca una promesa rechazada.
+      const readSource = async (url, toOptions) => {
+        try {
+          const response = await get(url)
+          const rows = Array.isArray(response?.data) ? response.data : []
+          return { readable: rows.length > 0, options: toOptions(rows) }
+        } catch (error) {
+          return { readable: false, options: [] }
+        }
+      }
+
+      const withAllOption = (label, options) =>
+        options.length > 0 ? [{ value: '', label }, ...options] : []
+
+      const [professionals, chairs, branches] = await Promise.all([
+        can.viewUser?.value
+          ? readSource('/api/users/active', rows =>
+              rows.map(row => ({ value: row.id, label: row.name }))
+            )
+          : { readable: false, options: [] },
+        can.viewDentalChair?.value
+          ? readSource('/api/dental-chairs/active?status=active', rows =>
+              rows.map(row => ({ value: row.id, label: row.name }))
+            )
+          : { readable: false, options: [] },
+        can.viewBranch?.value
+          ? readSource('/api/branches/active', rows =>
+              rows.map(row => ({ value: row.id, label: row.name }))
+            )
+          : { readable: false, options: [] }
+      ])
+
+      professionalOptions.value = withAllOption('Todos los profesionales', professionals.options)
+      chairOptions.value = withAllOption('Todos los sillones', chairs.options)
+      branchOptions.value = withAllOption('Todas las sedes', branches.options)
+      filterAvailability.value = {
+        professional: professionals.readable,
+        chair: chairs.readable,
+        branch: branches.readable
+      }
+    }
+
+    // Cambiar un filtro re-lee el período visible de la vista actual: no
+    // navega ni recarga la página.
+    const setFilter = (key, value) => {
+      const nextValue = value === null || value === undefined ? '' : value
+      if (filters.value[key] === nextValue) return
+      filters.value = { ...filters.value, [key]: nextValue }
+      loadAppointments()
+    }
+
+    const clearFilters = () => {
+      if (!hasActiveFilters.value) return
+      filters.value = { user_id: '', dental_chair_id: '', branch_id: '' }
+      loadAppointments()
     }
 
     const formatTimeRange = (start, end) => {
@@ -984,8 +1376,16 @@ export default {
 
     // T7 D1/D9 — quiet empty-state copy per view (one short title + one
     // precise sentence), rendered instead of the grids when the loaded range
-    // has zero appointments.
+    // has zero appointments. #395 S5: with active filters the empty block
+    // describes the filter, not the agenda, and offers to clear them.
     const emptyStateCopy = computed(() => {
+      if (hasActiveFilters.value) {
+        return {
+          title: 'Sin citas para estos filtros',
+          description: `Ninguna cita del rango cargado coincide con ${appliedFilterSummary.value}. Limpia los filtros para ver toda la agenda.`
+        }
+      }
+
       const copy = {
         day: {
           title: 'Sin citas este día',
@@ -1190,6 +1590,13 @@ export default {
     }
 
     const changeStatus = async (appointment, newStatus) => {
+      // #394: cancelar es un acto deliberado con motivo documentado. El resto
+      // de estados conserva el camino directo.
+      if (newStatus === 'cancelled') {
+        openCancellationDialog(appointment)
+        return
+      }
+
       try {
         // Slice 01 / T-01.5 (API-018): use the dedicated PATCH route for
         // status updates instead of PUT to /appointments/{id} (which only
@@ -1203,6 +1610,79 @@ export default {
       } catch (error) {
         const errorMessage = error?.response?.data?.message || 'Error al cambiar el estado'
         toast.error(errorMessage)
+      }
+    }
+
+    // #394 — la cancelación pide motivo y lo manda como parte del mismo acto de
+    // la cita. El aviso de éxito nombra los recordatorios que se cancelaron.
+    const cancellingAppointment = ref(null)
+    const cancellationReason = ref('')
+    const cancellationError = ref('')
+    const cancellationSubmitting = ref(false)
+    const cancellationReasonField = ref(null)
+
+    const openCancellationDialog = appointment => {
+      cancellingAppointment.value = appointment
+      cancellationReason.value = ''
+      cancellationError.value = ''
+    }
+
+    const resetCancellationDialog = () => {
+      cancellingAppointment.value = null
+      cancellationReason.value = ''
+      cancellationError.value = ''
+    }
+
+    const closeCancellationDialog = () => {
+      if (cancellationSubmitting.value) return
+      resetCancellationDialog()
+    }
+
+    // El foco aterriza en el motivo: la confirmación se resuelve con teclado.
+    watch(
+      cancellingAppointment,
+      appointment => {
+        if (!appointment) return
+        nextTick(() => {
+          const field = cancellationReasonField.value?.$el?.querySelector('textarea')
+          field?.focus()
+        })
+      },
+      { flush: 'post' }
+    )
+
+    const submitCancellation = async () => {
+      const appointment = cancellingAppointment.value
+      if (!appointment || cancellationSubmitting.value) return
+
+      const reason = String(cancellationReason.value || '').trim()
+      if (!reason) {
+        cancellationError.value = 'Indica el motivo de la cancelación.'
+        return
+      }
+
+      cancellationSubmitting.value = true
+      cancellationError.value = ''
+
+      try {
+        const response = await patch(`/api/appointments/${appointment.id}/status`, {
+          status: 'cancelled',
+          cancellation_reason: reason
+        })
+        const cancelledReminders = Number(response?.meta?.reminders_cancelled || 0)
+        toast.success(
+          cancelledReminders > 0
+            ? `Cita cancelada. Se cancelaron ${cancelledReminders} recordatorios pendientes.`
+            : 'Cita cancelada.'
+        )
+        resetCancellationDialog()
+        selectedAppointment.value = null
+        await loadAppointments()
+      } catch (error) {
+        // Un 422 se queda en el campo y el diálogo sigue abierto.
+        cancellationError.value = normalizeError(error, 'No se pudo cancelar la cita')
+      } finally {
+        cancellationSubmitting.value = false
       }
     }
 
@@ -1255,6 +1735,14 @@ export default {
     })
 
     onMounted(() => {
+      // #397 S7: el affordance del scroll horizontal se remide con el viewport.
+      window.addEventListener('resize', readWeekScrollState)
+      nextTick(readWeekScrollState)
+
+      // Las poblaciones de los filtros son una lectura aparte: se lanzan sin
+      // esperar y la agenda no depende de ellas (un lookup caído sólo oculta
+      // su filtro). La lectura del rango sale a continuación, nunca encadenada.
+      loadFilterOptions()
       loadAppointments()
 
       // Suscribirse a canales WebSocket para actualizaciones en tiempo real
@@ -1285,6 +1773,8 @@ export default {
     })
 
     onUnmounted(() => {
+      window.removeEventListener('resize', readWeekScrollState)
+
       // Drag en curso: no dejar listeners de ventana huérfanos al desmontar.
       if (dragSession) {
         endDrag()
@@ -1305,6 +1795,7 @@ export default {
     return {
       can,
       loading,
+      loadError,
       currentView,
       currentDate,
       appointments,
@@ -1321,9 +1812,27 @@ export default {
       dayHours,
       weekHours,
       weekDayNames,
+      weekHourColumnPx,
+      weekDayColumnMinPx,
+      weekGridStyle,
+      weekScrollViewport,
+      weekScrollLeft,
+      weekScrollRight,
+      readWeekScrollState,
       currentPeriodTitle,
       legendStatuses,
       loadedAppointmentsCaption,
+      filters,
+      professionalOptions,
+      chairOptions,
+      branchOptions,
+      showProfessionalFilter,
+      showChairFilter,
+      showBranchFilter,
+      hasVisibleFilters,
+      hasActiveFilters,
+      setFilter,
+      clearFilters,
       statusLabel,
       statusBadgeVariant,
       weekDays,
@@ -1357,6 +1866,13 @@ export default {
       onChipPointerDown,
       editAppointment,
       changeStatus,
+      cancellingAppointment,
+      cancellationReason,
+      cancellationError,
+      cancellationSubmitting,
+      cancellationReasonField,
+      closeCancellationDialog,
+      submitCancellation,
       deleteAppointment,
       getAppointmentLabel,
       formatHour,

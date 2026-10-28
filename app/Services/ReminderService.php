@@ -219,10 +219,13 @@ class ReminderService
 
     /**
      * Cancel reminders for an appointment.
+     *
+     * #394: returns how many pending rows it cancelled so the caller can name
+     * the consequence of cancelling the appointment in its notice.
      */
-    public function cancelReminders(Appointment $appointment): void
+    public function cancelReminders(Appointment $appointment): int
     {
-        ReminderSchedule::where('appointment_id', $appointment->id)
+        return ReminderSchedule::where('appointment_id', $appointment->id)
             ->where('status', 'pending')
             ->update(['status' => 'cancelled']);
     }

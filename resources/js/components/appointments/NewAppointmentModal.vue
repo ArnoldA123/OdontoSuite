@@ -86,6 +86,17 @@
         />
         <UiSelect v-model="form.status" :options="statusOptions" label="Estado" required />
       </div>
+      <!-- #394: cancelar desde la edición exige el mismo motivo que la puerta
+           de estado; sin este campo el diálogo no tendría por dónde pedirlo. -->
+      <UiInput
+        v-if="form.status === 'cancelled'"
+        v-model="form.cancellation_reason"
+        label="Motivo de la cancelación"
+        placeholder="Indica el motivo de la cancelación"
+        type="textarea"
+        data-appointment-cancel-reason
+        :error="cancellationReasonError"
+      />
       <UiInput
         v-model="form.notes"
         label="Notas"
@@ -158,6 +169,8 @@ const { privateChannel, echo } = useEcho()
 const loadingData = ref(false)
 const creating = ref(false)
 const error = ref(null)
+// #394: el motivo es obligatorio cuando el estado elegido es `cancelled`.
+const cancellationReasonError = ref('')
 const patients = ref([])
 const professionals = ref([])
 const appointmentTypes = ref([])
@@ -174,6 +187,7 @@ const form = ref({
   final_amount: null,
   dental_chair_id: '',
   status: 'scheduled',
+  cancellation_reason: '',
   notes: ''
 })
 
@@ -259,6 +273,7 @@ const populateFormFromAppointment = appointment => {
     final_amount: appointment.final_amount ?? null,
     dental_chair_id: appointment.dental_chair_id ?? appointment.dental_chair?.id ?? '',
     status: appointment.status || 'scheduled',
+    cancellation_reason: appointment.cancellation_reason || '',
     notes: appointment.notes || ''
   }
 }
@@ -269,6 +284,7 @@ const closeModal = () => {
 
 const resetForm = () => {
   error.value = null
+  cancellationReasonError.value = ''
   if (props.appointment) {
     populateFormFromAppointment(props.appointment)
     return
@@ -284,6 +300,7 @@ const resetForm = () => {
     final_amount: null,
     dental_chair_id: '',
     status: 'scheduled',
+    cancellation_reason: '',
     notes: ''
   }
 }
@@ -351,6 +368,7 @@ const formatScheduledAtForApi = () => {
 
 const saveAppointment = async () => {
   creating.value = true
+  cancellationReasonError.value = ''
   try {
     // Validaciones básicas en UI
     if (!form.value.patient_id) {
@@ -391,8 +409,18 @@ const saveAppointment = async () => {
       return
     }
 
+    // #394: la API responde 422 si el estado es `cancelled` sin motivo; el
+    // formulario lo pide antes en vez de dejar el rechazo como única salida.
+    const cancellationReason = String(form.value.cancellation_reason || '').trim()
+    if (form.value.status === 'cancelled' && !cancellationReason) {
+      cancellationReasonError.value = 'Indica el motivo de la cancelación.'
+      creating.value = false
+      return
+    }
+
     const appointmentData = {
       ...form.value,
+      cancellation_reason: form.value.status === 'cancelled' ? cancellationReason : null,
       scheduled_at: scheduledAtISO
     }
     delete appointmentData.selected_procedure
