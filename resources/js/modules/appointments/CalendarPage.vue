@@ -120,6 +120,77 @@
           </UiButton>
         </div>
       </div>
+
+      <!-- #395 S5: la agenda acota por profesional, sillón y sede sobre la
+           misma lectura del rango. Cada filtro sólo aparece si su población se
+           puede leer: un lookup caído oculta su filtro, nunca rompe la página. -->
+      <div
+        v-if="hasVisibleFilters"
+        data-calendar-filters
+        role="search"
+        aria-label="Filtros de la agenda"
+        class="relative mt-4 flex flex-wrap items-end gap-3 border-t border-hairline pt-4"
+      >
+        <div v-if="showProfessionalFilter" class="min-w-[180px] flex-1 sm:flex-none">
+          <label
+            for="calendar-filter-professional"
+            class="mb-1 block text-xs font-medium text-theme-secondary"
+          >
+            Profesional
+          </label>
+          <UiSelect
+            id="calendar-filter-professional"
+            data-calendar-filter="professional"
+            size="sm"
+            placeholder="Todos los profesionales"
+            :model-value="filters.user_id"
+            :options="professionalOptions"
+            @update:model-value="value => setFilter('user_id', value)"
+          />
+        </div>
+        <div v-if="showChairFilter" class="min-w-[160px] flex-1 sm:flex-none">
+          <label
+            for="calendar-filter-chair"
+            class="mb-1 block text-xs font-medium text-theme-secondary"
+          >
+            Sillón
+          </label>
+          <UiSelect
+            id="calendar-filter-chair"
+            data-calendar-filter="chair"
+            size="sm"
+            placeholder="Todos los sillones"
+            :model-value="filters.dental_chair_id"
+            :options="chairOptions"
+            @update:model-value="value => setFilter('dental_chair_id', value)"
+          />
+        </div>
+        <div v-if="showBranchFilter" class="min-w-[160px] flex-1 sm:flex-none">
+          <label
+            for="calendar-filter-branch"
+            class="mb-1 block text-xs font-medium text-theme-secondary"
+          >
+            Sede
+          </label>
+          <UiSelect
+            id="calendar-filter-branch"
+            data-calendar-filter="branch"
+            size="sm"
+            placeholder="Todas las sedes"
+            :model-value="filters.branch_id"
+            :options="branchOptions"
+            @update:model-value="value => setFilter('branch_id', value)"
+          />
+        </div>
+        <div v-if="hasActiveFilters" class="flex items-end">
+          <UiButton variant="ghost" size="sm" data-calendar-clear-filters @click="clearFilters">
+            <template #icon-left>
+              <XMarkIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Limpiar filtros
+          </UiButton>
+        </div>
+      </div>
     </header>
 
     <!-- Calendar Content: quiet surface (canvas + hairline + radius-panel + elevation-2) -->
@@ -179,6 +250,7 @@
       <div
         v-else-if="appointments.length === 0"
         data-calendar-empty
+        :data-calendar-empty-scope="hasActiveFilters ? 'filtered' : 'period'"
         class="relative overflow-hidden p-6 text-center"
         style="
           background: var(--color-canvas);
@@ -193,15 +265,26 @@
           <p class="mx-auto mt-1 max-w-md text-xs text-theme-secondary">
             {{ emptyStateCopy.description }}
           </p>
-          <UiButton
-            v-if="can.createAppointment?.value"
-            size="sm"
-            class="mt-4"
-            data-calendar-action="empty-new-appointment"
-            @click="openNewAppointmentModal"
-          >
-            Nueva cita
-          </UiButton>
+          <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <UiButton
+              v-if="hasActiveFilters"
+              size="sm"
+              variant="secondary"
+              data-calendar-clear-filters
+              data-calendar-empty-clear-filters
+              @click="clearFilters"
+            >
+              Limpiar filtros
+            </UiButton>
+            <UiButton
+              v-if="can.createAppointment?.value"
+              size="sm"
+              data-calendar-action="empty-new-appointment"
+              @click="openNewAppointmentModal"
+            >
+              Nueva cita
+            </UiButton>
+          </div>
         </div>
       </div>
 
@@ -702,6 +785,7 @@ import UiBadge from '../../components/ui/Badge.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import UiInput from '../../components/ui/Input.vue'
+import UiSelect from '../../components/ui/Select.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import {
   ArrowLeftIcon,
@@ -709,7 +793,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ExclamationTriangleIcon,
-  PlusIcon
+  PlusIcon,
+  XMarkIcon
 } from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import ConsultationWizard from './ConsultationWizard.vue'
@@ -757,6 +842,7 @@ export default {
     UiStatusBadge,
     UiModal,
     UiInput,
+    UiSelect,
     DentalMotifLayer,
     ArrowLeftIcon,
     CalendarDaysIcon,
@@ -764,6 +850,7 @@ export default {
     ChevronRightIcon,
     ExclamationTriangleIcon,
     PlusIcon,
+    XMarkIcon,
     NewAppointmentModal,
     ConsultationWizard
   },
@@ -787,6 +874,13 @@ export default {
     const currentView = ref('week')
     const currentDate = ref(new Date())
     const appointments = ref([])
+    // #395 S5: los filtros viven sobre la misma lectura del rango — cambiarlos
+    // re-lee el período visible, sin navegación ni recarga.
+    const filters = ref({ user_id: '', dental_chair_id: '', branch_id: '' })
+    const professionalOptions = ref([])
+    const chairOptions = ref([])
+    const branchOptions = ref([])
+    const filterAvailability = ref({ professional: false, chair: false, branch: false })
     const selectedAppointment = ref(null)
     const showNewAppointmentModal = ref(false)
     const wizardAppointment = ref(null)
@@ -888,13 +982,54 @@ export default {
     // entrada en el registro): la leyenda muestra una píldora por estado.
     const legendStatuses = APPOINTMENT_STATUS_KEYS.filter(key => key !== 'in_consultation')
 
+    // #395 S5: la visibilidad de cada filtro la decide la población que la
+    // sesión puede leer, no el rol. Una sede única no se compara consigo
+    // misma —el alcance de la sesión ya acota la lectura—, así que ese filtro
+    // no se ofrece.
+    const showProfessionalFilter = computed(
+      () => filterAvailability.value.professional && professionalOptions.value.length > 1
+    )
+    const showChairFilter = computed(
+      () => filterAvailability.value.chair && chairOptions.value.length > 1
+    )
+    const showBranchFilter = computed(
+      () => filterAvailability.value.branch && branchOptions.value.length > 2
+    )
+    const hasVisibleFilters = computed(
+      () => showProfessionalFilter.value || showChairFilter.value || showBranchFilter.value
+    )
+
+    const hasActiveFilters = computed(() =>
+      Boolean(filters.value.user_id || filters.value.dental_chair_id || filters.value.branch_id)
+    )
+
+    const optionLabel = (options, value) =>
+      options.find(option => option.value === value)?.label || ''
+
+    const appliedFilterSummary = computed(() => {
+      const parts = []
+      if (filters.value.user_id) {
+        parts.push(
+          `el profesional «${optionLabel(professionalOptions.value, filters.value.user_id)}»`
+        )
+      }
+      if (filters.value.dental_chair_id) {
+        parts.push(`el sillón «${optionLabel(chairOptions.value, filters.value.dental_chair_id)}»`)
+      }
+      if (filters.value.branch_id) {
+        parts.push(`la sede «${optionLabel(branchOptions.value, filters.value.branch_id)}»`)
+      }
+      return parts.join(' y ')
+    })
+
     const loadedAppointmentsCaption = computed(() => {
       if (loadError.value) return 'No se pudieron cargar las citas del rango actual'
       const count = appointments.value.length
-      if (count === 0) return 'Sin citas cargadas en el rango actual'
+      const scope = hasActiveFilters.value ? ' con los filtros aplicados' : ''
+      if (count === 0) return `Sin citas cargadas en el rango actual${scope}`
       return count === 1
-        ? '1 cita cargada en el rango actual'
-        : `${count} citas cargadas en el rango actual`
+        ? `1 cita cargada en el rango actual${scope}`
+        : `${count} citas cargadas en el rango actual${scope}`
     })
 
     const dayDateString = computed(() => toLocalDateString(currentDate.value))
@@ -923,6 +1058,14 @@ export default {
       return dateRangeForView(currentDate.value, currentView.value)
     }
 
+    const activeFilterParams = () => {
+      const params = {}
+      if (filters.value.user_id) params.user_id = filters.value.user_id
+      if (filters.value.dental_chair_id) params.dental_chair_id = filters.value.dental_chair_id
+      if (filters.value.branch_id) params.branch_id = filters.value.branch_id
+      return params
+    }
+
     const loadAppointments = async () => {
       loading.value = true
       try {
@@ -932,7 +1075,9 @@ export default {
           params: {
             start_date: dateRange.start_date,
             end_date: dateRange.end_date,
-            per_page: 1000 // Obtener todas las citas del rango sin paginación
+            per_page: 1000, // Obtener todas las citas del rango sin paginación
+            // Sólo viaja el filtro elegido: un filtro limpio no es "ninguno".
+            ...activeFilterParams()
           }
         })
 
@@ -947,6 +1092,65 @@ export default {
       } finally {
         loading.value = false
       }
+    }
+
+    const loadFilterOptions = async () => {
+      // #396 lección: cada lookup se liquida por su lado. Uno caído oculta su
+      // filtro y devuelve una lista vacía — nunca una promesa rechazada.
+      const readSource = async (url, toOptions) => {
+        try {
+          const response = await get(url)
+          const rows = Array.isArray(response?.data) ? response.data : []
+          return { available: rows.length > 0, options: toOptions(rows) }
+        } catch (error) {
+          return { available: false, options: [] }
+        }
+      }
+
+      const withAllOption = (label, options) =>
+        options.length > 0 ? [{ value: '', label }, ...options] : []
+
+      const [professionals, chairs, branches] = await Promise.all([
+        can.viewUser?.value
+          ? readSource('/api/users/active', rows =>
+              rows.map(row => ({ value: row.id, label: row.name }))
+            )
+          : { available: false, options: [] },
+        can.viewDentalChair?.value
+          ? readSource('/api/dental-chairs/active?status=active', rows =>
+              rows.map(row => ({ value: row.id, label: row.name }))
+            )
+          : { available: false, options: [] },
+        can.viewBranch?.value
+          ? readSource('/api/branches/active', rows =>
+              rows.map(row => ({ value: row.id, label: row.name }))
+            )
+          : { available: false, options: [] }
+      ])
+
+      professionalOptions.value = withAllOption('Todos los profesionales', professionals.options)
+      chairOptions.value = withAllOption('Todos los sillones', chairs.options)
+      branchOptions.value = withAllOption('Todas las sedes', branches.options)
+      filterAvailability.value = {
+        professional: professionals.available,
+        chair: chairs.available,
+        branch: branches.available
+      }
+    }
+
+    // Cambiar un filtro re-lee el período visible de la vista actual: no
+    // navega ni recarga la página.
+    const setFilter = (key, value) => {
+      const nextValue = value === null || value === undefined ? '' : value
+      if (filters.value[key] === nextValue) return
+      filters.value = { ...filters.value, [key]: nextValue }
+      loadAppointments()
+    }
+
+    const clearFilters = () => {
+      if (!hasActiveFilters.value) return
+      filters.value = { user_id: '', dental_chair_id: '', branch_id: '' }
+      loadAppointments()
     }
 
     const formatTimeRange = (start, end) => {
@@ -1076,8 +1280,16 @@ export default {
 
     // T7 D1/D9 — quiet empty-state copy per view (one short title + one
     // precise sentence), rendered instead of the grids when the loaded range
-    // has zero appointments.
+    // has zero appointments. #395 S5: with active filters the empty block
+    // describes the filter, not the agenda, and offers to clear them.
     const emptyStateCopy = computed(() => {
+      if (hasActiveFilters.value) {
+        return {
+          title: 'Sin citas para estos filtros',
+          description: `Ninguna cita del rango cargado coincide con ${appliedFilterSummary.value}. Limpia los filtros para ver toda la agenda.`
+        }
+      }
+
       const copy = {
         day: {
           title: 'Sin citas este día',
@@ -1427,6 +1639,10 @@ export default {
     })
 
     onMounted(() => {
+      // Las poblaciones de los filtros son una lectura aparte: se lanzan sin
+      // esperar y la agenda no depende de ellas (un lookup caído sólo oculta
+      // su filtro). La lectura del rango sale a continuación, nunca encadenada.
+      loadFilterOptions()
       loadAppointments()
 
       // Suscribirse a canales WebSocket para actualizaciones en tiempo real
@@ -1497,6 +1713,17 @@ export default {
       currentPeriodTitle,
       legendStatuses,
       loadedAppointmentsCaption,
+      filters,
+      professionalOptions,
+      chairOptions,
+      branchOptions,
+      showProfessionalFilter,
+      showChairFilter,
+      showBranchFilter,
+      hasVisibleFilters,
+      hasActiveFilters,
+      setFilter,
+      clearFilters,
       statusLabel,
       statusBadgeVariant,
       weekDays,
