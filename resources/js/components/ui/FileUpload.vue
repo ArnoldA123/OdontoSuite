@@ -11,7 +11,12 @@
       <!-- Vista Previa si hay imagen -->
       <div v-if="previewUrl" class="preview-container">
         <img :src="previewUrl" class="preview-image" />
-        <button class="clear-btn" @click="clearFile">
+        <button
+          type="button"
+          class="clear-btn"
+          aria-label="Quitar la imagen seleccionada"
+          @click="clearFile"
+        >
           <XMarkIcon class="w-5 h-5" />
         </button>
       </div>
@@ -63,12 +68,16 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['fileSelected', 'fileCleared'])
+const emit = defineEmits(['fileSelected', 'fileCleared', 'fileRejected'])
 
 const file = ref(null)
 const previewUrl = ref('')
 const isDragging = ref(false)
 const fileInput = ref(null)
+
+// Guards the async preview read: a reset invalidates the read in flight so it
+// cannot repaint what was just dropped. See `handleFile`.
+let readToken = 0
 
 const handleDrop = event => {
   isDragging.value = false
@@ -85,16 +94,26 @@ const handleFileInput = event => {
   }
 }
 
+// Rejections belong to the consumer's inline error channel: the primitive
+// refuses the file (no preview, no fileSelected) and names the reason. The
+// native input is reset so picking the same file again fires `change`.
+const rejectFile = (reason, message) => {
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+  emit('fileRejected', { reason, message })
+}
+
 const handleFile = selectedFile => {
   // Validar tamaño
   if (selectedFile.size > props.maxSize) {
-    alert(`El archivo es demasiado grande. Máximo ${formatFileSize(props.maxSize)}`)
+    rejectFile('size', `El archivo es demasiado grande. Máximo ${formatFileSize(props.maxSize)}`)
     return
   }
 
   // Validar tipo
   if (!selectedFile.type.startsWith('image/')) {
-    alert('Solo se permiten archivos de imagen')
+    rejectFile('type', 'Solo se permiten archivos de imagen')
     return
   }
 
@@ -102,8 +121,14 @@ const handleFile = selectedFile => {
 
   // Crear preview si está habilitado
   if (props.preview && selectedFile.type.startsWith('image/')) {
+    // #426: the read is async and a consumer may refuse the file right after
+    // `fileSelected`. Every reset bumps `readToken`, so a read that finishes
+    // later cannot repaint the preview of a file that is no longer adopted.
+    const token = ++readToken
     const reader = new FileReader()
     reader.onload = e => {
+      if (token !== readToken) return
+
       previewUrl.value = e.target.result
     }
     reader.readAsDataURL(selectedFile)
@@ -112,14 +137,28 @@ const handleFile = selectedFile => {
   emit('fileSelected', selectedFile)
 }
 
-const clearFile = () => {
+const resetFile = () => {
+  // Invalidate any FileReader still in flight before dropping the state.
+  readToken += 1
   file.value = null
   previewUrl.value = ''
   if (fileInput.value) {
     fileInput.value.value = ''
   }
+}
+
+const clearFile = () => {
+  resetFile()
   emit('fileCleared')
 }
+
+// Public, silent variant: a consumer that ran its own validation after
+// `fileSelected` drops the adopted file without echoing a second event.
+const clear = () => {
+  resetFile()
+}
+
+defineExpose({ clear })
 
 const formatFileSize = bytes => {
   if (bytes === 0) return '0 Bytes'

@@ -72,6 +72,20 @@
         </div>
       </figure>
 
+      <div
+        v-if="isFailed"
+        data-ai-failure
+        role="alert"
+        class="flex items-start gap-3 rounded-[var(--radius-panel)] bg-systemRed-50 p-5"
+        style="border: 1px solid var(--color-hairline)"
+      >
+        <ExclamationTriangleIcon
+          class="h-5 w-5 flex-shrink-0 text-systemRed-600"
+          aria-hidden="true"
+        />
+        <p class="min-w-0 text-sm leading-6 text-theme-primary">{{ failureReason }}</p>
+      </div>
+
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section
           data-ai-section="findings"
@@ -335,7 +349,13 @@
 
 <script setup>
 import { computed, reactive } from 'vue'
-import { CpuChipIcon, NoSymbolIcon, PhotoIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import {
+  CpuChipIcon,
+  ExclamationTriangleIcon,
+  NoSymbolIcon,
+  PhotoIcon,
+  XMarkIcon
+} from '@heroicons/vue/24/outline'
 import { formatDateTime, formatUsd } from '../../../composables/useFormatters'
 import { useConfirm } from '../../../composables/useConfirm'
 import { usePermissions } from '../../../composables/usePermissions'
@@ -405,6 +425,13 @@ const voidForm = reactive({
 const canReview = computed(() => Boolean(can['ai-analysis.review']?.value))
 const canVoid = computed(() => Boolean(can['ai-analysis.void']?.value))
 const isVoided = computed(() => props.analysis.voided === true)
+
+// #427 — a failed analysis explains itself with the reason the API publishes;
+// the fallback states the outcome and invents no cause of its own.
+const isFailed = computed(() => props.analysis.status === 'failed')
+const failureReason = computed(
+  () => props.analysis.failure_reason?.trim() || 'No se pudo completar el análisis.'
+)
 
 const attachment = computed(() => props.analysis.clinical_attachment ?? null)
 const patientName = computed(() => {

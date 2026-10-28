@@ -119,7 +119,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 155 migraciones
+  migrations/              # 156 migraciones
   seeders/                 # 17 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, DiagnosisCatalogSeeder,
                            #   AppointmentTypeSeeder, EnvironmentSeeder, ProcedureCatalogSeeder,
@@ -658,6 +658,53 @@ documentada y no bloquea producción.
   **1417 pruebas en 166 archivos**; suite MySQL **OK (2860 tests, 17400
   assertions)**; Pint 911 archivos; ESLint 0 errores / 36 avisos; Prettier
   limpio; `vite build` en verde; `node scripts/audit/doc-drift.mjs` 14/14.
+- **2026-10-28 (auditoría U7 clínica: tabs vacías, evolución sin contenido, alta
+  de IA y 404 de especialidades, #424/#425/#426/#427/#428)** — Cinco hallazgos
+  de la auditoría UI U7 (#370), un commit de unidad por issue. **#424**: las dos
+  tabs vacías de `/medical-records` que declaraban qué faltaba ya ofrecen el
+  control que lo resuelve — Evoluciones pinta «Crear historia» con la misma
+  función que la tab general, y Estadísticas recibe la decisión del workspace
+  por props (`canCreateEvolution`/`canCreateRecord`) porque es del paciente y no
+  de una historia concreta: «Registrar evolución» con historia seleccionada,
+  «Crear historia» sin ninguna. **#425**: `StoreEvolutionRequest` rechaza con
+  422 `errors.content.0` el acto que no registra ningún bloque SOAP, indicación,
+  signo vital ni medición (`0` y `false` cuentan como hallazgo; el texto en
+  blanco no), y el formulario lo rechaza antes del API pintando el mismo motivo
+  en `[data-evolution-error]`; el `{}` es 422 y no 500 porque `evolution_date`
+  conserva su default en el servicio. **#426**: `FileUpload` deja de llamar a
+  `alert()`: un archivo que rompe `maxSize` o el tipo se rechaza sin adoptarse,
+  se publica por el evento nuevo `fileRejected` con `{reason, message}` y expone
+  `clear()` (variante silenciosa de la X) para que un consumidor con su propia
+  regla suelte el archivo adoptado; la X gana `type="button"` y nombre
+  accesible, y el sheet de IA publica los dos rechazos en su bloque en línea,
+  así que la vista previa rechazada desaparece y el selector vuelve. **#427**:
+  `ai_image_analyses.failure_reason` guarda el motivo legible del fallo
+  (conexión → «No se pudo conectar con el proveedor de IA.»; otro → «El
+  proveedor de IA no devolvió un resultado válido.»), `raw_response` sigue
+  guardando el mensaje técnico y sigue oculto, las dos puertas de alta responden
+  «El análisis no se pudo completar.» cuando la fila queda `failed` (mismo 201 y
+  mismo sobre), el SPA no cierra el sheet como éxito ni abre el detalle y el
+  detalle pinta el motivo en `data-ai-failure`. **#428**: `PUT` y
+  `DELETE /api/specialty-records/{id}` desenlazan `ModelNotFoundException` antes
+  del `catch` genérico y responden
+  `404 {"message":"Registro de especialidad no encontrado"}`, igual que
+  `show()`, sin dejar error de servidor en el log. Sin rutas, controllers,
+  modelos ni permisos nuevos: §4 sube a **156 migraciones** por #427 y mantiene
+  48 controllers API, 71 modelos, 46 composables y 263 rutas API (276 con web).
+  El instrumento U7 se alinea con los contratos nuevos: `walk-ai.js` mide el
+  rechazo del paso de imagen por su canal en línea (sin retención de vista
+  previa) y el desenlace del fallo por su aviso, `walk-records.js` mide el envío
+  vacío por el mensaje del formulario y la ausencia de petición, y
+  `api-matrix.js` deja de declarar la desviación 500 de las dos puertas de
+  especialidad. Tests: `MedicalRecordEvolutionContentTest` (6),
+  `AiAnalysisFailureReasonTest` (6), `SpecialtyRecordMissingRecordTest` (4),
+  `medical-record-stats-empty-action` (5), `file-upload-rejection` (6),
+  `ai-analysis-failed` (6) y los casos nuevos de `medical-records`,
+  `medical-records-flows`, `medical-records-specialty` y
+  `ai-analysis-new-analysis`, más dos pruebas existentes que codificaban el acto
+  vacío y ahora le dan contenido. Vitest **1416 pruebas en 166 archivos**; suite
+  MySQL **OK (2873 tests, 17454 assertions)**; Pint 914 archivos, ESLint 0
+  errores / 36 avisos, Prettier y `doc-drift` 14/14 en verde.
 
 - **2026-10-28 (auditoría del dinero: el cobro explica su rechazo, la caja
   representa su carga y el desglose no se contradice, #409/#411/#459)** — Tres

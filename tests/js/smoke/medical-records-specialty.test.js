@@ -72,6 +72,13 @@ const submit = async () => {
   await flushPromises()
 }
 
+const typeInto = (selector, value) => {
+  const field = document.body.querySelector(selector)
+  expect(field, `missing field ${selector}`).toBeTruthy()
+  field.value = String(value)
+  field.dispatchEvent(new Event('input'))
+}
+
 describe('evolution specialty selector (#225)', () => {
   beforeEach(() => {
     localStorage.setItem('auth_token', 'test-token')
@@ -93,11 +100,16 @@ describe('evolution specialty selector (#225)', () => {
 
     await openSelect('specialty')
     await chooseOption('Endodoncia')
+    // #425: the act must document something, so this case writes one block;
+    // the rule under test is the catalog code that travels in the payload.
+    typeInto('[data-evolution-field="assessment"] textarea', 'Caries oclusal')
+    await flushPromises()
     await submit()
 
     expect(harness.addEvolution).toHaveBeenCalledTimes(1)
     const [, payload] = harness.addEvolution.mock.calls[0]
     expect(payload.specialty).toBe('endodoncia')
+    expect(payload.assessment).toBe('Caries oclusal')
 
     wrapper.unmount()
   })

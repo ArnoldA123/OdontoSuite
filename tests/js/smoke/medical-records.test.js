@@ -49,6 +49,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/medical-records/MedicalRecordsPage.vue'
+import MedicalRecordModal from '../../../resources/js/modules/medical-records/components/MedicalRecordModal.vue'
 
 const patient = {
   id: 7,
@@ -383,6 +384,28 @@ describe('medical-records shell', () => {
     await wrapper.findAll('[role="tab"]')[3].trigger('click')
     await flushPromises()
     expect(wrapper.get('[data-stats-scope]').text()).toContain('todo el expediente del paciente')
+
+    wrapper.unmount()
+  })
+
+  // #424: the evolutions tab is one of the four empty surfaces of the page;
+  // the two that already resolved their state (general and attachments) offer
+  // the control that fixes it, and this one now does too.
+  it('offers the history creation from the empty evolutions tab', async () => {
+    installApi({ records: [] })
+    const { wrapper } = await mountPage({ query: { patient_id: '7' } })
+
+    await wrapper.findAll('[role="tab"]')[1].trigger('click')
+    await flushPromises()
+
+    const empty = wrapper.get('[data-state="no-record-evolutions"]')
+    const action = empty.findAll('button').find(button => button.text().includes('Crear historia'))
+    expect(action).toBeTruthy()
+
+    await action.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findComponent(MedicalRecordModal).exists()).toBe(true)
 
     wrapper.unmount()
   })

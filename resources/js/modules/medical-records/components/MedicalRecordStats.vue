@@ -8,7 +8,17 @@
       motif
       title="Sin actividad en esta historia"
       description="Cuando se registren evoluciones, adjuntos o seguimientos, su detalle aparecerá aquí."
-    />
+    >
+      <UiButton
+        v-if="canCreateEvolution || canCreateRecord"
+        variant="primary"
+        size="sm"
+        data-empty-stats-action
+        @click="emit(canCreateEvolution ? 'create-evolution' : 'create-record')"
+      >
+        {{ canCreateEvolution ? 'Registrar evolución' : 'Crear historia' }}
+      </UiButton>
+    </UiSectionEmpty>
 
     <template v-else>
       <!-- Last evolution: the newest entry the backend aggregates by date. -->
@@ -116,8 +126,12 @@ import { computed } from 'vue'
 import { formatDate as formatCanonicalDate } from '../../../composables/useFormatters'
 import LoadingSpinner from '../../../components/ui/LoadingSpinner.vue'
 import UiBadge from '../../../components/ui/Badge.vue'
+import UiButton from '../../../components/ui/Button.vue'
 import UiSectionEmpty from '../../../components/ui/UiSectionEmpty.vue'
 
+// #424 (S2): the stats are patient-scoped, so this surface cannot decide the
+// action on its own. The workspace resolves the expediente state and hands the
+// decision down; the component renders exactly one action for it.
 const props = defineProps({
   stats: {
     type: Object,
@@ -126,8 +140,18 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  canCreateEvolution: {
+    type: Boolean,
+    default: false
+  },
+  canCreateRecord: {
+    type: Boolean,
+    default: false
   }
 })
+
+const emit = defineEmits(['create-evolution', 'create-record'])
 
 const SPECIALTY_LABELS = {
   odontologia_general: 'Odontología general',

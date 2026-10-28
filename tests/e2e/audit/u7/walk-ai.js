@@ -427,11 +427,16 @@ test('@U7 · U7b IA: lista, filtros, sheet, revisión, anulación y traza', asyn
 
         return {
           obtained: `errores en línea ${JSON.stringify(sheet.errors)}; diálogos nativos ${JSON.stringify(raised.map(dialog => dialog.message))}`,
-          verdict: raised.length > 0 || sheet.errors.length > 0 ? 'DEFECTO' : 'OK',
+          verdict:
+            raised.length === 0 && sheet.errors.length > 0 && sheet.submitDisabled === true
+              ? 'OK'
+              : 'DEFECTO',
           detail:
             raised.length > 0
               ? `El rechazo del archivo que no es imagen ocurre en un alert() nativo del primitivo FileUpload («${raised[0]?.message ?? ''}»), no en el mensaje en línea del paso: el sheet no se enteró del rechazo (errores en línea: ${JSON.stringify(sheet.errors)}) y la app rompe su propio vocabulario de feedback.`
-              : null,
+              : sheet.errors.length === 0
+                ? 'El archivo que no es imagen se rechazó sin mensaje en línea: el paso no dice por qué no se aceptó.'
+                : null,
           extra: { sheet, nativeDialogs: raised }
         }
       }
@@ -478,26 +483,34 @@ test('@U7 · U7b IA: lista, filtros, sheet, revisión, anulación y traza', asyn
 
         const rejected = await readSheetState()
 
-        // The only way back to the picker is the X the primitive paints over the
-        // preview; the walk measures that recovery instead of assuming it.
-        const recovery = await page
-          .locator('[data-ai-analysis-sheet] .preview-container .clear-btn')
-          .first()
-          .click({ timeout: 8000 })
-          .then(() => true)
-          .catch(() => false)
+        // #426: a rejected file must not be presented as ready, so the recovery
+        // is measured against the contract: the inline error is there, the
+        // preview is gone and the picker is back without pressing anything.
+        const recovery = rejected.preview
+          ? await page
+              .locator('[data-ai-analysis-sheet] .preview-container .clear-btn')
+              .first()
+              .click({ timeout: 8000 })
+              .then(() => true)
+              .catch(() => false)
+          : null
         await page.waitForTimeout(600)
         const afterClear = await readSheetState()
 
         return {
           obtained: `errores ${JSON.stringify(rejected.errors)}; vista previa retenida=${rejected.preview}; selector de archivo disponible tras el rechazo=${rejected.picker}; X de la vista previa=${rejected.clearButton} (clic=${recovery}); selector tras limpiar=${afterClear.picker}`,
-          verdict: rejected.errors.length === 0 ? 'DEFECTO' : 'CONFUSO',
+          verdict:
+            rejected.errors.length > 0 && !rejected.preview && rejected.picker > 0
+              ? 'OK'
+              : 'DEFECTO',
           detail:
-            rejected.errors.length > 0 && rejected.preview
-              ? `El límite de 20 MB se avisa en línea, pero el primitivo conserva la vista previa del archivo rechazado y con ella desaparece el input de archivo (${rejected.picker} en el DOM): para volver a elegir hay que pulsar la X sin etiqueta de la vista previa. La pantalla dice «supera los 20 MB» y a la vez muestra la imagen como si estuviera cargada.`
-              : rejected.errors.length === 0
-                ? 'no apareció el mensaje del límite de 20 MB'
-                : null,
+            rejected.errors.length === 0
+              ? 'no apareció el mensaje del límite de 20 MB'
+              : rejected.preview
+                ? `El límite de 20 MB se avisa en línea, pero el primitivo conserva la vista previa del archivo rechazado y con ella desaparece el input de archivo (${rejected.picker} en el DOM): para volver a elegir hay que pulsar la X de la vista previa. La pantalla dice «supera los 20 MB» y a la vez muestra la imagen como si estuviera cargada.`
+                : rejected.picker === 0
+                  ? 'El rechazo avisa en línea pero deja el paso sin selector de archivo: no hay forma de volver a elegir.'
+                  : null,
           extra: { rejected, afterClear, recovery }
         }
       }
@@ -557,34 +570,59 @@ test('@U7 · U7b IA: lista, filtros, sheet, revisión, anulación y traza', asyn
 
         const detail = await page.evaluate(() => {
           const root = document.querySelector('[data-ai-detail]')
-          if (!root) return null
-          const dialog = root.closest('[role="dialog"]')
           const text = node => (node?.innerText ?? '').trim().replace(/\s+/g, ' ')
+          // #427: a failed row must not open the detail as if it had a result.
+          // The reason stays on the sheet the professional can retry from, so
+          // the walk reads both inline channels and the progress surface.
+          const failure =
+            document.querySelector('[data-sheet-error]') ??
+            document.querySelector('[data-progress-error]')
+
           return {
-            status: text(dialog?.querySelector('[data-ai-detail-status]')),
-            notice: text(root.querySelector('[data-ai-assistive-notice]')),
-            findings: text(root.querySelector('[data-ai-section="findings"] p')),
-            hasFailureReason: /error|motivo|fall/i.test(text(root).replace(/fallido/i, ''))
+            sheetOpen: Boolean(document.querySelector('[data-ai-analysis-sheet]')),
+            progressOpen: Boolean(document.querySelector('[data-progress-error]')),
+            failure: text(failure),
+            detailOpened: Boolean(root),
+            status: root
+              ? text(root.closest('[role="dialog"]')?.querySelector('[data-ai-detail-status]'))
+              : null,
+            notice: root ? text(root.querySelector('[data-ai-assistive-notice]')) : null,
+            findings: root ? text(root.querySelector('[data-ai-section="findings"] p')) : null,
+            failureBlock: root ? text(root.querySelector('[data-ai-failure]')) : null
           }
         })
+
+        const analysisStatus = body?.data?.status ?? null
+        const completedPath =
+          analysisStatus === 'completed' && detail.detailOpened && detail.status === 'Completado'
+        const failedPath =
+          analysisStatus === 'failed' &&
+          !detail.detailOpened &&
+          detail.sheetOpen &&
+          !detail.progressOpen &&
+          detail.failure.length > 0
 
         return {
           requestStatus: status,
           request: lastWrite(requests),
-          obtained: `envío disabled antes/después del aviso: ${beforeNotice}/${afterNotice}; POST upload-and-analyze → ${status} (estado ${body?.data?.status}); detalle abierto con estado «${detail?.status ?? 'sin detalle'}»`,
+          obtained: `envío disabled antes/después del aviso: ${beforeNotice}/${afterNotice}; POST upload-and-analyze → ${status} (estado ${analysisStatus}); sheet abierto=${detail.sheetOpen}; aviso del fallo=${JSON.stringify(detail.failure)}; detalle abierto con estado «${detail.status ?? 'sin detalle'}»`,
           verdict:
             beforeNotice === true &&
             afterNotice === false &&
             status === 201 &&
-            detail?.status === 'Fallido'
-              ? 'DEFECTO'
-              : status === 201
-                ? 'NO PROBADO'
-                : 'DEFECTO',
+            (completedPath || failedPath)
+              ? 'OK'
+              : 'DEFECTO',
           detail:
-            status === 201 && detail?.status === 'Fallido'
-              ? 'Sin OPENAI_API_KEY el análisis nace en `failed`, pero la interfaz cierra el sheet como si hubiera terminado y abre el detalle con el pill «Fallido», «Sin hallazgos reportados» y ninguna causa: el backend guarda el motivo en `raw_response` y la superficie no lo publica en ningún sitio.'
-              : null,
+            status !== 201
+              ? `el envío no respondió 201 (${status})`
+              : analysisStatus === 'failed' && detail.detailOpened
+                ? 'Sin OPENAI_API_KEY el análisis nace en `failed`, pero la interfaz abre el detalle como si hubiera resultado.'
+                : analysisStatus === 'failed' && detail.progressOpen
+                  ? 'El análisis falló y la interfaz deja abierto el modal de progreso, que no se cierra con Escape: la página queda atrapada detrás.'
+                  : analysisStatus === 'failed' && detail.failure.length === 0
+                    ? 'El análisis falló y la pantalla no publica ningún motivo: el usuario lee «Fallido» sin causa.'
+                    : null,
           extra: { beforeNotice, afterNotice, detail, status: body?.data?.status ?? null }
         }
       }

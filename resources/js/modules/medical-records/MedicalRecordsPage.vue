@@ -505,7 +505,11 @@
                   data-state="no-record-evolutions"
                   title="Sin historia clínica"
                   description="Las evoluciones viven dentro de una historia clínica. Crea la primera para empezar."
-                />
+                >
+                  <UiButton variant="primary" size="sm" @click="openCreateRecord">
+                    Crear historia
+                  </UiButton>
+                </UiSectionEmpty>
 
                 <UiSectionEmpty
                   v-else-if="errors.evolutions"
@@ -570,7 +574,15 @@
                   <UiButton variant="secondary" size="sm" @click="retryStats">Reintentar</UiButton>
                 </UiSectionEmpty>
 
-                <MedicalRecordStats v-else :stats="stats" :loading="loadingBySurface.stats" />
+                <MedicalRecordStats
+                  v-else
+                  :stats="stats"
+                  :loading="loadingBySurface.stats"
+                  :can-create-evolution="Boolean(currentRecord)"
+                  :can-create-record="records.length === 0"
+                  @create-evolution="openEvolutionModal"
+                  @create-record="openCreateRecord"
+                />
               </div>
             </template>
           </UiTabs>

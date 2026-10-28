@@ -31,6 +31,7 @@ class AiImageAnalysis extends Model
         'recommendations',
         'confidence_score',
         'raw_response',
+        'failure_reason',
         'model_used',
         'tokens_used',
         'estimated_cost',
