@@ -606,10 +606,35 @@ documentada y no bloquea producción.
   `my-day-error-message` (3) y las dos filas de `dashboard-states` reescritas al
   contrato nuevo; `tests/e2e/u2-resilience.spec.js` mide las cuatro condiciones
   en Chromium sobre una base dedicada (`U2_RESILIENCE_BROWSER=1`, evidencia en
-  `.atl/qa-evidence/audit/u2-resilience/`). Vitest **1362 pruebas en 162
-  archivos**; PHPUnit Unit **OK (1427 pruebas, 9709 aserciones; 51 saltadas por
-  SQLite)**; ESLint 0 errores / 36 avisos, Prettier y `vite build` en verde;
+  `.atl/qa-evidence/audit/u2-resilience/`). Vitest **1363 pruebas en 162
+  archivos**; suite MySQL completa **OK (2846 pruebas, 17352 aserciones)**;
+  PHPUnit Unit **OK (1427 pruebas, 9709 aserciones; 51 saltadas por SQLite)**;
+  ESLint 0 errores / 36 avisos, Prettier y `vite build` en verde;
   `node scripts/audit/doc-drift.mjs` 14/14; navegador **4/4 filas**.
+- **2026-10-28 (auditoría U8 del catálogo: tarifario en el índice, búsqueda de
+  recepción y filtro de estado, #431/#432/#433)** — Tres defectos medidos por la
+  auditoría UI (#371, plan #13 §4 capas 4-5). **#431**:
+  `ProcedureCatalogService::paginate()` resuelve el tarifario de la página
+  completa en una sola consulta con `ProcedurePriceResolver::resolveMany`, y las
+  filas del índice publican el `default_cost` resuelto, `list_cost` y
+  `price_source`, como ya hacían `search()` y `activeList()`; así el picker
+  compartido, la lista y la consulta de recepción muestran el precio que la sede
+  cobra y el importe que el usuario lee coincide con el que el presupuesto
+  congela al guardar. `show()` queda fuera a propósito: su bloque «Costo por
+  defecto» declara que es la lista y el tab Tarifario publica la fila de la
+  sede. **#432**: `/reception-procedures` envía `q` en vez de `search`, el
+  parámetro que el índice lee, así que el buscador de recepción filtra por
+  nombre y código; no se agrega alias en la API (#416 vive en la misma
+  frontera). **#433**: el filtro `is_active` se normaliza con
+  `filter_var(..., FILTER_VALIDATE_BOOLEAN)` antes del `where` —la cadena
+  `"false"` era verdadera con `(bool)`—, así que «Inactivos» devuelve los
+  inactivos, «Activos» los activos y la ausencia del filtro no filtra. Sin
+  rutas, modelos, migraciones ni permisos nuevos: los conteos de §4/§5 no
+  cambian. Tests: `ProcedureIndexPriceTest` (4),
+  `ProcedureIndexActiveFilterTest` (3) y el smoke `reception-procedures` (2);
+  suite MySQL `OK (2846 tests, 17352 assertions)`; Vitest
+  `1354 pruebas en 158 archivos`; Pint, ESLint, Prettier y `pnpm build` en
+  verde; `node scripts/audit/doc-drift.mjs` en verde.
 - **2026-10-28 (el aviso de bloqueo del modal de cobro no sobrevive al cambio de
   pestaña, #472)** — `PaymentModal` reinicia el estado del bloqueo contable y el
   destino del reintento al cambiar de pestaña, así el aviso describe siempre el

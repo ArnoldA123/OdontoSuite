@@ -96,13 +96,14 @@ de documentación; base `56103c5d`.
 
 | Chequeo | Comando | Resultado |
 | --- | --- | --- |
-| Vitest completo | `./node_modules/.bin/vitest run` | **162 archivos, 1362 pruebas, 0 fallos** |
+| Vitest completo | `./node_modules/.bin/vitest run` | **162 archivos, 1363 pruebas, 0 fallos** |
+| Suite MySQL completa | `vendor/bin/phpunit -c phpunit.mysql.xml` (base `odontosuite_u2_resilience_test`, motor local por socket) | **OK (2846 pruebas, 17352 aserciones)** |
 | PHPUnit Unit | `php artisan test --testsuite=Unit` | **OK (1427 pruebas, 9709 aserciones; 51 saltadas por SQLite)** |
 | ESLint | `eslint . --ext .mjs,.vue,.js,.jsx,.ts,.tsx` | **0 errores, 36 avisos** (línea base) |
 | Prettier | `prettier --check .` | limpio |
 | Build | `VITE_APP_URL=http://127.0.0.1:8014 vite build` | OK, 14.16 s |
 | Deriva de AGENTS.md | `node scripts/audit/doc-drift.mjs` | **14/14** |
-| Navegador | `U2_RESILIENCE_BROWSER=1 BROWSER_PASS_BASE=http://127.0.0.1:8014 playwright test tests/e2e/u2-resilience.spec.js` | **4 filas en verde**, 11.0 s |
+| Navegador | `U2_RESILIENCE_BROWSER=1 BROWSER_PASS_BASE=http://127.0.0.1:8014 playwright test tests/e2e/u2-resilience.spec.js` | **4 filas en verde**, 9.4 s |
 
 La corrida de navegador usó una base dedicada (`odontosuite_u2_resilience_e2e`,
 `migrate --seed --force`: 15 usuarios, 100 pacientes, 106 citas), `php artisan
@@ -182,3 +183,14 @@ explains itself in Spanish and the retry recovers it`.
   `thrown?.message` en su `messageFor`; la misma clase de defecto de #389 puede
   aparecer en esas superficies y su corrección pertenece a la sesión de
   auditoría que las cubra.
+- **L10** — Integración: `main` avanzó durante la sesión (#474, auditoría U8
+  del catálogo). Se fusionó `main` (`cb775770`) en la rama con un conflicto en
+  AGENTS.md §12, resuelto dejando la entrada de #387/#388/#389 arriba y la de
+  U8 debajo; los números de esta nota y de la entrada se re-midieron sobre el
+  árbol fusionado (Vitest 1363 en 162 archivos, PHPUnit Unit 1427), y la corrida
+  de navegador se repitió sobre el árbol final.
+- **L11** — Suite MySQL completa: `vendor/bin/phpunit -c phpunit.mysql.xml`
+  contra una base dedicada (`odontosuite_u2_resilience_test`) y el motor local
+  por socket, con las credenciales que el señor Arnold indicó en la sesión (no
+  se escriben en ningún archivo). Resultado **OK (2846 pruebas, 17352
+  aserciones)**, 3 min 20 s; cierra la única prueba que quedaba pendiente.
