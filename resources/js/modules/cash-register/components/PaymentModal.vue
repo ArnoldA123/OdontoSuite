@@ -343,6 +343,56 @@ const fieldError = key => {
   return value || ''
 }
 
+// #409 — the 422 explains itself on the field the form paints, and a reason
+// that hangs from a key the modal cannot paint (`session`) used to be copied to
+// state and never rendered. The form fields are the same ones the template
+// reads through `fieldError`; `reference_number` is the API's column name and
+// lands on the `reference` input.
+const PAYMENT_FIELD_ERRORS = new Set([
+  'patient_id',
+  'appointment_id',
+  'payment_method_id',
+  'amount',
+  'concept',
+  'reference',
+  'notes',
+  'general'
+])
+
+const API_FIELD_ALIASES = {
+  reference_number: 'reference'
+}
+
+// Returns true when at least one message was routed, so the caller stops and
+// never paints an empty map.
+const applyApiErrors = rawErrors => {
+  if (!rawErrors || typeof rawErrors !== 'object') return false
+
+  const mapped = {}
+  const unmatched = []
+
+  for (const [key, value] of Object.entries(rawErrors)) {
+    const field = API_FIELD_ALIASES[key] ?? key
+    const message = Array.isArray(value) ? value[0] : value
+    if (!message) continue
+
+    if (PAYMENT_FIELD_ERRORS.has(field)) {
+      if (!mapped[field]) mapped[field] = Array.isArray(value) ? value : [message]
+    } else {
+      unmatched.push(String(message))
+    }
+  }
+
+  if (unmatched.length) {
+    mapped.general = [...(mapped.general ?? []), ...unmatched]
+  }
+
+  if (Object.keys(mapped).length === 0) return false
+
+  errors.value = mapped
+  return true
+}
+
 const patientOptions = computed(() => {
   const options = props.pendingPatients.map(patient => ({
     value: patient.id,
@@ -500,6 +550,10 @@ const submitManualPayment = async override => {
     }
 
     if (lockOverrideReason) payload.lock_override_reason = lockOverrideReason
+    // #409 — the reference is part of the charge: this door validated it and
+    // never sent it, so a wallet payment could never be collected here.
+    if (formData.value.reference) payload.reference_number = formData.value.reference
+    if (formData.value.notes) payload.notes = formData.value.notes
 
     const response = await post(
       `/api/pending-payments/${props.selectedAppointment.id}/pay`,
@@ -557,15 +611,9 @@ const handleSubmit = async override => {
     if (detectLock(error)) return
     if (applyLockValidationErrors(apiError?.errors)) return
 
-    if (apiError?.errors) {
-      // #291: the API names the column (`reference_number`); the form names the
-      // input (`reference`). The field error must land where the user types.
-      const mapped = { ...apiError.errors }
-      if (mapped.reference_number && !mapped.reference) {
-        mapped.reference = mapped.reference_number
-      }
-      errors.value = mapped
-    } else if (apiError?.message) {
+    if (applyApiErrors(apiError?.errors)) return
+
+    if (apiError?.message) {
       errors.value = { general: [apiError.message] }
     } else {
       errors.value = { general: [error.message || 'Error al registrar el pago'] }
@@ -624,11 +672,9 @@ const switchToMercadoPago = async override => {
     if (detectLock(error)) return
     if (applyLockValidationErrors(error.response?.data?.errors)) return
 
-    if (error.response?.data?.errors) {
-      errors.value = error.response.data.errors
-    } else {
-      toast.error(error.response?.data?.message || 'Error al preparar pago con Mercado Pago')
-    }
+    if (applyApiErrors(error.response?.data?.errors)) return
+
+    toast.error(error.response?.data?.message || 'Error al preparar pago con Mercado Pago')
   } finally {
     loading.value = false
   }
