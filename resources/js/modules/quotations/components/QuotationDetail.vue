@@ -274,7 +274,7 @@ import {
   PencilSquareIcon,
   XMarkIcon
 } from '@heroicons/vue/24/outline'
-import { useAuth } from '@/composables/useAuth'
+import { usePermissions } from '@/composables/usePermissions'
 import { formatCurrency } from '../../../composables/useFormatters'
 import UiButton from '@/components/ui/Button.vue'
 import UiDataTable from '@/components/ui/DataTable.vue'
@@ -302,9 +302,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'edit', 'approve', 'reject', 'download'])
 
-const { user } = useAuth()
-
-const role = computed(() => user.value?.role)
+// #280/#420: the gates are the permission list the API publishes, never the
+// role of the session.
+const { can } = usePermissions()
 
 const modalTitle = computed(() => `Presupuesto ${props.quotation.quotation_number}`)
 const statusMeta = computed(() => getStatusMeta(props.quotation.status))
@@ -357,8 +357,8 @@ const listPrice = computed(() => totalAmount.value + discountAmount.value)
 const hasTerms = computed(() => Boolean(String(props.quotation.terms_conditions || '').trim()))
 const hasNotes = computed(() => Boolean(String(props.quotation.notes || '').trim()))
 
-const canDownload = computed(() => canDownloadQuotation(role.value))
-const canEdit = computed(() => canEditQuotation(props.quotation, role.value))
-const canApprove = computed(() => canApproveQuotation(props.quotation, role.value))
-const canReject = computed(() => canRejectQuotation(props.quotation, role.value))
+const canDownload = computed(() => canDownloadQuotation(can.downloadQuotationPDF?.value))
+const canEdit = computed(() => canEditQuotation(props.quotation, can.editQuotation?.value))
+const canApprove = computed(() => canApproveQuotation(props.quotation, can.approveQuotation?.value))
+const canReject = computed(() => canRejectQuotation(props.quotation, can.rejectQuotation?.value))
 </script>

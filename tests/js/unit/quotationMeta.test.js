@@ -93,23 +93,46 @@ describe('quotations vocabulary', () => {
     expect(resolveItemDescription({})).toBe('')
   })
 
-  it('mirrors the write middleware: only admins, finance and clinicians act', () => {
-    expect(canCreateQuotation('implantologo')).toBe(true)
-    expect(canCreateQuotation('recepcionista')).toBe(false)
+  it('owns the status rule of each action and takes the permission as given', () => {
+    expect(canCreateQuotation(true)).toBe(true)
+    expect(canCreateQuotation(false)).toBe(false)
 
-    expect(canEditQuotation({ status: 'draft' }, 'odontologo')).toBe(true)
-    expect(canEditQuotation({ status: 'approved' }, 'odontologo')).toBe(false)
+    expect(canEditQuotation({ status: 'draft' }, true)).toBe(true)
+    expect(canEditQuotation({ status: 'approved' }, true)).toBe(false)
+    expect(canEditQuotation({ status: 'draft' }, false)).toBe(false)
 
-    expect(canApproveQuotation({ status: 'viewed' }, 'implantologo')).toBe(true)
-    expect(canApproveQuotation({ status: 'draft' }, 'administrador')).toBe(false)
+    expect(canApproveQuotation({ status: 'viewed' }, true)).toBe(true)
+    expect(canApproveQuotation({ status: 'sent' }, true)).toBe(true)
+    expect(canApproveQuotation({ status: 'draft' }, true)).toBe(false)
+    expect(canApproveQuotation({ status: 'viewed' }, false)).toBe(false)
 
-    expect(canRejectQuotation({ status: 'sent' }, 'finanzas')).toBe(true)
-    expect(canRejectQuotation({ status: 'sent' }, 'recepcionista')).toBe(false)
+    expect(canRejectQuotation({ status: 'sent' }, true)).toBe(true)
+    expect(canRejectQuotation({ status: 'approved' }, true)).toBe(false)
+    expect(canRejectQuotation({ status: 'sent' }, false)).toBe(false)
 
-    expect(canDeleteQuotation({ status: 'draft' }, 'administrador')).toBe(true)
-    expect(canDeleteQuotation({ status: 'sent' }, 'administrador')).toBe(false)
+    expect(canDeleteQuotation({ status: 'draft' }, true)).toBe(true)
+    expect(canDeleteQuotation({ status: 'sent' }, true)).toBe(false)
+    expect(canDeleteQuotation({ status: 'draft' }, false)).toBe(false)
 
-    expect(canDownloadQuotation('recepcionista')).toBe(true)
-    expect(canDownloadQuotation('asistente')).toBe(false)
+    expect(canDownloadQuotation(true)).toBe(true)
+    expect(canDownloadQuotation(false)).toBe(false)
+  })
+
+  it('fails closed when a stale caller passes a role instead of the permission', () => {
+    // #280/#420: the permission is the membership check the API publishes, so
+    // the module never resolves a role itself. A string is not the boolean the
+    // contract asks for and must deny the action, never grant it.
+    expect(canCreateQuotation('administrador')).toBe(false)
+    expect(canEditQuotation({ status: 'draft' }, 'administrador')).toBe(false)
+    expect(canApproveQuotation({ status: 'viewed' }, 'administrador')).toBe(false)
+    expect(canDownloadQuotation('recepcionista')).toBe(false)
+  })
+
+  it('does not export the role lists that routes/api.php owns', async () => {
+    const meta = await import('../../../resources/js/modules/quotations/quotationMeta.js')
+
+    expect(meta.QUOTATION_WRITE_ROLES).toBeUndefined()
+    expect(meta.QUOTATION_READ_ROLES).toBeUndefined()
+    expect(meta.canWriteQuotations).toBeUndefined()
   })
 })

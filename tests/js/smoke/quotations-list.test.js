@@ -66,14 +66,17 @@ const summary = {
   }
 }
 
-const apiState = vi.hoisted(() => ({ postReject: null }))
+const apiState = vi.hoisted(() => ({ postReject: null, quotations: [] }))
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
     get: async url => {
       if (String(url).includes('/api/quotations/summary')) return { data: summary }
       if (/\/api\/quotations\/\d+$/.test(String(url))) return { data: rows[0] }
-      return { data: rows, meta: { current_page: 1, last_page: 1, per_page: 15, total: 3 } }
+      return {
+        data: apiState.quotations,
+        meta: { current_page: 1, last_page: 1, per_page: 15, total: apiState.quotations.length }
+      }
     },
     post: async () => {
       if (apiState.postReject) throw apiState.postReject
@@ -103,8 +106,17 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
 
+import rolePermissions from '../support/role-permissions.json'
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/quotations/QuotationsPage.vue'
+
+// #420: the page gates every action on `usePermissions().can.*`, and those
+// flags are a membership check on the permission list the API publishes, so a
+// session is seeded with that list and never with a role lookup.
+const seedSession = role => {
+  localStorage.setItem('auth_token', 'test-token')
+  localStorage.setItem('user', JSON.stringify({ id: 1, role, permissions: rolePermissions[role] }))
+}
 
 const mountPageAt = async path => {
   const router = createRouter({
@@ -125,8 +137,8 @@ const mountPage = async () => (await mountPageAt('/quotations')).wrapper
 describe('quotations list redesign', () => {
   beforeEach(() => {
     apiState.postReject = null
-    localStorage.setItem('auth_token', 'test-token')
-    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+    apiState.quotations = rows
+    seedSession('administrador')
   })
 
   it('renders the hero band and the KPI strip from the server summary', async () => {
@@ -181,6 +193,58 @@ describe('quotations list redesign', () => {
     expect(wrapper.findAll('[data-row-action="reject"]')).toHaveLength(2)
     expect(wrapper.findAll('[data-row-action="delete"]')).toHaveLength(1)
     expect(wrapper.findAll('[data-row-action="pdf"]')).toHaveLength(3)
+
+    wrapper.unmount()
+  })
+
+  it('hides the hero create action from a session without manage.quotation', async () => {
+    seedSession('recepcionista')
+    const reception = await mountPage()
+
+    expect(reception.find('[data-hero-action="create"]').exists()).toBe(false)
+
+    reception.unmount()
+
+    seedSession('administrador')
+    const admin = await mountPage()
+
+    expect(admin.find('[data-hero-action="create"]').exists()).toBe(true)
+
+    admin.unmount()
+  })
+
+  it('hides the empty-state create action from a session without manage.quotation', async () => {
+    apiState.quotations = []
+
+    seedSession('recepcionista')
+    const reception = await mountPage()
+
+    expect(reception.find('[data-quotations-empty]').exists()).toBe(true)
+    expect(reception.text()).not.toContain('Nuevo presupuesto')
+
+    reception.unmount()
+
+    seedSession('administrador')
+    const admin = await mountPage()
+
+    expect(admin.find('[data-quotations-empty]').exists()).toBe(true)
+    expect(admin.text()).toContain('Nuevo presupuesto')
+
+    admin.unmount()
+  })
+
+  it('offers the row actions only to the session that can execute them', async () => {
+    seedSession('recepcionista')
+    const wrapper = await mountPage()
+
+    // Reading is a separate grant: the API publishes view.quotation.
+    expect(wrapper.findAll('[data-row-action="view"]')).toHaveLength(3)
+    expect(wrapper.findAll('[data-row-action="pdf"]')).toHaveLength(3)
+
+    expect(wrapper.findAll('[data-row-action="edit"]')).toHaveLength(0)
+    expect(wrapper.findAll('[data-row-action="approve"]')).toHaveLength(0)
+    expect(wrapper.findAll('[data-row-action="reject"]')).toHaveLength(0)
+    expect(wrapper.findAll('[data-row-action="delete"]')).toHaveLength(0)
 
     wrapper.unmount()
   })

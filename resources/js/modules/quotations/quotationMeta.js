@@ -1,8 +1,10 @@
 /**
  * Single source of truth for the presupuestos vocabulary: statuses of the DB
- * enum, money and date formatting, item field mapping and the permission
- * matrix that mirrors routes/api.php. The page, the table, the detail and the
- * modals read from here; nothing duplicates these rules.
+ * enum, money and date formatting, item field mapping and the status rule of
+ * each action. The permission itself is not decided here (#280/#420): the SPA
+ * passes the boolean of `usePermissions().can.*`, a membership check on the
+ * list the API publishes, so this module never repeats the role matrix that
+ * routes/api.php owns.
  */
 
 export const QUOTATION_STATUSES = Object.freeze([
@@ -36,21 +38,6 @@ export const STATUS_FILTER_OPTIONS = Object.freeze([
 ])
 
 export const PENDING_STATUSES = Object.freeze(['sent', 'viewed'])
-
-export const QUOTATION_READ_ROLES = Object.freeze([
-  'administrador',
-  'finanzas',
-  'odontologo',
-  'implantologo',
-  'recepcionista'
-])
-
-export const QUOTATION_WRITE_ROLES = Object.freeze([
-  'administrador',
-  'finanzas',
-  'odontologo',
-  'implantologo'
-])
 
 const MONTH_LABELS = Object.freeze([
   'ene',
@@ -151,30 +138,32 @@ export function resolveItemDescription(item) {
   return item?.item_description || ''
 }
 
-export function canWriteQuotations(role) {
-  return QUOTATION_WRITE_ROLES.includes(role)
+/**
+ * The boolean is `usePermissions().can.*`, never a role: an unresolved string
+ * denies the action instead of granting it.
+ */
+const granted = writable => writable === true
+
+export function canCreateQuotation(writable) {
+  return granted(writable)
 }
 
-export function canCreateQuotation(role) {
-  return canWriteQuotations(role)
+export function canEditQuotation(quotation, writable) {
+  return granted(writable) && quotation?.status === 'draft'
 }
 
-export function canEditQuotation(quotation, role) {
-  return canWriteQuotations(role) && quotation?.status === 'draft'
+export function canApproveQuotation(quotation, writable) {
+  return granted(writable) && PENDING_STATUSES.includes(quotation?.status)
 }
 
-export function canApproveQuotation(quotation, role) {
-  return canWriteQuotations(role) && PENDING_STATUSES.includes(quotation?.status)
+export function canRejectQuotation(quotation, writable) {
+  return granted(writable) && PENDING_STATUSES.includes(quotation?.status)
 }
 
-export function canRejectQuotation(quotation, role) {
-  return canWriteQuotations(role) && PENDING_STATUSES.includes(quotation?.status)
+export function canDeleteQuotation(quotation, writable) {
+  return granted(writable) && quotation?.status === 'draft'
 }
 
-export function canDeleteQuotation(quotation, role) {
-  return canWriteQuotations(role) && quotation?.status === 'draft'
-}
-
-export function canDownloadQuotation(role) {
-  return QUOTATION_READ_ROLES.includes(role)
+export function canDownloadQuotation(readable) {
+  return granted(readable)
 }
