@@ -63,6 +63,7 @@ const PERMISSION_BY_KEY = {
   // Procedure catalog
   manageProcedureCatalog: 'manage.procedure_catalog',
   viewProcedureCatalog: 'view.procedure_catalog',
+  manageProcedureFavorite: 'manage.procedure_favorite',
 
   // Reminders
   manageReminders: 'manage.reminder',
