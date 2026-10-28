@@ -628,7 +628,9 @@ test('@U3 wizard · pila con un modal encima', async ({ page, request }) => {
     evidence.verdict = evidence.checks.some(check => check.ok === false) ? 'DEFECTO' : 'OK'
     evidence.failures = evidence.checks.filter(check => check.ok === false).map(check => check.id)
     evidence.reason =
-      'al cerrar el modal superior el body recupera el scroll aunque el asistente sigue abierto: no forma parte de la pila de modales'
+      evidence.verdict === 'OK'
+        ? null
+        : 'al cerrar el modal superior el body recupera el scroll aunque el asistente sigue abierto: no forma parte de la pila de modales'
 
     const closed = await closeWizard(page)
     evidence.steps.wizardClosed = closed

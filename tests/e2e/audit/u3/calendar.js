@@ -1401,7 +1401,11 @@ test('@U3 calendar · cancelar cita', async ({ page, request }) => {
 
     if (!opened) {
       const reason = 'the fixture chip did not open the detail modal'
-      audit('calendar-cancel.json', { ...evidence, reason, verdict: 'NO PROBADO' })
+      // The finally below re-writes this file: keep the skip reason on the same
+      // object, or the evidence loses why the row was not measured.
+      evidence.reason = reason
+      evidence.verdict = 'NO PROBADO'
+      audit('calendar-cancel.json', evidence)
       test.skip(true, reason)
       return
     }
