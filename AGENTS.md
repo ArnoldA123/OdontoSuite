@@ -621,7 +621,11 @@ documentada y no bloquea producción.
   `CashRegisterCurrentSessionScopeTest` reescrito (tres estados y propiedad de
   la gaveta), `PatientSearchFullNameTest` (6) y los smokes `caja-caja-actual`
   (tres estados), `caja-ready-to-bill`, `caja-cobros`, `caja-depositos`,
-  `caja-transacciones` y `patient-selector`. Suite MySQL completa
+  `caja-transacciones` y `patient-selector`. El estado «Sesión cerrada» además
+  se midió en un navegador real (Playwright/Chromium) sobre una base dedicada:
+  `tests/e2e/cash-current.spec.js` cubre los tres estados del hero y queda como
+  pase manual con guarda `CASH_CURRENT_BROWSER=1`; la evidencia de la corrida
+  vive en `.atl/qa-evidence/audit/money-current/`. Suite MySQL completa
   `OK (2804 tests, 17116 assertions)`; Vitest 1292 pruebas en 151 archivos.
 - **2026-10-27 (primitivas de diálogo: apilado, nombre accesible y foco del
   sheet, #423/#379/#385/#429)** — Los overlays dejan de compartir un plano.
