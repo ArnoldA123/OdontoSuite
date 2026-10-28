@@ -639,8 +639,8 @@ documentada y no bloquea producción.
   MySQL), `biReportActivity` (9), `business-intelligence-reports` (22),
   `business-intelligence-charts` (6, con el fixture del período vacío en cero),
   `lab-cases` (15), `lab-case-form` (7) y `ui-manifest` (17, el formulario ya
-  pertenece a la superficie); Vitest **1490 pruebas en 172 archivos**; suite
-  MySQL y `doc-drift` 14/14.
+  pertenece a la superficie); Vitest **1492 pruebas en 172 archivos**; suite
+  MySQL **OK (2899 pruebas, 17725 aserciones)** y `doc-drift` 14/14.
 
 - **2026-10-28 (shell y recuperación: canales por permiso, menú sin no-ops, un
   solo `h1` y enlace de recuperación explicado, #378/#384/#380/#381/#382/#405)**
