@@ -585,6 +585,24 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (seguimientos de la auditoría de dinero: evidencia del intento
+  bloqueado y reintento de Mercado Pago, #466/#467)** — Dos consecuencias que la
+  verificación independiente de #468 dejó declaradas. **#466**:
+  `POST /api/pending-payments/{id}/pay` corre `AccountingLockService::guard()`
+  antes de abrir su transacción, con la sede de la gaveta activa
+  (`TransactionService::activeCashSession()` pasa a pública), y
+  `createTransaction` acepta `accountingLockGuarded` para no repetir la guarda;
+  el intento bloqueado conserva su fila `accounting_lock_blocked` y el override
+  deja una sola `accounting_lock_overridden`. La bandera refleja si la guarda
+  corrió de verdad, así que una atención que pasa a cerrada entre la lectura
+  previa y la bloqueada se guarda dentro de la transacción en vez de escribir
+  dinero que ninguna guarda vio. **#467**: la preparación de Mercado Pago de
+  `PaymentModal` reconoce el bloqueo con la misma detección que el cobro manual,
+  pinta el aviso y su reintento autorizado vuelve por esa ruta y no por el envío
+  manual. Sin rutas, modelos, migraciones ni permisos nuevos: los conteos de
+  §4/§5 no cambian. Tests: `PendingPaymentsBlockedAuditTest` (3) y `caja-cobros`
+  (16); suite MySQL completa `OK (2823 tests, 17222 assertions)` y Vitest 1320
+  pruebas.
 - **2026-10-27 (auditoría de dinero: saldo único, caja del actor, bloqueo
   contable en el alta y búsqueda por nombre completo, #393/#407/#410/#412)** —
   Cuatro hallazgos de la auditoría UI U5, un commit por issue. **#393**: nace
