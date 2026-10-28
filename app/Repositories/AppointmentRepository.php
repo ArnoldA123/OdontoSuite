@@ -10,6 +10,17 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class AppointmentRepository
 {
     /**
+     * #392 — the status that releases its slot.
+     *
+     * `appointments.slot_reservation` is a stored generated column that is NULL
+     * for exactly this status and 1 for any other, and both unique indexes
+     * (`unique_user_time_slot`, `unique_chair_time_slot`) include it. This is
+     * the same rule, declared once for the pre-check so the query and the index
+     * cannot drift apart again.
+     */
+    public const SLOT_RELEASED_STATUS = 'cancelled';
+
+    /**
      * Find appointments with conflicts for a given user and time range.
      */
     public function findConflicts(
@@ -21,7 +32,7 @@ class AppointmentRepository
     ): Collection {
         $endsAt = $scheduledAt->copy()->addMinutes($duration);
 
-        return Appointment::where('status', '!=', 'cancelled')
+        return Appointment::where('status', '!=', self::SLOT_RELEASED_STATUS)
             ->where(function ($query) use ($userId, $chairId, $scheduledAt, $endsAt, $excludeAppointmentId) {
                 // User conflicts
                 $query->where(function ($q) use ($userId, $scheduledAt, $endsAt, $excludeAppointmentId) {

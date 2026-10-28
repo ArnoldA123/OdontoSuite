@@ -119,7 +119,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 153 migraciones
+  migrations/              # 154 migraciones
   seeders/                 # 17 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, DiagnosisCatalogSeeder,
                            #   AppointmentTypeSeeder, EnvironmentSeeder, ProcedureCatalogSeeder,
