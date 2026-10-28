@@ -137,8 +137,18 @@ const appointmentsPayload = {
   ]
 }
 
+// #447: the empty period is an ACTIVITY state, not a set of empty arrays. A
+// dashboard that still reports 42 appointments and S/ 5320.5 had activity, so
+// the fixture zeroes the counters the surface reads.
 const emptyDashboardPayload = {
   ...dashboardPayload,
+  totalAppointments: 0,
+  totalPatients: 0,
+  newPatients: 0,
+  totalRevenue: 0,
+  totalRefunds: 0,
+  occupancyRate: 0,
+  usedHours: 0,
   appointmentsByDay: [],
   revenueByMonth: [],
   professionalPerformance: []

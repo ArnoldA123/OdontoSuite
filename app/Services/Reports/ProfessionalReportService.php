@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\Reports\Concerns\ResolvesBranchFilter;
 use App\Services\Reports\Concerns\ResolvesMoneyTotals;
 use App\Services\Reports\Concerns\ResolvesReportPeriod;
+use App\Services\Reports\Concerns\SummarizesPeriodActivity;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -15,6 +16,7 @@ class ProfessionalReportService
     use ResolvesBranchFilter;
     use ResolvesMoneyTotals;
     use ResolvesReportPeriod;
+    use SummarizesPeriodActivity;
 
     /**
      * Professional report.
@@ -54,7 +56,11 @@ class ProfessionalReportService
         $professionals = $query->orderBy('name')->get();
 
         if ($professionals->isEmpty()) {
-            return ['data' => [], 'columns' => $this->columns()];
+            return [
+                'data' => [],
+                'summary' => $this->zeroPeriodActivity(),
+                'columns' => $this->columns(),
+            ];
         }
 
         $ids = $professionals->pluck('id')->all();
@@ -119,6 +125,7 @@ class ProfessionalReportService
 
         return [
             'data' => $data->toArray(),
+            'summary' => $this->periodActivity($data),
             'columns' => $this->columns(),
         ];
     }
