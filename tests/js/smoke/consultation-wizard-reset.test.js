@@ -8,7 +8,8 @@ import { mount, flushPromises } from '@vue/test-utils'
 // documented for another patient.
 const harness = vi.hoisted(() => ({
   apiGet: vi.fn(),
-  fetch: vi.fn()
+  fetch: vi.fn(),
+  confirm: vi.fn()
 }))
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
@@ -22,6 +23,28 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
     normalizeError: () => ''
   })
 }))
+
+// #391: cerrar un acto documentado pide confirmación. El asunto de este smoke es
+// el rearme del formulario (#311), así que la confirmación se resuelve como la
+// resolvería el usuario y su llamada se afirma en el caso de la cancelación.
+vi.mock('../../../resources/js/composables/useConfirm', async () => {
+  const { ref } = await import('vue')
+
+  return {
+    useConfirm: () => ({
+      confirm: harness.confirm,
+      isOpen: ref(false),
+      handleConfirm: () => {},
+      handleCancel: () => {}
+    }),
+    confirmIsOpen: ref(false),
+    confirmTitle: ref(''),
+    confirmMessage: ref(''),
+    confirmConfirmText: ref(''),
+    confirmCancelText: ref(''),
+    confirmVariant: ref('default')
+  }
+})
 
 import { useConsultation } from '../../../resources/js/composables/useConsultation'
 import ConsultationWizard from '../../../resources/js/modules/appointments/ConsultationWizard.vue'
@@ -175,6 +198,8 @@ describe('consultation wizard reset between acts (#311)', () => {
     localStorage.clear()
     harness.apiGet.mockReset()
     harness.fetch.mockReset()
+    harness.confirm.mockReset()
+    harness.confirm.mockResolvedValue(true)
     harness.apiGet.mockImplementation(async url => {
       if (url === '/api/diagnoses') return { data: CATALOG, meta: { total: CATALOG.length } }
       if (url.endsWith('/consultation-context')) {
@@ -212,6 +237,8 @@ describe('consultation wizard reset between acts (#311)', () => {
     expect(harness.fetch.mock.calls[0][1].body.get('reason_for_consultation')).toBe(REASON)
     expect(harness.fetch.mock.calls[0][1].body.get('signature[password]')).toBe(PASSWORD)
     expect(wrapper.emitted('completed')).toBeTruthy()
+    // A signed close is the act; nothing is discarded, so nothing is asked.
+    expect(harness.confirm).not.toHaveBeenCalled()
 
     await openNextAppointment(wrapper, APPOINTMENT_B)
     await expectEmptyAct()
@@ -228,6 +255,11 @@ describe('consultation wizard reset between acts (#311)', () => {
     await flushPromises()
 
     await clickButton('Cancelar')
+    // #391: el acto ya documenta algo, así que el descarte se confirma antes de
+    // perderlo.
+    expect(harness.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: 'danger', title: 'Descartar el cierre' })
+    )
     expect(useConsultation().isOpen.value).toBe(false)
 
     await openNextAppointment(wrapper, APPOINTMENT_B)

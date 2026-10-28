@@ -1,667 +1,665 @@
 <template>
-  <Teleport to="body">
-    <div
-      v-if="isOpen"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-[100]"
-      @click.self="handleClose"
+  <div>
+    <!--
+      #391: el asistente es un diálogo del design system, no un overlay propio.
+      Montarlo sobre <UiModal> le da el rol, el nombre accesible, el foco
+      atrapado, el bloqueo de scroll y el Escape de la pila compartida; el
+      cuerpo del modal es quien desplaza el contenido.
+    -->
+    <UiModal
+      :model-value="isOpen"
+      size="4xl"
+      labelledby="consultation-wizard-title"
+      :before-close="requestClose"
+      data-consultation-wizard
     >
-      <div
-        class="bg-canvas rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col border border-hairline"
-      >
-        <!-- Header -->
-        <div class="p-5 border-b border-hairline flex items-center justify-between">
+      <template #header>
+        <div class="min-w-0 flex-1 -m-4 space-y-3 bg-canvas p-4 sm:-m-6 sm:p-6">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 id="consultation-wizard-title" class="text-xl font-semibold text-theme-primary">
+                Expediente de Cita
+              </h2>
+              <p v-if="appointment" class="text-sm text-theme-secondary mt-1">
+                {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }} ·
+                {{ appointment.user?.name }} · {{ formatDateTime(appointment.scheduled_at) }}
+              </p>
+            </div>
+            <button
+              type="button"
+              class="text-theme-secondary hover:text-theme-primary transition-colors"
+              aria-label="Cerrar"
+              data-wizard-close
+              @click="requestClose"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Stepper — UiTabs primitive (CITAS-WIZ-001) -->
+          <div class="overflow-x-auto">
+            <UiTabs
+              v-model="currentStep"
+              :tabs="tabsForUiTabs"
+              variant="pills"
+              aria-label="Pasos de la consulta"
+            />
+          </div>
+        </div>
+      </template>
+
+      <!-- Loading state -->
+      <div v-if="contextLoading" class="flex items-center justify-center p-12">
+        <UiLoadingSpinner size="lg" variant="primary" text="Cargando contexto clínico…" />
+      </div>
+
+      <!-- Content -->
+      <div v-else class="space-y-5">
+        <!-- PASO 1: Modo de consulta -->
+        <section v-if="currentStep === 'mode'" class="space-y-4">
+          <h3 class="text-lg font-semibold text-theme-primary">¿Qué vas a hacer en esta cita?</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <button
+              v-for="opt in modeOptions"
+              :key="opt.value"
+              class="p-4 rounded-xl border-2 text-left transition-all"
+              :class="[
+                payload.mode === opt.value
+                  ? 'border-systemBlue-500 bg-systemBlue-50'
+                  : 'border-hairline hover:border-systemBlue-500'
+              ]"
+              @click="selectMode(opt.value)"
+            >
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-2xl">
+                  {{ opt.icon }}
+                </div>
+                <UiStatusBadge
+                  v-if="payload.mode === opt.value"
+                  :variant="modeBadgeVariant(opt.value)"
+                  :label="opt.label"
+                  size="sm"
+                  show-dot
+                />
+              </div>
+              <div class="font-semibold text-theme-primary">
+                {{ opt.label }}
+              </div>
+              <div class="text-xs text-theme-secondary mt-1">
+                {{ opt.description }}
+              </div>
+            </button>
+          </div>
+
+          <!-- Plan selector (solo en plan_session) -->
+          <div v-if="payload.mode === 'plan_session'" class="mt-4 p-4 bg-theme-surface rounded-xl">
+            <UiSelect
+              v-model="payload.treatment_plan.id"
+              label="Plan a avanzar"
+              :options="planOptions"
+              placeholder="-- Selecciona un plan --"
+            />
+
+            <div v-if="selectedPlan" class="mt-3 space-y-2">
+              <label class="text-sm font-medium text-theme-secondary">
+                Items a marcar como ejecutados hoy
+              </label>
+              <div
+                v-for="item in selectedPlan.items.filter(i => i.status !== 'completed')"
+                :key="item.id"
+                class="flex items-center gap-3 p-2 rounded-lg border-hairline"
+              >
+                <input v-model="executedItemIds" type="checkbox" :value="item.id" class="w-4 h-4" />
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-theme-primary">
+                    {{ item.procedure_name }}
+                  </div>
+                  <div class="text-xs text-theme-secondary">
+                    Fase {{ item.phase_number }} · {{ formatCurrency(item.unit_cost) }} · Status:
+                    {{ item.status }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Plan nuevo (ejecución o consulta con propuesta) -->
+          <div
+            v-if="
+              payload.mode === 'execution' ||
+              (payload.mode === 'consultation' && payload.treatment_plan.as_proposed)
+            "
+            class="mt-4 p-4 bg-theme-surface rounded-xl space-y-3"
+          >
+            <div>
+              <label for="cw-plan-title" class="block text-sm font-medium text-theme-primary mb-1">
+                Título del plan
+              </label>
+              <input
+                id="cw-plan-title"
+                v-model="payload.treatment_plan.title"
+                class="w-full p-2 rounded-lg border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
+                placeholder="Ej: Rehabilitación cuadrante inferior"
+              />
+            </div>
+            <div v-if="payload.mode === 'consultation'" class="flex items-center gap-2">
+              <input
+                id="as_proposed"
+                v-model="payload.treatment_plan.as_proposed"
+                type="checkbox"
+                class="w-4 h-4"
+              />
+              <label for="as_proposed" class="text-sm text-theme-primary">
+                Guardar como propuesta (no ejecutado aún)
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- PASO 2: Evolución SOAP -->
+        <section v-if="currentStep === 'evolution'" class="space-y-4">
+          <h3 class="text-lg font-semibold text-theme-primary">Evolución clínica (SOAP)</h3>
+          <p class="text-sm text-theme-secondary">
+            El motivo de consulta y los 4 campos SOAP son obligatorios para cerrar la consulta.
+          </p>
+
+          <!-- F6 (#286, NTS 139): el motivo de consulta pertenece al acto, no a la
+                 evolución, y aplica a los tres modos del asistente. -->
           <div>
-            <h2 class="text-xl font-semibold text-theme-primary">Expediente de Cita</h2>
-            <p v-if="appointment" class="text-sm text-theme-secondary mt-1">
-              {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }} ·
-              {{ appointment.user?.name }} · {{ formatDateTime(appointment.scheduled_at) }}
+            <label for="cw-reason" class="block text-sm font-medium text-theme-primary mb-1">
+              Motivo de consulta
+            </label>
+            <UiTextarea
+              id="cw-reason"
+              v-model="payload.reason_for_consultation"
+              :rows="2"
+              required
+              placeholder="Lo que el paciente manifiesta como motivo de la atención"
+            />
+            <p class="mt-1 text-xs text-theme-secondary">
+              En palabras del paciente. Se guarda con el acto al firmar el cierre.
             </p>
           </div>
-          <button
-            class="text-theme-secondary hover:text-theme-primary transition-colors"
-            aria-label="Cerrar"
-            @click="handleClose"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
 
-        <!-- Stepper — UiTabs primitive (CITAS-WIZ-001) -->
-        <div class="px-5 py-3 border-b border-hairline overflow-x-auto">
-          <UiTabs
-            v-model="currentStep"
-            :tabs="tabsForUiTabs"
-            variant="pills"
-            aria-label="Pasos de la consulta"
-          />
-        </div>
-
-        <!-- Loading state -->
-        <div v-if="contextLoading" class="flex-1 flex items-center justify-center p-12">
-          <UiLoadingSpinner size="lg" variant="primary" text="Cargando contexto clínico…" />
-        </div>
-
-        <!-- Content -->
-        <div v-else class="flex-1 overflow-y-auto p-5 space-y-5">
-          <!-- PASO 1: Modo de consulta -->
-          <section v-if="currentStep === 'mode'" class="space-y-4">
-            <h3 class="text-lg font-semibold text-theme-primary">¿Qué vas a hacer en esta cita?</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <button
-                v-for="opt in modeOptions"
-                :key="opt.value"
-                class="p-4 rounded-xl border-2 text-left transition-all"
-                :class="[
-                  payload.mode === opt.value
-                    ? 'border-systemBlue-500 bg-systemBlue-50'
-                    : 'border-hairline hover:border-systemBlue-500'
-                ]"
-                @click="selectMode(opt.value)"
-              >
-                <div class="flex items-center justify-between mb-2">
-                  <div class="text-2xl">
-                    {{ opt.icon }}
-                  </div>
-                  <UiStatusBadge
-                    v-if="payload.mode === opt.value"
-                    :variant="modeBadgeVariant(opt.value)"
-                    :label="opt.label"
-                    size="sm"
-                    show-dot
-                  />
-                </div>
-                <div class="font-semibold text-theme-primary">
-                  {{ opt.label }}
-                </div>
-                <div class="text-xs text-theme-secondary mt-1">
-                  {{ opt.description }}
-                </div>
-              </button>
-            </div>
-
-            <!-- Plan selector (solo en plan_session) -->
-            <div
-              v-if="payload.mode === 'plan_session'"
-              class="mt-4 p-4 bg-theme-surface rounded-xl"
-            >
-              <UiSelect
-                v-model="payload.treatment_plan.id"
-                label="Plan a avanzar"
-                :options="planOptions"
-                placeholder="-- Selecciona un plan --"
-              />
-
-              <div v-if="selectedPlan" class="mt-3 space-y-2">
-                <label class="text-sm font-medium text-theme-secondary">
-                  Items a marcar como ejecutados hoy
-                </label>
-                <div
-                  v-for="item in selectedPlan.items.filter(i => i.status !== 'completed')"
-                  :key="item.id"
-                  class="flex items-center gap-3 p-2 rounded-lg border-hairline"
-                >
-                  <input
-                    v-model="executedItemIds"
-                    type="checkbox"
-                    :value="item.id"
-                    class="w-4 h-4"
-                  />
-                  <div class="flex-1">
-                    <div class="text-sm font-medium text-theme-primary">
-                      {{ item.procedure_name }}
-                    </div>
-                    <div class="text-xs text-theme-secondary">
-                      Fase {{ item.phase_number }} · {{ formatCurrency(item.unit_cost) }} · Status:
-                      {{ item.status }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Plan nuevo (ejecución o consulta con propuesta) -->
-            <div
-              v-if="
-                payload.mode === 'execution' ||
-                (payload.mode === 'consultation' && payload.treatment_plan.as_proposed)
-              "
-              class="mt-4 p-4 bg-theme-surface rounded-xl space-y-3"
-            >
-              <div>
-                <label
-                  for="cw-plan-title"
-                  class="block text-sm font-medium text-theme-primary mb-1"
-                >
-                  Título del plan
-                </label>
-                <input
-                  id="cw-plan-title"
-                  v-model="payload.treatment_plan.title"
-                  class="w-full p-2 rounded-lg border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
-                  placeholder="Ej: Rehabilitación cuadrante inferior"
-                />
-              </div>
-              <div v-if="payload.mode === 'consultation'" class="flex items-center gap-2">
-                <input
-                  id="as_proposed"
-                  v-model="payload.treatment_plan.as_proposed"
-                  type="checkbox"
-                  class="w-4 h-4"
-                />
-                <label for="as_proposed" class="text-sm text-theme-primary">
-                  Guardar como propuesta (no ejecutado aún)
-                </label>
-              </div>
-            </div>
-          </section>
-
-          <!-- PASO 2: Evolución SOAP -->
-          <section v-if="currentStep === 'evolution'" class="space-y-4">
-            <h3 class="text-lg font-semibold text-theme-primary">Evolución clínica (SOAP)</h3>
-            <p class="text-sm text-theme-secondary">
-              El motivo de consulta y los 4 campos SOAP son obligatorios para cerrar la consulta.
-            </p>
-
-            <!-- F6 (#286, NTS 139): el motivo de consulta pertenece al acto, no a la
-                 evolución, y aplica a los tres modos del asistente. -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label for="cw-reason" class="block text-sm font-medium text-theme-primary mb-1">
-                Motivo de consulta
+              <label for="cw-soap-s" class="block text-sm font-medium text-theme-primary mb-1">
+                S — Subjetivo
               </label>
               <UiTextarea
-                id="cw-reason"
-                v-model="payload.reason_for_consultation"
-                :rows="2"
+                id="cw-soap-s"
+                v-model="payload.evolution.subjective"
+                :rows="3"
                 required
-                placeholder="Lo que el paciente manifiesta como motivo de la atención"
+                placeholder="Lo que el paciente refiere"
               />
-              <p class="mt-1 text-xs text-theme-secondary">
-                En palabras del paciente. Se guarda con el acto al firmar el cierre.
-              </p>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label for="cw-soap-s" class="block text-sm font-medium text-theme-primary mb-1">
-                  S — Subjetivo
-                </label>
-                <UiTextarea
-                  id="cw-soap-s"
-                  v-model="payload.evolution.subjective"
-                  :rows="3"
-                  required
-                  placeholder="Lo que el paciente refiere"
-                />
-              </div>
-              <div>
-                <label for="cw-soap-o" class="block text-sm font-medium text-theme-primary mb-1">
-                  O — Objetivo
-                </label>
-                <UiTextarea
-                  id="cw-soap-o"
-                  v-model="payload.evolution.objective"
-                  :rows="3"
-                  required
-                  placeholder="Hallazgos clínicos, signos vitales, examen"
-                />
-              </div>
-              <div>
-                <label for="cw-soap-a" class="block text-sm font-medium text-theme-primary mb-1">
-                  A — Assessment
-                </label>
-                <UiTextarea
-                  id="cw-soap-a"
-                  v-model="payload.evolution.assessment"
-                  :rows="3"
-                  required
-                  placeholder="Diagnóstico, impresión clínica"
-                />
-              </div>
-              <div>
-                <label for="cw-soap-p" class="block text-sm font-medium text-theme-primary mb-1">
-                  P — Plan
-                </label>
-                <UiTextarea
-                  id="cw-soap-p"
-                  v-model="payload.evolution.plan"
-                  :rows="3"
-                  required
-                  placeholder="Tratamiento a seguir, próximas acciones"
-                />
-              </div>
+            <div>
+              <label for="cw-soap-o" class="block text-sm font-medium text-theme-primary mb-1">
+                O — Objetivo
+              </label>
+              <UiTextarea
+                id="cw-soap-o"
+                v-model="payload.evolution.objective"
+                :rows="3"
+                required
+                placeholder="Hallazgos clínicos, signos vitales, examen"
+              />
             </div>
-
-            <!-- F6 (#286, NTS 139): diagnóstico codificado contra el catálogo CIE-10. -->
-            <div class="pt-2">
-              <h4 class="text-sm font-semibold text-theme-primary">Diagnóstico (CIE-10)</h4>
-              <p class="text-xs text-theme-secondary mb-2">
-                Al menos un diagnóstico codificado cierra el acto: el registro congela el código y
-                el nombre elegidos.
-              </p>
-              <DiagnosisPicker v-model="payload.diagnoses" />
+            <div>
+              <label for="cw-soap-a" class="block text-sm font-medium text-theme-primary mb-1">
+                A — Assessment
+              </label>
+              <UiTextarea
+                id="cw-soap-a"
+                v-model="payload.evolution.assessment"
+                :rows="3"
+                required
+                placeholder="Diagnóstico, impresión clínica"
+              />
             </div>
+            <div>
+              <label for="cw-soap-p" class="block text-sm font-medium text-theme-primary mb-1">
+                P — Plan
+              </label>
+              <UiTextarea
+                id="cw-soap-p"
+                v-model="payload.evolution.plan"
+                :rows="3"
+                required
+                placeholder="Tratamiento a seguir, próximas acciones"
+              />
+            </div>
+          </div>
 
-            <details class="mt-2">
-              <summary class="cursor-pointer text-sm font-medium text-theme-secondary">
-                Campos opcionales
-              </summary>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                <div>
-                  <label class="block text-sm font-medium text-theme-primary mb-1">
-                    Procedimientos realizados
-                  </label>
-                  <UiTextarea v-model="payload.evolution.procedures_performed" :rows="2" />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-theme-primary mb-1">
-                    Materiales utilizados
-                  </label>
-                  <UiTextarea v-model="payload.evolution.materials_used" :rows="2" />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-theme-primary mb-1">
-                    Prescripciones
-                  </label>
-                  <UiTextarea v-model="payload.evolution.prescriptions" :rows="2" />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-theme-primary mb-1">
-                    Recomendaciones
-                  </label>
-                  <UiTextarea v-model="payload.evolution.recommendations" :rows="2" />
-                </div>
-              </div>
-            </details>
-          </section>
-
-          <!-- PASO 3: Procedimientos / Plan -->
-          <section v-if="currentStep === 'procedures'" class="space-y-4">
-            <h3 class="text-lg font-semibold text-theme-primary">Procedimientos</h3>
-            <p
-              v-if="payload.mode === 'consultation' && !payload.treatment_plan.as_proposed"
-              class="text-sm text-theme-secondary"
-            >
-              Esta cita es de evaluación. Si necesitas proponer un plan, marca "Guardar como
-              propuesta" en el paso 1.
+          <!-- F6 (#286, NTS 139): diagnóstico codificado contra el catálogo CIE-10. -->
+          <div class="pt-2">
+            <h4 class="text-sm font-semibold text-theme-primary">Diagnóstico (CIE-10)</h4>
+            <p class="text-xs text-theme-secondary mb-2">
+              Al menos un diagnóstico codificado cierra el acto: el registro congela el código y el
+              nombre elegidos.
             </p>
+            <DiagnosisPicker v-model="payload.diagnoses" />
+          </div>
 
-            <div
-              v-if="
-                payload.mode === 'execution' ||
-                (payload.mode === 'consultation' && payload.treatment_plan.as_proposed)
-              "
-            >
-              <div class="space-y-2">
-                <div
-                  v-for="(item, idx) in payload.treatment_plan.items"
-                  :key="idx"
-                  class="p-3 border-hairline rounded-lg space-y-2"
-                >
-                  <div class="relative">
-                    <label class="block text-xs text-theme-secondary mb-1">
-                      Procedimiento (catálogo)
-                    </label>
-                    <UiInput
-                      v-model="item.procedure_name"
-                      type="search"
-                      placeholder="Buscar en catálogo (código o nombre)…"
-                      @update:model-value="onProcedureNameInput(idx, $event)"
-                      @focus="onProcedureNameInput(idx, item.procedure_name)"
-                      @blur="closeCatalogResults(idx)"
-                    />
-                    <ul
-                      v-if="catalogResults[idx] && catalogResults[idx].length"
-                      class="absolute z-10 left-0 right-0 mt-1 bg-theme-surface-elevated border-hairline rounded-lg shadow-lg max-h-56 overflow-y-auto"
-                    >
-                      <li
-                        v-for="opt in catalogResults[idx]"
-                        :key="opt.id"
-                        class="px-3 py-2 hover:bg-systemBlue-50 cursor-pointer"
-                        @mousedown.prevent="selectProcedure(idx, opt)"
-                      >
-                        <div class="text-sm font-medium text-theme-primary">
-                          {{ opt.label }}
-                        </div>
-                        <div class="text-xs text-theme-secondary">
-                          {{ opt.specialty || 'general' }} ·
-                          {{ formatCurrency(opt.default_cost) }} ·
-                          {{ opt.default_duration_minutes || '—' }} min
-                        </div>
-                      </li>
-                    </ul>
-                  </div>
-                  <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
-                    <input
-                      v-model="item.specialty"
-                      placeholder="Especialidad"
-                      class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
-                    />
-                    <input
-                      v-model.number="item.unit_cost"
-                      type="number"
-                      step="0.01"
-                      placeholder="Costo unit."
-                      class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
-                      style="font-feature-settings: var(--font-features-tabular-nums)"
-                    />
-                    <input
-                      v-model.number="item.quantity"
-                      type="number"
-                      min="1"
-                      placeholder="Cantidad"
-                      class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
-                      style="font-feature-settings: var(--font-features-tabular-nums)"
-                    />
-                    <input
-                      v-model.number="item.estimated_duration_minutes"
-                      type="number"
-                      min="5"
-                      placeholder="Duración (min)"
-                      class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
-                      style="font-feature-settings: var(--font-features-tabular-nums)"
-                    />
-                  </div>
-                  <div
-                    v-if="item.materials_required && item.materials_required.length"
-                    class="text-xs text-theme-secondary"
-                  >
-                    Materiales sugeridos: {{ item.materials_required.join(', ') }}
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <label class="flex items-center gap-2 text-xs text-theme-secondary">
-                      <input v-model="item.requires_anesthesia" type="checkbox" class="w-3 h-3" />
-                      Requiere anestesia
-                    </label>
-                    <button
-                      class="text-xs text-systemRed-600 hover:underline"
-                      @click="removeItem(idx)"
-                    >
-                      Quitar item
-                    </button>
-                  </div>
-                </div>
+          <details class="mt-2">
+            <summary class="cursor-pointer text-sm font-medium text-theme-secondary">
+              Campos opcionales
+            </summary>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+              <div>
+                <label class="block text-sm font-medium text-theme-primary mb-1">
+                  Procedimientos realizados
+                </label>
+                <UiTextarea v-model="payload.evolution.procedures_performed" :rows="2" />
               </div>
-              <UiButton variant="secondary" size="sm" class="mt-3" @click="addItem">
-                + Agregar procedimiento
-              </UiButton>
+              <div>
+                <label class="block text-sm font-medium text-theme-primary mb-1">
+                  Materiales utilizados
+                </label>
+                <UiTextarea v-model="payload.evolution.materials_used" :rows="2" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-theme-primary mb-1">
+                  Prescripciones
+                </label>
+                <UiTextarea v-model="payload.evolution.prescriptions" :rows="2" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-theme-primary mb-1">
+                  Recomendaciones
+                </label>
+                <UiTextarea v-model="payload.evolution.recommendations" :rows="2" />
+              </div>
             </div>
-          </section>
+          </details>
+        </section>
 
-          <!-- PASO 4: Materiales -->
-          <section v-if="currentStep === 'materials'" class="space-y-4">
-            <h3 class="text-lg font-semibold text-theme-primary">Materiales e insumos</h3>
+        <!-- PASO 3: Procedimientos / Plan -->
+        <section v-if="currentStep === 'procedures'" class="space-y-4">
+          <h3 class="text-lg font-semibold text-theme-primary">Procedimientos</h3>
+          <p
+            v-if="payload.mode === 'consultation' && !payload.treatment_plan.as_proposed"
+            class="text-sm text-theme-secondary"
+          >
+            Esta cita es de evaluación. Si necesitas proponer un plan, marca "Guardar como
+            propuesta" en el paso 1.
+          </p>
 
-            <div
-              v-if="payload.mode === 'consultation'"
-              class="p-3 bg-systemYellow-50 border border-systemYellow-200 rounded-lg text-sm text-systemYellow-700"
-            >
-              Esta cita es de evaluación. Si no se consumieron materiales, marca "Saltar".
-            </div>
-
-            <div
-              v-if="requiresMaterials"
-              class="p-3 bg-systemBlue-50 border border-systemBlue-200 rounded-lg text-sm text-systemBlue-700"
-            >
-              El tipo de cita "{{ appointmentType?.name }}" requiere registrar materiales.
-            </div>
-
-            <label class="flex items-center gap-2 text-sm text-theme-primary">
-              <input v-model="payload.skip_materials" type="checkbox" class="w-4 h-4" />
-              No se usaron materiales en esta cita
-            </label>
-
-            <div v-if="!payload.skip_materials">
-              <div class="space-y-2">
-                <div
-                  v-for="(mat, idx) in payload.materials"
-                  :key="idx"
-                  class="p-3 border-hairline rounded-lg grid grid-cols-1 md:grid-cols-12 gap-2 relative"
-                >
-                  <div class="md:col-span-5 relative">
-                    <input
-                      v-model="mat._label"
-                      type="text"
-                      placeholder="Buscar producto por nombre o código"
-                      class="w-full p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
-                      autocomplete="off"
-                      @input="onProductSearchInput(idx, $event.target.value)"
-                      @focus="onProductSearchInput(idx, mat._label)"
-                      @blur="closeProductResults(idx)"
-                    />
-                    <div
-                      v-if="productResults[idx] && productResults[idx].length"
-                      class="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-lg border-hairline bg-theme-surface-elevated shadow-lg"
+          <div
+            v-if="
+              payload.mode === 'execution' ||
+              (payload.mode === 'consultation' && payload.treatment_plan.as_proposed)
+            "
+          >
+            <div class="space-y-2">
+              <div
+                v-for="(item, idx) in payload.treatment_plan.items"
+                :key="idx"
+                class="p-3 border-hairline rounded-lg space-y-2"
+              >
+                <div class="relative">
+                  <label class="block text-xs text-theme-secondary mb-1">
+                    Procedimiento (catálogo)
+                  </label>
+                  <UiInput
+                    v-model="item.procedure_name"
+                    type="search"
+                    placeholder="Buscar en catálogo (código o nombre)…"
+                    @update:model-value="onProcedureNameInput(idx, $event)"
+                    @focus="onProcedureNameInput(idx, item.procedure_name)"
+                    @blur="closeCatalogResults(idx)"
+                  />
+                  <ul
+                    v-if="catalogResults[idx] && catalogResults[idx].length"
+                    class="absolute z-10 left-0 right-0 mt-1 bg-theme-surface-elevated border-hairline rounded-lg shadow-lg max-h-56 overflow-y-auto"
+                  >
+                    <li
+                      v-for="opt in catalogResults[idx]"
+                      :key="opt.id"
+                      class="px-3 py-2 hover:bg-systemBlue-50 cursor-pointer"
+                      @mousedown.prevent="selectProcedure(idx, opt)"
                     >
-                      <button
-                        v-for="opt in productResults[idx]"
-                        :key="opt.id"
-                        type="button"
-                        class="w-full text-left px-3 py-2 hover:bg-theme-surface text-sm flex justify-between gap-2"
-                        @mousedown.prevent="selectProduct(idx, opt)"
-                      >
-                        <span>
-                          <span class="font-medium">{{ opt.name }}</span>
-                          <span v-if="opt.code" class="text-xs text-theme-secondary ml-1">
-                            ({{ opt.code }})
-                          </span>
-                        </span>
-                        <span class="text-xs text-theme-secondary whitespace-nowrap">
-                          {{ opt.unit || '' }}
-                          <span v-if="opt.cost_price">· {{ formatCurrency(opt.cost_price) }}</span>
-                        </span>
-                      </button>
-                    </div>
-                    <p
-                      v-if="mat.product_id && mat._label"
-                      class="mt-1 text-xs text-theme-secondary"
-                    >
-                      ID: {{ mat.product_id }} · {{ mat._label }}
-                    </p>
-                  </div>
+                      <div class="text-sm font-medium text-theme-primary">
+                        {{ opt.label }}
+                      </div>
+                      <div class="text-xs text-theme-secondary">
+                        {{ opt.specialty || 'general' }} · {{ formatCurrency(opt.default_cost) }} ·
+                        {{ opt.default_duration_minutes || '—' }} min
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
                   <input
-                    v-model.number="mat.quantity_used"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    placeholder="Cantidad"
-                    class="md:col-span-2 p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
-                    style="font-feature-settings: var(--font-features-tabular-nums)"
+                    v-model="item.specialty"
+                    placeholder="Especialidad"
+                    class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
                   />
                   <input
-                    v-model.number="mat.unit_cost"
+                    v-model.number="item.unit_cost"
                     type="number"
                     step="0.01"
                     placeholder="Costo unit."
-                    class="md:col-span-3 p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
+                    class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
                     style="font-feature-settings: var(--font-features-tabular-nums)"
                   />
+                  <input
+                    v-model.number="item.quantity"
+                    type="number"
+                    min="1"
+                    placeholder="Cantidad"
+                    class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
+                    style="font-feature-settings: var(--font-features-tabular-nums)"
+                  />
+                  <input
+                    v-model.number="item.estimated_duration_minutes"
+                    type="number"
+                    min="5"
+                    placeholder="Duración (min)"
+                    class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
+                    style="font-feature-settings: var(--font-features-tabular-nums)"
+                  />
+                </div>
+                <div
+                  v-if="item.materials_required && item.materials_required.length"
+                  class="text-xs text-theme-secondary"
+                >
+                  Materiales sugeridos: {{ item.materials_required.join(', ') }}
+                </div>
+                <div class="flex items-center justify-between">
+                  <label class="flex items-center gap-2 text-xs text-theme-secondary">
+                    <input v-model="item.requires_anesthesia" type="checkbox" class="w-3 h-3" />
+                    Requiere anestesia
+                  </label>
                   <button
-                    class="md:col-span-2 text-xs text-systemRed-600 hover:underline"
-                    @click="removeMaterial(idx)"
+                    class="text-xs text-systemRed-600 hover:underline"
+                    @click="removeItem(idx)"
                   >
-                    Quitar
+                    Quitar item
                   </button>
                 </div>
               </div>
-              <UiButton variant="secondary" size="sm" class="mt-3" @click="addMaterial">
-                + Agregar material
-              </UiButton>
             </div>
-          </section>
+            <UiButton variant="secondary" size="sm" class="mt-3" @click="addItem">
+              + Agregar procedimiento
+            </UiButton>
+          </div>
+        </section>
 
-          <!-- PASO 5: Adjuntos -->
-          <section v-if="currentStep === 'attachments'" class="space-y-4">
-            <h3 class="text-lg font-semibold text-theme-primary">Archivos adjuntos</h3>
-            <p class="text-sm text-theme-secondary">
-              Radiografías, fotos clínicas, documentos. Máx 10MB por archivo.
-            </p>
+        <!-- PASO 4: Materiales -->
+        <section v-if="currentStep === 'materials'" class="space-y-4">
+          <h3 class="text-lg font-semibold text-theme-primary">Materiales e insumos</h3>
+
+          <div
+            v-if="payload.mode === 'consultation'"
+            class="p-3 bg-systemYellow-50 border border-systemYellow-200 rounded-lg text-sm text-systemYellow-700"
+          >
+            Esta cita es de evaluación. Si no se consumieron materiales, marca "Saltar".
+          </div>
+
+          <div
+            v-if="requiresMaterials"
+            class="p-3 bg-systemBlue-50 border border-systemBlue-200 rounded-lg text-sm text-systemBlue-700"
+          >
+            El tipo de cita "{{ appointmentType?.name }}" requiere registrar materiales.
+          </div>
+
+          <label class="flex items-center gap-2 text-sm text-theme-primary">
+            <input v-model="payload.skip_materials" type="checkbox" class="w-4 h-4" />
+            No se usaron materiales en esta cita
+          </label>
+
+          <div v-if="!payload.skip_materials">
             <div class="space-y-2">
               <div
-                v-for="(att, idx) in payload.attachments"
+                v-for="(mat, idx) in payload.materials"
                 :key="idx"
-                class="p-3 border-hairline rounded-lg flex items-center gap-3"
+                class="p-3 border-hairline rounded-lg grid grid-cols-1 md:grid-cols-12 gap-2 relative"
               >
+                <div class="md:col-span-5 relative">
+                  <input
+                    v-model="mat._label"
+                    type="text"
+                    placeholder="Buscar producto por nombre o código"
+                    class="w-full p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
+                    autocomplete="off"
+                    @input="onProductSearchInput(idx, $event.target.value)"
+                    @focus="onProductSearchInput(idx, mat._label)"
+                    @blur="closeProductResults(idx)"
+                  />
+                  <div
+                    v-if="productResults[idx] && productResults[idx].length"
+                    class="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-lg border-hairline bg-theme-surface-elevated shadow-lg"
+                  >
+                    <button
+                      v-for="opt in productResults[idx]"
+                      :key="opt.id"
+                      type="button"
+                      class="w-full text-left px-3 py-2 hover:bg-theme-surface text-sm flex justify-between gap-2"
+                      @mousedown.prevent="selectProduct(idx, opt)"
+                    >
+                      <span>
+                        <span class="font-medium">{{ opt.name }}</span>
+                        <span v-if="opt.code" class="text-xs text-theme-secondary ml-1">
+                          ({{ opt.code }})
+                        </span>
+                      </span>
+                      <span class="text-xs text-theme-secondary whitespace-nowrap">
+                        {{ opt.unit || '' }}
+                        <span v-if="opt.cost_price">· {{ formatCurrency(opt.cost_price) }}</span>
+                      </span>
+                    </button>
+                  </div>
+                  <p v-if="mat.product_id && mat._label" class="mt-1 text-xs text-theme-secondary">
+                    ID: {{ mat.product_id }} · {{ mat._label }}
+                  </p>
+                </div>
                 <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  class="flex-1 text-sm"
-                  @change="onFileSelected(idx, $event)"
+                  v-model.number="mat.quantity_used"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="Cantidad"
+                  class="md:col-span-2 p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
+                  style="font-feature-settings: var(--font-features-tabular-nums)"
                 />
                 <input
-                  v-model="att.category"
-                  placeholder="Categoría"
-                  list="categories"
-                  class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
-                />
-                <input
-                  v-model="att.description"
-                  placeholder="Descripción"
-                  class="flex-1 p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
+                  v-model.number="mat.unit_cost"
+                  type="number"
+                  step="0.01"
+                  placeholder="Costo unit."
+                  class="md:col-span-3 p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
+                  style="font-feature-settings: var(--font-features-tabular-nums)"
                 />
                 <button
-                  class="text-xs text-systemRed-600 hover:underline"
-                  @click="removeAttachment(idx)"
+                  class="md:col-span-2 text-xs text-systemRed-600 hover:underline"
+                  @click="removeMaterial(idx)"
                 >
                   Quitar
                 </button>
               </div>
             </div>
-            <datalist id="categories">
-              <option value="radiografia" />
-              <option value="foto_clinica" />
-              <option value="documento" />
-              <option value="consentimiento" />
-              <option value="otro" />
-            </datalist>
-            <UiButton variant="secondary" size="sm" @click="addAttachment">
-              + Agregar archivo
+            <UiButton variant="secondary" size="sm" class="mt-3" @click="addMaterial">
+              + Agregar material
             </UiButton>
-          </section>
+          </div>
+        </section>
 
-          <!-- PASO 6: Próxima cita -->
-          <section v-if="currentStep === 'next'" class="space-y-4">
-            <h3 class="text-lg font-semibold text-theme-primary">Próxima cita (opcional)</h3>
-            <p class="text-sm text-theme-secondary">Agenda una cita de seguimiento si aplica.</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label for="cw-next-date" class="block text-sm font-medium text-theme-primary mb-1">
-                  Fecha y hora
-                </label>
-                <input
-                  id="cw-next-date"
-                  v-model="payload.next_appointment.scheduled_at"
-                  type="datetime-local"
-                  class="w-full p-2 rounded-lg border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
-                />
-              </div>
-              <div>
-                <label
-                  for="cw-next-duration"
-                  class="block text-sm font-medium text-theme-primary mb-1"
-                >
-                  Duración (min)
-                </label>
-                <input
-                  id="cw-next-duration"
-                  v-model.number="payload.next_appointment.duration_minutes"
-                  type="number"
-                  min="15"
-                  step="15"
-                  class="w-full p-2 rounded-lg border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
-                  style="font-feature-settings: var(--font-features-tabular-nums)"
-                />
-              </div>
+        <!-- PASO 5: Adjuntos -->
+        <section v-if="currentStep === 'attachments'" class="space-y-4">
+          <h3 class="text-lg font-semibold text-theme-primary">Archivos adjuntos</h3>
+          <p class="text-sm text-theme-secondary">
+            Radiografías, fotos clínicas, documentos. Máx 10MB por archivo.
+          </p>
+          <div class="space-y-2">
+            <div
+              v-for="(att, idx) in payload.attachments"
+              :key="idx"
+              class="p-3 border-hairline rounded-lg flex items-center gap-3"
+            >
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                class="flex-1 text-sm"
+                @change="onFileSelected(idx, $event)"
+              />
+              <input
+                v-model="att.category"
+                placeholder="Categoría"
+                list="categories"
+                class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
+              />
+              <input
+                v-model="att.description"
+                placeholder="Descripción"
+                class="flex-1 p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
+              />
+              <button
+                class="text-xs text-systemRed-600 hover:underline"
+                @click="removeAttachment(idx)"
+              >
+                Quitar
+              </button>
+            </div>
+          </div>
+          <datalist id="categories">
+            <option value="radiografia" />
+            <option value="foto_clinica" />
+            <option value="documento" />
+            <option value="consentimiento" />
+            <option value="otro" />
+          </datalist>
+          <UiButton variant="secondary" size="sm" @click="addAttachment">
+            + Agregar archivo
+          </UiButton>
+        </section>
+
+        <!-- PASO 6: Próxima cita -->
+        <section v-if="currentStep === 'next'" class="space-y-4">
+          <h3 class="text-lg font-semibold text-theme-primary">Próxima cita (opcional)</h3>
+          <p class="text-sm text-theme-secondary">Agenda una cita de seguimiento si aplica.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label for="cw-next-date" class="block text-sm font-medium text-theme-primary mb-1">
+                Fecha y hora
+              </label>
+              <input
+                id="cw-next-date"
+                v-model="payload.next_appointment.scheduled_at"
+                type="datetime-local"
+                class="w-full p-2 rounded-lg border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
+              />
             </div>
             <div>
-              <label for="cw-next-notes" class="block text-sm font-medium text-theme-primary mb-1">
-                Notas
+              <label
+                for="cw-next-duration"
+                class="block text-sm font-medium text-theme-primary mb-1"
+              >
+                Duración (min)
               </label>
-              <UiTextarea id="cw-next-notes" v-model="payload.next_appointment.notes" :rows="2" />
+              <input
+                id="cw-next-duration"
+                v-model.number="payload.next_appointment.duration_minutes"
+                type="number"
+                min="15"
+                step="15"
+                class="w-full p-2 rounded-lg border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
+                style="font-feature-settings: var(--font-features-tabular-nums)"
+              />
             </div>
+          </div>
+          <div>
+            <label for="cw-next-notes" class="block text-sm font-medium text-theme-primary mb-1">
+              Notas
+            </label>
+            <UiTextarea id="cw-next-notes" v-model="payload.next_appointment.notes" :rows="2" />
+          </div>
 
-            <!--
+          <!--
               F5 (#316): el trabajo del taller es una entidad propia. Se abre su
               formulario con el paciente de la cita y no toca el payload del
               cierre: el caso se registra por POST /api/lab-cases.
             -->
-            <div
-              v-if="can.manageLabCase?.value"
-              class="pt-4 border-t"
-              style="border-color: var(--color-hairline)"
-              data-wizard-lab-case
-            >
-              <h4 class="text-sm font-semibold text-theme-primary">Laboratorio protésico</h4>
-              <p class="mt-1 text-sm text-theme-secondary">
-                Si esta atención deja un trabajo en el taller, regístralo como caso de laboratorio.
-              </p>
-              <UiButton
-                variant="secondary"
-                size="sm"
-                class="mt-3"
-                data-wizard-lab-case-new
-                @click="labCaseFormOpen = true"
-              >
-                Registrar caso de laboratorio
-              </UiButton>
-            </div>
-          </section>
-
-          <!-- PASO 7: Cierre y firma (F6 #286, NTS 139) -->
-          <section v-if="currentStep === 'signature'" class="space-y-4">
-            <h3 class="text-lg font-semibold text-theme-primary">Cierre y firma del profesional</h3>
-            <p class="text-sm text-theme-secondary">
-              El registro queda firmado por el profesional del acto: la firma sella el motivo de
-              consulta, los diagnósticos y la evolución con la hora y el colegiado del firmante.
+          <div
+            v-if="can.manageLabCase?.value"
+            class="pt-4 border-t"
+            style="border-color: var(--color-hairline)"
+            data-wizard-lab-case
+          >
+            <h4 class="text-sm font-semibold text-theme-primary">Laboratorio protésico</h4>
+            <p class="mt-1 text-sm text-theme-secondary">
+              Si esta atención deja un trabajo en el taller, regístralo como caso de laboratorio.
             </p>
-
-            <ul class="text-sm text-theme-secondary space-y-1">
-              <li>Motivo de consulta: {{ reasonStatus }}</li>
-              <li>Diagnósticos codificados: {{ payload.diagnoses.length }}</li>
-            </ul>
-
-            <div>
-              <label for="cw-signature" class="block text-sm font-medium text-theme-primary mb-1">
-                Firma del profesional
-              </label>
-              <UiInput
-                id="cw-signature"
-                v-model="payload.signature.password"
-                type="password"
-                autocomplete="current-password"
-                required
-                placeholder="Tu contraseña"
-                data-closure-signature
-              />
-              <p class="mt-1 text-xs text-theme-secondary">
-                Reingresa tu propia contraseña para firmar el registro. No se guarda ni se registra:
-                el servidor conserva el firmante, la hora y el hash de integridad.
-              </p>
-            </div>
-
-            <p
-              v-if="!canSign"
-              class="p-3 bg-systemYellow-50 border border-systemYellow-200 rounded-lg text-sm text-systemYellow-700"
+            <UiButton
+              variant="secondary"
+              size="sm"
+              class="mt-3"
+              data-wizard-lab-case-new
+              @click="labCaseFormOpen = true"
             >
-              Faltan datos para firmar: revisa el motivo de consulta y al menos un diagnóstico en el
-              paso de evolución.
-            </p>
-          </section>
-        </div>
+              Registrar caso de laboratorio
+            </UiButton>
+          </div>
+        </section>
 
-        <!-- Footer -->
-        <div class="p-4 border-t border-hairline flex items-center justify-between">
+        <!-- PASO 7: Cierre y firma (F6 #286, NTS 139) -->
+        <section v-if="currentStep === 'signature'" class="space-y-4">
+          <h3 class="text-lg font-semibold text-theme-primary">Cierre y firma del profesional</h3>
+          <p class="text-sm text-theme-secondary">
+            El registro queda firmado por el profesional del acto: la firma sella el motivo de
+            consulta, los diagnósticos y la evolución con la hora y el colegiado del firmante.
+          </p>
+
+          <ul class="text-sm text-theme-secondary space-y-1">
+            <li>Motivo de consulta: {{ reasonStatus }}</li>
+            <li>Diagnósticos codificados: {{ payload.diagnoses.length }}</li>
+          </ul>
+
+          <div>
+            <label for="cw-signature" class="block text-sm font-medium text-theme-primary mb-1">
+              Firma del profesional
+            </label>
+            <UiInput
+              id="cw-signature"
+              v-model="payload.signature.password"
+              type="password"
+              autocomplete="current-password"
+              required
+              placeholder="Tu contraseña"
+              data-closure-signature
+            />
+            <p class="mt-1 text-xs text-theme-secondary">
+              Reingresa tu propia contraseña para firmar el registro. No se guarda ni se registra:
+              el servidor conserva el firmante, la hora y el hash de integridad.
+            </p>
+          </div>
+
+          <p
+            v-if="!canSign"
+            class="p-3 bg-systemYellow-50 border border-systemYellow-200 rounded-lg text-sm text-systemYellow-700"
+          >
+            Faltan datos para firmar: revisa el motivo de consulta y al menos un diagnóstico en el
+            paso de evolución.
+          </p>
+        </section>
+      </div>
+
+      <!-- Footer -->
+      <template #footer>
+        <div class="flex w-full items-center justify-between">
           <UiButton variant="ghost" size="sm" :disabled="currentStepIndex === 0" @click="prevStep">
             ← Anterior
           </UiButton>
           <div class="flex items-center gap-2">
-            <UiButton variant="ghost" size="sm" @click="handleClose">Cancelar</UiButton>
+            <UiButton variant="ghost" size="sm" @click="requestClose">Cancelar</UiButton>
             <UiButton v-if="!isLastStep" variant="secondary" size="sm" @click="nextStep">
               Siguiente →
             </UiButton>
@@ -677,21 +675,23 @@
             </UiButton>
           </div>
         </div>
-      </div>
+      </template>
+    </UiModal>
 
-      <LabCaseFormModal
-        v-model="labCaseFormOpen"
-        :patient-id="closurePatientId"
-        :patient-name="closurePatientName"
-      />
-    </div>
-  </Teleport>
+    <LabCaseFormModal
+      v-model="labCaseFormOpen"
+      :patient-id="closurePatientId"
+      :patient-name="closurePatientName"
+    />
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, reactive } from 'vue'
 import { useConsultation } from '../../composables/useConsultation'
+import { useConfirm } from '../../composables/useConfirm'
 import { useApi } from '../../composables/useApi'
+import UiModal from '@/components/ui/Modal.vue'
 import UiTabs from '@/components/ui/Tabs.vue'
 import UiInput from '@/components/ui/Input.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
@@ -721,6 +721,10 @@ const {
 
 const { get: apiGet } = useApi()
 const { can } = usePermissions()
+// #391: la confirmación de descarte es la del design system (la monta
+// AppLayout). `confirmOpen` permite soltar la guardia cuando el aviso se
+// cierra por cualquier vía, incluido Escape.
+const { confirm, isOpen: confirmOpen } = useConfirm()
 
 const labCaseFormOpen = ref(false)
 
@@ -841,9 +845,27 @@ const createInitialPayload = () => ({
 
 const payload = ref(createInitialPayload())
 
+// #391: abrir el acto toma una huella de su contenido; la contraseña de firma
+// queda fuera porque sólo existe para la petición que firma el registro. Una
+// solicitud de cierre compara contra esa huella, así que un diálogo intacto se
+// cierra en silencio y uno que documentó algo pide confirmación.
+const actFingerprint = () =>
+  JSON.stringify({
+    ...payload.value,
+    signature: { password: '' },
+    executed_item_ids: executedItemIds.value
+  })
+
+const actSnapshot = ref(actFingerprint())
+
+const snapshotAct = () => {
+  actSnapshot.value = actFingerprint()
+}
+
 // #311: rearma el formulario completo y descarta las búsquedas en vuelo. Un
 // acto clínico no hereda el contenido documentado de otro paciente ni los
-// resultados de un catálogo buscado para el anterior.
+// resultados de un catálogo buscado para el anterior. También toma la huella
+// del acto nuevo (#391): lo que heredó no cuenta como contenido del acto.
 const resetForm = () => {
   payload.value = createInitialPayload()
   currentStep.value = 'mode'
@@ -854,6 +876,58 @@ const resetForm = () => {
   }
   for (const results of [catalogResults, productResults]) {
     Object.keys(results).forEach(key => delete results[key])
+  }
+  snapshotAct()
+}
+
+// #391: única puerta de salida del acto. El botón del encabezado, «Cancelar»,
+// Escape y el clic en el fondo llegan aquí, así que ningún camino descarta el
+// contenido documentado sin preguntar.
+const closeWizard = () => {
+  // The password only exists for the request that signs the record.
+  payload.value.signature.password = ''
+  closeComposable()
+  emit('close')
+}
+
+// Una guardia ya en pantalla se responde una sola vez: mientras el aviso vive,
+// las demás solicitudes de cierre no abren otra confirmación.
+const discardPromptOpen = ref(false)
+
+// El aviso puede cerrarse sin resolver su promesa (Escape o el fondo del
+// diálogo de confirmación); la guardia se suelta igual para que el acto siga
+// siendo cerrable.
+watch(confirmOpen, open => {
+  if (!open) discardPromptOpen.value = false
+})
+
+const askDiscard = () =>
+  confirm({
+    variant: 'danger',
+    title: 'Descartar el cierre',
+    message:
+      'El cierre ya documenta datos del acto; si lo dejas ahora se pierden. ¿Descartar la consulta?',
+    confirmText: 'Descartar',
+    cancelText: 'Seguir documentando'
+  })
+
+const requestClose = async () => {
+  if (discardPromptOpen.value) return false
+
+  if (actFingerprint() === actSnapshot.value) {
+    closeWizard()
+    return true
+  }
+
+  discardPromptOpen.value = true
+
+  try {
+    const discard = await askDiscard()
+    if (!discard) return false
+    closeWizard()
+    return true
+  } finally {
+    discardPromptOpen.value = false
   }
 }
 
@@ -1106,13 +1180,6 @@ const prevStep = () => {
   }
 }
 
-const handleClose = () => {
-  // The password only exists for the request that signs the record.
-  payload.value.signature.password = ''
-  closeComposable()
-  emit('close')
-}
-
 const handleSubmit = async () => {
   if (!canSubmit.value) return
   try {
@@ -1123,7 +1190,7 @@ const handleSubmit = async () => {
       quotation: result?.quotation ?? null,
       quotation_generated: !!result?.meta?.quotation_generated
     })
-    handleClose()
+    closeWizard()
   } catch (e) {
     // submit ya muestra el toast de error
   }
