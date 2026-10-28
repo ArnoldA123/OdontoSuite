@@ -26,11 +26,21 @@
           </div>
           <div class="flex flex-wrap items-center gap-3 md:justify-end">
             <UiStatusBadge
+              v-if="!heroLoading"
               data-hero-state
               :variant="sessionStatusVariant"
               :label="sessionStatusText"
               size="md"
               show-dot
+            />
+            <UiSkeleton
+              v-else
+              data-caja-hero-loading
+              variant="rectangular"
+              :width="120"
+              :height="28"
+              animation="wave"
+              aria-label="Cargando la sesión de caja"
             />
             <UiButton
               v-if="canOpen"
@@ -70,7 +80,7 @@
       </header>
 
       <div
-        v-if="loadError"
+        v-if="sessionError"
         role="alert"
         data-caja-error
         class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -81,7 +91,7 @@
           box-shadow: var(--elevation-1);
         "
       >
-        <p class="text-sm text-systemRed-600">No se pudo cargar la caja: {{ loadError }}</p>
+        <p class="text-sm text-systemRed-600">No se pudo cargar la caja: {{ sessionError }}</p>
         <UiButton variant="secondary" size="sm" data-caja-retry @click="reloadSession">
           Reintentar
         </UiButton>
@@ -102,7 +112,14 @@
             class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
             data-kpi-value="opening"
           >
-            {{ kpiOpening }}
+            <UiSkeleton
+              v-if="heroLoading"
+              :count="1"
+              width="88px"
+              height="1.75rem"
+              animation="wave"
+            />
+            <template v-else>{{ kpiOpening }}</template>
           </p>
           <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="opening">Monto inicial</p>
         </UiCard>
@@ -118,7 +135,14 @@
             class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
             data-kpi-value="income"
           >
-            {{ kpiIncome }}
+            <UiSkeleton
+              v-if="heroLoading"
+              :count="1"
+              width="88px"
+              height="1.75rem"
+              animation="wave"
+            />
+            <template v-else>{{ kpiIncome }}</template>
           </p>
           <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="income">Ventas cobradas</p>
         </UiCard>
@@ -134,7 +158,14 @@
             class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
             data-kpi-value="expenses"
           >
-            {{ kpiExpenses }}
+            <UiSkeleton
+              v-if="heroLoading"
+              :count="1"
+              width="88px"
+              height="1.75rem"
+              animation="wave"
+            />
+            <template v-else>{{ kpiExpenses }}</template>
           </p>
           <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="expenses">Reembolsos</p>
         </UiCard>
@@ -150,7 +181,14 @@
             class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
             data-kpi-value="expected"
           >
-            {{ kpiExpected }}
+            <UiSkeleton
+              v-if="heroLoading"
+              :count="1"
+              width="88px"
+              height="1.75rem"
+              animation="wave"
+            />
+            <template v-else>{{ kpiExpected }}</template>
           </p>
           <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="expected">
             Apertura + movimientos
@@ -395,10 +433,12 @@ const {
   currentSession,
   summary,
   closing,
-  loading: sessionLoading,
-  error: loadError,
+  sessionLoading,
+  sessionError,
   isOpen,
   isClosed,
+  canOpen,
+  canClose,
   loadCurrentSession,
   getSessions
 } = useCashRegister()
@@ -456,19 +496,23 @@ if (canViewPendingPayments.value) {
 }
 
 const sessionStatusVariant = computed(() => {
+  if (sessionError.value) return 'warning'
   if (isOpen.value) return 'success'
   if (isClosed.value) return 'error'
   return 'neutral'
 })
 
 const sessionStatusText = computed(() => {
+  if (sessionError.value) return 'Estado no disponible'
   if (isOpen.value) return 'Sesión abierta'
   if (isClosed.value) return 'Sesión cerrada'
   return 'Sin sesión'
 })
 
-const canOpen = computed(() => !isOpen.value && !sessionLoading.value)
-const canClose = computed(() => isOpen.value && !sessionLoading.value)
+// #411 — only the first reading takes the hero: a background refresh keeps the
+// balances it already knows instead of flashing skeletons over them.
+const heroLoading = computed(() => sessionLoading.value && !currentSession.value)
+
 // #320 (S6): registering a deposit is counter work, so the permission is what
 // keeps clinical desks out of this button. #407 adds the other half: only an
 // open drawer takes deposits, because a closed session is history.

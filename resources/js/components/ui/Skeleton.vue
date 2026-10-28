@@ -20,11 +20,11 @@ const props = defineProps({
   },
   width: {
     type: [String, Number],
-    default: '100%'
+    default: null
   },
   height: {
     type: [String, Number],
-    default: '1rem'
+    default: null
   },
   count: {
     type: Number,
@@ -78,10 +78,20 @@ const items = computed(() => {
   const baseItems = variants[props.variant] || [{ width: '100%', height: '1rem' }]
   return Array(props.count)
     .fill(null)
-    .map((_, index) => ({
-      ...baseItems[index % baseItems.length],
-      id: index
-    }))
+    .map((_, index) => {
+      const item = baseItems[index % baseItems.length]
+
+      return {
+        ...item,
+        // #411 — a caller that declares the size gets it: the variant's default
+        // rectangle cannot stand in for a badge or a KPI figure inside a flex
+        // row (it collapsed to zero width). Without the props, the variant keeps
+        // the size it always painted.
+        ...(props.width !== null && props.width !== undefined ? { width: props.width } : {}),
+        ...(props.height !== null && props.height !== undefined ? { height: props.height } : {}),
+        id: index
+      }
+    })
 })
 
 const getItemClasses = () => [

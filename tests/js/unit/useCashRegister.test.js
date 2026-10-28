@@ -9,13 +9,15 @@ const api = {
   current: null,
   sessions: null,
   failure: null,
+  failuresByUrl: {},
   lastParams: null
 }
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
     get: async (url, options = {}) => {
-      if (api.failure) throw new Error(api.failure)
+      const failure = api.failuresByUrl[url] ?? api.failure
+      if (failure) throw new Error(failure)
       api.lastParams = options.params ?? null
       if (url === '/api/cash-register/current') return { data: api.current }
       if (url === '/api/cash-register/sessions') {
@@ -65,6 +67,7 @@ describe('useCashRegister contract', () => {
     api.current = null
     api.sessions = { data: [], meta: null }
     api.failure = null
+    api.failuresByUrl = {}
     api.lastParams = null
   })
 
@@ -155,8 +158,37 @@ describe('useCashRegister contract', () => {
     const wrapper = mountCashRegister()
     await wrapper.vm.cash.loadCurrentSession()
 
-    expect(wrapper.vm.cash.error.value).toBe('Caja no disponible')
+    expect(wrapper.vm.cash.sessionError.value).toBe('Caja no disponible')
     expect(wrapper.vm.cash.summary.value).toBeNull()
     expect(wrapper.vm.cash.hasActiveSession.value).toBe(false)
+  })
+
+  it('keeps the session failure apart from the lists that load after it', async () => {
+    // #411 — one `error` ref for the drawer and for the lists meant the history
+    // load cleared the reason the hero was supposed to paint.
+    api.failuresByUrl['/api/cash-register/current'] = 'Caja no disponible'
+
+    const wrapper = mountCashRegister()
+    await wrapper.vm.cash.loadCurrentSession()
+    await wrapper.vm.cash.getSessions()
+
+    expect(wrapper.vm.cash.sessionError.value).toBe('Caja no disponible')
+    expect(wrapper.vm.cash.error.value).toBeNull()
+    expect(wrapper.vm.cash.sessionLoading.value).toBe(false)
+    // The drawer state is unknown, so the hero does not offer the door.
+    expect(wrapper.vm.cash.canOpen.value).toBe(false)
+  })
+
+  it('reports its own loading while the session reading is in flight', async () => {
+    const wrapper = mountCashRegister()
+    const pending = wrapper.vm.cash.loadCurrentSession()
+
+    expect(wrapper.vm.cash.sessionLoading.value).toBe(true)
+    expect(wrapper.vm.cash.canOpen.value).toBe(false)
+    expect(wrapper.vm.cash.hasActiveSession.value).toBe(false)
+
+    await pending
+
+    expect(wrapper.vm.cash.sessionLoading.value).toBe(false)
   })
 })
