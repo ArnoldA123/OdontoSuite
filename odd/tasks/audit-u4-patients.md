@@ -72,14 +72,25 @@ Una rama, un commit de unidad por issue, más el del instrumento.
 
 ## Tasks
 
-- T1 · #399 · S1-S2 · inline (un solo escritor del módulo) · commit —
-- T2 · #400 · S5-S7 · inline · commit —
-- T3 · #401 · S8-S9-S11 · inline · commit —
-- T4 · #403 · S12-S14 · worker (backend i18n) + inline (formulario) · `b37c997e`
+- T1 · #399 · S1-S2 · inline (un solo escritor del módulo) · `6c4103c5`
+- T2 · #400 · S5-S7 · inline · `34aa15a2`
+- T3 · #401 · S8-S9-S11 · inline · `6c3e4178` + `fcedaccb`
+- T4 · #403 · S12-S14 · worker (backend i18n) + inline (formulario) · `b37c997e` + `a0642e5f`
 - T5 · #404 · S16-S17 · inline · `cf96f864`
-- T6 · #399-#404 · S3-S4-S10-S15-S18-S19 · inline · commit —
-- T7 · verificación · suite MySQL, Vitest, lint/format/build, doc-drift, sondas
-  U4
+- T6 · #399-#404 · S3-S4-S10-S15-S18-S19 · inline · `b2da7eca`
+- T7 · verificación · Vitest 1373/158, MySQL 2855/17373, Pint 909, ESLint
+  0/36, Prettier, build, doc-drift 14/14, sondas U4 23/23 (14 evidencias OK,
+  api-matrix 0/119, ui-pass `renders`) · cierre en el commit final de la rama
+
+### Rebanadas de revisión
+
+- Rebanada 1: T1 + T2 (la ficha lee lo que puede leer y Especialidades respeta
+  su contrato). Commits `6c4103c5` y `34aa15a2`.
+- Rebanada 2: T3 + T4 (la lista conserva su estado y el alta comunica).
+  Commits `6c3e4178`, `fcedaccb`, `b37c997e` y `a0642e5f`.
+- Rebanada 3: T5 + T6 (capacidad efectiva de exportación, sondas y docs).
+  Commits `cf96f864` y `b2da7eca`.
+- T7 corre al final de las tres. Los PR siguen siendo decisión del dueño.
 
 ## Log
 
@@ -108,3 +119,18 @@ Una rama, un commit de unidad por issue, más el del instrumento.
   `roles.finanzas.buttonVisible === false`; `list-create` mide
   `inlineFieldError` en el envío vacío y en la fecha futura; `list-return` ya
   mide búsqueda y estado en la petición de vuelta.
+- L8: La primera versión de #401 escribía el query con
+  `history.replaceState` para no remontar la vista. La sonda `list · vuelta`
+  devolvió DEFECTO: el `push` de Vue Router 4 reescribe la entrada actual con
+  `historyState.current` (su copia en memoria, sin query) antes de empujar la
+  siguiente, así que el query se perdía al volver. Corrección: `router.replace({
+  query })` y `meta.preserveOnQuery` en la ruta, con el shell keteando por
+  `$route.path` sólo en esa ruta. `list · vuelta` queda OK con
+  `?active=true&search=AUDIT-U4`.
+- L9: `origin/main` avanzó a `cb775770` (#474, auditoría U8 del catálogo
+  protésico) durante la sesión; la rama se fusionó sin conflictos y las sondas
+  se re-midieron después del merge.
+- L10: Sondas U4 completas (23/23) sobre la base sembrada `odontosuite_audit_u4`
+  servida en `:8000`: 14 archivos de evidencia con `verdict: OK`,
+  `api-matrix` 0 desajustes en 119 filas, `ui-pass` clasifica `/patients` y
+  `/patients/:id` como `renders` (0 page errors, 0 http≥400).
