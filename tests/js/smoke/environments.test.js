@@ -36,6 +36,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import { useToast } from '../../../resources/js/composables/useToast'
 import { useConfirm } from '../../../resources/js/composables/useConfirm'
+import rolePermissions from '../support/role-permissions.json'
 import Page from '../../../resources/js/modules/environments/EnvironmentsPage.vue'
 
 const rowActive = {
@@ -77,6 +78,14 @@ const rowArchived = {
 }
 
 let pageRouter = null
+
+// #439: the page gates every write affordance on `usePermissions().can.*`, a
+// membership check on the permission list the API publishes, so the session is
+// seeded with that list and never with a role lookup.
+const seedSession = role => {
+  localStorage.setItem('auth_token', 'test-token')
+  localStorage.setItem('user', JSON.stringify({ id: 1, role, permissions: rolePermissions[role] }))
+}
 
 const mountPage = async () => {
   const router = createRouter({
@@ -138,6 +147,8 @@ beforeEach(async () => {
   await flushPromises()
   vi.clearAllMocks()
   document.body.innerHTML = ''
+  useToast().clearAll()
+  seedSession('administrador')
   getMock.mockResolvedValue({ data: [] })
 })
 
@@ -729,6 +740,100 @@ describe('environments archive management (S9)', () => {
     expect(findConfirmDialog()).toBeFalsy()
     expect(putMock).toHaveBeenCalledWith('/api/dental-chairs/4', { is_active: true })
     expect(wrapper.text()).toContain('Ambiente reactivado exitosamente')
+    wrapper.unmount()
+  })
+})
+
+describe('environments write affordances (#439)', () => {
+  it('keeps the list for a recepcionista session and hides every write control', async () => {
+    seedSession('recepcionista')
+    getMock.mockResolvedValue({ data: [rowActive, rowArchived] })
+    const wrapper = await mountPage()
+
+    // The read surface is untouched: list, filters and "Ver detalle" stay.
+    expect(wrapper.text()).toContain('Consultorio Norte')
+    expect(wrapper.text()).toContain('Consultorio Historico')
+    expect(wrapper.text()).toContain('Ver detalle')
+    expect(wrapper.find('[data-status-filter]').exists()).toBe(true)
+
+    // Every door the API answers 403 is gone: create, edit, archive, delete.
+    expect(wrapper.text()).not.toContain('Nuevo ambiente')
+    expect(wrapper.text()).not.toContain('Editar')
+    expect(wrapper.text()).not.toContain('Archivar')
+    expect(wrapper.text()).not.toContain('Reactivar')
+    expect(wrapper.text()).not.toContain('Eliminar')
+    wrapper.unmount()
+  })
+})
+
+describe('environments field errors (#440)', () => {
+  const createErrorMessage = 'El nombre del ambiente ya está registrado.'
+  const editErrorMessage = 'El nombre del ambiente ya existe en esta sede.'
+
+  const rejection = message => ({
+    status: 422,
+    response: {
+      data: { message: 'Los datos enviados no son válidos.', errors: { name: [message] } }
+    }
+  })
+
+  it('renders a rejected create inside the name field instead of only as a toast', async () => {
+    const toast = useToast()
+    getMock.mockResolvedValue({ data: [rowActive] })
+    postMock.mockRejectedValue(rejection(createErrorMessage))
+    const wrapper = await mountPage()
+
+    await clickRowAction(wrapper, 'Nuevo ambiente')
+    const form = findModalForm('create')
+    setFieldValue(form.querySelector('[data-field="name"] input'), 'Consultorio Norte')
+    findModalAction('create', 'submit').click()
+    await flushPromises()
+
+    expect(postMock).toHaveBeenCalledTimes(1)
+    const stillOpen = findModalForm('create')
+    expect(stillOpen, 'the create modal must stay open after a 422').toBeTruthy()
+    expect(stillOpen.querySelector('[data-field="name"]').textContent).toContain(createErrorMessage)
+    expect(toast.toasts.value.some(entry => entry.message === 'Error al crear el ambiente')).toBe(
+      false
+    )
+
+    // Opening the modal again clears the message the previous save raised.
+    findModalAction('create', 'cancel').click()
+    await flushPromises()
+    await clickRowAction(wrapper, 'Nuevo ambiente')
+    expect(findModalForm('create').querySelector('[data-field="name"]').textContent).not.toContain(
+      createErrorMessage
+    )
+    wrapper.unmount()
+  })
+
+  it('renders a rejected edit inside the name field instead of only as a toast', async () => {
+    const toast = useToast()
+    getMock.mockResolvedValue({ data: [rowActive] })
+    putMock.mockRejectedValue(rejection(editErrorMessage))
+    const wrapper = await mountPage()
+
+    await clickRowAction(wrapper, 'Editar')
+    const form = findModalForm('edit')
+    setFieldValue(form.querySelector('[data-field="name"] input'), 'Consultorio Sur')
+    findModalAction('edit', 'submit').click()
+    await flushPromises()
+
+    expect(putMock).toHaveBeenCalledTimes(1)
+    const stillOpen = findModalForm('edit')
+    expect(stillOpen, 'the edit modal must stay open after a 422').toBeTruthy()
+    expect(stillOpen.querySelector('[data-field="name"]').textContent).toContain(editErrorMessage)
+    expect(
+      toast.toasts.value.some(entry => entry.message === 'Error al actualizar el ambiente')
+    ).toBe(false)
+
+    // Opening the edit modal again clears the message the previous save raised.
+    findModalAction('edit', 'cancel').click()
+    await flushPromises()
+    await clickRowAction(wrapper, 'Editar')
+    expect(findModalForm('edit').querySelector('[data-field="name"]').textContent).not.toContain(
+      editErrorMessage
+    )
     wrapper.unmount()
   })
 })
