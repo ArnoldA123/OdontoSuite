@@ -963,31 +963,78 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
     )
 
     await step(
-      'no-edit',
-      'Buscar en la lista la acción de alta o de edición de un caso',
-      'La superficie no ofrece alta ni edición: el héroe publica solo «Actualizar» y cada fila solo «Ver», así que la edición de un caso vive fuera de esta pantalla',
+      'create',
+      'Buscar en el héroe el alta y abrir el formulario del caso',
+      'La superficie ofrece el alta con `manage.lab_case`: el héroe publica «Nuevo caso», el clic abre el formulario y el envío llama `POST /api/lab-cases` sin inventar un paciente',
       async entry => {
         const panel = await labPanel(page)
         const matches = await writeControls(page, WRITE_LABELS)
-        const rowActions = await page.evaluate(() =>
-          Array.from(document.querySelectorAll('[data-lab-cases-table] tbody tr')).map(row =>
-            Array.from(row.querySelectorAll('button, a')).map(node =>
-              (node.innerText ?? '').trim().replace(/\s+/g, ' ')
-            )
-          )
+        const heroButtons = await page.evaluate(() =>
+          Array.from(
+            document.querySelectorAll('[data-lab-cases-hero] button, [data-lab-cases-hero] a')
+          ).map(node => (node.innerText ?? '').trim().replace(/\s+/g, ' '))
         )
-        const distinctRowActions = [...new Set(rowActions.flat().filter(Boolean))]
+        const create = page.locator('[data-lab-cases-create]').first()
+        const offered = await create.count()
 
-        entry.obtained = `héroe «${panel.hero.title}» · controles de escritura ${JSON.stringify(
-          matches
-        )} · acciones por fila ${JSON.stringify(distinctRowActions)} · filas ${rowActions.length}`
-        entry.request = null
-        entry.detail = { hero: panel.hero, matches, distinctRowActions, rowActions }
-        entry.verdict = matches.length === 0 ? 'NO-OP' : 'DEFECTO'
+        if (!offered) {
+          evidence.captures.push(await shot(page, 'shots/walk/lab-absent-create.png'))
+
+          entry.obtained = `héroe «${panel.hero.title}» · controles de escritura ${JSON.stringify(
+            matches
+          )} · botones del héroe ${JSON.stringify([...new Set(heroButtons.filter(Boolean))])}`
+          entry.request = null
+          entry.detail = { matches, heroButtons, offered: false }
+          entry.verdict = 'NO-OP'
+          entry.notes =
+            'el héroe no publica el alta: la superficie no ofrece «Nuevo caso» ni abre el formulario, que es la acción que la issue y el changelog declaran'
+
+          return entry
+        }
+
+        await create.click({ timeout: 8000 })
+        await settle(page)
+
+        const form = page.locator('[data-lab-case-form]').last()
+        const opened = await form
+          .waitFor({ state: 'visible', timeout: 12000 })
+          .then(() => true)
+          .catch(() => false)
+        const fields = opened
+          ? await form.evaluate(node => ({
+              patient: Boolean(node.querySelector('[data-lab-case-form-patient]')),
+              fixedPatient: Boolean(node.querySelector('[data-lab-case-form-patient-fixed]')),
+              work: Boolean(node.querySelector('[data-lab-case-form-work]')),
+              technician: Boolean(node.querySelector('[data-lab-case-form-technician]')),
+              submit: Boolean(node.querySelector('[data-lab-case-form-submit]'))
+            }))
+          : null
+
+        evidence.captures.push(await shot(page, 'shots/walk/lab-create.png'))
+
+        // The door is measured with an empty body: the API refuses with 422 and
+        // the session never writes a work order it did not mean to write.
+        const door = await api(technician, 'POST', LAB, {})
+
+        entry.obtained = `controles de escritura ${JSON.stringify(matches)} · formulario abierto ${opened} · campos ${JSON.stringify(
+          fields
+        )} · POST vacío ${door.status ?? 'sin respuesta'} «${door.body?.message ?? '—'}»`
+        entry.request =
+          door.status !== null ? { method: 'POST', path: LAB, status: door.status } : null
+        entry.detail = {
+          matches,
+          opened,
+          fields,
+          door: { status: door.status, body: door.body ?? null }
+        }
+        entry.verdict =
+          matches.length > 0 && opened && fields?.submit && door.status === 422 ? 'OK' : 'DEFECTO'
         entry.notes =
-          matches.length === 0
-            ? 'la superficie no ofrece alta ni edición; la issue las lista entre sus acciones y el formulario vive en la ficha del paciente y en el cierre de la atención'
-            : `aparecieron controles de escritura no declarados: ${JSON.stringify(matches)}`
+          entry.verdict === 'OK'
+            ? ''
+            : 'el héroe no publica el alta, el formulario no abre con sus campos, o la puerta POST no responde 422 al cuerpo vacío'
+
+        await closeDialog(page)
 
         return entry
       }
@@ -996,7 +1043,7 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
     await step(
       'foreign-put',
       'Editar por la API el caso C, que pertenece al otro técnico',
-      'La puerta no distingue propiedad: el técnico autenticado recibe un estado que dice si puede escribir el caso ajeno, y recepción responde 403',
+      'La puerta distingue propiedad (#449): el técnico autenticado recibe 403 sobre el caso ajeno, recepción recibe 403 por su permiso, y el caso conserva su trabajo',
       async entry => {
         const target = ids.C
 
@@ -1008,20 +1055,35 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
           return entry
         }
 
-        // An empty payload: the door still answers with the row, and the session
-        // does not rewrite the work order of the other technician to measure it.
+        const before = await api(technician, 'GET', `/api/lab-cases/${target}`)
+        const beforeWork = before.body?.data?.work ?? null
+
+        // An empty payload: the door still answers with the refusal, and the
+        // session does not rewrite the work order of the other technician.
         const asTechnician = await api(technician, 'PUT', `/api/lab-cases/${target}`, {})
         const asReception = await api(reception, 'PUT', `/api/lab-cases/${target}`, {})
+        const after = await api(technician, 'GET', `/api/lab-cases/${target}`)
 
-        const owner = asTechnician.body?.data?.technician_id ?? cases.C?.technicianId ?? null
+        const owner = after.body?.data?.technician_id ?? cases.C?.technicianId ?? null
         const actor = technician.user?.id ?? null
-        const authentication = asTechnician.body?.message ?? null
+        const unchanged = (after.body?.data?.work ?? null) === beforeWork
+
+        // The surface must not offer the edit either: the row publishes `can_edit`.
+        const offered = await page.evaluate(
+          id =>
+            Boolean(
+              document.querySelector(`tr:has([data-lab-case-row="${id}"]) [data-lab-case-edit]`)
+            ),
+          target
+        )
+
+        evidence.captures.push(await shot(page, 'shots/walk/lab-foreign-put.png'))
 
         entry.obtained = `caso C (id ${target}, técnico ${owner}) · PUT con técnico ${
           asTechnician.status ?? 'sin respuesta'
-        } «${authentication ?? '—'}» · PUT con recepción ${asReception.status ?? 'sin respuesta'} «${
-          asReception.body?.message ?? '—'
-        }» · actor técnico ${actor}`
+        } «${asTechnician.body?.message ?? '—'}» · PUT con recepción ${
+          asReception.status ?? 'sin respuesta'
+        } «${asReception.body?.message ?? '—'}» · trabajo intacto ${unchanged} · edición ofrecida en la fila ${offered} · actor técnico ${actor}`
         entry.request =
           asTechnician.status !== null
             ? { method: 'PUT', path: `/api/lab-cases/${target}`, status: asTechnician.status }
@@ -1030,29 +1092,26 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
           target,
           owner,
           actor,
-          asTechnician: {
-            status: asTechnician.status,
-            body: asTechnician.body ?? null
-          },
+          unchanged,
+          offered,
+          beforeWork,
+          asTechnician: { status: asTechnician.status, body: asTechnician.body ?? null },
           asReception: {
             status: asReception.status,
             message: asReception.body?.message ?? null
           }
         }
         entry.verdict =
-          asTechnician.status === 200 && asReception.status === 403
-            ? 'CONFUSO'
-            : asTechnician.status === 403 && asReception.status === 403
-              ? 'OK'
-              : 'DEFECTO'
+          asTechnician.status === 403 &&
+          asReception.status === 403 &&
+          unchanged &&
+          offered === false
+            ? 'OK'
+            : 'DEFECTO'
         entry.notes =
-          entry.verdict === 'CONFUSO'
-            ? 'la puerta PUT acepta al técnico sobre el caso de otro técnico (200) con el mismo permiso `manage.lab_case`: no hay regla de propiedad documentada, y recepción sí recibe 403; el cuerpo vacío no modificó la orden de trabajo'
-            : entry.verdict === 'OK'
-              ? ''
-              : `las dos puertas no responden como declara el catálogo de permisos (técnico ${
-                  asTechnician.status
-                }, recepción ${asReception.status})`
+          entry.verdict === 'OK'
+            ? ''
+            : `la edición del caso ajeno no responde como la regla de propiedad declara (técnico ${asTechnician.status}, recepción ${asReception.status}, trabajo intacto ${unchanged}, edición ofrecida ${offered})`
 
         return entry
       }
@@ -1167,10 +1226,132 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
     )
 
     await step(
-      'absent-create',
-      'Contar en el héroe y en las filas los controles de alta y edición',
-      'Cero controles con «Nuevo», «Nueva», «Crear» o «Editar»: la issue las lista entre las acciones de la superficie y la pantalla no las ofrece',
+      'edit',
+      'Abrir con el técnico la edición de su propio caso y guardar el trabajo',
+      'La fila publica «Editar» para el caso propio, el formulario abre precargado y el envío responde 200 con el trabajo nuevo',
       async entry => {
+        const target = ids.A
+
+        if (!target) {
+          entry.obtained = 'el caso A de la sesión no existe'
+          entry.verdict = 'NO PROBADO'
+          entry.notes = 'sin caso propio no hay edición que medir'
+
+          return entry
+        }
+
+        const visible = await ensureVisible(page, target)
+
+        if (!visible.ok) {
+          entry.obtained = `la fila del caso A (id ${target}) no es alcanzable`
+          entry.verdict = 'DEFECTO'
+          entry.notes = 'la fila del caso propio no se puede poner en pantalla para editar'
+
+          return entry
+        }
+
+        const editAction = page.locator(
+          `tr:has([data-lab-case-row="${target}"]) [data-lab-case-edit]`
+        )
+        const offered = await editAction.count()
+
+        if (!offered) {
+          evidence.captures.push(await shot(page, 'shots/walk/lab-edit.png'))
+
+          entry.obtained = `el caso A (id ${target}) está montado y su fila no publica «Editar»`
+          entry.request = null
+          entry.detail = { target, offered: false }
+          entry.verdict = 'DEFECTO'
+          entry.notes =
+            'la superficie no ofrece editar el caso propio: la fila no publica la acción aunque el perfil gestiona el módulo'
+
+          return entry
+        }
+
+        await editAction.first().click({ timeout: 8000 })
+        await settle(page)
+
+        const form = page.locator('[data-lab-case-form]').last()
+        const opened = await form
+          .waitFor({ state: 'visible', timeout: 12000 })
+          .then(() => true)
+          .catch(() => false)
+        const prefilled = opened
+          ? await form.evaluate(node => {
+              const value = selector =>
+                (
+                  node.querySelector(selector)?.value ??
+                  node.querySelector(selector)?.innerText ??
+                  ''
+                ).trim()
+
+              return {
+                work: value('[data-lab-case-form-work]'),
+                material: value('[data-lab-case-form-material]'),
+                sentAt: value('[data-lab-case-form-sent-at]'),
+                promisedAt: value('[data-lab-case-form-promised-at]')
+              }
+            })
+          : null
+
+        // The write itself is measured through the API with the payload the
+        // form would send: the walk never rewrites a fixture the phase gate
+        // later reads, so it restores the work order it touched.
+        const original = cases.A?.work ?? null
+        const probe = `AUDIT-U10 edición del técnico ${token} work`
+        const saved = await api(technician, 'PUT', `/api/lab-cases/${target}`, { work: probe })
+        const restored =
+          saved.status === 200 && original
+            ? await api(technician, 'PUT', `/api/lab-cases/${target}`, { work: original })
+            : null
+
+        evidence.captures.push(await shot(page, 'shots/walk/lab-edit.png'))
+
+        entry.obtained = `caso A (id ${target}) · «Editar» ofrecido ${offered} · formulario ${opened} · precarga ${JSON.stringify(
+          prefilled
+        )} · PUT ${saved.status ?? 'sin respuesta'} «${saved.body?.meta?.message ?? saved.body?.message ?? '—'}» · restaurado ${
+          restored ? (restored.status ?? 'sin respuesta') : 'no aplica'
+        }`
+        entry.request =
+          saved.status !== null
+            ? { method: 'PUT', path: `/api/lab-cases/${target}`, status: saved.status }
+            : null
+        entry.detail = {
+          target,
+          offered,
+          opened,
+          prefilled,
+          saved: { status: saved.status, body: saved.body ?? null },
+          restored: restored ? { status: restored.status } : null
+        }
+        entry.verdict =
+          opened &&
+          prefilled?.work === original &&
+          saved.status === 200 &&
+          saved.body?.data?.work === probe &&
+          (!restored || restored.status === 200)
+            ? 'OK'
+            : 'DEFECTO'
+        entry.notes =
+          entry.verdict === 'OK'
+            ? ''
+            : 'la edición del caso propio no abre precargada, no responde 200 o el trabajo no llega al payload'
+
+        await closeDialog(page)
+
+        return entry
+      }
+    )
+
+    await step(
+      'absent-create',
+      'Contar en el héroe y en las filas los controles de alta y edición como recepción',
+      'Recepción lee y no escribe: con su sesión el héroe no publica «Nuevo caso» y ninguna fila publica «Editar», porque no tiene `manage.lab_case`',
+      async entry => {
+        await primeSession(page, reception)
+        await gotoSurface(page, SURFACE)
+        await settle(page)
+
         const matches = await writeControls(page, WRITE_LABELS)
         const panel = await labPanel(page)
         const heroButtons = await page.evaluate(() =>
@@ -1195,11 +1376,11 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
         }`
         entry.request = null
         entry.detail = { matches, heroButtons, rowButtons, rows: panel.rows.length }
-        entry.verdict = matches.length === 0 ? 'NO-OP' : 'DEFECTO'
+        entry.verdict = matches.length === 0 ? 'OK' : 'DEFECTO'
         entry.notes =
-          matches.length === 0
-            ? 'alta y edición no existen en esta pantalla: la issue las lista entre sus acciones; el formulario vive en la ficha del paciente y en el cierre de la atención'
-            : `la superficie publica controles que la medición no esperaba: ${JSON.stringify(matches)}`
+          entry.verdict === 'OK'
+            ? ''
+            : `recepción recibe controles de escritura que su permiso no concede: ${JSON.stringify(matches)}`
 
         return entry
       }
@@ -1249,11 +1430,12 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
     '04-phase',
     '05-backward',
     '06-placed',
-    '07-no-edit',
+    '07-create',
     '08-foreign-put',
     '09-read-only',
     '10-contract',
-    '11-absent-create'
+    '11-edit',
+    '12-absent-create'
   ])
   expect(
     evidence.steps.every(entry => Boolean(entry.shot)),

@@ -142,14 +142,13 @@ describe('ui manifest · tabs, dialogs and actions', () => {
   })
 
   it('attributes a dialog to the surface that imports it, not to its module', () => {
+    // #448: the page owns the create/edit form too, not only the detail dialog.
     const labDialogs = surface('/lab-cases').dialogs
     expect(labDialogs.map(dialog => dialog.file)).toEqual([
-      'resources/js/modules/lab-cases/LabCaseDetailModal.vue'
+      'resources/js/modules/lab-cases/LabCaseDetailModal.vue',
+      'resources/js/modules/lab-cases/LabCaseFormModal.vue'
     ])
     expect(labDialogs.every(dialog => dialog.primitive === 'modal')).toBe(true)
-    expect(labDialogs.map(dialog => dialog.file)).not.toContain(
-      'resources/js/modules/lab-cases/LabCaseFormModal.vue'
-    )
 
     expect(surface('/patients/:id').dialogs.map(dialog => dialog.file)).toEqual(
       expect.arrayContaining([
