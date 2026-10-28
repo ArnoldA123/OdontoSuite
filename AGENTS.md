@@ -108,7 +108,7 @@ app/
 
 resources/js/
   app.js                   # entry + router (guards en router/auth.js)
-  composables/             # 45 composables singleton
+  composables/             # 46 composables singleton
   components/
     ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
@@ -667,24 +667,24 @@ documentada y no bloquea producción.
   `undefined`/`null`, el servidor filtraba por ellas y la pestaña Cobros quedaba
   vacía; `resources/js/utils/query.js` (`buildQueryString`) las omite y conserva
   `''`, `0` y `false`, y `useApi` lo usa en `get` y en `download`. **422**:
-  `resources/js/composables/ validationErrors.js` normaliza el cuerpo del
-  rechazo (arrays → primer mensaje, claves anidadas colapsadas al campo
-  declarado) y prefiere el motivo que la API publica en `errors` sobre el
-  `message` genérico; `useFieldValidation` gana `applyServerErrors` y las tres
-  superficies medidas de #415 pintan la razón: editar presupuesto
-  (`QuotationModal`), aprobarlo (`QuotationApprovalModal`) y cambiar el estado
-  de un plan (`TreatmentPlansPage`). **#386**: `lint`/`lint:check` recorren
-  `.mjs` y `ecmaVersion` pasa a 2022 (el `await` de nivel superior de los entry
-  points no se podía parsear); se corrigen los 9 hallazgos publicados y los 6
-  que la extensión dejaba a la vista detrás del error de parseo, sin cambiar la
-  lógica de los scripts. **#458**: mantenimiento del instrumento de U11
-  —evidencia de repetición con `truncated`, informe que exige `manifest.json` y
-  busca la fila por ruta y rol, `tests/e2e/audit/slug.js` como única
-  implementación del slug, filas estáticas validadas contra sus ocho ejes,
-  `renderRows` sin colisión de roles y workflow con el alcance resuelto una vez,
-  `paths` en el push y artefacto vacío como fallo—. §4 sincronizado: 45
-  composables. Sin rutas, modelos, migraciones ni primitivas UI nuevas. Tests:
-  `select-empty-value` (3), `useApi-params` (4), `validationErrors` (6),
+  `resources/js/composables/validationErrors.js` normaliza el cuerpo del rechazo
+  (arrays → primer mensaje, claves anidadas colapsadas al campo declarado) y
+  prefiere el motivo que la API publica en `errors` sobre el `message` genérico;
+  `useFieldValidation` gana `applyServerErrors` y las tres superficies medidas
+  de #415 pintan la razón: editar presupuesto (`QuotationModal`), aprobarlo
+  (`QuotationApprovalModal`) y cambiar el estado de un plan
+  (`TreatmentPlansPage`). **#386**: `lint`/`lint:check` recorren `.mjs` y
+  `ecmaVersion` pasa a 2022 (el `await` de nivel superior de los entry points no
+  se podía parsear); se corrigen los 9 hallazgos publicados y los 6 que la
+  extensión dejaba a la vista detrás del error de parseo, sin cambiar la lógica
+  de los scripts. **#458**: mantenimiento del instrumento de U11 —evidencia de
+  repetición con `truncated`, informe que exige `manifest.json` y busca la fila
+  por ruta y rol, `tests/e2e/audit/slug.js` como única implementación del slug,
+  filas estáticas validadas contra sus ocho ejes, `renderRows` sin colisión de
+  roles y workflow con el alcance resuelto una vez, `paths` en el push y
+  artefacto vacío como fallo—. §4 sincronizado: 46 composables. Sin rutas,
+  modelos, migraciones ni primitivas UI nuevas. Tests: `select-empty-value` (3),
+  `useApi-params` (4), `validationErrors` (6),
   `useFieldValidation-server-errors` (2), `quotations-form` (5),
   `quotations-list` (6) y `treatment-plans` (10), más
   `./node_modules/.bin/eslint --ext .mjs scripts` y `pnpm lint:check` en verde
