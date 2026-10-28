@@ -611,6 +611,66 @@
       </div>
     </UiModal>
 
+    <!-- #394: cancelar pide confirmación y motivo; el motivo se guarda en la
+         cita, no en `notes`, que otra edición pisa. -->
+    <UiModal
+      :model-value="!!cancellingAppointment"
+      title="Cancelar Cita"
+      size="sm"
+      :persistent="cancellationSubmitting"
+      :close-on-backdrop="!cancellationSubmitting"
+      :close-on-escape="!cancellationSubmitting"
+      @update:model-value="closeCancellationDialog"
+      @close="closeCancellationDialog"
+    >
+      <form
+        v-if="cancellingAppointment"
+        id="calendar-cancel-form"
+        data-calendar-cancel
+        class="space-y-4"
+        @submit.prevent="submitCancellation"
+      >
+        <p class="text-sm text-theme-secondary">
+          {{ cancellingAppointment.patient?.first_name }}
+          {{ cancellingAppointment.patient?.last_name }} ·
+          {{ formatDateTime(cancellingAppointment.scheduled_at) }}
+        </p>
+        <UiInput
+          ref="cancellationReasonField"
+          v-model="cancellationReason"
+          label="Motivo de la cancelación"
+          placeholder="Indica el motivo de la cancelación"
+          type="textarea"
+          required
+          data-calendar-cancel-reason
+          :error="cancellationError"
+        />
+      </form>
+      <template #footer>
+        <div class="flex w-full items-center justify-end gap-3">
+          <UiButton
+            variant="secondary"
+            size="md"
+            data-calendar-cancel-back
+            :disabled="cancellationSubmitting"
+            @click="closeCancellationDialog"
+          >
+            Volver
+          </UiButton>
+          <UiButton
+            variant="danger"
+            size="md"
+            type="submit"
+            form="calendar-cancel-form"
+            data-calendar-cancel-confirm
+            :loading="cancellationSubmitting"
+          >
+            Cancelar la cita
+          </UiButton>
+        </div>
+      </template>
+    </UiModal>
+
     <!-- New Appointment Modal -->
     <NewAppointmentModal
       v-model="showNewAppointmentModal"
@@ -629,7 +689,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
@@ -641,6 +701,7 @@ import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiModal from '../../components/ui/Modal.vue'
+import UiInput from '../../components/ui/Input.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import {
   ArrowLeftIcon,
@@ -695,6 +756,7 @@ export default {
     UiBadge,
     UiStatusBadge,
     UiModal,
+    UiInput,
     DentalMotifLayer,
     ArrowLeftIcon,
     CalendarDaysIcon,
@@ -1220,6 +1282,13 @@ export default {
     }
 
     const changeStatus = async (appointment, newStatus) => {
+      // #394: cancelar es un acto deliberado con motivo documentado. El resto
+      // de estados conserva el camino directo.
+      if (newStatus === 'cancelled') {
+        openCancellationDialog(appointment)
+        return
+      }
+
       try {
         // Slice 01 / T-01.5 (API-018): use the dedicated PATCH route for
         // status updates instead of PUT to /appointments/{id} (which only
@@ -1233,6 +1302,79 @@ export default {
       } catch (error) {
         const errorMessage = error?.response?.data?.message || 'Error al cambiar el estado'
         toast.error(errorMessage)
+      }
+    }
+
+    // #394 — la cancelación pide motivo y lo manda como parte del mismo acto de
+    // la cita. El aviso de éxito nombra los recordatorios que se cancelaron.
+    const cancellingAppointment = ref(null)
+    const cancellationReason = ref('')
+    const cancellationError = ref('')
+    const cancellationSubmitting = ref(false)
+    const cancellationReasonField = ref(null)
+
+    const openCancellationDialog = appointment => {
+      cancellingAppointment.value = appointment
+      cancellationReason.value = ''
+      cancellationError.value = ''
+    }
+
+    const resetCancellationDialog = () => {
+      cancellingAppointment.value = null
+      cancellationReason.value = ''
+      cancellationError.value = ''
+    }
+
+    const closeCancellationDialog = () => {
+      if (cancellationSubmitting.value) return
+      resetCancellationDialog()
+    }
+
+    // El foco aterriza en el motivo: la confirmación se resuelve con teclado.
+    watch(
+      cancellingAppointment,
+      appointment => {
+        if (!appointment) return
+        nextTick(() => {
+          const field = cancellationReasonField.value?.$el?.querySelector('textarea')
+          field?.focus()
+        })
+      },
+      { flush: 'post' }
+    )
+
+    const submitCancellation = async () => {
+      const appointment = cancellingAppointment.value
+      if (!appointment || cancellationSubmitting.value) return
+
+      const reason = String(cancellationReason.value || '').trim()
+      if (!reason) {
+        cancellationError.value = 'Indica el motivo de la cancelación.'
+        return
+      }
+
+      cancellationSubmitting.value = true
+      cancellationError.value = ''
+
+      try {
+        const response = await patch(`/api/appointments/${appointment.id}/status`, {
+          status: 'cancelled',
+          cancellation_reason: reason
+        })
+        const cancelledReminders = Number(response?.meta?.reminders_cancelled || 0)
+        toast.success(
+          cancelledReminders > 0
+            ? `Cita cancelada. Se cancelaron ${cancelledReminders} recordatorios pendientes.`
+            : 'Cita cancelada.'
+        )
+        resetCancellationDialog()
+        selectedAppointment.value = null
+        await loadAppointments()
+      } catch (error) {
+        // Un 422 se queda en el campo y el diálogo sigue abierto.
+        cancellationError.value = normalizeError(error, 'No se pudo cancelar la cita')
+      } finally {
+        cancellationSubmitting.value = false
       }
     }
 
@@ -1388,6 +1530,13 @@ export default {
       onChipPointerDown,
       editAppointment,
       changeStatus,
+      cancellingAppointment,
+      cancellationReason,
+      cancellationError,
+      cancellationSubmitting,
+      cancellationReasonField,
+      closeCancellationDialog,
+      submitCancellation,
       deleteAppointment,
       getAppointmentLabel,
       formatHour,
