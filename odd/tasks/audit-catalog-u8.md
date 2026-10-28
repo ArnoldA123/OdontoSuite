@@ -2,8 +2,8 @@
 
 Tres defectos medidos por la auditoría UI (#371, plan #13 §4 capas 4-5), todos
 `crit:alta` y `type:defecto`: #431 y #433 `area:backend`, #432 `area:frontend`.
-Rama `fix/audit-catalog-u8`, worktree
-`/home/chomb/proyectos/odontosuite-catalog-u8`, base `56103c5d` (merge de #473).
+Rama `fix/audit-catalog-u8`, worktree `<ruta-local>`, base `56103c5d` (merge de
+#473).
 
 ## Specs
 
