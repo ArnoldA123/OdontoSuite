@@ -230,7 +230,27 @@ describe('procedure-catalog smoke', () => {
       input => input.value === 'ENDO-001'
     )
     expect(codeInput).toBeTruthy()
+    // The form is fed by the detail, so the recipe arrives with it.
+    expect(document.querySelectorAll('[data-material-recipe-row]').length).toBeGreaterThan(0)
     expect(router.currentRoute.value.query.edit).toBeUndefined()
+
+    wrapper.unmount()
+  })
+
+  it('edits from the procedure detail, not the branch-resolved index row', async () => {
+    // #431 publishes the branch price in the index; the form must edit the list
+    // price the catalog declares and keep the recipe (the row omits it).
+    state.rows = [{ ...procedure, default_cost: 180, list_cost: 150 }, ...rows.slice(1)]
+    state.detail = { ...detail, default_cost: 150 }
+    const { wrapper } = await mountPage()
+
+    await wrapper.find('[data-row-action="edit"]').trigger('click')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Editar procedimiento')
+    const cost = document.querySelector('[data-form-group="pricing"] input[type="number"]')
+    expect(cost.value).toBe('150')
+    expect(document.querySelectorAll('[data-material-recipe-row]').length).toBeGreaterThan(0)
 
     wrapper.unmount()
   })

@@ -375,7 +375,6 @@ const {
   totalPages,
   currentPage,
   getProcedures,
-  getProcedure,
   createProcedure,
   updateProcedure,
   deactivateProcedure
@@ -562,9 +561,19 @@ const openCreate = () => {
   showForm.value = true
 }
 
-const openEdit = procedure => {
-  editingProcedure.value = { ...procedure }
-  showForm.value = true
+// #434/#435: the form edits the procedure, not the index row. The row publishes
+// the branch-resolved price and omits the input recipe, so opening the form
+// from it rewrote the list price and cleared the recipe on save. The detail
+// (`show()`) is the source for both entry points.
+const openEdit = async procedure => {
+  if (!procedure?.id) return
+  try {
+    const detail = (await get(`/api/procedure-catalog/${procedure.id}`)).data
+    editingProcedure.value = detail
+    showForm.value = true
+  } catch {
+    toast.error('No se pudo cargar el procedimiento para editarlo')
+  }
 }
 
 const closeForm = () => {
@@ -587,15 +596,7 @@ const onSaved = procedure => {
 const openEditFromQuery = async () => {
   const editId = route.query.edit
   if (!editId) return
-  let match = procedures.value.find(procedure => String(procedure.id) === String(editId))
-  if (!match) {
-    try {
-      match = await getProcedure(editId)
-    } catch {
-      toast.error('No se pudo cargar el procedimiento solicitado')
-    }
-  }
-  if (match) openEdit(match)
+  await openEdit({ id: editId })
   router.replace({ query: { ...route.query, edit: undefined } })
 }
 
