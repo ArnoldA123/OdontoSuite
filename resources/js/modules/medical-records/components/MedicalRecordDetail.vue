@@ -136,7 +136,7 @@
         <template #icon-left>
           <PencilIcon class="h-4 w-4" aria-hidden="true" />
         </template>
-        Agregar addendum
+        Nuevo addendum
       </UiButton>
       <UiButton
         v-if="canAddEvolution"
@@ -148,7 +148,7 @@
         <template #icon-left>
           <PlusIcon class="h-4 w-4" aria-hidden="true" />
         </template>
-        Agregar evolución
+        Nueva evolución
       </UiButton>
       <UiButton
         v-if="canUploadAttachment"

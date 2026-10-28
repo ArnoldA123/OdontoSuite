@@ -386,7 +386,9 @@
       <UiButton variant="secondary" :disabled="creating" @click="showNewTypeModal = false">
         Cancelar
       </UiButton>
-      <UiButton type="submit" form="form-new-type" :loading="creating">Crear</UiButton>
+      <UiButton type="submit" form="form-new-type" :loading="creating">
+        Guardar tipo de cita
+      </UiButton>
     </template>
   </UiModal>
 

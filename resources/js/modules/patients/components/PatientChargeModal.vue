@@ -1,7 +1,7 @@
 <template>
   <UiModal
     :model-value="modelValue"
-    title="Registrar cargo"
+    title="Nuevo cargo"
     size="md"
     data-patient-charge-modal
     @update:model-value="value => emit('update:modelValue', value)"
@@ -116,7 +116,7 @@
       <div class="flex justify-end gap-3">
         <UiButton variant="secondary" data-patient-charge-cancel @click="close">Cancelar</UiButton>
         <UiButton variant="primary" :loading="saving" data-patient-charge-submit @click="submit">
-          Registrar cargo
+          Guardar cargo
         </UiButton>
       </div>
     </template>

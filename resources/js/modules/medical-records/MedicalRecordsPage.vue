@@ -483,7 +483,7 @@
                   description="Este paciente todavía no tiene una historia clínica abierta."
                 >
                   <UiButton variant="primary" size="sm" @click="openCreateRecord">
-                    Crear historia
+                    Nueva historia
                   </UiButton>
                 </UiSectionEmpty>
 
@@ -507,7 +507,7 @@
                   description="Las evoluciones viven dentro de una historia clínica. Crea la primera para empezar."
                 >
                   <UiButton variant="primary" size="sm" @click="openCreateRecord">
-                    Crear historia
+                    Nueva historia
                   </UiButton>
                 </UiSectionEmpty>
 

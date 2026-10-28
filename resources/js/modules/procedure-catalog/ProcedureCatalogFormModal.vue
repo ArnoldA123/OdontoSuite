@@ -120,7 +120,7 @@
           <template #icon-left>
             <PlusIcon class="h-4 w-4" aria-hidden="true" />
           </template>
-          Agregar equivalencia
+          Nueva equivalencia
         </UiButton>
 
         <ul
@@ -222,7 +222,7 @@
           <template #icon-left>
             <PlusIcon class="h-4 w-4" aria-hidden="true" />
           </template>
-          Agregar insumo
+          Nuevo insumo
         </UiButton>
 
         <ul
@@ -323,7 +323,7 @@
       <div class="flex justify-end gap-3">
         <UiButton variant="secondary" :disabled="saving" @click="emit('close')">Cancelar</UiButton>
         <UiButton :disabled="saving" :loading="saving" data-form-submit @click="onSubmit">
-          {{ isEdit ? 'Actualizar' : 'Crear' }}
+          {{ isEdit ? 'Guardar cambios' : 'Guardar procedimiento' }}
         </UiButton>
       </div>
     </template>

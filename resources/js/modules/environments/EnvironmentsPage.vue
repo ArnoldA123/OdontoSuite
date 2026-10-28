@@ -283,7 +283,7 @@
         data-modal-submit="create"
         @click="createEnvironment"
       >
-        Crear ambiente
+        Guardar ambiente
       </UiButton>
     </template>
   </UiModal>

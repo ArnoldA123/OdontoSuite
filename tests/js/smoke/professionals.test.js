@@ -307,7 +307,7 @@ describe('professionals smoke', () => {
     await wrapper.find('[data-professionals-form-email] input').setValue('nuevo@test.com')
     await chooseSelectOption(wrapper.find('[data-professionals-role]'), 'Técnico Dental')
 
-    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
@@ -326,7 +326,7 @@ describe('professionals smoke', () => {
 
     await wrapper.find('[data-professionals-form-email] input').setValue('nuevo@test.com')
 
-    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
     await flushPromises()
 
     expect(postMock).not.toHaveBeenCalled()
@@ -440,7 +440,7 @@ describe('professionals smoke', () => {
 
     await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
     await wrapper.find('[data-professionals-form-email] input').setValue('nuevo@test.com')
-    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
@@ -659,7 +659,7 @@ describe('professionals smoke', () => {
     await chooseSelectOption(wrapper.find('[data-professionals-form-branch]'), 'Sede Miraflores')
     await chooseSelectOption(wrapper.find('[data-professionals-form-status]'), 'Inactivo')
 
-    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
@@ -726,7 +726,7 @@ describe('professionals smoke', () => {
 
     await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
     await wrapper.find('[data-professionals-form-email] input').setValue('repetido@test.com')
-    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)

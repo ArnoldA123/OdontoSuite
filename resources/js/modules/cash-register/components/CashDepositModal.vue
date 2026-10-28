@@ -1,7 +1,7 @@
 <template>
   <UiModal
     :model-value="modelValue"
-    title="Registrar depósito"
+    title="Nuevo depósito"
     size="md"
     @update:model-value="handleModelValue"
   >
@@ -122,7 +122,7 @@
         <template #icon-left>
           <BanknotesIcon class="h-4 w-4" aria-hidden="true" />
         </template>
-        Registrar depósito
+        Guardar depósito
       </UiButton>
     </template>
   </UiModal>

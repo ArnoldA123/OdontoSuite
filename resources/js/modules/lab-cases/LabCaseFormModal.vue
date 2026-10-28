@@ -267,7 +267,7 @@ const title = computed(() =>
   isEdit.value ? 'Editar caso de laboratorio' : 'Nuevo caso de laboratorio'
 )
 
-const submitLabel = computed(() => (isEdit.value ? 'Guardar cambios' : 'Registrar caso'))
+const submitLabel = computed(() => (isEdit.value ? 'Guardar cambios' : 'Guardar caso'))
 
 const fixedPatient = computed(() =>
   Boolean(props.patientId || props.labCase?.patient_id || props.labCase?.patient?.id)

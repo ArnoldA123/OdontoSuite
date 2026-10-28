@@ -21,7 +21,7 @@
         <template #icon-left>
           <PlusIcon class="w-4 h-4" aria-hidden="true" />
         </template>
-        Registrar cargo
+        Nuevo cargo
       </UiButton>
     </div>
 

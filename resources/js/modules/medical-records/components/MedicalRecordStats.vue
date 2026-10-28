@@ -16,7 +16,7 @@
         data-empty-stats-action
         @click="emit(canCreateEvolution ? 'create-evolution' : 'create-record')"
       >
-        {{ canCreateEvolution ? 'Registrar evolución' : 'Crear historia' }}
+        {{ canCreateEvolution ? 'Nueva evolución' : 'Nueva historia' }}
       </UiButton>
     </UiSectionEmpty>
 

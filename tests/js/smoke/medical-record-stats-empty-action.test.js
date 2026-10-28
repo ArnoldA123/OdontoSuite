@@ -37,7 +37,7 @@ describe('medical record stats empty state action', () => {
     const wrapper = mountStats({ canCreateEvolution: true })
 
     const action = wrapper.get('[data-state="empty-stats"] [data-empty-stats-action]')
-    expect(action.text()).toBe('Registrar evolución')
+    expect(action.text()).toBe('Nueva evolución')
 
     await action.trigger('click')
 
@@ -50,7 +50,7 @@ describe('medical record stats empty state action', () => {
     const wrapper = mountStats({ canCreateRecord: true })
 
     const action = wrapper.get('[data-state="empty-stats"] [data-empty-stats-action]')
-    expect(action.text()).toBe('Crear historia')
+    expect(action.text()).toBe('Nueva historia')
 
     await action.trigger('click')
 
@@ -65,7 +65,7 @@ describe('medical record stats empty state action', () => {
 
     const actions = wrapper.findAll('[data-state="empty-stats"] [data-empty-stats-action]')
     expect(actions).toHaveLength(1)
-    expect(actions[0].text()).toBe('Registrar evolución')
+    expect(actions[0].text()).toBe('Nueva evolución')
 
     wrapper.unmount()
   })

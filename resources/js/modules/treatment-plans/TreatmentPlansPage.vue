@@ -338,7 +338,7 @@
                 data-empty-create
                 @click="openCreateModal"
               >
-                Crear Plan
+                Nuevo plan
               </UiButton>
             </template>
           </UiEmptyState>

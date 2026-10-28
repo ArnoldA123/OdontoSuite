@@ -256,7 +256,7 @@
               <template #icon-left>
                 <PlusIcon class="w-4 h-4" aria-hidden="true" />
               </template>
-              Registrar cobro
+              Nuevo cobro
             </UiButton>
           </template>
         </CashSectionHeader>

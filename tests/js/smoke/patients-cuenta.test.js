@@ -241,7 +241,7 @@ describe('patient statement panel (#320 S4)', () => {
 
     wrapper = await mountPanel({ canManageCharge: true })
     const button = wrapper.get('[data-statement-charge]')
-    expect(button.text()).toContain('Registrar cargo')
+    expect(button.text()).toContain('Nuevo cargo')
 
     await button.trigger('click')
     expect(wrapper.emitted('charge')).toHaveLength(1)

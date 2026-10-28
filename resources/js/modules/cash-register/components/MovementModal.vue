@@ -1,7 +1,7 @@
 <template>
   <UiModal
     :model-value="modelValue"
-    title="Registrar movimiento de caja"
+    title="Nuevo movimiento de caja"
     size="md"
     @update:model-value="handleModelValue"
   >
@@ -117,7 +117,7 @@
         <template #icon-left>
           <PlusIcon class="h-4 w-4" aria-hidden="true" />
         </template>
-        Registrar movimiento
+        Guardar movimiento
       </UiButton>
     </template>
   </UiModal>

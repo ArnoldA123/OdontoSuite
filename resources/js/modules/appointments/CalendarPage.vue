@@ -316,7 +316,7 @@
                 type="button"
                 class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
                 :data-calendar-slot="`${dayDateString}-${hour}`"
-                :aria-label="`Crear cita el ${dayDateString} a las ${formatHour(hour)}`"
+                :aria-label="`Nueva cita el ${dayDateString} a las ${formatHour(hour)}`"
                 @click="openSlotCreate(dayDateString, hour)"
               ></button>
               <div class="pointer-events-none relative space-y-2">
@@ -433,7 +433,7 @@
                       type="button"
                       class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
                       :data-calendar-slot="`${day.date}-${hour}`"
-                      :aria-label="`Crear cita el ${day.date} a las ${formatHour(hour)}`"
+                      :aria-label="`Nueva cita el ${day.date} a las ${formatHour(hour)}`"
                       @click="openSlotCreate(day.date, hour)"
                     ></button>
                     <div class="pointer-events-none absolute inset-1 flex flex-col gap-1">
@@ -669,7 +669,7 @@
             data-calendar-action="status-confirmed"
             @click="changeStatus(selectedAppointment, 'confirmed')"
           >
-            Confirmar
+            Confirmar cita
           </UiButton>
           <UiButton
             v-if="

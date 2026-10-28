@@ -149,7 +149,7 @@
           :description="emptyStateDescription"
         >
           <template #action>
-            <UiButton v-if="!hasActiveFilters" @click="openCreate">Crear procedimiento</UiButton>
+            <UiButton v-if="!hasActiveFilters" @click="openCreate">Nuevo procedimiento</UiButton>
           </template>
         </UiEmptyState>
 

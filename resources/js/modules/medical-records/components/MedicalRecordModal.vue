@@ -224,7 +224,7 @@
         Cancelar
       </UiButton>
       <UiButton type="button" :loading="saving" data-modal-submit @click="onSubmit">
-        Crear historia
+        Guardar historia
       </UiButton>
     </template>
   </UiModal>

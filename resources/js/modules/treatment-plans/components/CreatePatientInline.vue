@@ -92,7 +92,7 @@
         :loading="loading"
         data-create-patient-submit
       >
-        Crear paciente
+        Nuevo paciente
       </UiButton>
     </template>
   </UiModal>

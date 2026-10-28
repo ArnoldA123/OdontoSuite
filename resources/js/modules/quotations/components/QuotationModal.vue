@@ -215,7 +215,7 @@
             <template #icon-left>
               <PlusIcon class="h-4 w-4" />
             </template>
-            Agregar procedimiento
+            Nuevo procedimiento
           </UiButton>
         </div>
       </fieldset>
@@ -359,7 +359,7 @@
         Cancelar
       </UiButton>
       <UiButton type="button" :loading="saving" data-form-action="submit" @click="onSubmit">
-        {{ isEdit ? 'Guardar cambios' : 'Crear presupuesto' }}
+        {{ isEdit ? 'Guardar cambios' : 'Guardar presupuesto' }}
       </UiButton>
     </template>
   </UiModal>

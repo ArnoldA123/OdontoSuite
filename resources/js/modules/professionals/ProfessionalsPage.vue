@@ -489,7 +489,9 @@
       <UiButton variant="secondary" :disabled="creating" @click="showNewProfessionalModal = false">
         Cancelar
       </UiButton>
-      <UiButton type="button" :loading="creating" @click="createProfessional">Crear</UiButton>
+      <UiButton type="button" :loading="creating" @click="createProfessional">
+        Guardar profesional
+      </UiButton>
     </template>
   </UiModal>
 
