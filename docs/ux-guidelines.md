@@ -373,13 +373,42 @@ componente nuevo o un spinner/spinner/empty-state ad-hoc, busca aqui:
 Estos se crean en este sprint (no existian antes) y se documentan en la guia
 para que cualquier dev los encuentre:
 
-| Componente      | Cuando usarlo                                                                 | Ubicacion                          |
-| --------------- | ----------------------------------------------------------------------------- | ---------------------------------- |
-| `PageHeader`    | Cabecera de pagina (titulo + subtitulo + acciones + breadcrumbs)              | `components/layout/PageHeader.vue` |
-| `StatusPill`    | Badge con color semantico mapeado por string (`scheduled`, `completed`, etc.) | `components/ui/StatusPill.vue`     |
-| `ProgressBar`   | Barra de progreso con threshold de color (rojo < 30, ambar 30-60, verde 60+)  | `components/ui/ProgressBar.vue`    |
-| `ConfirmDialog` | Modal de confirmacion (reemplaza `window.confirm()`)                          | `components/ui/ConfirmDialog.vue`  |
-| `FilterBar`     | Filtros siempre visibles tipo iCloud (grid con N columnas)                    | `components/ui/FilterBar.vue`      |
+| Componente      | Cuando usarlo                                                                | Ubicacion                          |
+| --------------- | ---------------------------------------------------------------------------- | ---------------------------------- |
+| `PageHeader`    | Cabecera de pagina (titulo + subtitulo + acciones + breadcrumbs)             | `components/layout/PageHeader.vue` |
+| `ProgressBar`   | Barra de progreso con threshold de color (rojo < 30, ambar 30-60, verde 60+) | `components/ui/ProgressBar.vue`    |
+| `ConfirmDialog` | Modal de confirmacion (reemplaza `window.confirm()`)                         | `components/ui/ConfirmDialog.vue`  |
+| `FilterBar`     | Filtros siempre visibles tipo iCloud (grid con N columnas)                   | `components/ui/FilterBar.vue`      |
+
+### Vocabulario de acciones
+
+Una accion se rotula por lo que hace, no por el modulo que la aloja. Tres reglas
+cubren toda la interfaz:
+
+1. **El disparador de un alta es «Nuevo/Nueva <sustantivo>»**: «Nueva cita»,
+   «Nuevo cargo», «Nuevo procedimiento», «Nueva historia». El sustantivo dice
+   que se va a crear; el verbo no.
+2. **El envío de un formulario lleva verbo con objeto**: «Guardar cambios»,
+   «Guardar evolución», «Confirmar cita», «Confirmar cobro». Nunca «Aceptar»,
+   «Confirmar» u «OK» a secas: el usuario no sabe qué confirma, y dos modales
+   distintos terminan con el mismo botón para dos actos distintos.
+3. **«Cancelar», «Volver» y «Cerrar» son para abortar, salir y cerrar**: no son
+   envíos ni altas, así que no compiten con el verbo del formulario.
+
+Por qué: el mismo acto tiene que leerse igual en todos los módulos. Hoy la misma
+idea convive con cinco rótulos (crear, agregar, registrar, nuevo, alta) y el
+usuario reaprende cada pantalla; además «Confirmar» en el pie de un modal no
+distingue confirmar una cita de guardar un cobro. La regla tiene guarda medida:
+el eje `buttons` del instrumento U11 (`tests/e2e/audit/u11/report.js`) marca DIV
+cuando un disparador de alta empieza por Crear/Agregar/Registrar o cuando un
+envío se rotula exactamente Aceptar/Confirmar/OK. La clasificación sale del
+manifiesto estático (`scripts/audit/ui-manifest.mjs`), no del navegador, así que
+el rótulo se lee en el código y no en una captura.
+
+Al renombrar un disparador, el título del modal que lo aloja se alinea al mismo
+sustantivo: «Registrar cargo» pasa a «Nuevo cargo» en el botón y en el título.
+Un envío no se disfraza de alta: dentro del modal, la acción que confirma lo que
+el formulario tiene se escribe con su verbo («Guardar cargo»), no «Nuevo cargo».
 
 ## 10. Anti-patrones comunes
 
@@ -398,6 +427,8 @@ los Sprints 3-6.
 | `outline: none` o `outline: 0` sin reemplazo                                  | Quita el foco visible, rompe accesibilidad de teclado                            | `focus-visible:ring-2 focus-visible:ring-accent` o `box-shadow: 0 0 0 2px var(--color-accent)` |
 | `<router-view />` sin `:key`                                                  | El componente no remonta al cambiar de ruta, listeners WebSocket quedan colgados | `<router-view :key="$route.fullPath" />` (Sprint 0)                                            |
 | Animar `width` / `height` / `top` / `left`                                    | Causa reflow, se ve entrecortado, peor en pantallas grandes                      | Animar `transform` y `opacity` (ver §6 regla de oro)                                           |
+| Alta rotulada «Crear» / «Agregar» / «Registrar» / «Alta»                      | El mismo acto se lee distinto en cada modulo y el usuario reaprende la pantalla  | «Nuevo/Nueva <sustantivo>» (ver §9, vocabulario de acciones)                                   |
+| Envio rotulado «Aceptar» / «Confirmar» / «OK» a secas                         | El boton no dice que confirma; dos modales distintos comparten el mismo rotulo   | Verbo con objeto: «Guardar cambios», «Guardar evolucion», «Confirmar cita» (ver §9)            |
 
 Si encuentras un anti-patron que no esta en esta lista, anotalo en el siguiente
 sprint de pulido (Sprint 7) o en un code review de seguimiento.

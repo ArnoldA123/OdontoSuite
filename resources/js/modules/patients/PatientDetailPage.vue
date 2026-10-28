@@ -49,7 +49,7 @@
               <template #icon-left>
                 <BanknotesIcon class="w-4 h-4" aria-hidden="true" />
               </template>
-              Registrar cargo
+              Nuevo cargo
             </UiButton>
             <UiButton
               v-if="can.editPatient?.value"
@@ -261,7 +261,7 @@
                   <template #icon-left>
                     <PlusIcon class="w-4 h-4" aria-hidden="true" />
                   </template>
-                  Crear Primer Plan
+                  Nuevo plan
                 </UiButton>
               </template>
               <div class="space-y-4">
@@ -346,7 +346,7 @@
                   <template #icon-left>
                     <PlusIcon class="w-4 h-4" aria-hidden="true" />
                   </template>
-                  Crear Primer Presupuesto
+                  Nuevo presupuesto
                 </UiButton>
               </template>
               <div class="space-y-4">
@@ -433,7 +433,7 @@
                   <template #icon-left>
                     <PlusIcon class="w-4 h-4" aria-hidden="true" />
                   </template>
-                  Crear Primera Historia
+                  Nueva historia
                 </UiButton>
               </template>
               <div class="space-y-4">
@@ -511,7 +511,7 @@
                   <template #icon-left>
                     <PlusIcon class="w-4 h-4" aria-hidden="true" />
                   </template>
-                  Crear Primer Registro
+                  Nuevo registro
                 </UiButton>
               </template>
               <div class="space-y-4">

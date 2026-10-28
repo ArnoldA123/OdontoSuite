@@ -134,8 +134,8 @@
           <p class="text-sm text-theme-secondary">Revisa, filtra y da seguimiento a cada estudio</p>
         </div>
 
-        <UiCard variant="glass" data-ai-filters>
-          <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
+        <UiFilterBar :columns="2" data-ai-filters>
+          <div class="grid grid-cols-1 gap-4 sm:col-span-2 lg:grid-cols-12 lg:items-end">
             <div class="lg:col-span-4">
               <span class="mb-2 block text-sm font-medium text-theme-primary">Estado</span>
               <div
@@ -209,7 +209,7 @@
               </UiButton>
             </div>
           </div>
-        </UiCard>
+        </UiFilterBar>
 
         <div v-if="loading && !hasLoadedOnce" aria-busy="true">
           <UiSkeleton variant="table" animation="wave" />
@@ -278,9 +278,9 @@
               <span class="text-theme-secondary">{{ categoryLabel(row) }}</span>
             </template>
             <template #cell-status="{ row }">
-              <UiStatusPill :status="row.status" :variant="statusVariant(row.status)" size="sm">
+              <UiStatusBadge :variant="statusVariant(row.status)" size="sm">
                 {{ getStatusLabel(row.status) }}
-              </UiStatusPill>
+              </UiStatusBadge>
             </template>
             <template #cell-reviewed="{ row }">
               <span :class="row.reviewed ? 'text-systemGreen-700' : 'text-theme-secondary'">
@@ -384,11 +384,12 @@ import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
+import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'
-import UiStatusPill from '../../components/ui/StatusPill.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import Pagination from '../../components/ui/Pagination.vue'
 import AiAnalysisModal from './components/AiAnalysisModal.vue'
 import AiAnalysisSheet from './components/AiAnalysisSheet.vue'

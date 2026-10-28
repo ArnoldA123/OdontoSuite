@@ -218,7 +218,7 @@ describe('appointment-types CRUD contract', () => {
     await chooseFlag('is_consultation_mode', 'Sí')
     setField('Nombre del Tipo', 'Control de ortodoncia')
     setField('Duración (minutos)', '45')
-    buttonByText('Crear').click()
+    buttonByText('Guardar tipo de cita').click()
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
@@ -270,7 +270,7 @@ describe('appointment-types CRUD contract', () => {
     const wrapper = await mountPage([makeType(1, { name: 'Limpieza dental' })])
     await openNewModal(wrapper)
 
-    const createButton = buttonByText('Crear')
+    const createButton = buttonByText('Guardar tipo de cita')
     expect(createButton.getAttribute('type')).toBe('submit')
     expect(createButton.getAttribute('form')).toBe('form-new-type')
     const form = document.getElementById('form-new-type')
@@ -315,7 +315,7 @@ describe('appointment-types CRUD contract', () => {
     const wrapper = await mountPage([makeType(1, { name: 'Limpieza dental' })])
     await openNewModal(wrapper)
 
-    buttonByText('Crear').click()
+    buttonByText('Guardar tipo de cita').click()
     await flushPromises()
 
     expect(postMock).not.toHaveBeenCalled()
@@ -326,7 +326,7 @@ describe('appointment-types CRUD contract', () => {
 
     setField('Nombre del Tipo', 'Control de ortodoncia')
     setField('Duración (minutos)', '5')
-    buttonByText('Crear').click()
+    buttonByText('Guardar tipo de cita').click()
     await flushPromises()
 
     expect(postMock).not.toHaveBeenCalled()
@@ -363,7 +363,7 @@ describe('appointment-types CRUD contract', () => {
     await openNewModal(wrapper)
     setField('Nombre del Tipo', 'Control de ortodoncia')
     setField('Duración (minutos)', '45')
-    buttonByText('Crear').click()
+    buttonByText('Guardar tipo de cita').click()
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)

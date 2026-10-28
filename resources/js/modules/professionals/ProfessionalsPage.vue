@@ -175,58 +175,56 @@
         <p class="mt-1 text-sm text-theme-secondary" data-team-results>{{ resultsCaption }}</p>
       </div>
 
-      <div data-team-filters class="mb-4">
-        <UiCard variant="glass">
-          <div class="flex flex-col lg:flex-row gap-4">
-            <div class="flex-1">
-              <UiInput
-                v-model="searchQuery"
-                data-professionals-search
-                placeholder="Buscar profesionales por nombre, especialidad o email..."
-                class="w-full"
+      <UiFilterBar :columns="4" class="mb-4" data-team-filters>
+        <div class="sm:col-span-2">
+          <UiInput
+            v-model="searchQuery"
+            data-professionals-search
+            placeholder="Buscar profesionales por nombre, especialidad o email..."
+            class="w-full"
+          >
+            <template #prefix>
+              <svg
+                class="w-5 h-5 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <template #prefix>
-                  <svg
-                    class="w-5 h-5 text-theme-secondary"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </template>
-              </UiInput>
-            </div>
-            <div class="flex items-end gap-3">
-              <UiSelect
-                v-model="specialtyFilter"
-                data-professionals-specialty-filter
-                :options="specialtyFilterOptions"
-                placeholder="Todas las especialidades"
-                class="w-64"
-              />
-              <UiButton
-                v-if="hasActiveFilters"
-                variant="secondary"
-                data-team-clear-filters
-                @click="clearFilters"
-              >
-                Limpiar filtros
-              </UiButton>
-            </div>
-          </div>
-        </UiCard>
-      </div>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </template>
+          </UiInput>
+        </div>
+        <div class="flex items-end">
+          <UiSelect
+            v-model="specialtyFilter"
+            data-professionals-specialty-filter
+            :options="specialtyFilterOptions"
+            placeholder="Todas las especialidades"
+            class="w-full"
+          />
+        </div>
+        <div class="flex items-end">
+          <UiButton
+            v-if="hasActiveFilters"
+            variant="secondary"
+            class="w-full"
+            data-team-clear-filters
+            @click="clearFilters"
+          >
+            Limpiar filtros
+          </UiButton>
+        </div>
+      </UiFilterBar>
 
       <UiCard variant="glass" class="overflow-hidden">
-        <div v-if="loading" class="p-8 text-center">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
-          <p class="mt-2 text-theme-secondary">Cargando profesionales...</p>
+        <div v-if="loading" data-team-loading class="p-6 md:p-8">
+          <UiSkeleton variant="table" animation="wave" aria-label="Cargando profesionales..." />
         </div>
 
         <div v-else-if="loadError" class="p-6 md:p-8">
@@ -281,141 +279,102 @@
           </UiSectionEmpty>
         </div>
 
-        <div v-else class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-theme">
-            <thead class="bg-theme-surface">
-              <tr>
-                <th
-                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+        <!--
+          #453 (U11, list): the team list rides `UiDataTable`, so the
+          horizontal scroll lives inside the table (with its affordance)
+          instead of opening a second axis on the page. The row hook travels
+          through `rowAttributes` and every cell keeps its content.
+        -->
+        <UiDataTable
+          v-else
+          :data="professionals"
+          :columns="teamColumns"
+          :searchable="false"
+          :show-header="false"
+          :pagination="false"
+          row-key="id"
+          table-class="min-w-[960px]"
+          :row-attributes="teamRowAttributes"
+          data-team-table
+        >
+          <template #cell-name="{ row }">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 h-10 w-10">
+                <div
+                  class="h-10 w-10 rounded-full bg-theme-surface flex items-center justify-center"
+                  style="border: 1px solid var(--color-hairline)"
                 >
-                  Profesional
-                </th>
-                <th
-                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                >
-                  Especialidad
-                </th>
-                <th
-                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                >
-                  Rol
-                </th>
-                <th
-                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                >
-                  Matrícula
-                </th>
-                <th
-                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                >
-                  Sucursal
-                </th>
-                <th
-                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                >
-                  Estado
-                </th>
-                <th
-                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                >
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-[color:var(--color-surface-elevated)] divide-y divide-theme">
-              <tr
-                v-for="professional in professionals"
-                :key="professional.id"
-                data-team-row
-                class="hover:bg-theme-surface"
+                  <span class="text-sm font-medium text-accent">
+                    {{ row.name.charAt(0) }}
+                  </span>
+                </div>
+              </div>
+              <div class="ml-4 min-w-0 w-[220px]">
+                <div class="text-sm font-medium text-[color:var(--color-text-primary)] truncate">
+                  {{ row.name }}
+                </div>
+                <div class="text-sm text-theme-secondary truncate">
+                  {{ secondaryLine(row) }}
+                </div>
+              </div>
+            </div>
+          </template>
+          <template #cell-specialty="{ row }">
+            <UiBadge variant="primary" size="sm" shape="pill">
+              {{ getSpecialtyText(row.specialty) }}
+            </UiBadge>
+          </template>
+          <template #cell-role="{ row }">
+            <UiBadge variant="neutral" size="sm" shape="pill">
+              {{ roleLabel(row.role) }}
+            </UiBadge>
+          </template>
+          <template #cell-license="{ row }">
+            <span class="whitespace-nowrap text-sm text-[color:var(--color-text-primary)]">
+              {{ professionalLicense(row) }}
+            </span>
+          </template>
+          <template #cell-branch="{ row }">
+            <span class="whitespace-nowrap text-sm text-[color:var(--color-text-primary)]">
+              {{ branchName(row) }}
+            </span>
+          </template>
+          <template #cell-status="{ row }">
+            <UiBadge :variant="row.is_active ? 'success' : 'error'" size="sm" shape="pill">
+              {{ row.is_active ? 'Activo' : 'Inactivo' }}
+            </UiBadge>
+          </template>
+          <template #actions="{ row }">
+            <div class="flex flex-wrap gap-1.5">
+              <UiButton
+                variant="ghost"
+                size="sm"
+                class="text-accent hover:text-accent-hover"
+                @click="viewDetail(row)"
               >
-                <td class="px-3 py-4">
-                  <div class="flex items-center">
-                    <div class="flex-shrink-0 h-10 w-10">
-                      <div
-                        class="h-10 w-10 rounded-full bg-theme-surface flex items-center justify-center"
-                        style="border: 1px solid var(--color-hairline)"
-                      >
-                        <span class="text-sm font-medium text-accent">
-                          {{ professional.name.charAt(0) }}
-                        </span>
-                      </div>
-                    </div>
-                    <div class="ml-4 min-w-0 w-[220px]">
-                      <div
-                        class="text-sm font-medium text-[color:var(--color-text-primary)] truncate"
-                      >
-                        {{ professional.name }}
-                      </div>
-                      <div class="text-sm text-theme-secondary truncate">
-                        {{ secondaryLine(professional) }}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-3 py-4 whitespace-nowrap">
-                  <UiBadge variant="primary" size="sm" shape="pill">
-                    {{ getSpecialtyText(professional.specialty) }}
-                  </UiBadge>
-                </td>
-                <td class="px-3 py-4 whitespace-nowrap">
-                  <UiBadge variant="neutral" size="sm" shape="pill">
-                    {{ roleLabel(professional.role) }}
-                  </UiBadge>
-                </td>
-                <td
-                  class="px-3 py-4 whitespace-nowrap text-sm text-[color:var(--color-text-primary)]"
-                >
-                  {{ professionalLicense(professional) }}
-                </td>
-                <td
-                  class="px-3 py-4 whitespace-nowrap text-sm text-[color:var(--color-text-primary)]"
-                >
-                  {{ branchName(professional) }}
-                </td>
-                <td class="px-3 py-4 whitespace-nowrap">
-                  <UiBadge
-                    :variant="professional.is_active ? 'success' : 'error'"
-                    size="sm"
-                    shape="pill"
-                  >
-                    {{ professional.is_active ? 'Activo' : 'Inactivo' }}
-                  </UiBadge>
-                </td>
-                <td class="px-3 py-4 text-sm font-medium">
-                  <div class="flex flex-wrap gap-1.5">
-                    <UiButton
-                      variant="ghost"
-                      size="sm"
-                      class="text-accent hover:text-accent-hover"
-                      @click="viewDetail(professional)"
-                    >
-                      Ver Detalle
-                    </UiButton>
-                    <UiButton
-                      v-if="can.manageUsers.value"
-                      variant="ghost"
-                      size="sm"
-                      class="text-accent hover:text-primary-800"
-                      @click="editProfessional(professional)"
-                    >
-                      Editar
-                    </UiButton>
-                    <UiButton
-                      v-if="can.manageUsers.value"
-                      variant="ghost"
-                      size="sm"
-                      class="text-red-600 hover:text-red-900"
-                      @click="deleteProfessional(professional)"
-                    >
-                      Eliminar
-                    </UiButton>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                Ver Detalle
+              </UiButton>
+              <UiButton
+                v-if="can.manageUsers.value"
+                variant="ghost"
+                size="sm"
+                class="text-accent hover:text-primary-800"
+                @click="editProfessional(row)"
+              >
+                Editar
+              </UiButton>
+              <UiButton
+                v-if="can.manageUsers.value"
+                variant="ghost"
+                size="sm"
+                class="text-red-600 hover:text-red-900"
+                @click="deleteProfessional(row)"
+              >
+                Eliminar
+              </UiButton>
+            </div>
+          </template>
+        </UiDataTable>
       </UiCard>
     </section>
   </AppLayout>
@@ -490,7 +449,9 @@
       <UiButton variant="secondary" :disabled="creating" @click="showNewProfessionalModal = false">
         Cancelar
       </UiButton>
-      <UiButton type="button" :loading="creating" @click="createProfessional">Crear</UiButton>
+      <UiButton type="button" :loading="creating" @click="createProfessional">
+        Guardar profesional
+      </UiButton>
     </template>
   </UiModal>
 
@@ -582,9 +543,12 @@ import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiBadge from '../../components/ui/Badge.vue'
 import UiCard from '../../components/ui/Card.vue'
+import UiDataTable from '../../components/ui/DataTable.vue'
+import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
+import UiSkeleton from '../../components/ui/Skeleton.vue'
 import {
   SPECIALTY_LABELS,
   SPECIALTY_OPTIONS,
@@ -599,7 +563,8 @@ const { handleError } = useErrorHandler()
 const { confirm } = useConfirm()
 const { can } = usePermissions()
 
-const loading = ref(false)
+// #452 (U11, states): the first frame is the placeholder, not an empty team.
+const loading = ref(true)
 const loadError = ref(false)
 const creating = ref(false)
 const updating = ref(false)
@@ -723,6 +688,19 @@ const professionals = computed(() => {
     )
   })
 })
+
+// #453: the columns of the team list. The API returns the whole clinical team
+// in one read (no pagination), so the primitive renders it as-is.
+const teamColumns = [
+  { key: 'name', label: 'Profesional' },
+  { key: 'specialty', label: 'Especialidad' },
+  { key: 'role', label: 'Rol' },
+  { key: 'license', label: 'Matrícula' },
+  { key: 'branch', label: 'Sucursal' },
+  { key: 'status', label: 'Estado' }
+]
+
+const teamRowAttributes = row => ({ 'data-team-row': String(row.id) })
 
 const hasActiveFilters = computed(() => Boolean(searchQuery.value.trim() || specialtyFilter.value))
 

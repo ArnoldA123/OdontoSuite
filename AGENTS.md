@@ -590,6 +590,48 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (auditoría U11: un solo badge, la espera se representa, un
+  vocabulario para las acciones y una barra de filtros,
+  #452/#453/#454/#455/#456)** — Cinco hallazgos del eje transversal de la sesión
+  U11 (#374), un commit de unidad por issue y ninguno toca API, rutas ni
+  permisos. **#454**: `StatusPill.vue` se retira con sus 95 líneas y sus tres
+  consumidores pasan a `UiStatusBadge` conservando su etiqueta por dominio; nace
+  `SingleStatusBadgeTest`, que falla si la primitiva retirada vuelve o si una
+  superficie deja de montar la genérica. **#452**: `/professionals` (lista y
+  ficha), `/appointment-types/:id`, `/procedure-catalog/:id`,
+  `/specialty-records`, `/cash-register` y `/cash-register/ready-to-bill`
+  publican placeholder en el primer frame con `UiSkeleton`/`LoadingSpinner` en
+  vez de texto suelto o nada, y `PatientSelector` cambia su `animate-spin` a
+  mano por la primitiva, así la espera del selector es visible en todas las
+  superficies que lo montan. **#455**: el vocabulario de acciones queda escrito
+  en `docs/ux-guidelines.md` §9 (disparador «Nuevo/Nueva <sustantivo>», envío
+  con verbo y objeto, «Cancelar/Volver/Cerrar» para abortar) con sus dos
+  anti-patrones en §10, y las 32 etiquetas alternativas medidas se renombran sin
+  tocar handlers ni permisos. **#456**: 17 superficies con filtros montan
+  `UiFilterBar` y el único verbo de limpieza es «Limpiar filtros»;
+  `/patients/:id` (su fila vive en `PatientStatementPanel.vue`),
+  `/procedure-stats` y `/reception-procedures` ganan el reset que no tenían, y
+  `/patients` y `/calendar` —fuera de la lista del issue pero divergentes en la
+  medición propia— se alinean también. **#453**: `/patients`, `/professionals`,
+  `/appointment-types` y `/procedure-catalog` heredan `UiDataTable` con su
+  affordance de scroll; se conservan las acciones por fila y los hooks vía
+  `row-attributes`, `/patients` mantiene su `Pagination` de servidor y
+  `/professionals` y `/appointment-types` declaran `:pagination="false"` porque
+  su endpoint devuelve el conjunto completo; guard nuevo
+  `DataTableListInheritanceTest`. Re-medición del instrumento sobre base
+  sembrada (`playwright --grep @U11`: 60 pasadas, 2 saltadas; gate OK, 36/36
+  rutas, 0 page errors, 0 peticiones inesperadas): `badges` 2 DIV → 0, `states`
+  10 DIV → 0 (más las tres aceptaciones declaradas de siempre: login, reset y
+  404), `buttons` 12 DIV → 0, `filters` 12 DIV → 0, `list` 4 DIV → 0. Los ejes
+  fuera del lote no retroceden: `feedback` 7 DIV → 3 y `repetition` sigue en las
+  mismas cinco rutas preexistentes. Sin rutas, modelos, migraciones ni permisos
+  nuevos: los conteos de §4/§5 no cambian. Tests: Vitest **1563 pruebas en 173
+  archivos**; PHPUnit Unit **1491 pruebas, 9943 aserciones (51 saltadas por
+  SQLite)**; `tests/Unit/DesignSystem` **957 pruebas, 5384 aserciones**; Pint,
+  ESLint, Prettier y `node scripts/audit/doc-drift.mjs` (14/14) en verde.
+  Entrega: rama `fix/audit-ui-u11-452-456` en siete commits de unidad, publicada
+  en el PR #493.
+
 - **2026-10-28 (auditoría U9 de administración: la escritura sigue el permiso,
   el rechazo llega al campo y la lista deja de mentir,
   #439/#440/#441/#442/#443/#444/#445)** — Siete hallazgos de la auditoría UI U9

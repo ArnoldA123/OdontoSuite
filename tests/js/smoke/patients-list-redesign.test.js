@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { nextTick } from 'vue'
 
 // Patients list redesign (login/dashboard visual language). Pins the
 // structural contract at the DOM level: hero band with the page's single
@@ -38,6 +39,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import PageHeader from '../../../resources/js/components/layout/PageHeader.vue'
 import LoadingSpinner from '../../../resources/js/components/ui/LoadingSpinner.vue'
+import UiDataTable from '../../../resources/js/components/ui/DataTable.vue'
 import UiSectionEmpty from '../../../resources/js/components/ui/UiSectionEmpty.vue'
 import Page from '../../../resources/js/modules/patients/PatientsPage.vue'
 import pageSource from '../../../resources/js/modules/patients/PatientsPage.vue?raw'
@@ -87,6 +89,21 @@ const mountPage = async () => {
   const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
   await flushPromises()
   return wrapper
+}
+
+/**
+ * #453 — jsdom performs no layout, so the overflow the primitive advertises has
+ * to be declared by the test: geometry on the scroll viewport plus the resize
+ * event the primitive listens to.
+ */
+const declareTableOverflow = async (wrapper, { scrollWidth = 900, clientWidth = 640 } = {}) => {
+  const viewport = wrapper.get('[data-patient-table] [data-table-scroll-viewport]').element
+  Object.defineProperty(viewport, 'scrollWidth', { configurable: true, value: scrollWidth })
+  Object.defineProperty(viewport, 'clientWidth', { configurable: true, value: clientWidth })
+  viewport.scrollLeft = 0
+  window.dispatchEvent(new Event('resize'))
+  await nextTick()
+  await nextTick()
 }
 
 describe('patients hero band (login language)', () => {
@@ -297,7 +314,7 @@ describe('patients KPI strip (dashboard anatomy)', () => {
   })
 })
 
-describe('patients row surfaces (one shared PatientListRow)', () => {
+describe('patients row surfaces (DataTable on desktop, shared row on mobile)', () => {
   beforeEach(() => {
     localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
     harness.apiGet.mockReset()
@@ -308,10 +325,14 @@ describe('patients row surfaces (one shared PatientListRow)', () => {
     localStorage.clear()
   })
 
-  it('renders the desktop table and the mobile cards from one row component', async () => {
+  it('renders the desktop table through UiDataTable and the mobile cards from the shared row', async () => {
     const wrapper = await mountPage()
 
+    // #453 (U11, list): the desktop list inherits the primitive, so the
+    // horizontal scroll and its affordance are no longer hand-built here.
+    expect(wrapper.findComponent(UiDataTable).exists()).toBe(true)
     expect(wrapper.find('[data-patient-surface="table"] table').exists()).toBe(true)
+    expect(wrapper.find('[data-patient-surface="table"] [data-table-scroll]').exists()).toBe(true)
     expect(wrapper.find('[data-patient-surface="cards"]').exists()).toBe(true)
 
     const rows = wrapper.findAll('[data-patient-row]')
@@ -319,9 +340,51 @@ describe('patients row surfaces (one shared PatientListRow)', () => {
     expect(wrapper.findAll('[data-patient-surface="table"] [data-patient-row]')).toHaveLength(1)
     expect(wrapper.findAll('[data-patient-surface="cards"] [data-patient-row]')).toHaveLength(1)
 
-    // Both surfaces render the same PatientListRow component.
+    // The mobile surface still renders the shared PatientListRow card; the
+    // table no longer hand-rolls its markup (the primitive renders it).
     expect(pageSource).toContain("import PatientListRow from './PatientListRow.vue'")
-    expect(pageSource.match(/<PatientListRow\b/g) || []).toHaveLength(2)
+    expect(pageSource.match(/<PatientListRow\b/g) || []).toHaveLength(1)
+    expect(pageSource).not.toMatch(/<table\b/)
+
+    // The primitive renders the same six columns the page owned before.
+    const header = wrapper.get('[data-patient-table] thead').text()
+    for (const label of ['Paciente', 'Contacto', 'Fecha de Nacimiento', 'Edad', 'Estado']) {
+      expect(header).toContain(label)
+    }
+    expect(header).toContain('Acciones')
+
+    wrapper.unmount()
+  })
+
+  it('keeps the row hook, its cells and its three actions inside the table', async () => {
+    const wrapper = await mountPage()
+
+    const row = wrapper.get('[data-patient-table] [data-patient-row]')
+    expect(row.element.tagName).toBe('TR')
+    expect(row.text()).toContain('Ana Torres')
+    expect(row.text()).toContain('999888777')
+    expect(row.text()).toContain('ana@test.com')
+    expect(row.text()).toContain('12/04/1990')
+    expect(row.text()).toContain('36 años')
+    expect(row.text()).toContain('Activo')
+
+    const labels = row.findAll('button').map(button => button.text().trim())
+    expect(labels).toEqual(['Ver', 'Editar', 'Eliminar'])
+
+    wrapper.unmount()
+  })
+
+  it('publishes the primitive scroll affordance when the columns overflow', async () => {
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-table-scroll-affordance]').exists()).toBe(false)
+
+    await declareTableOverflow(wrapper)
+
+    expect(wrapper.get('[data-table-scroll]').attributes('data-table-scroll')).toBe('right')
+    const hint = wrapper.get('[data-table-scroll-affordance]')
+    expect(hint.text()).toMatch(/desliza/i)
+    expect(hint.text()).toMatch(/columnas/i)
 
     wrapper.unmount()
   })

@@ -267,4 +267,77 @@ describe('professionals detail smoke', () => {
 
     wrapper.unmount()
   })
+
+  // #452 (U11, states): the ficha and its audit tab represent their own load
+  // with the skeleton primitive; the sentence that stood in for it is gone.
+  it('paints the skeleton primitive while the ficha is in flight', async () => {
+    const originalImplementation = getMock.getMockImplementation()
+    let releaseProfessional
+
+    getMock.mockImplementation(async url => {
+      if (typeof url === 'string' && url.startsWith('/api/audit-logs/user/')) return { data: [] }
+      if (typeof url === 'string' && url.startsWith('/api/users/')) {
+        return new Promise(resolve => {
+          releaseProfessional = resolve
+        })
+      }
+      return { data: [] }
+    })
+
+    const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+
+    expect(wrapper.find('[data-professional-facts-loading] .skeleton-container').exists()).toBe(
+      true
+    )
+    expect(wrapper.text()).not.toContain('Cargando profesional...')
+    expect(wrapper.find('[data-professional-facts]').exists()).toBe(false)
+
+    releaseProfessional({ data: makeProfessional() })
+    await flushPromises()
+
+    expect(wrapper.find('[data-professional-facts-loading]').exists()).toBe(false)
+    expect(wrapper.find('[data-professional-facts]').text()).toContain('Ana Torres')
+
+    getMock.mockImplementation(originalImplementation)
+    wrapper.unmount()
+  })
+
+  it('paints the skeleton primitive while the audit history is in flight', async () => {
+    const originalImplementation = getMock.getMockImplementation()
+    let releaseAuditLogs
+
+    getMock.mockImplementation(async url => {
+      if (typeof url === 'string' && url.startsWith('/api/audit-logs/user/')) {
+        return new Promise(resolve => {
+          releaseAuditLogs = resolve
+        })
+      }
+      if (typeof url === 'string' && url.startsWith('/api/users/')) {
+        return { data: makeProfessional() }
+      }
+      return { data: [] }
+    })
+
+    const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+    await flushPromises()
+
+    const historialTab = wrapper
+      .findAll('button')
+      .find(button => button.text().includes('Historial'))
+    await historialTab.trigger('click')
+
+    expect(wrapper.find('[data-professional-audit-loading] .skeleton-container').exists()).toBe(
+      true
+    )
+    expect(wrapper.text()).not.toContain('Cargando historial de auditoría...')
+
+    releaseAuditLogs({ data: [] })
+    await flushPromises()
+
+    expect(wrapper.find('[data-professional-audit-loading]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('No hay historial de auditoría')
+
+    getMock.mockImplementation(originalImplementation)
+    wrapper.unmount()
+  })
 })

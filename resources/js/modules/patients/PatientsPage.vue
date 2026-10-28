@@ -239,8 +239,8 @@
         </div>
 
         <!-- Search and Filters -->
-        <UiCard variant="glass">
-          <div class="flex flex-col lg:flex-row gap-4">
+        <UiFilterBar :columns="2" data-patients-filters>
+          <div class="flex flex-col gap-4 sm:col-span-2 lg:flex-row">
             <div class="flex-1">
               <UiInput
                 v-model="searchQuery"
@@ -296,7 +296,7 @@
               </UiButton>
             </div>
           </div>
-        </UiCard>
+        </UiFilterBar>
 
         <!-- Patients List -->
         <UiCard variant="glass" class="overflow-hidden">
@@ -323,59 +323,102 @@
             description="Intenta ajustar los filtros de búsqueda"
           />
 
-          <!-- Desktop Table View -->
-          <div v-else data-patient-surface="table" class="hidden lg:block overflow-x-auto">
-            <table class="min-w-full divide-y divide-[color:var(--color-hairline)]">
-              <thead class="bg-theme-surface">
-                <tr>
-                  <th
-                    class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+          <!--
+            Desktop table view. #453 (U11, list): the table rides
+            `UiDataTable`, so the horizontal scroll lives inside the
+            primitive (with its affordance) and each row keeps its hook and
+            its actions. The mobile surface below stays a card list because a
+            phone reads cards better than a scrolled table.
+          -->
+          <div v-else data-patient-surface="table" class="hidden lg:block">
+            <UiDataTable
+              :data="filteredPatients"
+              :columns="patientColumns"
+              :searchable="false"
+              :show-header="false"
+              :pagination="false"
+              row-key="id"
+              table-class="min-w-[880px]"
+              :row-attributes="patientRowAttributes"
+              data-patient-table
+            >
+              <template #cell-patient="{ row }">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0 h-12 w-12">
+                    <div
+                      class="h-12 w-12 rounded-xl bg-gradient-accent flex items-center justify-center"
+                    >
+                      <span class="text-sm font-semibold text-white">
+                        {{ patientInitials(row) }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-semibold text-theme-primary">
+                      {{ patientDisplayName(row) }}
+                    </div>
+                    <div
+                      class="text-sm text-theme-secondary"
+                      style="font-feature-settings: var(--font-features-tabular-nums)"
+                    >
+                      ID: {{ row.id }}
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <template #cell-contact="{ row }">
+                <div class="whitespace-nowrap text-sm text-theme-primary">{{ row.phone }}</div>
+                <div class="whitespace-nowrap text-sm text-theme-secondary">{{ row.email }}</div>
+              </template>
+              <template #cell-birth_date="{ row }">
+                <span class="whitespace-nowrap text-sm text-theme-primary">
+                  {{ patientBirthLabel(row) }}
+                </span>
+              </template>
+              <template #cell-age="{ row }">
+                <span
+                  class="whitespace-nowrap text-sm text-theme-primary"
+                  style="font-feature-settings: var(--font-features-tabular-nums)"
+                >
+                  {{ patientAgeLabel(row) }}
+                </span>
+              </template>
+              <template #cell-status="{ row }">
+                <UiBadge :variant="patientStatusVariant(row)" size="sm" shape="pill">
+                  {{ patientStatusLabel(row) }}
+                </UiBadge>
+              </template>
+              <template #actions="{ row }">
+                <div class="flex space-x-2">
+                  <UiButton
+                    variant="ghost"
+                    size="sm"
+                    class="text-systemBlue-600 hover:text-systemBlue-700"
+                    @click="viewPatient(row)"
                   >
-                    Paciente
-                  </th>
-                  <th
-                    class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                    Ver
+                  </UiButton>
+                  <UiButton
+                    v-if="can.editPatient?.value"
+                    variant="ghost"
+                    size="sm"
+                    class="text-systemGreen-700 hover:opacity-80"
+                    @click="editPatient(row)"
                   >
-                    Contacto
-                  </th>
-                  <th
-                    class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                    Editar
+                  </UiButton>
+                  <UiButton
+                    v-if="can.deletePatient?.value"
+                    variant="ghost"
+                    size="sm"
+                    class="text-systemRed-700 hover:opacity-80"
+                    @click="deletePatient(row)"
                   >
-                    Fecha de Nacimiento
-                  </th>
-                  <th
-                    class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                  >
-                    Edad
-                  </th>
-                  <th
-                    class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                  >
-                    Estado
-                  </th>
-                  <th
-                    class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                  >
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody
-                class="bg-theme-surface-elevated divide-y divide-[color:var(--color-hairline)]"
-              >
-                <PatientListRow
-                  v-for="patient in filteredPatients"
-                  :key="patient.id"
-                  variant="table"
-                  :patient="patient"
-                  :can-edit="can.editPatient?.value"
-                  :can-delete="can.deletePatient?.value"
-                  @view="viewPatient"
-                  @edit="editPatient"
-                  @delete="deletePatient"
-                />
-              </tbody>
-            </table>
+                    Eliminar
+                  </UiButton>
+                </div>
+              </template>
+            </UiDataTable>
           </div>
 
           <!-- Mobile Card View -->
@@ -446,6 +489,9 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
+import UiBadge from '../../components/ui/Badge.vue'
+import UiDataTable from '../../components/ui/DataTable.vue'
+import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
@@ -464,6 +510,9 @@ export default {
     DentalMotifLayer,
     UiCard,
     UiButton,
+    UiBadge,
+    UiDataTable,
+    UiFilterBar,
     UiInput,
     UiSelect,
     UiSectionEmpty,
@@ -896,6 +945,34 @@ export default {
 
     const formatDate = date => formatCanonicalDate(date) || 'N/A'
 
+    // #453 (U11, list): the desktop table renders through `UiDataTable`, so its
+    // columns and cell values belong to the page; the mobile surface keeps the
+    // shared `PatientListRow` card. The list paginates on the server, so the
+    // primitive never paginates and `Pagination` stays outside it.
+    const patientColumns = [
+      { key: 'patient', label: 'Paciente' },
+      { key: 'contact', label: 'Contacto' },
+      { key: 'birth_date', label: 'Fecha de Nacimiento' },
+      { key: 'age', label: 'Edad' },
+      { key: 'status', label: 'Estado' }
+    ]
+
+    const patientRowAttributes = row => ({ 'data-patient-row': String(row.id) })
+
+    const patientInitials = patient =>
+      `${(patient.first_name || '').charAt(0)}${(patient.last_name || '').charAt(0)}`
+
+    const patientDisplayName = patient =>
+      `${patient.first_name || ''} ${patient.last_name || ''}`.trim()
+
+    const patientBirthLabel = patient => formatDate(patient.birth_date)
+
+    const patientAgeLabel = patient => (patient.age != null ? `${patient.age} años` : '—')
+
+    const patientStatusVariant = patient => (patient.is_active ? 'success' : 'error')
+
+    const patientStatusLabel = patient => (patient.is_active ? 'Activo' : 'Inactivo')
+
     const goBack = () => {
       router.back()
     }
@@ -1008,6 +1085,14 @@ export default {
       loadError,
       patients,
       filteredPatients,
+      patientColumns,
+      patientRowAttributes,
+      patientInitials,
+      patientDisplayName,
+      patientBirthLabel,
+      patientAgeLabel,
+      patientStatusVariant,
+      patientStatusLabel,
       searchQuery,
       statusFilter,
       statusFilterOptions,

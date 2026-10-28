@@ -356,7 +356,7 @@
           Cancelar
         </UiButton>
         <UiButton type="submit" :loading="submitting" data-evolution-submit>
-          Registrar evolución
+          Guardar evolución
         </UiButton>
       </div>
     </form>

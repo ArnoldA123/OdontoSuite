@@ -193,132 +193,103 @@
           :description="emptyStateDescription"
         />
 
-        <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[720px] table-fixed divide-y divide-hairline">
-            <thead class="bg-theme-surface">
-              <tr>
-                <th
-                  class="w-[24%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary lg:w-[22%]"
-                >
-                  Nombre
-                </th>
-                <th
-                  class="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary lg:table-cell lg:w-[21%]"
-                >
-                  Descripción
-                </th>
-                <th
-                  class="w-[15%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary lg:w-[11%]"
-                >
-                  Duración
-                </th>
-                <th
-                  class="w-[17%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary lg:w-[13%]"
-                >
-                  Precio
-                </th>
-                <th
-                  class="w-[15%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary lg:w-[11%]"
-                >
-                  Estado
-                </th>
-                <th
-                  class="w-[29%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary lg:w-[22%]"
-                >
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
-              <tr
-                v-for="type in filteredTypes"
-                :key="type.id"
-                data-type-row
-                class="hover:bg-theme-surface"
+        <!--
+          #453 (U11, list): the catalog list rides `UiDataTable`; the table
+          scrolls inside itself (with the affordance) and every row keeps its
+          hooks and its three actions. The endpoint returns the whole catalog
+          in one `status=all` read, so there is no server page to paginate.
+        -->
+        <UiDataTable
+          v-else
+          :data="filteredTypes"
+          :columns="tableColumns"
+          :searchable="false"
+          :show-header="false"
+          :pagination="false"
+          row-key="id"
+          table-class="min-w-[960px]"
+          :row-attributes="typeRowAttributes"
+          data-types-table
+        >
+          <template #cell-name="{ row }">
+            <div class="flex min-w-0 items-center gap-2">
+              <span
+                class="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                data-type-swatch
+                :style="{ backgroundColor: row.color }"
+                aria-hidden="true"
+              />
+              <span class="truncate text-sm font-medium text-theme-primary" :title="row.name">
+                {{ row.name }}
+              </span>
+            </div>
+          </template>
+          <template #cell-description="{ row }">
+            <div
+              class="w-full truncate text-sm text-theme-secondary"
+              :title="row.description || 'Sin descripción'"
+            >
+              {{ row.description || 'Sin descripción' }}
+            </div>
+          </template>
+          <template #cell-duration="{ row }">
+            <span class="whitespace-nowrap text-sm tabular-nums text-theme-primary">
+              {{ row.default_duration_minutes }} min
+            </span>
+          </template>
+          <template #cell-price="{ row }">
+            <div
+              class="whitespace-nowrap text-sm tabular-nums text-theme-primary"
+              :aria-label="`Precio ${formatTypePrice(row.price)}`"
+            >
+              {{ formatTypePrice(row.price) }}
+            </div>
+          </template>
+          <template #cell-status="{ row }">
+            <UiStatusBadge
+              :variant="row.is_active ? 'success' : 'neutral'"
+              :label="row.is_active ? 'Activo' : 'Inactivo'"
+              size="sm"
+            />
+          </template>
+          <template #actions="{ row }">
+            <div class="flex items-center gap-1">
+              <UiButton
+                variant="ghost"
+                size="sm"
+                class="text-systemBlue-600 hover:text-systemBlue-700"
+                data-row-action="detail"
+                @click="viewDetail(row)"
               >
-                <td class="px-4 py-4 whitespace-nowrap">
-                  <div class="flex min-w-0 items-center gap-2">
-                    <span
-                      class="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                      data-type-swatch
-                      :style="{ backgroundColor: type.color }"
-                      aria-hidden="true"
-                    />
-                    <span
-                      class="truncate text-sm font-medium text-theme-primary"
-                      :title="type.name"
-                    >
-                      {{ type.name }}
-                    </span>
-                  </div>
-                </td>
-                <td class="hidden px-4 py-4 lg:table-cell">
-                  <div
-                    class="w-full truncate text-sm text-theme-secondary"
-                    :title="type.description || 'Sin descripción'"
-                  >
-                    {{ type.description || 'Sin descripción' }}
-                  </div>
-                </td>
-                <td class="px-4 py-4 whitespace-nowrap text-sm tabular-nums text-theme-primary">
-                  {{ type.default_duration_minutes }} min
-                </td>
-                <td class="px-4 py-4 whitespace-nowrap">
-                  <div
-                    class="text-sm tabular-nums text-theme-primary"
-                    :aria-label="`Precio ${formatTypePrice(type.price)}`"
-                  >
-                    {{ formatTypePrice(type.price) }}
-                  </div>
-                </td>
-                <td class="px-4 py-4 whitespace-nowrap">
-                  <UiStatusBadge
-                    :variant="type.is_active ? 'success' : 'neutral'"
-                    :label="type.is_active ? 'Activo' : 'Inactivo'"
-                    size="sm"
-                  />
-                </td>
-                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                  <div class="flex items-center gap-1">
-                    <UiButton
-                      variant="ghost"
-                      size="sm"
-                      class="text-systemBlue-600 hover:text-systemBlue-700"
-                      data-row-action="detail"
-                      @click="viewDetail(type)"
-                    >
-                      Ver Detalle
-                    </UiButton>
-                    <UiButton
-                      v-if="canManageAppointmentTypes"
-                      variant="ghost"
-                      size="sm"
-                      class="text-systemBlue-600 hover:text-systemBlue-700"
-                      data-row-action="edit"
-                      title="Editar tipo"
-                      aria-label="Editar tipo"
-                      @click="editType(type)"
-                    >
-                      <PencilIcon class="h-4 w-4" aria-hidden="true" />
-                    </UiButton>
-                    <UiButton
-                      v-if="canManageAppointmentTypes"
-                      variant="ghost"
-                      size="sm"
-                      class="text-systemRed-600 hover:text-systemRed-700"
-                      data-row-action="delete"
-                      title="Eliminar tipo"
-                      aria-label="Eliminar tipo"
-                      @click="deleteType(type)"
-                    >
-                      <TrashIcon class="h-4 w-4" aria-hidden="true" />
-                    </UiButton>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                Ver Detalle
+              </UiButton>
+              <UiButton
+                v-if="canManageAppointmentTypes"
+                variant="ghost"
+                size="sm"
+                class="text-systemBlue-600 hover:text-systemBlue-700"
+                data-row-action="edit"
+                title="Editar tipo"
+                aria-label="Editar tipo"
+                @click="editType(row)"
+              >
+                <PencilIcon class="h-4 w-4" aria-hidden="true" />
+              </UiButton>
+              <UiButton
+                v-if="canManageAppointmentTypes"
+                variant="ghost"
+                size="sm"
+                class="text-systemRed-600 hover:text-systemRed-700"
+                data-row-action="delete"
+                title="Eliminar tipo"
+                aria-label="Eliminar tipo"
+                @click="deleteType(row)"
+              >
+                <TrashIcon class="h-4 w-4" aria-hidden="true" />
+              </UiButton>
+            </div>
+          </template>
+        </UiDataTable>
       </UiCard>
     </section>
   </AppLayout>
@@ -386,7 +357,9 @@
       <UiButton variant="secondary" :disabled="creating" @click="showNewTypeModal = false">
         Cancelar
       </UiButton>
-      <UiButton type="submit" form="form-new-type" :loading="creating">Crear</UiButton>
+      <UiButton type="submit" form="form-new-type" :loading="creating">
+        Guardar tipo de cita
+      </UiButton>
     </template>
   </UiModal>
 
@@ -510,6 +483,7 @@ import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiCard from '../../components/ui/Card.vue'
+import UiDataTable from '../../components/ui/DataTable.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
 // A new appointment type starts on the brand accent, read from the token so
@@ -530,6 +504,7 @@ export default {
     PencilIcon,
     PlusIcon,
     TrashIcon,
+    UiDataTable,
     UiButton,
     UiInput,
     UiSelect,
@@ -610,6 +585,20 @@ export default {
         }
       }
     })
+
+    // #453 (U11, list): the catalog list renders through `UiDataTable`. The
+    // endpoint answers the whole catalog in one `status=all` read, so the
+    // primitive never paginates: the page filters client-side and keeps its
+    // own `N de M` counter.
+    const tableColumns = [
+      { key: 'name', label: 'Nombre' },
+      { key: 'description', label: 'Descripción' },
+      { key: 'duration', label: 'Duración' },
+      { key: 'price', label: 'Precio' },
+      { key: 'status', label: 'Estado' }
+    ]
+
+    const typeRowAttributes = row => ({ 'data-type-row': String(row.id) })
 
     // D6: one `status=all` load; search + status filter the same array
     // client-side so the list and its KPIs share a single source of truth.
@@ -840,6 +829,8 @@ export default {
       isActiveOptions,
       editingTypeIsActive,
       filteredTypes,
+      tableColumns,
+      typeRowAttributes,
       filterCountText,
       kpiTotalDisplay,
       kpiActiveDisplay,

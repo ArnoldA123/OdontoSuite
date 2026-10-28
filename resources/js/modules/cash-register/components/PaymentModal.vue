@@ -1,7 +1,7 @@
 <template>
   <UiModal
     :model-value="modelValue"
-    title="Registrar Cobro de Paciente"
+    title="Nuevo cobro"
     :size="activeTab === 'manual' ? 'xl' : 'lg'"
     @update:model-value="handleModelUpdate"
   >
@@ -228,7 +228,7 @@
           <template #icon-left>
             <BanknotesIcon class="h-4 w-4" aria-hidden="true" />
           </template>
-          Registrar Cobro
+          Confirmar cobro
         </UiButton>
       </div>
     </template>

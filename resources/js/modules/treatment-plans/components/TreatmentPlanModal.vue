@@ -322,7 +322,7 @@
           <template #icon-left>
             <PlusIcon class="h-4 w-4" aria-hidden="true" />
           </template>
-          Agregar procedimiento
+          Nuevo procedimiento
         </UiButton>
       </UiCard>
 
@@ -411,7 +411,7 @@
             :loading="loading"
             data-plan-submit
           >
-            {{ isEdit ? 'Actualizar' : 'Crear' }} plan
+            {{ isEdit ? 'Guardar cambios' : 'Guardar plan' }}
           </UiButton>
         </div>
       </div>

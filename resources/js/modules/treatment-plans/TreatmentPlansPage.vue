@@ -206,104 +206,116 @@
         </UiCard>
       </div>
 
-      <!-- Filters: one glass card; presets and the view toggle live inside it. -->
-      <UiCard variant="glass" data-filters>
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
-          <div class="lg:col-span-4">
-            <label
-              for="treatment-plan-patient"
-              class="mb-2 block text-sm font-medium text-theme-primary"
-            >
-              Paciente
-            </label>
-            <UiInput
-              id="treatment-plan-patient"
-              v-model="filters.patient_name"
-              placeholder="Nombre o documento"
-              data-filter-patient
-            />
-          </div>
+      <!-- Filters: one FilterBar; presets and the view toggle live inside it. -->
+      <UiFilterBar :columns="2" data-filters>
+        <div class="sm:col-span-2">
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
+            <div class="lg:col-span-4">
+              <label
+                for="treatment-plan-patient"
+                class="mb-2 block text-sm font-medium text-theme-primary"
+              >
+                Paciente
+              </label>
+              <UiInput
+                id="treatment-plan-patient"
+                v-model="filters.patient_name"
+                placeholder="Nombre o documento"
+                data-filter-patient
+              />
+            </div>
 
-          <div class="lg:col-span-3">
-            <span class="mb-2 block text-sm font-medium text-theme-primary">Estado</span>
-            <UiSelect
-              v-model="filters.status"
-              :options="statusOptions"
-              placeholder="Todos los estados"
-              data-filter-status
-              @change="onManualStatusChange"
-            />
-          </div>
+            <div class="lg:col-span-2">
+              <span class="mb-2 block text-sm font-medium text-theme-primary">Estado</span>
+              <UiSelect
+                v-model="filters.status"
+                :options="statusOptions"
+                placeholder="Todos los estados"
+                data-filter-status
+                @change="onManualStatusChange"
+              />
+            </div>
 
-          <div class="lg:col-span-2">
-            <span class="mb-2 block text-sm font-medium text-theme-primary">Desde</span>
-            <UiInput v-model="filters.date_from" type="date" data-filter-from />
-          </div>
+            <div class="lg:col-span-2">
+              <span class="mb-2 block text-sm font-medium text-theme-primary">Desde</span>
+              <UiInput v-model="filters.date_from" type="date" data-filter-from />
+            </div>
 
-          <div class="lg:col-span-2">
-            <span class="mb-2 block text-sm font-medium text-theme-primary">Hasta</span>
-            <UiInput v-model="filters.date_to" type="date" data-filter-to />
-          </div>
+            <div class="lg:col-span-2">
+              <span class="mb-2 block text-sm font-medium text-theme-primary">Hasta</span>
+              <UiInput v-model="filters.date_to" type="date" data-filter-to />
+            </div>
 
-          <div class="lg:col-span-1">
-            <UiButton variant="ghost" size="md" full-width data-clear-filters @click="clearFilters">
-              Limpiar
-            </UiButton>
-          </div>
-        </div>
-
-        <div
-          class="mt-4 flex flex-wrap items-center justify-between gap-3 pt-4"
-          style="border-top: 1px solid var(--color-hairline)"
-        >
-          <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filtros rápidos">
-            <UiButton
-              v-for="qf in quickFilters"
-              :key="qf.value"
-              :variant="activeQuick === qf.value ? 'primary' : 'ghost'"
-              size="sm"
-              :aria-pressed="activeQuick === qf.value"
-              :data-quick-filter="qf.value"
-              @click="applyQuickFilter(qf)"
-            >
-              {{ qf.label }}
-            </UiButton>
+            <div class="lg:col-span-2">
+              <UiButton
+                variant="ghost"
+                size="md"
+                full-width
+                data-clear-filters
+                @click="clearFilters"
+              >
+                Limpiar filtros
+              </UiButton>
+            </div>
           </div>
 
           <div
-            class="inline-flex gap-1 rounded-[var(--radius-control)] p-1"
-            role="group"
-            aria-label="Vista de los planes"
-            data-view-toggle
-            style="border: 1px solid var(--color-hairline)"
+            class="mt-4 flex flex-wrap items-center justify-between gap-3 pt-4"
+            style="border-top: 1px solid var(--color-hairline)"
           >
-            <UiButton
-              :variant="view === 'list' ? 'primary' : 'ghost'"
-              size="sm"
-              data-view="list"
-              :aria-pressed="view === 'list'"
-              @click="view = 'list'"
+            <div
+              class="flex flex-wrap items-center gap-2"
+              role="group"
+              aria-label="Filtros rápidos"
             >
-              <template #icon-left>
-                <Squares2X2Icon class="w-4 h-4" aria-hidden="true" />
-              </template>
-              Lista
-            </UiButton>
-            <UiButton
-              :variant="view === 'kanban' ? 'primary' : 'ghost'"
-              size="sm"
-              data-view="kanban"
-              :aria-pressed="view === 'kanban'"
-              @click="view = 'kanban'"
+              <UiButton
+                v-for="qf in quickFilters"
+                :key="qf.value"
+                :variant="activeQuick === qf.value ? 'primary' : 'ghost'"
+                size="sm"
+                :aria-pressed="activeQuick === qf.value"
+                :data-quick-filter="qf.value"
+                @click="applyQuickFilter(qf)"
+              >
+                {{ qf.label }}
+              </UiButton>
+            </div>
+
+            <div
+              class="inline-flex gap-1 rounded-[var(--radius-control)] p-1"
+              role="group"
+              aria-label="Vista de los planes"
+              data-view-toggle
+              style="border: 1px solid var(--color-hairline)"
             >
-              <template #icon-left>
-                <ViewColumnsIcon class="w-4 h-4" aria-hidden="true" />
-              </template>
-              Kanban
-            </UiButton>
+              <UiButton
+                :variant="view === 'list' ? 'primary' : 'ghost'"
+                size="sm"
+                data-view="list"
+                :aria-pressed="view === 'list'"
+                @click="view = 'list'"
+              >
+                <template #icon-left>
+                  <Squares2X2Icon class="w-4 h-4" aria-hidden="true" />
+                </template>
+                Lista
+              </UiButton>
+              <UiButton
+                :variant="view === 'kanban' ? 'primary' : 'ghost'"
+                size="sm"
+                data-view="kanban"
+                :aria-pressed="view === 'kanban'"
+                @click="view = 'kanban'"
+              >
+                <template #icon-left>
+                  <ViewColumnsIcon class="w-4 h-4" aria-hidden="true" />
+                </template>
+                Kanban
+              </UiButton>
+            </div>
           </div>
         </div>
-      </UiCard>
+      </UiFilterBar>
 
       <!-- List surface -->
       <section v-if="view === 'list'" aria-label="Lista de planes de tratamiento" class="space-y-4">
@@ -338,7 +350,7 @@
                 data-empty-create
                 @click="openCreateModal"
               >
-                Crear Plan
+                Nuevo plan
               </UiButton>
             </template>
           </UiEmptyState>
@@ -408,7 +420,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useTreatmentPlans } from '@/composables/useTreatmentPlans'
 import { useEcho } from '@/composables/useEcho'
 import { useToast } from '@/composables/useToast'
@@ -630,16 +642,22 @@ const handlePlanSaved = async () => {
 }
 
 const clearFilters = () => {
-  const hadPreset = activeQuick.value !== 'all'
-  const hadValues = Object.values(filters.value).some(value => value !== '')
+  clearTimeout(debounceTimer)
+
+  // The reset re-reads once: the date watcher fires on the object swap even
+  // when both dates already held their defaults, so the guard keeps the clear
+  // down to the one request it issues itself.
+  resetting = true
 
   filters.value = { patient_name: '', status: '', date_from: '', date_to: '' }
   activeQuick.value = 'all'
   presetParams.value = {}
 
-  // The watchers reload when a field actually changed; with no field to reset
-  // but a pressed preset, the list still needs one explicit reload.
-  if (hadPreset && !hadValues) loadPlans()
+  loadPlans()
+
+  nextTick(() => {
+    resetting = false
+  })
 }
 
 const applyQuickFilter = qf => {
@@ -710,16 +728,27 @@ const onDelete = async planId => {
 
 // Debounce on the patient search so typing does not fire a request per key.
 let debounceTimer = null
+
+// Set while `clearFilters` settles the defaults, so the watchers below do not
+// add a second read to the one the reset already issued.
+let resetting = false
+
 watch(
   () => filters.value.patient_name,
   () => {
+    if (resetting) return
+
     clearTimeout(debounceTimer)
     debounceTimer = setTimeout(() => loadPlans(), 400)
   }
 )
 watch(
   () => [filters.value.date_from, filters.value.date_to],
-  () => loadPlans()
+  () => {
+    if (resetting) return
+
+    loadPlans()
+  }
 )
 
 // Keyboard: N opens the create modal. Escape belongs to each overlay: the plan

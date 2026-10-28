@@ -124,14 +124,13 @@
       <!-- #395 S5: la agenda acota por profesional, sillón y sede sobre la
            misma lectura del rango. Cada filtro sólo aparece si su población se
            puede leer: un lookup caído oculta su filtro, nunca rompe la página. -->
-      <div
+      <UiFilterBar
         v-if="hasVisibleFilters"
+        :columns="4"
         data-calendar-filters
-        role="search"
-        aria-label="Filtros de la agenda"
-        class="relative mt-4 flex flex-wrap items-end gap-3 border-t border-hairline pt-4"
+        class="relative mt-4"
       >
-        <div v-if="showProfessionalFilter" class="min-w-[180px] flex-1 sm:flex-none">
+        <div v-if="showProfessionalFilter">
           <label
             for="calendar-filter-professional"
             class="mb-1 block text-xs font-medium text-theme-secondary"
@@ -148,7 +147,7 @@
             @update:model-value="value => setFilter('user_id', value)"
           />
         </div>
-        <div v-if="showChairFilter" class="min-w-[160px] flex-1 sm:flex-none">
+        <div v-if="showChairFilter">
           <label
             for="calendar-filter-chair"
             class="mb-1 block text-xs font-medium text-theme-secondary"
@@ -165,7 +164,7 @@
             @update:model-value="value => setFilter('dental_chair_id', value)"
           />
         </div>
-        <div v-if="showBranchFilter" class="min-w-[160px] flex-1 sm:flex-none">
+        <div v-if="showBranchFilter">
           <label
             for="calendar-filter-branch"
             class="mb-1 block text-xs font-medium text-theme-secondary"
@@ -190,7 +189,7 @@
             Limpiar filtros
           </UiButton>
         </div>
-      </div>
+      </UiFilterBar>
     </header>
 
     <!-- Calendar Content: quiet surface (canvas + hairline + radius-panel + elevation-2) -->
@@ -316,7 +315,7 @@
                 type="button"
                 class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
                 :data-calendar-slot="`${dayDateString}-${hour}`"
-                :aria-label="`Crear cita el ${dayDateString} a las ${formatHour(hour)}`"
+                :aria-label="`Nueva cita el ${dayDateString} a las ${formatHour(hour)}`"
                 @click="openSlotCreate(dayDateString, hour)"
               ></button>
               <div class="pointer-events-none relative space-y-2">
@@ -433,7 +432,7 @@
                       type="button"
                       class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
                       :data-calendar-slot="`${day.date}-${hour}`"
-                      :aria-label="`Crear cita el ${day.date} a las ${formatHour(hour)}`"
+                      :aria-label="`Nueva cita el ${day.date} a las ${formatHour(hour)}`"
                       @click="openSlotCreate(day.date, hour)"
                     ></button>
                     <div class="pointer-events-none absolute inset-1 flex flex-col gap-1">
@@ -669,7 +668,7 @@
             data-calendar-action="status-confirmed"
             @click="changeStatus(selectedAppointment, 'confirmed')"
           >
-            Confirmar
+            Confirmar cita
           </UiButton>
           <UiButton
             v-if="
@@ -836,6 +835,7 @@ import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
+import UiFilterBar from '../../components/ui/FilterBar.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import {
   ArrowLeftIcon,
@@ -894,6 +894,7 @@ export default {
     UiModal,
     UiInput,
     UiSelect,
+    UiFilterBar,
     DentalMotifLayer,
     ArrowLeftIcon,
     CalendarDaysIcon,

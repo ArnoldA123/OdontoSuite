@@ -109,33 +109,38 @@
       </UiCard>
     </section>
 
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
-        <div class="w-full flex-1">
-          <UiInput
-            v-model="searchQuery"
-            data-branch-search
-            placeholder="Buscar por código, nombre, ciudad o contacto..."
-            class="w-full"
-          >
-            <template #prefix>
-              <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
-            </template>
-          </UiInput>
-        </div>
-        <div class="flex items-center gap-3">
-          <UiSelect
-            v-model="statusFilter"
-            :options="statusFilterOptions"
-            class="w-48"
-            data-status-filter="status"
-          />
-          <p class="whitespace-nowrap text-xs text-theme-secondary" data-filter-count>
-            {{ filterCountText }}
-          </p>
-        </div>
+    <UiFilterBar :columns="5" class="mb-6" data-branches-filters>
+      <div class="sm:col-span-2">
+        <UiInput
+          v-model="searchQuery"
+          data-branch-search
+          placeholder="Buscar por código, nombre, ciudad o contacto..."
+          class="w-full"
+        >
+          <template #prefix>
+            <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
+          </template>
+        </UiInput>
       </div>
-    </UiCard>
+      <div class="flex items-end">
+        <UiSelect
+          v-model="statusFilter"
+          :options="statusFilterOptions"
+          class="w-full"
+          data-status-filter="status"
+        />
+      </div>
+      <div class="flex items-end sm:justify-end">
+        <p class="whitespace-nowrap text-xs text-theme-secondary" data-filter-count>
+          {{ filterCountText }}
+        </p>
+      </div>
+      <div v-if="hasActiveFilters" class="flex items-end">
+        <UiButton variant="secondary" class="w-full" data-filters-clear @click="clearFilters">
+          Limpiar filtros
+        </UiButton>
+      </div>
+    </UiFilterBar>
 
     <section aria-label="Sucursales" class="space-y-4">
       <div class="flex items-baseline gap-3">
@@ -297,6 +302,7 @@ import UiButton from '../../../components/ui/Button.vue'
 import UiCard from '../../../components/ui/Card.vue'
 import UiDataTable from '../../../components/ui/DataTable.vue'
 import UiEmptyState from '../../../components/ui/EmptyState.vue'
+import UiFilterBar from '../../../components/ui/FilterBar.vue'
 import UiInput from '../../../components/ui/Input.vue'
 import UiSelect from '../../../components/ui/Select.vue'
 import UiSkeleton from '../../../components/ui/Skeleton.vue'

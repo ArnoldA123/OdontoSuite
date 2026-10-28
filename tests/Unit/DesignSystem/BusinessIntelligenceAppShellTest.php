@@ -385,9 +385,9 @@ class BusinessIntelligenceAppShellTest extends ModuleAppShellTestCase
         }
 
         $this->assertMatchesRegularExpression(
-            '~<UiCard\b[^>]*\bvariant="glass"[^>]*\bdata-bi-filters\b~',
+            '~<UiFilterBar\b[^>]*\bdata-bi-filters\b~',
             $template,
-            'The filter card must reuse <UiCard variant="glass"> (T7).'
+            'The filter row must mount the shared <UiFilterBar> primitive (T7/#456).'
         );
     }
 

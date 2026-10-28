@@ -108,38 +108,41 @@
       </UiCard>
     </section>
 
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
-        <div class="w-full flex-1">
-          <UiInput
-            v-model="searchQuery"
-            data-pm-search
-            placeholder="Buscar por nombre, código o descripción..."
-            class="w-full"
-            @input="onSearchInput"
-          >
-            <template #prefix>
-              <MagnifyingGlassIcon class="h-5 w-5 text-theme-secondary" aria-hidden="true" />
-            </template>
-          </UiInput>
-        </div>
-        <UiSelect
-          v-model="statusFilter"
-          :options="STATUS_FILTER_OPTIONS"
-          placeholder="Todos los estados"
-          class="w-48"
-          data-status-filter
-          @change="loadMethods"
-        />
-        <UiSelect
-          v-model="typeFilter"
-          :options="TYPE_FILTER_OPTIONS"
-          placeholder="Todas las familias"
-          class="w-48"
-          data-type-filter
-        />
+    <UiFilterBar :columns="5" class="mb-6" data-payment-methods-filters>
+      <div class="sm:col-span-2">
+        <UiInput
+          v-model="searchQuery"
+          data-pm-search
+          placeholder="Buscar por nombre, código o descripción..."
+          class="w-full"
+          @input="onSearchInput"
+        >
+          <template #prefix>
+            <MagnifyingGlassIcon class="h-5 w-5 text-theme-secondary" aria-hidden="true" />
+          </template>
+        </UiInput>
       </div>
-    </UiCard>
+      <UiSelect
+        v-model="statusFilter"
+        :options="STATUS_FILTER_OPTIONS"
+        placeholder="Todos los estados"
+        class="w-full"
+        data-status-filter
+        @change="loadMethods"
+      />
+      <UiSelect
+        v-model="typeFilter"
+        :options="TYPE_FILTER_OPTIONS"
+        placeholder="Todas las familias"
+        class="w-full"
+        data-type-filter
+      />
+      <div v-if="hasActiveFilters" class="flex items-end">
+        <UiButton variant="secondary" class="w-full" data-filters-clear @click="clearFilters">
+          Limpiar filtros
+        </UiButton>
+      </div>
+    </UiFilterBar>
 
     <section aria-label="Métodos de pago" class="space-y-4">
       <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
@@ -338,6 +341,7 @@ import UiButton from '../../../components/ui/Button.vue'
 import UiCard from '../../../components/ui/Card.vue'
 import UiDataTable from '../../../components/ui/DataTable.vue'
 import UiEmptyState from '../../../components/ui/EmptyState.vue'
+import UiFilterBar from '../../../components/ui/FilterBar.vue'
 import UiInput from '../../../components/ui/Input.vue'
 import UiSelect from '../../../components/ui/Select.vue'
 import UiSkeleton from '../../../components/ui/Skeleton.vue'

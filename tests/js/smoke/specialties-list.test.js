@@ -313,4 +313,48 @@ describe('specialties list smoke', () => {
 
     wrapper.unmount()
   })
+
+  it('mounts the filter bar primitive and «Limpiar filtros» re-reads the defaults once', async () => {
+    getMock
+      .mockResolvedValueOnce({ data: SPECIALTIES, meta: { kpis: KPI_POPULATION } })
+      .mockResolvedValueOnce({ data: [], meta: { kpis: KPI_POPULATION } })
+      .mockResolvedValueOnce({ data: SPECIALTIES, meta: { kpis: KPI_POPULATION } })
+    const wrapper = await mountPage()
+
+    const bar = wrapper.find('[data-specialties-filters]')
+
+    expect(bar.exists()).toBe(true)
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-specialties-search]').exists()).toBe(true)
+    expect(bar.find('[data-status-filter]').exists()).toBe(true)
+
+    expect(bar.find('[data-filters-clear]').exists()).toBe(false)
+
+    await selectStatus(wrapper, 'Inactivas')
+
+    // The reset lives inside the bar as well as in the empty state, so the
+    // browser measurement reads it in the search region.
+    const inBarClear = bar.find('[data-filters-clear]')
+
+    expect(inBarClear.exists()).toBe(true)
+    expect(inBarClear.text()).toBe('Limpiar filtros')
+
+    const clear = wrapper
+      .find('[data-specialties-empty]')
+      .findAll('button')
+      .find(button => button.text().trim() === 'Limpiar filtros')
+
+    expect(clear, 'Limpiar filtros must be offered when filters hide every row').toBeTruthy()
+
+    await inBarClear.trigger('click')
+    await flushPromises()
+
+    expect(getMock).toHaveBeenCalledTimes(3)
+    expect(getMock.mock.calls.at(-1)[0]).toBe('/api/specialties')
+    expect(wrapper.find('[data-specialties-search] input').element.value).toBe('')
+    expect(wrapper.find('[data-status-filter]').text()).toContain('Todos los estados')
+    expect(dataRows(wrapper)).toHaveLength(3)
+
+    wrapper.unmount()
+  })
 })

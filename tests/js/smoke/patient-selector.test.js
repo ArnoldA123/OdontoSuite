@@ -73,3 +73,37 @@ describe('patient selector full-name search', () => {
     wrapper.unmount()
   })
 })
+
+// #452 (U11, states) — the selector's own read is the only loading read that
+// `/specialty-records` performs on a cold entry, so it has to publish the shared
+// placeholder (`.loading-spinner-container`), not a hand-rolled `animate-spin`
+// ring that neither the instrument nor a consumer can see.
+describe('patient selector loading state', () => {
+  it('publishes the shared spinner while the directory read is pending', async () => {
+    let release = () => {}
+
+    harness.apiGet.mockReset()
+    harness.apiGet.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          release = resolve
+        })
+    )
+
+    const wrapper = mount(PatientSelector)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-patient-selector-loading]').exists()).toBe(true)
+    expect(wrapper.find('.loading-spinner-container').exists()).toBe(true)
+    expect(wrapper.find('.animate-spin').exists()).toBe(false)
+
+    release({ data: [PATIENT] })
+    await flushPromises()
+
+    expect(wrapper.find('[data-patient-selector-loading]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Gonzalo Velasco')
+    expect(wrapper.text()).not.toContain('undefined')
+
+    wrapper.unmount()
+  })
+})

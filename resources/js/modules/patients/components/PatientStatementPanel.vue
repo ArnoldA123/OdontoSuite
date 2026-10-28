@@ -1,17 +1,30 @@
 <template>
   <div data-patient-statement class="space-y-4">
     <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div class="flex flex-wrap items-end gap-3">
-        <div class="w-full sm:w-44" data-statement-date-from>
-          <UiInput v-model="dateFrom" type="date" label="Desde" />
+      <UiFilterBar :columns="4" class="flex-1" data-statement-filters>
+        <div data-statement-date-from>
+          <UiInput v-model="dateFrom" type="date" label="Desde" class="w-full" />
         </div>
-        <div class="w-full sm:w-44" data-statement-date-to>
-          <UiInput v-model="dateTo" type="date" label="Hasta" />
+        <div data-statement-date-to>
+          <UiInput v-model="dateTo" type="date" label="Hasta" class="w-full" />
         </div>
-        <UiButton variant="secondary" data-statement-apply :disabled="loading" @click="load">
-          Aplicar
-        </UiButton>
-      </div>
+        <div class="flex items-end">
+          <UiButton
+            variant="secondary"
+            class="w-full"
+            data-statement-apply
+            :disabled="loading"
+            @click="load"
+          >
+            Aplicar
+          </UiButton>
+        </div>
+        <div class="flex items-end">
+          <UiButton variant="secondary" class="w-full" data-statement-clear @click="clearFilters">
+            Limpiar filtros
+          </UiButton>
+        </div>
+      </UiFilterBar>
       <UiButton
         v-if="canManageCharge"
         variant="secondary"
@@ -21,7 +34,7 @@
         <template #icon-left>
           <PlusIcon class="w-4 h-4" aria-hidden="true" />
         </template>
-        Registrar cargo
+        Nuevo cargo
       </UiButton>
     </div>
 
@@ -173,6 +186,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import UiButton from '../../../components/ui/Button.vue'
+import UiFilterBar from '../../../components/ui/FilterBar.vue'
 import UiInput from '../../../components/ui/Input.vue'
 import UiDataTable from '../../../components/ui/DataTable.vue'
 import UiSectionEmpty from '../../../components/ui/UiSectionEmpty.vue'
@@ -283,6 +297,14 @@ const load = async () => {
 }
 
 const reload = () => load()
+
+// The defaults are the period the panel opens with, so clearing re-queries the
+// same month once and lands on the same state as a first visit.
+const clearFilters = () => {
+  dateFrom.value = monthStartStamp()
+  dateTo.value = todayStamp()
+  load()
+}
 
 watch(
   () => props.patient?.id,

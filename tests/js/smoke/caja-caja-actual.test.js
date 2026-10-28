@@ -275,4 +275,42 @@ describe('Caja > carga y error de la caja actual (#411)', () => {
 
     wrapper.unmount()
   })
+
+  // #452 (U11, states): the tab that owns the list is the page's, so the page —
+  // not the table component that mounts later — publishes the placeholder of
+  // the first read, with the skeleton primitive.
+  it('paints the skeleton primitive in the list region while its first read is in flight', async () => {
+    let releaseTransactions
+    harness.apiGet.mockImplementation(url => {
+      if (url === '/api/cash-register/current') {
+        return Promise.resolve({ data: { session: OPEN_SESSION, summary: SUMMARY } })
+      }
+      if (url === '/api/transactions') {
+        return new Promise(resolve => {
+          releaseTransactions = resolve
+        })
+      }
+      if (url === '/api/cash-register/sessions') return emptyPage
+      return { data: [] }
+    })
+
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
+    })
+    await router.push('/cash-register')
+    await router.isReady()
+
+    const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+    await flushPromises()
+
+    expect(wrapper.find('[data-caja-list-loading] .skeleton-container').exists()).toBe(true)
+
+    releaseTransactions(emptyPage)
+    await flushPromises()
+
+    expect(wrapper.find('[data-caja-list-loading]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
 })

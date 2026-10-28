@@ -29,38 +29,43 @@
     </PageHeader>
 
     <!-- Search and Filters -->
-    <UiCard variant="glass" padding="sm" class="mb-6" :style="panelStyle">
-      <div class="flex flex-col lg:flex-row gap-4">
-        <div class="flex-1">
-          <UiInput
-            v-model="searchQuery"
-            placeholder="Buscar ambientes por nombre o descripción..."
-            class="w-full"
-            @input="handleSearchInput"
-          >
-            <template #prefix>
-              <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
-            </template>
-          </UiInput>
-        </div>
-        <div class="flex gap-3">
-          <UiSelect
-            v-model="statusFilter"
-            :options="statusOptions"
-            class="w-48"
-            data-status-filter
-            @change="filterEnvironments"
-          />
-          <UiSelect
-            v-model="archivedFilter"
-            :options="archivedOptions"
-            class="w-56"
-            data-archived-filter
-            @change="filterArchived"
-          />
-        </div>
+    <UiFilterBar :columns="5" class="mb-6" data-environment-filters>
+      <div class="sm:col-span-2">
+        <UiInput
+          v-model="searchQuery"
+          placeholder="Buscar ambientes por nombre o descripción..."
+          class="w-full"
+          @input="handleSearchInput"
+        >
+          <template #prefix>
+            <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
+          </template>
+        </UiInput>
       </div>
-    </UiCard>
+      <div class="flex items-end">
+        <UiSelect
+          v-model="statusFilter"
+          :options="statusOptions"
+          class="w-full"
+          data-status-filter
+          @change="filterEnvironments"
+        />
+      </div>
+      <div class="flex items-end">
+        <UiSelect
+          v-model="archivedFilter"
+          :options="archivedOptions"
+          class="w-full"
+          data-archived-filter
+          @change="filterArchived"
+        />
+      </div>
+      <div v-if="hasActiveFilters" class="flex items-end">
+        <UiButton variant="secondary" class="w-full" data-filters-clear @click="clearFilters">
+          Limpiar filtros
+        </UiButton>
+      </div>
+    </UiFilterBar>
 
     <!-- Environments List (T5/F5): no page-level card wraps this section —
          the DataTable primitive renders its own single framed surface
@@ -283,7 +288,7 @@
         data-modal-submit="create"
         @click="createEnvironment"
       >
-        Crear ambiente
+        Guardar ambiente
       </UiButton>
     </template>
   </UiModal>
@@ -415,7 +420,7 @@ import { useToast } from '../../composables/useToast'
 import { getStatusText, getStatusVariant } from './environmentStatus'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
-import UiCard from '../../components/ui/Card.vue'
+import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiBadge from '../../components/ui/Badge.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
@@ -494,14 +499,9 @@ const columns = [
   { key: 'status', label: 'Estado' }
 ]
 
-// Panel chrome rung for the filter bar (hairline edge, --radius-panel shape,
-// --elevation-2 shadow). The list section deliberately has no page-level
-// chrome: the DataTable primitive owns the single framed surface (T5/F5).
-const panelStyle = {
-  borderColor: 'var(--color-hairline)',
-  borderRadius: 'var(--radius-panel)',
-  boxShadow: 'var(--elevation-2)'
-}
+// The list section deliberately has no page-level chrome: the DataTable
+// primitive owns the single framed surface (T5/F5), and the filter row rides
+// the shared FilterBar primitive.
 
 // Search results come from /api/dental-chairs/search without a server-side
 // status filter, so the status select is applied client-side on every fetch.

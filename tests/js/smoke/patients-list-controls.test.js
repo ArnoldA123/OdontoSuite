@@ -319,6 +319,19 @@ describe('patients list filter state (#401)', () => {
     expect(app).toContain('meta: { preserveOnQuery: true }')
   })
 
+  it('mounts the filter bar primitive around the search and the toolbar', async () => {
+    const wrapper = await mountPage()
+
+    const bar = wrapper.get('[data-patients-filters]')
+
+    expect(bar.attributes('role')).toBe('search')
+    expect(searchInput(wrapper).exists()).toBe(true)
+    expect(bar.find('[data-reset-filters]').exists()).toBe(true)
+    expect(bar.findAllComponents(UiSelect).length).toBeGreaterThanOrEqual(3)
+
+    wrapper.unmount()
+  })
+
   it('names the reset control for assistive technology', async () => {
     const wrapper = await mountAt('/patients')
 

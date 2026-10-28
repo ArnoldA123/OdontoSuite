@@ -164,6 +164,78 @@ describe('environments smoke', () => {
   })
 })
 
+describe('environments filter bar (#456)', () => {
+  it('mounts the filter bar primitive around the search and the two selects', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    const wrapper = await mountPage()
+
+    const bar = wrapper.find('[data-environment-filters]')
+
+    expect(bar.exists()).toBe(true)
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('input').exists()).toBe(true)
+    expect(bar.find('[data-status-filter]').exists()).toBe(true)
+    expect(bar.find('[data-archived-filter]').exists()).toBe(true)
+
+    // Nothing chosen yet: the in-bar reset is not offered.
+    expect(bar.find('[data-filters-clear]').exists()).toBe(false)
+
+    await selectFilterOption(wrapper, 'Mantenimiento')
+    await flushPromises()
+
+    expect(bar.find('[data-filters-clear]').text()).toBe('Limpiar filtros')
+
+    wrapper.unmount()
+  })
+
+  it('the in-bar «Limpiar filtros» restores the defaults and re-reads the list once', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    const wrapper = await mountPage()
+
+    await selectFilterOption(wrapper, 'Mantenimiento')
+    await flushPromises()
+
+    getMock.mockClear()
+
+    const clear = wrapper.find('[data-environment-filters] [data-filters-clear]')
+
+    expect(clear.exists()).toBe(true)
+
+    await clear.trigger('click')
+    await flushPromises()
+
+    expect(getMock).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('[data-status-filter]').text()).toContain('Todos los estados')
+    expect(wrapper.find('[data-environments-table]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('«Limpiar filtros» restores the defaults and re-reads the list once', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    const wrapper = await mountPage()
+
+    await selectFilterOption(wrapper, 'Mantenimiento')
+    await flushPromises()
+
+    getMock.mockClear()
+
+    const empty = wrapper.find('[data-environments-empty]')
+    const clear = empty.findAll('button').find(button => button.text().trim() === 'Limpiar filtros')
+
+    expect(clear, 'Limpiar filtros must be offered when filters hide every row').toBeTruthy()
+
+    await clear.trigger('click')
+    await flushPromises()
+
+    expect(getMock).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('[data-status-filter]').text()).toContain('Todos los estados')
+    expect(wrapper.find('[data-environments-table]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+})
+
 describe('environments status filter (T2)', () => {
   it('requests the filtered list and hides non-matching rows when a status is selected', async () => {
     getMock.mockResolvedValue({ data: [rowActive, rowMaintenance, rowInactive] })
@@ -504,9 +576,10 @@ describe('environments T5 polish (edit modal + list chrome)', () => {
 
     const source = pageSource()
 
-    // F5 (source): the only remaining UiCard is the filter bar; the list
-    // section itself carries no card chrome around the DataTable.
-    expect((source.match(/<UiCard\b/g) || []).length).toBe(1)
+    // F5 (source): no page-level card chrome survives — the filter row rides
+    // the shared FilterBar primitive and the list section keeps none.
+    expect((source.match(/<UiCard\b/g) || []).length).toBe(0)
+    expect(source).toMatch(/<UiFilterBar\b[^>]*\bdata-environment-filters\b/)
     const listSection = source.slice(
       source.indexOf('<!-- Environments List -->'),
       source.indexOf('data-environments-table')

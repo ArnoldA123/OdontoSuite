@@ -135,11 +135,11 @@ const documentAct = async () => {
   await flushPromises()
 
   await goToStep('procedures')
-  await clickButton('Agregar procedimiento')
+  await clickButton('Nuevo procedimiento')
   expect(element('input[placeholder="Especialidad"]')).toBeTruthy()
 
   await goToStep('materials')
-  await clickButton('Agregar material')
+  await clickButton('Nuevo material')
   expect(element('input[placeholder="Buscar producto por nombre o código"]')).toBeTruthy()
 
   await goToStep('next')

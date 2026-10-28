@@ -149,7 +149,7 @@
           :description="emptyStateDescription"
         >
           <template #action>
-            <UiButton v-if="!hasActiveFilters" @click="openCreate">Crear procedimiento</UiButton>
+            <UiButton v-if="!hasActiveFilters" @click="openCreate">Nuevo procedimiento</UiButton>
           </template>
         </UiEmptyState>
 
@@ -399,8 +399,8 @@ const summaryLoading = ref(false)
 const summaryError = ref(false)
 
 // #436: the list rides the module's table contract (`UiDataTable`) instead of
-// its own `<table>`; the primitive owns the scroll affordance and the row
-// hooks stay available through `rowAttributes`.
+// its own hand-rolled markup; the primitive owns the scroll affordance and the
+// row hooks stay available through `rowAttributes`.
 const tableColumns = [
   { key: 'code', label: 'Código' },
   { key: 'name', label: 'Procedimiento' },

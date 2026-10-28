@@ -1,5 +1,5 @@
 <template>
-  <UiModal model-value title="Registrar addendum" size="lg" @close="emit('close')">
+  <UiModal model-value title="Nuevo addendum" size="lg" @close="emit('close')">
     <form data-addendum-form class="space-y-5" @submit.prevent="submit">
       <div class="rounded-ios bg-systemGray-50 p-3" data-addendum-context>
         <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
@@ -43,7 +43,7 @@
         <UiButton type="button" variant="secondary" :disabled="saving" @click="emit('close')">
           Cancelar
         </UiButton>
-        <UiButton type="submit" :loading="saving" data-addendum-submit>Registrar addendum</UiButton>
+        <UiButton type="submit" :loading="saving" data-addendum-submit>Guardar addendum</UiButton>
       </div>
     </form>
   </UiModal>

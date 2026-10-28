@@ -200,6 +200,69 @@ describe('ready-to-bill: shell', () => {
 })
 
 describe('ready-to-bill: list', () => {
+  // #452 (U11, states): the page, not the table it delegates to, represents the
+  // first read — `UiDataTable` paints a bare spinner the instrument cannot see,
+  // and the empty state used to answer before the first payload arrived.
+  it('paints the skeleton primitive in the list region while the first read is in flight', async () => {
+    let releaseRows
+    harness.apiGet.mockImplementation(url => {
+      if (url === '/api/appointments/ready-to-bill') {
+        return new Promise(resolve => {
+          releaseRows = resolve
+        })
+      }
+      return Promise.resolve({ data: [] })
+    })
+
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
+    })
+    await router.push('/cash-register/ready-to-bill')
+    await router.isReady()
+
+    wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+
+    expect(wrapper.find('[data-rtb-loading] .skeleton-container').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('No hay citas por cobrar')
+
+    releaseRows({ data: rows, meta })
+    await flushPromises()
+
+    expect(wrapper.find('[data-rtb-loading]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-rtb-table] tbody tr')).toHaveLength(2)
+
+    // The placeholder belongs to the first read: a refresh keeps the delegated
+    // table mounted (it owns its inline loading row) instead of swapping the
+    // whole list region for the skeleton.
+    harness.apiGet.mockImplementation(() => new Promise(() => {}))
+    await wrapper.find('[data-hero-action="refresh"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-rtb-loading]').exists()).toBe(false)
+    expect(wrapper.find('[data-rtb-table]').exists()).toBe(true)
+  })
+
+  it('declares the empty state when the list has no rows', async () => {
+    // #452 (U11, states): a list that publishes a table owes a declared empty
+    // state; the text is the one the page already used.
+    harness.apiGet.mockResolvedValue({
+      data: [],
+      meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 }
+    })
+    await mountPage()
+
+    const empty = wrapper.find('[data-rtb-empty]')
+    expect(empty.exists()).toBe(true)
+    expect(empty.classes()).toContain('empty-state')
+    expect(empty.text()).toContain('No hay citas por cobrar')
+    expect(empty.text()).toContain('Las citas completadas con saldo pendiente')
+    // No invented actions: the empty state only explains the absence.
+    expect(empty.find('button').exists()).toBe(false)
+    expect(wrapper.find('[data-rtb-table]').exists()).toBe(false)
+    expect(wrapper.find('[data-rtb-loading]').exists()).toBe(false)
+  })
+
   it('renders the endpoint rows with formatted money and quotation state', async () => {
     await mountPage()
 

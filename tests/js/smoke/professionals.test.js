@@ -104,6 +104,9 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
 import uiComponents from '../../../resources/js/plugins/ui-components'
+import { nextTick } from 'vue'
+import { readFileSync } from 'node:fs'
+import UiDataTable from '../../../resources/js/components/ui/DataTable.vue'
 import { useToast } from '../../../resources/js/composables/useToast'
 import { SPECIALTY_OPTIONS } from '../../../resources/js/modules/professionals/professionals.constants'
 import Page from '../../../resources/js/modules/professionals/ProfessionalsPage.vue'
@@ -307,7 +310,7 @@ describe('professionals smoke', () => {
     await wrapper.find('[data-professionals-form-email] input').setValue('nuevo@test.com')
     await chooseSelectOption(wrapper.find('[data-professionals-role]'), 'Técnico Dental')
 
-    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
@@ -326,7 +329,7 @@ describe('professionals smoke', () => {
 
     await wrapper.find('[data-professionals-form-email] input').setValue('nuevo@test.com')
 
-    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
     await flushPromises()
 
     expect(postMock).not.toHaveBeenCalled()
@@ -440,7 +443,7 @@ describe('professionals smoke', () => {
 
     await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
     await wrapper.find('[data-professionals-form-email] input').setValue('nuevo@test.com')
-    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
@@ -646,6 +649,39 @@ describe('professionals smoke', () => {
     wrapper.unmount()
   })
 
+  it('mounts the filter bar primitive and resets to the defaults over the single team read', async () => {
+    installTeam(TEAM)
+    const wrapper = await mountPage()
+
+    const bar = wrapper.find('[data-team-filters]')
+
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-professionals-search]').exists()).toBe(true)
+    expect(bar.find('[data-professionals-specialty-filter]').exists()).toBe(true)
+
+    const teamReads = () =>
+      getMock.mock.calls.filter(([url]) => String(url).startsWith('/api/users?role=')).length
+
+    await chooseSelectOption(wrapper.find('[data-professionals-specialty-filter]'), 'Ortodoncia')
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(2)
+
+    const clear = wrapper.find('[data-team-clear-filters]')
+
+    expect(clear.text()).toBe('Limpiar filtros')
+
+    await clear.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-professionals-search] input').element.value).toBe('')
+    expect(wrapper.find('[data-professionals-specialty-filter]').text()).toContain(
+      'Todas las especialidades'
+    )
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(3)
+    expect(teamReads()).toBe(1)
+
+    wrapper.unmount()
+  })
+
   it('submits licence, branch and status from the create modal', async () => {
     installTeam(TEAM, [{ id: 7, name: 'Sede Miraflores' }])
     const wrapper = await mountPage({ stubs: { teleport: true } })
@@ -659,7 +695,7 @@ describe('professionals smoke', () => {
     await chooseSelectOption(wrapper.find('[data-professionals-form-branch]'), 'Sede Miraflores')
     await chooseSelectOption(wrapper.find('[data-professionals-form-status]'), 'Inactivo')
 
-    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
@@ -726,7 +762,7 @@ describe('professionals smoke', () => {
 
     await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
     await wrapper.find('[data-professionals-form-email] input').setValue('repetido@test.com')
-    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
@@ -747,6 +783,121 @@ describe('professionals smoke', () => {
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
+
+    wrapper.unmount()
+  })
+
+  // #452 (U11, states): the surface represents its first read with the
+  // skeleton primitive instead of a spinner with a sentence, and never claims
+  // an empty team while the team it is waiting for has not arrived.
+  it('paints the skeleton primitive while the first team read is in flight', async () => {
+    const originalImplementation = getMock.getMockImplementation()
+    let releaseUsers
+
+    getMock.mockImplementation(async url => {
+      if (typeof url === 'string' && url.startsWith('/api/users?role=')) {
+        return new Promise(resolve => {
+          releaseUsers = resolve
+        })
+      }
+      if (typeof url === 'string' && url.startsWith('/api/branches')) {
+        return { data: [] }
+      }
+      return { data: [] }
+    })
+
+    const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+
+    expect(wrapper.find('[data-team-loading] .skeleton-container').exists()).toBe(true)
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(0)
+    expect(wrapper.text()).not.toContain('Cargando profesionales...')
+    expect(wrapper.text()).not.toContain('Sin profesionales registrados')
+
+    releaseUsers({ data: TEAM })
+    await flushPromises()
+
+    expect(wrapper.find('[data-team-loading]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(3)
+
+    getMock.mockImplementation(originalImplementation)
+    wrapper.unmount()
+  })
+})
+
+// #453 (U11, list): the team list inherits the module's table contract. The
+// endpoint answers the whole clinical team in one read, so the primitive never
+// paginates: the page keeps its own filters and counter, and the primitive owns
+// the internal scroll, its affordance and the row hooks.
+describe('professionals list inherits UiDataTable (#453)', () => {
+  const pageSource = () =>
+    readFileSync('resources/js/modules/professionals/ProfessionalsPage.vue', 'utf8')
+
+  beforeEach(() => {
+    getMock.mockClear()
+    installTeam(TEAM)
+    seedSession('administrador')
+    useToast().clearAll()
+  })
+
+  // jsdom performs no layout: the overflow the primitive advertises is declared
+  // by the test through the viewport geometry the primitive reads.
+  const declareTableOverflow = async (wrapper, { scrollWidth = 960, clientWidth = 640 } = {}) => {
+    const viewport = wrapper.get('[data-team-table] [data-table-scroll-viewport]').element
+    Object.defineProperty(viewport, 'scrollWidth', { configurable: true, value: scrollWidth })
+    Object.defineProperty(viewport, 'clientWidth', { configurable: true, value: clientWidth })
+    viewport.scrollLeft = 0
+    window.dispatchEvent(new Event('resize'))
+    await nextTick()
+    await nextTick()
+  }
+
+  it('renders the team through UiDataTable instead of a hand-rolled table', async () => {
+    const wrapper = await mountPage()
+
+    expect(wrapper.findComponent(UiDataTable).exists()).toBe(true)
+    expect(wrapper.find('[data-team-table] table').exists()).toBe(true)
+    expect(wrapper.find('[data-team-table] [data-table-scroll]').exists()).toBe(true)
+
+    // The page no longer renders its own table markup, and the primitive is
+    // fed the whole collection with pagination disabled.
+    expect(pageSource()).not.toMatch(/<table\b/)
+    expect(wrapper.findComponent(UiDataTable).props('pagination')).toBe(false)
+
+    // The primitive renders the same columns the page owned before.
+    const header = wrapper.get('[data-team-table] thead').text()
+    for (const label of ['Profesional', 'Especialidad', 'Rol', 'Matrícula', 'Sucursal']) {
+      expect(header).toContain(label)
+    }
+    expect(header).toContain('Estado')
+    expect(header).toContain('Acciones')
+
+    wrapper.unmount()
+  })
+
+  it('keeps the row hook, its cells and its actions inside the table', async () => {
+    const wrapper = await mountPage()
+
+    const row = wrapper.get('[data-team-table] [data-team-row]')
+    expect(row.element.tagName).toBe('TR')
+    expect(row.text()).toContain('Ana Torres')
+    expect(row.text()).toContain('Ortodoncia')
+    expect(row.text()).toContain('Odontólogo')
+
+    const labels = row.findAll('button').map(button => button.text().trim())
+    expect(labels).toEqual(['Ver Detalle', 'Editar', 'Eliminar'])
+
+    wrapper.unmount()
+  })
+
+  it('publishes the primitive scroll affordance when the columns overflow', async () => {
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-table-scroll-affordance]').exists()).toBe(false)
+
+    await declareTableOverflow(wrapper)
+
+    expect(wrapper.get('[data-table-scroll]').attributes('data-table-scroll')).toBe('right')
+    expect(wrapper.get('[data-table-scroll-affordance]').text()).toMatch(/columnas/i)
 
     wrapper.unmount()
   })

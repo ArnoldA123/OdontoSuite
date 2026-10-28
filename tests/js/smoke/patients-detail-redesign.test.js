@@ -272,7 +272,7 @@ describe('patient detail hero band (login language)', () => {
 
     // #320: the manual charge is the second secondary action of the hero.
     const chargeButton = actions.get('[data-charge-patient-button]')
-    expect(chargeButton.text().trim()).toBe('Registrar cargo')
+    expect(chargeButton.text().trim()).toBe('Nuevo cargo')
     expect(chargeButton.attributes('data-variant')).toBe('secondary')
 
     // Hero action buttons keep their natural width with unwrappable labels
@@ -422,7 +422,7 @@ describe('patient detail tab anatomy (one shared PatientTabPanel)', () => {
     const treatmentCta = wrapper.get(
       '[data-patient-tab-panel="treatment-plans"] [data-section-empty] button'
     )
-    expect(treatmentCta.text()).toContain('Crear Primer Plan')
+    expect(treatmentCta.text()).toContain('Nuevo plan')
 
     expect(
       wrapper.findAll('[data-patient-tab-panel="audit"] [data-section-empty] button')

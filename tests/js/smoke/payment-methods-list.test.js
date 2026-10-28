@@ -414,6 +414,26 @@ describe('payment methods list smoke', () => {
     wrapper.unmount()
   })
 
+  it('mounts the filter bar primitive around the search and the two selects', async () => {
+    getMock.mockResolvedValue({ data: METHODS })
+    const wrapper = await mountPage()
+
+    const bar = wrapper.find('[data-payment-methods-filters]')
+
+    expect(bar.exists()).toBe(true)
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-pm-search]').exists()).toBe(true)
+    expect(bar.find('[data-status-filter]').exists()).toBe(true)
+    expect(bar.find('[data-type-filter]').exists()).toBe(true)
+    expect(bar.find('[data-filters-clear]').exists()).toBe(false)
+
+    await selectType(wrapper, 'Tarjeta')
+
+    expect(bar.find('[data-filters-clear]').text()).toBe('Limpiar filtros')
+
+    wrapper.unmount()
+  })
+
   it('reports the full population on the KPIs while a server filter matches no rows', async () => {
     getMock
       .mockResolvedValueOnce({ data: METHODS })

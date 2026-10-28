@@ -237,6 +237,46 @@ describe('ai-analysis filters', () => {
 
     wrapper.unmount()
   })
+
+  it('mounts the filter bar primitive around the period, review and search controls', async () => {
+    const wrapper = await mountPage()
+
+    const bar = wrapper.find('[data-ai-filters]')
+
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-filters-search]').exists()).toBe(true)
+    expect(bar.find('[data-filters-from]').exists()).toBe(true)
+    expect(bar.find('[data-filters-to]').exists()).toBe(true)
+    expect(bar.findAll('[data-preset]')).toHaveLength(4)
+
+    wrapper.unmount()
+  })
+
+  it('«Limpiar filtros» restores the defaults with a single list request', async () => {
+    const wrapper = await mountPage()
+
+    await wrapper.find('[data-filters-search] input').setValue('ana')
+    await new Promise(resolve => setTimeout(resolve, 400))
+    await flushPromises()
+
+    getMock.mockClear()
+
+    const clear = wrapper.find('[data-clear-filters]')
+
+    expect(clear.text()).toBe('Limpiar filtros')
+
+    await clear.trigger('click')
+    await flushPromises()
+
+    const listCalls = requestedUrls().filter(url => String(url).startsWith('/api/ai-analysis?'))
+
+    expect(listCalls).toHaveLength(1)
+    expect(listCalls[0]).not.toContain('search=ana')
+    expect(wrapper.find('[data-filters-search] input').element.value).toBe('')
+    expect(wrapper.find('[data-clear-filters]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
 })
 
 describe('ai-analysis states', () => {

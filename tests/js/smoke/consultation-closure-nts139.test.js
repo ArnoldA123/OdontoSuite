@@ -300,9 +300,7 @@ describe('consultation closure NTS 139 smoke (#286)', () => {
 
     await goToStep('next')
     expect(element('[data-wizard-lab-case]')).toBeTruthy()
-    expect(element('[data-wizard-lab-case-new]').textContent).toContain(
-      'Registrar caso de laboratorio'
-    )
+    expect(element('[data-wizard-lab-case-new]').textContent).toContain('Nuevo caso de laboratorio')
 
     element('[data-wizard-lab-case-new]').click()
     await flushPromises()

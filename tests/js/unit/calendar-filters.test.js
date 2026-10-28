@@ -204,6 +204,50 @@ describe('calendar filters (#395 S5)', () => {
     wrapper.unmount()
   })
 
+  it('mounts the filter bar primitive without swallowing the view switcher or the date nav', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+
+    const bar = wrapper.get('[data-calendar-filters]')
+
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-calendar-filter="professional"]').exists()).toBe(true)
+    expect(bar.find('[data-calendar-filter="chair"]').exists()).toBe(true)
+    expect(bar.find('[data-calendar-filter="branch"]').exists()).toBe(true)
+
+    // Only the filters travel into the bar: the view switcher and the date nav
+    // stay in the header they belong to.
+    expect(bar.find('[data-calendar-view-switcher]').exists()).toBe(false)
+    expect(bar.find('[data-calendar-nav="prev"]').exists()).toBe(false)
+    expect(bar.find('[data-calendar-nav="today"]').exists()).toBe(false)
+    expect(wrapper.find('[data-calendar-view-switcher]').exists()).toBe(true)
+    expect(wrapper.find('[data-calendar-nav="next"]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('offers «Limpiar filtros» inside the bar and clears the read in one go', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+
+    await chooseFilter(wrapper, 'professional', 'Dr. Vega')
+
+    const clear = wrapper.get('[data-calendar-filters] [data-calendar-clear-filters]')
+
+    expect(clear.text()).toBe('Limpiar filtros')
+
+    await clear.trigger('click')
+    await flushPromises()
+
+    const cleared = lastAppointmentRead()
+    expect(cleared.params).not.toHaveProperty('user_id')
+    expect(wrapper.find('[data-calendar-filters] [data-calendar-clear-filters]').exists()).toBe(
+      false
+    )
+
+    wrapper.unmount()
+  })
+
   it('re-reads the range with the chosen professional, without navigating', async () => {
     const wrapper = mountPage()
     await flushPromises()

@@ -389,7 +389,7 @@
               </div>
             </div>
             <UiButton variant="secondary" size="sm" class="mt-3" @click="addItem">
-              + Agregar procedimiento
+              + Nuevo procedimiento
             </UiButton>
           </div>
         </section>
@@ -488,7 +488,7 @@
               </div>
             </div>
             <UiButton variant="secondary" size="sm" class="mt-3" @click="addMaterial">
-              + Agregar material
+              + Nuevo material
             </UiButton>
           </div>
         </section>
@@ -537,9 +537,7 @@
             <option value="consentimiento" />
             <option value="otro" />
           </datalist>
-          <UiButton variant="secondary" size="sm" @click="addAttachment">
-            + Agregar archivo
-          </UiButton>
+          <UiButton variant="secondary" size="sm" @click="addAttachment">+ Nuevo archivo</UiButton>
         </section>
 
         <!-- PASO 6: Próxima cita -->
@@ -605,7 +603,7 @@
               data-wizard-lab-case-new
               @click="labCaseFormOpen = true"
             >
-              Registrar caso de laboratorio
+              Nuevo caso de laboratorio
             </UiButton>
           </div>
         </section>

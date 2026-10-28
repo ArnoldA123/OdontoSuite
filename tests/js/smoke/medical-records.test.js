@@ -399,7 +399,7 @@ describe('medical-records shell', () => {
     await flushPromises()
 
     const empty = wrapper.get('[data-state="no-record-evolutions"]')
-    const action = empty.findAll('button').find(button => button.text().includes('Crear historia'))
+    const action = empty.findAll('button').find(button => button.text().includes('Nueva historia'))
     expect(action).toBeTruthy()
 
     await action.trigger('click')

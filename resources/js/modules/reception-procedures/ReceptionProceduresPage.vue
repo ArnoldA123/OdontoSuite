@@ -76,35 +76,43 @@
       </UiCard>
     </section>
 
-    <UiCard variant="glass" class="mb-6">
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div class="md:col-span-2">
-          <UiInput
-            v-model="filters.q"
-            data-reception-search
-            type="search"
-            label="Buscar"
-            placeholder="Buscar por nombre o código..."
-            class="w-full"
-          >
-            <template #prefix>
-              <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
-            </template>
-          </UiInput>
-        </div>
-        <div>
-          <label class="mb-1 block text-sm font-medium text-theme-primary">Especialidad</label>
-          <UiSelect
-            v-model="filters.specialty"
-            :options="specialtyOptions"
-            placeholder="Todas las especialidades"
-            label="Especialidad"
-          />
-        </div>
+    <UiFilterBar :columns="4" class="mb-6" data-reception-filters>
+      <div class="sm:col-span-2">
+        <UiInput
+          v-model="filters.q"
+          data-reception-search
+          type="search"
+          label="Buscar"
+          placeholder="Buscar por nombre o código..."
+          class="w-full"
+        >
+          <template #prefix>
+            <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
+          </template>
+        </UiInput>
       </div>
-    </UiCard>
+      <div>
+        <label class="mb-1 block text-sm font-medium text-theme-primary">Especialidad</label>
+        <UiSelect
+          v-model="filters.specialty"
+          :options="specialtyOptions"
+          placeholder="Todas las especialidades"
+          label="Especialidad"
+        />
+      </div>
+      <div class="flex items-end">
+        <UiButton
+          variant="secondary"
+          class="w-full"
+          data-reception-clear-filters
+          @click="clearFilters"
+        >
+          Limpiar filtros
+        </UiButton>
+      </div>
+    </UiFilterBar>
 
-    <div v-if="loading" class="py-10 text-center">
+    <div v-if="bootLoading || loading" class="py-10 text-center" data-reception-loading>
       <LoadingSpinner text="Cargando procedimientos..." />
     </div>
 
@@ -187,7 +195,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ArrowLeftIcon,
@@ -202,6 +210,7 @@ import UiBadge from '../../components/ui/Badge.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
+import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import LoadingSpinner from '../../components/ui/LoadingSpinner.vue'
@@ -213,6 +222,11 @@ const { procedures, loading, pagination, getProcedures, currentPage, totalPages 
 const { specialties, getSpecialties } = useSpecialties()
 
 const loadError = ref(false)
+// #452/#456 (U11, states): the page owns its first frame. `loading` only turns
+// on when the catalog request starts, and the specialty catalog is read first,
+// so the surface used to paint an empty list before its first read. The
+// placeholder stays mounted until the catalog answers; no second read is added.
+const bootLoading = ref(true)
 const filters = reactive({
   q: '',
   specialty: '',
@@ -246,21 +260,52 @@ const pageAverageDuration = computed(() => {
 
 let searchTimer = null
 
+// A reset re-queries once: without the guard, the search watcher would arm its
+// own debounce and the specialty watcher would load again on the same tick.
+let resetting = false
+
+const hasActiveFilters = computed(() => Boolean(filters.q || filters.specialty))
+
 const load = async () => {
   loadError.value = false
   try {
     await getProcedures({ ...filters })
   } catch {
     loadError.value = true
+  } finally {
+    bootLoading.value = false
   }
 }
 
 const onSearchInput = () => {
+  if (resetting) return
+
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
     filters.page = 1
     load()
   }, 350)
+}
+
+const clearFilters = () => {
+  clearTimeout(searchTimer)
+
+  if (!hasActiveFilters.value) {
+    if (filters.page === 1) return
+
+    filters.page = 1
+    load()
+    return
+  }
+
+  resetting = true
+  filters.q = ''
+  filters.specialty = ''
+  filters.page = 1
+  load()
+  nextTick(() => {
+    resetting = false
+  })
 }
 
 const onPageChange = page => {
@@ -272,6 +317,8 @@ watch(() => filters.q, onSearchInput)
 watch(
   () => filters.specialty,
   () => {
+    if (resetting) return
+
     filters.page = 1
     load()
   }
@@ -280,7 +327,9 @@ watch(
 const goBack = () => router.push('/dashboard')
 
 onMounted(async () => {
-  await getSpecialties(true)
+  // A failing specialty catalog cannot cancel the procedure read: the list the
+  // page exists for is the catalog of procedures, not its filter options.
+  await getSpecialties(true).catch(() => {})
   await load()
 })
 </script>

@@ -108,31 +108,34 @@
       </UiCard>
     </section>
 
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
-        <div class="w-full flex-1">
-          <UiInput
-            v-model="searchQuery"
-            data-specialties-search
-            placeholder="Buscar por nombre, código o descripción..."
-            class="w-full"
-            @input="onSearchInput"
-          >
-            <template #prefix>
-              <MagnifyingGlassIcon class="h-5 w-5 text-theme-secondary" aria-hidden="true" />
-            </template>
-          </UiInput>
-        </div>
-        <UiSelect
-          v-model="statusFilter"
-          :options="STATUS_FILTER_OPTIONS"
-          placeholder="Todos los estados"
-          class="w-48"
-          data-status-filter
-          @change="loadSpecialties"
-        />
+    <UiFilterBar :columns="4" class="mb-6" data-specialties-filters>
+      <div class="sm:col-span-2">
+        <UiInput
+          v-model="searchQuery"
+          data-specialties-search
+          placeholder="Buscar por nombre, código o descripción..."
+          class="w-full"
+          @input="onSearchInput"
+        >
+          <template #prefix>
+            <MagnifyingGlassIcon class="h-5 w-5 text-theme-secondary" aria-hidden="true" />
+          </template>
+        </UiInput>
       </div>
-    </UiCard>
+      <UiSelect
+        v-model="statusFilter"
+        :options="STATUS_FILTER_OPTIONS"
+        placeholder="Todos los estados"
+        class="w-full"
+        data-status-filter
+        @change="loadSpecialties"
+      />
+      <div v-if="hasActiveFilters" class="flex items-end">
+        <UiButton variant="secondary" class="w-full" data-filters-clear @click="clearFilters">
+          Limpiar filtros
+        </UiButton>
+      </div>
+    </UiFilterBar>
 
     <section aria-label="Especialidades" class="space-y-4">
       <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
@@ -297,6 +300,7 @@ import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
+import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'

@@ -4,10 +4,12 @@ import { ArrowPathIcon, ExclamationTriangleIcon, UserIcon } from '@heroicons/vue
 import AppLayout from '@/components/layout/AppLayout.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiDataTable from '@/components/ui/DataTable.vue'
+import UiEmptyState from '@/components/ui/EmptyState.vue'
 import UiFilterBar from '@/components/ui/FilterBar.vue'
 import UiInput from '@/components/ui/Input.vue'
 import UiModal from '@/components/ui/Modal.vue'
 import UiPagination from '@/components/ui/Pagination.vue'
+import UiSkeleton from '@/components/ui/Skeleton.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import PatientSelector from '@/components/ui/PatientSelector.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
@@ -32,7 +34,10 @@ const columns = [
 const DEFAULT_META = { current_page: 1, last_page: 1, per_page: 20, total: 0 }
 
 const items = ref([])
-const loading = ref(false)
+// #452 (U11, states): the first frame is the placeholder. `UiDataTable` paints
+// its own spinner, which is not the shared primitive and only exists once the
+// table has mounted, so the page owns the state of its first read.
+const loading = ref(true)
 const error = ref('')
 const meta = ref({ ...DEFAULT_META })
 const currentPage = ref(1)
@@ -54,6 +59,10 @@ const collectingRow = ref(null)
 let filterTimer = null
 
 const totalPages = computed(() => Number(meta.value?.last_page ?? 1))
+
+// Only the first read takes the list region: a later refresh keeps the
+// delegated table mounted, which owns its own inline loading row.
+const bootLoading = computed(() => loading.value && items.value.length === 0)
 
 const apiErrorMessage = (err, fallback) =>
   err?.response?.data?.error?.message || err?.response?.data?.message || fallback
@@ -344,7 +353,23 @@ onBeforeUnmount(() => {
       </div>
 
       <div v-else>
+        <!-- #452: the page, not the table it delegates to, represents the first
+             read; a later refresh stays on the table. -->
+        <div v-if="bootLoading" data-rtb-loading>
+          <UiSkeleton variant="table" animation="wave" aria-label="Cargando citas por cobrar" />
+        </div>
+
+        <!-- #452 (U11, states): the empty list is the page's declared state, not
+             an artifact of the table it delegates to. -->
+        <UiEmptyState
+          v-else-if="!items.length"
+          data-rtb-empty
+          title="No hay citas por cobrar"
+          description="Las citas completadas con saldo pendiente aparecerán aquí."
+        />
+
         <UiDataTable
+          v-else
           :data="items"
           :columns="columns"
           :loading="loading"
@@ -352,8 +377,6 @@ onBeforeUnmount(() => {
           :searchable="false"
           :show-header="false"
           row-key="id"
-          empty-title="No hay citas por cobrar"
-          empty-description="Las citas completadas con saldo pendiente aparecerán aquí."
           data-rtb-table
         >
           <template #cell-completed_at="{ row }">
