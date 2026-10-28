@@ -375,85 +375,135 @@
           class="overflow-hidden bg-canvas"
           style="border: 1px solid var(--color-hairline); border-radius: var(--radius-panel)"
         >
-          <div class="grid grid-cols-8">
-            <!-- Header row -->
-            <div class="border-b border-r border-hairline bg-theme-surface" />
+          <!-- #397 S7: en pantalla angosta la rejilla no se comprime. La hora
+               conserva su columna y cada día su ancho mínimo, así que la
+               semana vive en un scroll horizontal propio y sólo la rejilla se
+               desplaza: la página nunca desborda 390 px. -->
+          <div class="relative">
             <div
-              v-for="day in weekDays"
-              :key="day.date"
-              class="border-b border-r border-hairline bg-theme-surface px-2 py-2 text-center"
+              ref="weekScrollViewport"
+              class="overflow-x-auto"
+              data-calendar-week-scroll
+              @scroll.passive="readWeekScrollState"
             >
-              <div class="text-xs font-semibold uppercase tracking-widest text-theme-secondary">
-                {{ day.name }}
-              </div>
               <div
-                class="text-sm font-medium text-theme-primary"
-                style="font-feature-settings: 'tnum' 1"
+                class="grid"
+                data-calendar-week-grid
+                :data-calendar-week-hour-width="weekHourColumnPx"
+                :data-calendar-week-day-min-width="weekDayColumnMinPx"
+                :style="weekGridStyle"
               >
-                {{ day.number }}
+                <!-- Header row -->
+                <div class="border-b border-r border-hairline bg-theme-surface" />
+                <div
+                  v-for="day in weekDays"
+                  :key="day.date"
+                  class="border-b border-r border-hairline bg-theme-surface px-2 py-2 text-center"
+                >
+                  <div class="text-xs font-semibold uppercase tracking-widest text-theme-secondary">
+                    {{ day.name }}
+                  </div>
+                  <div
+                    class="text-sm font-medium text-theme-primary"
+                    style="font-feature-settings: 'tnum' 1"
+                  >
+                    {{ day.number }}
+                  </div>
+                </div>
+
+                <!-- Hour rows: quiet hairline grid, one slot button per day+hour cell -->
+                <template v-for="hour in weekHours" :key="hour">
+                  <div
+                    class="border-b border-r border-hairline bg-theme-surface px-2 py-1 text-right text-xs text-theme-secondary"
+                    style="font-feature-settings: 'tnum' 1"
+                  >
+                    {{ formatHour(hour) }}
+                  </div>
+                  <div
+                    v-for="day in weekDays"
+                    :key="`${day.date}-${hour}`"
+                    class="relative h-16 border-b border-r border-hairline"
+                    :class="dropTargetClasses(`${day.date}-${hour}`)"
+                    :data-calendar-slot-day="day.date"
+                    :data-calendar-drop-target="`${day.date}-${hour}`"
+                    :data-calendar-drop-active="dropHoverSlot === `${day.date}-${hour}` ? '' : null"
+                  >
+                    <button
+                      v-if="can.createAppointment?.value"
+                      type="button"
+                      class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                      :data-calendar-slot="`${day.date}-${hour}`"
+                      :aria-label="`Crear cita el ${day.date} a las ${formatHour(hour)}`"
+                      @click="openSlotCreate(day.date, hour)"
+                    ></button>
+                    <div class="pointer-events-none absolute inset-1 flex flex-col gap-1">
+                      <button
+                        v-for="appointment in appointmentsForSlot(day.date, hour)"
+                        :key="appointment.id"
+                        type="button"
+                        class="pointer-events-auto min-h-0 flex-1 overflow-hidden px-1.5 py-1 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                        :class="getAppointmentClasses(appointment)"
+                        style="border-radius: var(--radius-panel)"
+                        :title="chipTitle(appointment)"
+                        :data-calendar-appointment="appointment.id"
+                        :data-calendar-draggable="appointment.id"
+                        :data-calendar-drag-state="
+                          draggingAppointmentId === appointment.id ? 'active' : null
+                        "
+                        @pointerdown="onChipPointerDown($event, appointment)"
+                        @click="selectAppointment(appointment)"
+                      >
+                        <span
+                          class="block truncate text-xs font-semibold text-theme-primary"
+                          style="font-feature-settings: 'tnum' 1"
+                          data-calendar-chip-time
+                        >
+                          {{ chipTimeRange(appointment) }}
+                        </span>
+                        <span
+                          class="block truncate text-xs text-theme-primary"
+                          data-calendar-chip-patient
+                        >
+                          {{ appointment.patient?.first_name }}
+                          {{ appointment.patient?.last_name }}
+                        </span>
+                        <span
+                          v-if="appointmentMetaLine(appointment)"
+                          class="block truncate text-xs text-theme-secondary"
+                        >
+                          {{ appointmentMetaLine(appointment) }}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </template>
               </div>
             </div>
-
-            <!-- Hour rows: quiet hairline grid, one slot button per day+hour cell -->
-            <template v-for="hour in weekHours" :key="hour">
-              <div
-                class="border-b border-r border-hairline bg-theme-surface px-2 py-1 text-right text-xs text-theme-secondary"
-                style="font-feature-settings: 'tnum' 1"
-              >
-                {{ formatHour(hour) }}
-              </div>
-              <div
-                v-for="day in weekDays"
-                :key="`${day.date}-${hour}`"
-                class="relative h-16 border-b border-r border-hairline"
-                :class="dropTargetClasses(`${day.date}-${hour}`)"
-                :data-calendar-slot-day="day.date"
-                :data-calendar-drop-target="`${day.date}-${hour}`"
-                :data-calendar-drop-active="dropHoverSlot === `${day.date}-${hour}` ? '' : null"
-              >
-                <button
-                  v-if="can.createAppointment?.value"
-                  type="button"
-                  class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
-                  :data-calendar-slot="`${day.date}-${hour}`"
-                  :aria-label="`Crear cita el ${day.date} a las ${formatHour(hour)}`"
-                  @click="openSlotCreate(day.date, hour)"
-                ></button>
-                <div class="pointer-events-none absolute inset-1 flex flex-col gap-1">
-                  <button
-                    v-for="appointment in appointmentsForSlot(day.date, hour)"
-                    :key="appointment.id"
-                    type="button"
-                    class="pointer-events-auto min-h-0 flex-1 overflow-hidden px-1.5 py-1 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
-                    :class="getAppointmentClasses(appointment)"
-                    style="border-radius: var(--radius-panel)"
-                    :title="chipTitle(appointment)"
-                    :data-calendar-appointment="appointment.id"
-                    :data-calendar-draggable="appointment.id"
-                    :data-calendar-drag-state="
-                      draggingAppointmentId === appointment.id ? 'active' : null
-                    "
-                    @pointerdown="onChipPointerDown($event, appointment)"
-                    @click="selectAppointment(appointment)"
-                  >
-                    <span
-                      class="block truncate text-xs font-semibold text-theme-primary"
-                      style="font-feature-settings: 'tnum' 1"
-                    >
-                      {{ chipTimeRange(appointment) }} · {{ appointment.patient?.first_name }}
-                      {{ appointment.patient?.last_name }}
-                    </span>
-                    <span
-                      v-if="appointmentMetaLine(appointment)"
-                      class="block truncate text-xs text-theme-secondary"
-                    >
-                      {{ appointmentMetaLine(appointment) }}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </template>
+            <!-- Affordance: the same edge gradient telegraphed by DataTable -->
+            <span
+              v-if="weekScrollLeft"
+              class="pointer-events-none absolute inset-y-0 left-0 w-8"
+              data-calendar-week-scroll-edge="left"
+              aria-hidden="true"
+              style="background: linear-gradient(to right, var(--color-canvas), transparent)"
+            />
+            <span
+              v-if="weekScrollRight"
+              class="pointer-events-none absolute inset-y-0 right-0 w-8"
+              data-calendar-week-scroll-edge="right"
+              aria-hidden="true"
+              style="background: linear-gradient(to left, var(--color-canvas), transparent)"
+            />
           </div>
+          <p
+            v-if="weekScrollRight"
+            class="flex items-center justify-end gap-1 px-4 py-2 text-xs font-medium text-theme-secondary"
+            data-calendar-week-scroll-affordance
+            aria-hidden="true"
+          >
+            <ChevronRightIcon class="h-4 w-4" aria-hidden="true" />
+            Desliza para ver la semana completa
+          </p>
         </div>
       </div>
 
@@ -817,6 +867,7 @@ import {
 import {
   WEEK_DAY_NAMES,
   buildHours,
+  initialViewForWidth,
   toLocalDateString,
   weekDays as buildWeekDays,
   monthDays as buildMonthDays,
@@ -871,7 +922,10 @@ export default {
     // #396: a failed range read is an explicit surface state, never the
     // empty agenda block.
     const loadError = ref(null)
-    const currentView = ref('week')
+    // #397 S7: a 390 px la rejilla semanal comprimía el día a 38 px y el chip a
+    // «1.». La vista inicial sale del ancho del viewport —por debajo del punto
+    // de quiebre abre en día— y el selector sigue ofreciendo «Semana» a mano.
+    const currentView = ref(initialViewForWidth(window.innerWidth))
     const currentDate = ref(new Date())
     const appointments = ref([])
     // #395 S5: los filtros viven sobre la misma lectura del rango — cambiarlos
@@ -973,6 +1027,48 @@ export default {
     const weekHours = buildHours()
 
     const weekDayNames = WEEK_DAY_NAMES
+
+    // #397 S7: la rejilla semanal conserva una columna de hora y un ancho mínimo
+    // por día para que hora y paciente se lean; cuando no cabe, se desplaza en
+    // horizontal dentro de su propio contenedor.
+    const weekHourColumnPx = 64
+    const weekDayColumnMinPx = 112
+    const WEEK_DAY_COLUMNS = 7
+    const weekGridStyle = {
+      gridTemplateColumns: `${weekHourColumnPx}px repeat(${WEEK_DAY_COLUMNS}, minmax(${weekDayColumnMinPx}px, 1fr))`,
+      minWidth: `${weekHourColumnPx + weekDayColumnMinPx * WEEK_DAY_COLUMNS}px`
+    }
+
+    const weekScrollViewport = ref(null)
+    const weekScrollLeft = ref(false)
+    const weekScrollRight = ref(false)
+
+    // Medido, no supuesto: sin desborde real no hay gradiente ni aviso. jsdom no
+    // calcula layout, así que ahí ambas medidas son 0 y el affordance no aparece.
+    const readWeekScrollState = () => {
+      const element = weekScrollViewport.value
+      if (!element) {
+        weekScrollLeft.value = false
+        weekScrollRight.value = false
+        return
+      }
+      const maxScroll = Math.max(0, element.scrollWidth - element.clientWidth)
+      const hasOverflow = maxScroll > 1
+      weekScrollLeft.value = hasOverflow && element.scrollLeft > 1
+      weekScrollRight.value = hasOverflow && element.scrollLeft < maxScroll - 1
+    }
+
+    // La rejilla sólo existe cuando la vista es semana y hay citas que pintar:
+    // se mide al aparecer y al girar el equipo, nunca sobre un nodo ausente.
+    const weekGridRendered = computed(
+      () =>
+        currentView.value === 'week' &&
+        !loading.value &&
+        !loadError.value &&
+        appointments.value.length > 0
+    )
+
+    watch(weekGridRendered, readWeekScrollState, { flush: 'post' })
 
     const currentPeriodTitle = computed(() => {
       return periodTitle(currentDate.value, currentView.value)
@@ -1639,6 +1735,10 @@ export default {
     })
 
     onMounted(() => {
+      // #397 S7: el affordance del scroll horizontal se remide con el viewport.
+      window.addEventListener('resize', readWeekScrollState)
+      nextTick(readWeekScrollState)
+
       // Las poblaciones de los filtros son una lectura aparte: se lanzan sin
       // esperar y la agenda no depende de ellas (un lookup caído sólo oculta
       // su filtro). La lectura del rango sale a continuación, nunca encadenada.
@@ -1673,6 +1773,8 @@ export default {
     })
 
     onUnmounted(() => {
+      window.removeEventListener('resize', readWeekScrollState)
+
       // Drag en curso: no dejar listeners de ventana huérfanos al desmontar.
       if (dragSession) {
         endDrag()
@@ -1710,6 +1812,13 @@ export default {
       dayHours,
       weekHours,
       weekDayNames,
+      weekHourColumnPx,
+      weekDayColumnMinPx,
+      weekGridStyle,
+      weekScrollViewport,
+      weekScrollLeft,
+      weekScrollRight,
+      readWeekScrollState,
       currentPeriodTitle,
       legendStatuses,
       loadedAppointmentsCaption,
