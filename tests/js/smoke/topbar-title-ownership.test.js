@@ -7,6 +7,11 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 // the topbar keeps the document's single <h1> for the outline (visually
 // hidden) plus the short description as context, and routes whose page has no
 // title of its own keep the topbar title exactly as before.
+//
+// Issue #243 — surfaces whose page names itself in its own <h1> (detail pages,
+// and since #405 the two patient surfaces) drop the topbar heading entirely.
+// Issue #381 — the catch-all renders NotFoundPage, which owns the heading, so
+// the shell paints none there and the 404 keeps one visible <h1>.
 const { getMock } = vi.hoisted(() => ({ getMock: vi.fn() }))
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
@@ -35,14 +40,17 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import AppLayout from '../../../resources/js/components/layout/AppLayout.vue'
 import SpecialtiesPage from '../../../resources/js/modules/specialties/SpecialtiesPage.vue'
+import NotFoundPage from '../../../resources/js/modules/errors/NotFoundPage.vue'
 
 const topbar = wrapper => wrapper.find('[data-app-chrome="topbar"]')
 const topbarHeading = wrapper => topbar(wrapper).find('h1')
 
-const mountShell = async path => {
+// `routeName` names the catch-all: `app.js` names it `not-found`, and that name
+// is what tells the shell the 404 page owns the document heading.
+const mountShell = async (path, routeName = undefined) => {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
+    routes: [{ path: '/:pathMatch(.*)*', name: routeName, component: { template: '<div />' } }]
   })
   await router.push(path)
   await router.isReady()
@@ -51,6 +59,19 @@ const mountShell = async path => {
     global: { plugins: [router, uiComponents] },
     slots: { default: '<div data-shell-page />' }
   })
+  await flushPromises()
+  return wrapper
+}
+
+const mountNotFound = async () => {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundPage }]
+  })
+  await router.push('/audit-catch-all')
+  await router.isReady()
+
+  const wrapper = mount(NotFoundPage, { global: { plugins: [router, uiComponents] } })
   await flushPromises()
   return wrapper
 }
@@ -119,13 +140,7 @@ describe('topbar title ownership (issue #208)', () => {
     wrapper.unmount()
   })
 
-  const shellOwnedRoutes = [
-    '/calendar',
-    '/dashboard',
-    '/patients',
-    '/professionals',
-    '/medical-records'
-  ]
+  const shellOwnedRoutes = ['/calendar', '/dashboard', '/professionals', '/medical-records']
 
   it.each(shellOwnedRoutes)('keeps the topbar title visible on %s', async path => {
     const wrapper = await mountShell(path)
@@ -141,7 +156,15 @@ describe('topbar title ownership (issue #208)', () => {
 
   // Issue #243 — the detail page names the entity in its own <h1>, so the
   // topbar renders no heading at all instead of a second, hidden one.
-  const detailRoutes = ['/appointment-types/7', '/procedure-catalog/12', '/professionals/7']
+  // Issue #405 — both patient surfaces render their visible title as the page
+  // <h1>, so they follow the same rule.
+  const detailRoutes = [
+    '/appointment-types/7',
+    '/procedure-catalog/12',
+    '/professionals/7',
+    '/patients',
+    '/patients/7'
+  ]
 
   it.each(detailRoutes)('renders no heading in the topbar on %s', async path => {
     const wrapper = await mountShell(path)
@@ -159,6 +182,45 @@ describe('topbar title ownership (issue #208)', () => {
     expect(context.exists()).toBe(true)
     expect(context.text()).toBe('Tipos de citas disponibles')
     expect(context.classes()).not.toContain('sr-only')
+
+    wrapper.unmount()
+  })
+
+  it('keeps the short description as context where the page owns the heading', async () => {
+    const wrapper = await mountShell('/patients')
+
+    const context = topbar(wrapper).find('[data-topbar-context]')
+    expect(context.exists()).toBe(true)
+    expect(context.text()).toBe('Base de datos de pacientes')
+    expect(context.classes()).toContain('text-xs')
+
+    wrapper.unmount()
+  })
+
+  // Issue #381 — the catch-all paints the 404 page, whose <h1> is the only
+  // document heading. The shell painting its own left two visible ones.
+  it('renders no heading in the topbar on the catch-all route', async () => {
+    const wrapper = await mountShell('/audit-catch-all', 'not-found')
+
+    expect(topbar(wrapper).attributes('data-topbar-title-owner')).toBe('page')
+    expect(topbarHeading(wrapper).exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('keeps one visible h1 on the 404 and its two exits', async () => {
+    const wrapper = await mountNotFound()
+
+    expect(topbar(wrapper).find('h1').exists()).toBe(false)
+
+    const headings = wrapper.findAll('h1')
+    expect(headings).toHaveLength(1)
+    expect(headings[0].text()).toBe('Página no encontrada')
+    expect(headings[0].classes()).not.toContain('sr-only')
+
+    const exits = wrapper.findAll('button').map(button => button.text().trim())
+    expect(exits).toContain('Volver')
+    expect(exits).toContain('Ir al inicio')
 
     wrapper.unmount()
   })

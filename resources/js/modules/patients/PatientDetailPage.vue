@@ -66,9 +66,9 @@
             </UiButton>
           </div>
         </div>
-        <p class="page-title relative mt-3 text-4xl font-semibold text-label">
+        <h1 class="page-title relative mt-3 text-4xl font-semibold text-label">
           {{ patient?.first_name }} {{ patient?.last_name }}
-        </p>
+        </h1>
         <p
           class="relative mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-base text-theme-secondary"
         >

@@ -585,6 +585,45 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (shell y recuperación: canales por permiso, menú sin no-ops, un
+  solo `h1` y enlace de recuperación explicado, #378/#384/#380/#381/#382/#405)**
+  — Seis hallazgos de la auditoría UI. **#378/#384**: el handshake de canales
+  privados deja de tener una segunda matriz de roles. Nace
+  `App\Authorization\BroadcastChannels`, que resuelve cada canal (los trece
+  estáticos, `appointment.{id}`, `cash-session.{id}`,
+  `cash-register.{id|global}` y los dos del propio usuario) al permiso del
+  catálogo que ya guarda su escritorio, y `BroadcastingAuthController` autoriza
+  con `Permissions::roleHas()`; el fan-out del shell
+  (`resources/js/utils/broadcastChannels.js`) suscribe sólo los canales cuyo
+  permiso tiene la sesión y `DashboardPage` deja de pedir `appointments` sin
+  `manage.appointment`. Guard nuevo
+  `tests/Unit/Authorization/BroadcastChannelAuthorizationTest.php` (7) que cruza
+  el mapa del servidor, el catálogo y el mapa del SPA: la lista por rol
+  reproduce la tabla medida del issue (recepción 6 canales, técnico 5, finanzas
+  4, cero `403`). **#380**: el menú de usuario pierde «Perfil» y «Configuración»
+  (botones sin manejador) y el rótulo «Apariencia» (sin control debajo); queda
+  la identidad de la sesión y «Cerrar Sesión», con guard `user-menu-contract`.
+  **#381 y #405**: la regla de encabezado único cubre la ruta nombrada
+  `not-found` y las dos superficies de pacientes, así que el 404 dentro del
+  shell y `/patients` pintan un solo `h1` visible y la ficha del paciente lleva
+  el nombre como encabezado de la página; el topbar no pinta encabezado ahí y
+  conserva la descripción corta como contexto. **#382**: `/reset-password` sin
+  `token` ni `email` dice qué falta y abre el diálogo de «olvidé mi contraseña»,
+  y con el token del enlace el formulario ya no pide un código que trae
+  (`data-reset-token-applied`). Sin rutas, modelos, migraciones ni permisos
+  nuevos: los conteos de §4/§5 no cambian (el mapa nuevo vive en `utils/`, así
+  que los 46 composables siguen siendo 46). Tests: `login-reset-flow` (7),
+  `broadcast-channels-permission` (9), `domain-channels-private` (7),
+  `dashboard-private-channel` (3), `user-menu-contract` (4),
+  `topbar-title-ownership` (35), `page-header-hierarchy` (7),
+  `patients-list-redesign` (12), `patients-detail-redesign` (30), y los guards
+  PHP `PatientsListAppShellTest` y `ClinicalEventsChannelBoundaryTest`
+  reanclados al contrato nuevo. Vitest **168 archivos / 1438 pruebas**; PHPUnit
+  Unit **1485 pruebas, 9869 aserciones (51 saltadas por SQLite)**; suite MySQL
+  **OK (2867 pruebas, 17558 aserciones)**; Pint y Prettier limpios, ESLint 0
+  errores / 36 avisos, `vite build` en verde y
+  `node scripts/audit/doc-drift.mjs` 14/14.
+
 - **2026-10-28 (auditoría U8 del catálogo: escritura, detalle, lista y
   tarifario, #434/#435/#436/#437)** — Cuatro hallazgos de la auditoría U8
   (#371), un commit de unidad por issue. **#434**: duplicar lee el detalle del

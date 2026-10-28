@@ -8,7 +8,8 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 //
 // Issue #243 — detail pages name the entity they show in their own <h1>, so
 // the topbar drops its heading on those routes: the document keeps exactly one
-// <h1> and it is the visible one.
+// <h1> and it is the visible one. Issue #405 added the patient detail surface
+// to that rule: the patient name is the page heading.
 const { getMock } = vi.hoisted(() => ({ getMock: vi.fn() }))
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
@@ -24,9 +25,15 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
 }))
 vi.mock('../../../resources/js/composables/useEcho', () => ({
   useEcho: () => ({
-    echo: {},
-    channel: () => ({}),
-    privateChannel: () => ({}),
+    echo: { leave: () => {} },
+    channel: () => {
+      const channel = { listen: () => channel }
+      return channel
+    },
+    privateChannel: () => {
+      const channel = { listen: () => channel }
+      return channel
+    },
     connectionStatus: { value: 'connected' }
   })
 }))
@@ -39,6 +46,7 @@ import EnvironmentsPage from '../../../resources/js/modules/environments/Environ
 import AppointmentTypeDetailPage from '../../../resources/js/modules/appointment-types/AppointmentTypeDetailPage.vue'
 import ProcedureCatalogDetailPage from '../../../resources/js/modules/procedure-catalog/ProcedureCatalogDetailPage.vue'
 import ProfessionalDetailPage from '../../../resources/js/modules/professionals/ProfessionalDetailPage.vue'
+import PatientDetailPage from '../../../resources/js/modules/patients/PatientDetailPage.vue'
 
 const APPOINTMENT_TYPE = {
   id: 7,
@@ -75,6 +83,15 @@ const PROFESSIONAL = {
   is_active: true
 }
 
+const PATIENT = {
+  id: 7,
+  first_name: 'Ana',
+  last_name: 'Torres',
+  document_number: '45678912',
+  birth_date: '1990-04-12',
+  is_active: true
+}
+
 const detailRoutes = [
   {
     pattern: '/appointment-types/:id',
@@ -93,6 +110,12 @@ const detailRoutes = [
     path: '/professionals/7',
     component: ProfessionalDetailPage,
     heading: PROFESSIONAL.name
+  },
+  {
+    pattern: '/patients/:id',
+    path: '/patients/7',
+    component: PatientDetailPage,
+    heading: `${PATIENT.first_name} ${PATIENT.last_name}`
   }
 ]
 
@@ -121,6 +144,7 @@ beforeEach(() => {
     if (url === '/api/appointment-types/7') return { data: APPOINTMENT_TYPE }
     if (url === '/api/procedure-catalog/7') return { data: PROCEDURE }
     if (url === '/api/users/7') return { data: PROFESSIONAL }
+    if (url === '/api/patients/7') return { data: PATIENT }
     if (String(url).includes('/versions')) return { data: [] }
 
     return { data: [] }

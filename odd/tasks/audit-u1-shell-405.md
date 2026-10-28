@@ -105,3 +105,53 @@ the visible one.
 at `ff382b5d`. The worktree uses a real `vendor/` (`composer install`; a symlink
 would resolve the Composer autoloader against the main checkout) and a
 `node_modules` symlink (Vite/Vitest resolve sources from the config root).
+
+**L3** — T1 measured. `BroadcastingAuthController` carries no role lists any more:
+`App\Authorization\BroadcastChannels` resolves every channel (static, dynamic and
+the two per-user names) to a catalog permission or `self`, and the handshake
+authorizes through `Permissions::roleHas()`. The SPA gates each fan-out
+subscription with the same permission name; `DashboardPage` additionally stops
+asking for the appointments channel when the role cannot read the agenda
+(finance was collecting that 403 on its landing page). Focused evidence:
+`tests/js/unit/broadcast-channels-permission.test.js` (9) +
+`domain-channels-private.test.js` (7) + `dashboard-private-channel.test.js` (3),
+unit guard `BroadcastChannelAuthorizationTest` (7 assertions over the whole
+role matrix), and the MySQL suite for the channel family: **113 tests, 617
+assertions, OK** — the handshake authorizes exactly the roles it authorized
+before.
+
+**L4** — T4 measured. `/reset-password` without `token`/`email` renders a notice
+that names the missing code and opens the forgot-password dialog; with a link
+token the recovery-code field is not rendered and the payload still sends the
+token (`data-reset-token-applied` marks the state). `login-reset-flow` 7/7.
+
+**L5** — Delivery slices (local commits, not pushed): cut 1 = the ODD note, T1
+(the channel map plus both guards) and T4 (the reset surface); cut 2 = T2/T3/T5
+(the shell menu, the 404 heading and the patient headings) and T6 (documentation
+and full verification). Each issue keeps its own commit so a chained PR can take
+them one at a time.
+
+**L6** — T2/T3/T5 delivered by the delegated writer and reviewed hunk by hunk,
+then split into two commits (menu vs heading ownership; the heading computed is
+one unit that serves both #381 and #405). Two source-inspection guards pinned
+the retired contract and were re-anchored with the issue as justification:
+`PatientsListAppShellTest` (the hero title is now the page `h1`) and
+`ClinicalEventsChannelBoundaryTest` (`dashboard-updates` is pinned through the
+catalog instead of the controller's old role list).
+
+**L7** — Browser evidence on a dedicated base (`odontosuite_u1shell_audit`,
+`migrate:fresh --seed`): app on `127.0.0.1:8000`, Reverb on `:8081`, assets built
+with `.env` so the client app key matches the server's. `@U1 shell · (sidebar
+matrix|catch-all|user menu)` **15/15**: `render/shell-*.json` leaves **0 expected
+/ 0 unexpected** failed requests for the seven roles, the catch-all row records
+`h1: {count: 1, texts: ["Página no encontrada"]}` and the menu records exactly
+one item. A standalone probe counted the handshakes on `/dashboard`:
+administrador 12, recepcionista 9, odontólogo 9, implantólogo 9, técnico 6,
+asistente 6, finanzas 7 — **all 200, zero 403**. The #384 command
+(`AUDIT_SCOPE=route:/dashboard`) **24/24** and `render/dashboard-*.json` declares
+no denied channel.
+
+**L8** — `HotfixLoginEmDashAuditTest` treats any U+2014 after `<template>` as a
+visible character, style comments included: one em dash in the new notice's CSS
+comment turned the full MySQL suite red. Replaced with a colon;
+`tests/Feature/Ui/HotfixLoginEmDashAuditTest` 2/2.

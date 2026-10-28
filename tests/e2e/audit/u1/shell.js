@@ -63,7 +63,7 @@ const LOAD_SETTLE_TIMEOUT = 15000
 const STEP_SETTLE_TIMEOUT = 8000
 const STEP_LIMIT = 360000
 
-const MENU_LABELS = Object.freeze(['Perfil', 'Configuración', 'Apariencia', 'Cerrar Sesión'])
+const MENU_LABELS = Object.freeze(['Cerrar Sesión'])
 const SHEET_ROLE = 'recepcionista'
 const SHEET_TITLE = 'Navegación'
 
@@ -137,6 +137,15 @@ const wsStateOf = label => (label ?? '').replace('Estado de WebSocket:', '').tri
 
 const headingInMain = page =>
   page.evaluate(() => document.querySelector('main h1')?.innerText.trim() ?? '')
+
+// #381 — the document outline, not only the main heading: the shell used to
+// paint its own h1 above the 404, so the row counts the visible ones.
+const headingsOf = page =>
+  page.evaluate(() =>
+    Array.from(document.querySelectorAll('h1')).map(node =>
+      (node.innerText ?? '').trim().replace(/\s+/g, ' ')
+    )
+  )
 
 const checkOf = (checks, id) => checks?.find(check => check.id === id)
 
@@ -268,6 +277,7 @@ for (const role of ROLES) {
       notFound: false,
       shellRendered: false,
       heading: '',
+      h1: { count: null, texts: [] },
       horizontalOverflow: null,
       viewports: { desktop: { ...DESKTOP } },
       shots: [],
@@ -292,8 +302,10 @@ for (const role of ROLES) {
 
       evidence.contentLength = await contentLength(page)
       evidence.rendered = evidence.contentLength > NAV_THRESHOLD
-      // The topbar owns the first h1 of the document; the page heading is the
-      // one inside <main>.
+      // The 404 page owns the document heading; the shell paints none, so the
+      // visible h1 list is exactly the page's.
+      evidence.h1.texts = await headingsOf(page)
+      evidence.h1.count = evidence.h1.texts.length
       evidence.heading = await headingInMain(page)
       evidence.notFound = /no encontrada/i.test(evidence.heading)
       evidence.shellRendered =
@@ -310,6 +322,7 @@ for (const role of ROLES) {
 
     expect(evidence.shellRendered, `shell around the 404 for ${role}`).toBe(true)
     expect(evidence.notFound, `page heading for ${role}`).toBe(true)
+    expect(evidence.h1.count, `visible h1 count for ${role}`).toBe(1)
     expect(evidence.shots, `captures for ${role}`).toHaveLength(1)
     expect(evidence.pageErrors, `page errors for ${role}`).toEqual([])
   })
@@ -409,6 +422,7 @@ test('@U1 shell · user menu items for administrador', async ({ page, request })
     role,
     dropdownVisible: false,
     menuName: null,
+    headerLines: [],
     items: [],
     escapeCloses: false,
     shots: [],
@@ -419,16 +433,16 @@ test('@U1 shell · user menu items for administrador', async ({ page, request })
   const readItems = () =>
     page.evaluate(() => {
       const menu = document.querySelector('#user-menu-dropdown')
-      if (!menu) return { buttons: [], labels: [] }
+      if (!menu) return { buttons: [], headerLines: [] }
 
       const buttons = Array.from(menu.querySelectorAll('button')).map(button =>
         button.innerText.trim()
       )
-      const labels = Array.from(menu.querySelectorAll('p'))
+      const headerLines = Array.from(menu.querySelectorAll('p'))
         .map(paragraph => paragraph.innerText.trim())
         .filter(Boolean)
 
-      return { buttons, labels }
+      return { buttons, headerLines }
     })
 
   // One click, one wait, one observation: whatever the item did (navigate, open a
@@ -505,14 +519,7 @@ test('@U1 shell · user menu items for administrador', async ({ page, request })
       await page.keyboard.press('Escape')
     }
 
-    if (declared.labels.includes('Apariencia')) {
-      evidence.items.push({
-        label: 'Apariencia',
-        verdict: 'CONFUSO',
-        observed:
-          'static paragraph inside the menu; no control follows it, so the menu announces an appearance section it does not offer'
-      })
-    }
+    evidence.headerLines = declared.headerLines
 
     evidence.items.sort(
       (left, right) => MENU_LABELS.indexOf(left.label) - MENU_LABELS.indexOf(right.label)
