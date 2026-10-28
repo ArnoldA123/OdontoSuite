@@ -113,6 +113,42 @@ describe('useCashRegister contract', () => {
     expect(api.lastParams).toEqual({ status: 'closed', page: 2 })
   })
 
+  it('offers to open cash again when the last session is closed', async () => {
+    api.current = {
+      session: { id: 3, status: 'closed' },
+      closing: {
+        closing_amount: 180.5,
+        expected_amount: 170,
+        difference_amount: 10.5,
+        closed_at: '2026-10-21T23:30:00.000000Z',
+        closing_notes: 'Cierre del turno'
+      }
+    }
+
+    const wrapper = mountCashRegister()
+    await wrapper.vm.cash.loadCurrentSession()
+
+    expect(
+      wrapper.vm.cash.hasActiveSession.value,
+      'a closed payload is still a session payload (the dashboard reads it as Cerrada)'
+    ).toBe(true)
+    expect(wrapper.vm.cash.isClosed.value).toBe(true)
+    expect(wrapper.vm.cash.canOpen.value).toBe(true)
+    expect(wrapper.vm.cash.canClose.value).toBe(false)
+    expect(wrapper.vm.cash.summary.value).toBeNull()
+    expect(wrapper.vm.cash.closing.value.closing_amount).toBe(180.5)
+  })
+
+  it('keeps Abrir caja unavailable while a drawer is open', async () => {
+    api.current = { session: { id: 1, status: 'open' } }
+
+    const wrapper = mountCashRegister()
+    await wrapper.vm.cash.loadCurrentSession()
+
+    expect(wrapper.vm.cash.isOpen.value).toBe(true)
+    expect(wrapper.vm.cash.canOpen.value).toBe(false)
+  })
+
   it('surfaces a failed session load instead of painting an empty session', async () => {
     api.failure = 'Caja no disponible'
 
