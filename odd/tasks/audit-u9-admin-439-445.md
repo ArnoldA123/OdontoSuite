@@ -85,6 +85,12 @@ nuevas) y §12 recibe su entrada.
   sin filtros en métodos de pago. Spec: S8. Commit `90c1102e`.
 - T8 — Sincronizar `AGENTS.md` §12 y correr la verificación completa (Vitest,
   ESLint, Prettier, `doc-drift`). Spec: S9. Commit `docs: …`.
+- T9 — Alinear el instrumento U9 (`tests/e2e/audit/u9/walk-*.js`) con los
+  contratos nuevos: la bandera derivada deja de ser control, el envío vacío
+  pinta su mensaje en línea, el 422 de ambientes cae en su campo, el botón
+  deshabilitado de traslados declara qué falta, la lista de profesionales
+  separa error de vacío y conserva el 409, y métodos de pago mide la columna
+  de referencia, el filtro de familia y la población de los KPI. Spec: S1-S8.
 
 ## Log
 
@@ -118,3 +124,27 @@ y formularios de #440, #441 y #442; el tercero en el catálogo de tipos de cita
 (#443, #444) y en el directorio de métodos de pago (#445). Con más de 400 líneas
 autoradas, la entrega se propone como cadenas de PR por corte, no como un único
 PR.
+
+L5. Verificación medida. Vitest completo: 172 archivos / 1490 pruebas en verde.
+Guards de design system afectados: `PaymentMethodsRedesignContractTest` (11
+pruebas; dos aserciones actualizadas a la población de KPI y a la puerta de
+sesión) y `AppointmentTypesRedesignContractTest` + `AppointmentTypesAppShellTest`
++ `AppointmentTypesListCleanupTest` (46 pruebas; la lista acepta la lectura de
+validación y la clave `errors.duration_minutes`, y el guard de colores deja de
+confundir una referencia `#439` con un literal hexadecimal tras descartar los
+comentarios).
+
+L6. Instrumento y verificación final. `tests/e2e/audit/u9/walk-*.js` mide los
+contratos nuevos: el envío vacío por su mensaje en línea (sin burbuja nativa ni
+`POST`), `requires_materials` sólo como declaración derivada y ausencia en el
+payload, el 422 de ambientes dentro de `[data-field="name"]` con su `toastFired`,
+la ayuda `[data-transfer-submit-hint]` de traslados, el bloque
+`[data-team-error]`/`[data-team-retry]` y el 409 accionable de profesionales, y
+la columna de referencia, el filtro de familia y la población de los KPI en
+métodos de pago. Los pases de navegador no se ejecutaron en esta sesión (exigen
+Chromium y una base sembrada), así que quedan como el pase manual del
+instrumento. Verificación corrida: Vitest 1490 en 172 archivos, PHPUnit Unit
+1485 pruebas / 9875 aserciones (51 saltadas por SQLite), Pint 919 archivos,
+ESLint 0 errores / 36 avisos, Prettier global limpio y `doc-drift` 14/14. La
+suite MySQL no se corrió porque el cambio no altera comportamiento PHP: los
+únicos archivos PHP tocados son dos guards de design system.

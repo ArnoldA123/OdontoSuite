@@ -590,6 +590,41 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (auditoría U9 de administración: la escritura sigue el permiso,
+  el rechazo llega al campo y la lista deja de mentir,
+  #439/#440/#441/#442/#443/#444/#445)** — Siete hallazgos de la auditoría UI U9
+  (#372), commits de unidad por superficie. **#439**: `/specialties`,
+  `/professionals`, `/appointment-types` (y su detalle), `/environments`,
+  `/settings/branches` y `/settings/payment-methods` derivan de
+  `usePermissions()` sus puertas de escritura con la misma clave que exige su
+  ruta (`manage.specialty`, `manage.user`, `manage.appointment_type`,
+  `manage.dental_chair`, `manage.branch`, `manage.payment_method`), con dos
+  claves nuevas en el SPA (`manageSpecialties`, `managePaymentMethods`) y sin
+  tocar la API ni el catálogo de permisos: una sesión de recepción conserva
+  lista, filtros y KPI y deja de ver controles que la API responde 403.
+  **#440**: ambientes enlaza el 422 de `/api/dental-chairs` a su campo
+  (`errors.name`), tipos de cita declara `novalidate` y pinta el nombre y la
+  duración (15-480) antes de llamar al API, y el botón deshabilitado de
+  traslados publica `[data-transfer-submit-hint]` con lo que falta. **#441**: la
+  lista de profesionales separa `loadError` del vacío, con bloque de error y
+  «Reintentar» y los KPI en `N/D`. **#442**: el 409 de `DELETE /api/users/{id}`
+  llega con su motivo («… Desactívalo en su lugar.») en vez de un toast fijo.
+  **#443**: `/appointment-types` opta por `meta.preserveOnQuery` (como
+  `/patients` #401 y `/procedure-catalog` #435), así «Editar» del detalle abre
+  el formulario precargado y la limpieza de `?edit=` ya no remonta la vista.
+  **#444**: el formulario deja de ofrecer y de enviar `requires_materials` y
+  declara el valor derivado de la receta del procedimiento por defecto en la
+  modal de edición y en la ficha. **#445**: métodos de pago publica la columna
+  «Referencia», el filtro de familia (`type`, cliente) y una tira de KPI sobre
+  la población sin filtros (segunda lectura cuando `q`/`is_active` están
+  activos). El instrumento U9 (`tests/e2e/audit/u9/walk-*.js`) mide los
+  contratos nuevos. Sin rutas, modelos, migraciones ni permisos nuevos: §4/§5 no
+  cambian. Tests: Vitest **1490 pruebas en 172 archivos**; PHPUnit Unit **1485
+  pruebas, 9875 aserciones (51 saltadas por SQLite)**; guards de design system
+  de las seis superficies en verde, con los de métodos de pago y tipos de cita
+  siguiendo el contrato nuevo; Pint, ESLint 0 errores, Prettier y
+  `node scripts/audit/doc-drift.mjs` en verde.
+
 - **2026-10-28 (auditoría U6 de planes: el selector busca en el servidor, el
   índice publica sus líneas y la línea admite descripción opcional,
   #416/#417/#418/#419)** — Cuatro hallazgos de la auditoría UI U6 (#369), un
