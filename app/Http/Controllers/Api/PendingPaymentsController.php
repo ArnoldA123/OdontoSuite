@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Authorization\BranchAccess;
+use App\Exceptions\AccountingLockBlockedException;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use Carbon\Carbon;
@@ -249,6 +250,10 @@ class PendingPaymentsController extends Controller
                 ],
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (AccountingLockBlockedException $e) {
+            // #410 (S9): the accounting freeze answers its own 403 with its
+            // machine code, not the generic 500 of this door.
             throw $e;
         } catch (AuthorizationException $e) {
             // #283 S6: cobrar la cita de otra sede se responde 403, no 500, y

@@ -15,10 +15,10 @@ use Illuminate\Validation\ValidationException;
 /**
  * F3 (#283, S4/S5) — the accounting freeze date, per module and sede.
  *
- * The lock protects the mutation of a historical row: voiding, editing or
- * deleting money whose accounting date is at or before `locked_through`. Money
- * created today is never locked, because the guard is only reached from a
- * mutation of an existing row.
+ * The lock protects money whose accounting date is at or before
+ * `locked_through`: voiding, editing or deleting an existing row, and also the
+ * alta of a row dated today (#410), because a frozen module cannot admit new
+ * money without a registered authorization.
  *
  * Resolution order is branch row, then global row (`branch_id` null), then no
  * lock; a sede that freezes earlier than the group keeps its own date. The two

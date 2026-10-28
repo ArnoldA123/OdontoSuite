@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\AccountingLockBlockedException;
 use App\Http\Controllers\Controller;
 use App\Models\CashMovement;
 use App\Models\CashRegisterSession;
@@ -101,7 +102,23 @@ class CashMovementController extends Controller
                 ], 403);
             }
 
+            // #410 (S8) — a movement created today is money written today, so
+            // the freeze applies to the alta and not only to an edit. The guard
+            // runs before the insert: a blocked movement leaves no row.
+            $this->accountingLocks->guard(
+                AccountingLockService::CASH_MOVEMENTS,
+                now(),
+                $session->branch_id,
+                $session,
+                'create',
+                $request->input('lock_override_reason'),
+            );
+
             $validated['created_by'] = Auth::id();
+
+            // The reason authorizes the write; it is never a column of the
+            // ledger.
+            unset($validated['lock_override_reason']);
 
             $movement = CashMovement::create($validated);
 
@@ -111,6 +128,8 @@ class CashMovementController extends Controller
                     'message' => 'Movimiento de caja registrado exitosamente',
                 ],
             ], 201);
+        } catch (AccountingLockBlockedException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al registrar el movimiento de caja',
