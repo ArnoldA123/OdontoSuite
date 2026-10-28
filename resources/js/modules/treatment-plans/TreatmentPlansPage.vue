@@ -447,6 +447,7 @@ const {
   pagination,
   summary,
   getPlans,
+  getPlan,
   getSummary,
   changeStatus,
   duplicatePlan,
@@ -590,10 +591,16 @@ const viewPlan = plan => {
   showDetailModal.value = true
 }
 
+/**
+ * #419: the detail can stay open under the form (edit over the plan). Closing
+ * the form must not clear the plan the detail is still reading; the selection
+ * belongs to the detail until it closes.
+ */
 const closeModal = () => {
   showModal.value = false
-  selectedPlan.value = null
   isEdit.value = false
+
+  if (!showDetailModal.value) selectedPlan.value = null
 }
 
 const closeDetailModal = () => {
@@ -601,9 +608,25 @@ const closeDetailModal = () => {
   selectedPlan.value = null
 }
 
-const handlePlanSaved = () => {
+/**
+ * Saving refreshes the list and, when the detail was open under the form, the
+ * detail itself: the ficha must show what the API just stored instead of the
+ * snapshot it opened with.
+ */
+const handlePlanSaved = async () => {
+  const detailPlanId = showDetailModal.value ? selectedPlan.value?.id : null
+
   closeModal()
   loadAll()
+
+  if (detailPlanId === undefined || detailPlanId === null) return
+
+  try {
+    selectedPlan.value = await getPlan(detailPlanId)
+  } catch (err) {
+    toast.error('No se pudo actualizar el detalle del plan')
+    closeDetailModal()
+  }
 }
 
 const clearFilters = () => {
