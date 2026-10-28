@@ -46,3 +46,97 @@ export function buildAppliedParams(applied) {
 export function canExportReport(report) {
   return EXPORTABLE_REPORTS.includes(report)
 }
+
+// #447 S1: three of the tabular services return their whole census and only
+// narrow the counters, and the dashboard always ships `professionalPerformance`,
+// so an idle period still arrived with rows. The empty state reads the ACTIVITY
+// of the period, never the size of the table.
+//
+// The three tabular reports (#447) publish `appointments`/`revenue`; the revenue
+// report keeps its own summary (`appointments_count`/`total_revenue`), so both
+// spellings are read before giving up.
+const SUMMARY_APPOINTMENTS_KEYS = ['appointments', 'appointments_count']
+const SUMMARY_REVENUE_KEYS = ['revenue', 'total_revenue']
+
+const readSummaryAmount = (summary, keys) => {
+  for (const key of keys) {
+    const value = summary[key]
+    if (value !== undefined && value !== null) {
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : 0
+    }
+  }
+
+  return null
+}
+
+/**
+ * Reads the activity a report summary publishes.
+ *
+ * Returns `true` when the period reports any appointment or any movement of
+ * money, `false` when both are zero and `null` when the summary is missing or
+ * does not carry both counters: `null` is "cannot tell", never "empty", so the
+ * caller falls back to what it always used.
+ *
+ * @param {object|null|undefined} summary
+ * @returns {boolean|null}
+ */
+export function summaryShowsActivity(summary) {
+  if (!summary || typeof summary !== 'object') {
+    return null
+  }
+
+  const appointments = readSummaryAmount(summary, SUMMARY_APPOINTMENTS_KEYS)
+  const revenue = readSummaryAmount(summary, SUMMARY_REVENUE_KEYS)
+
+  if (appointments === null || revenue === null) {
+    return null
+  }
+
+  // `revenue` is net: payments minus refunds. A period with only a refund of
+  // money collected earlier reports 0 appointments and a NEGATIVE net, and that
+  // is money that moved: it must not be called a quiet period.
+  return appointments !== 0 || revenue !== 0
+}
+
+/**
+ * Decides whether the applied period has nothing to report (#447 S2).
+ *
+ * @param {object} state
+ * @param {string} state.report Applied report id.
+ * @param {Array<object>} [state.rows] Tabular rows of the applied period.
+ * @param {object|null} [state.summary] `meta.summary` of the tabular payload.
+ * @param {object|null} [state.dashboard] Dashboard payload.
+ * @param {object|null} [state.consolidated] Consolidated payload.
+ * @returns {boolean}
+ */
+export function isReportPeriodEmpty({
+  report,
+  rows = [],
+  summary = null,
+  dashboard = null,
+  consolidated = null
+} = {}) {
+  if (report === 'dashboard') {
+    return (
+      Number(dashboard?.totalAppointments ?? 0) === 0 && Number(dashboard?.totalRevenue ?? 0) === 0
+    )
+  }
+
+  if (report === 'consolidated') {
+    if (!consolidated) {
+      return true
+    }
+
+    return (
+      (Array.isArray(consolidated.by_branch) ? consolidated.by_branch : []).length === 0 &&
+      (Array.isArray(consolidated.by_professional) ? consolidated.by_professional : []).length === 0
+    )
+  }
+
+  const activity = summaryShowsActivity(summary)
+
+  // A payload from before #447 carries no activity summary: the row count is
+  // the only signal left.
+  return activity === null ? rows.length === 0 : !activity
+}
