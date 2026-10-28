@@ -355,31 +355,37 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
         $modal = self::modalSource();
         $this->assertNotNull($modal, '%s must be readable.');
 
-        // 1) The catch block reads `error.response?.data?.message` (the
-        //    top-level server message — surfaces 422 "duplicate" wording).
+        // 1) The catch block reads the API envelope (the 422 reason lives
+        //    in `error.response.data`).
         $this->assertTrue(
             (bool) preg_match(
-                '/error\.response\?\.\s*data\?\.\s*message/',
+                '/error\.response\?\.\s*data/',
                 $modal
             ),
             sprintf(
-                '%s MUST keep the `error.response?.data?.message` read in the catch block '
-                    .'(PAC-MOD-001). The 422 duplicate-email/phone envelope is surfaced verbatim '
-                    .'via `useToast`.',
+                '%s MUST read the API envelope in the catch block '
+                    .'(PAC-MOD-001). The 422 duplicate-email/phone reason arrives there.',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );
 
-        // 2) The catch block reads `error.response?.data?.errors` and
-        //    flattens it via `Object.values(errors).flat().join('\n')`.
+        // 2) The catch block maps the validation bag onto its own field
+        //    (#403) and picks the server's message for the notice.
         $this->assertTrue(
             (bool) preg_match(
-                '/error\.response\?\.\s*data\?\.\s*errors/',
+                '/mapFieldErrors\s*\(\s*body\?\.\s*errors/',
                 $modal
             ),
             sprintf(
-                '%s MUST keep the `error.response?.data?.errors` read + the `Object.values(errors).flat().join(\'\\n\')` flattening '
-                    .'(PAC-MOD-001). The 422 validation bag surfaces verbatim via `useToast`.',
+                '%s MUST map `body?.errors` with mapFieldErrors(...) '
+                    .'(PAC-MOD-001 / #403). The 422 validation bag surfaces on its field.',
+                self::PATIENTS_FORM_MODAL_PATH
+            )
+        );
+        $this->assertTrue(
+            (bool) preg_match('/pickValidationMessage\s*\(/', $modal),
+            sprintf(
+                '%s MUST use pickValidationMessage(...) for the notice (PAC-MOD-001 / #403).',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );

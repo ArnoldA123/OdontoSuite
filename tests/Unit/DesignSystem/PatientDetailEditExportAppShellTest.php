@@ -566,30 +566,37 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
         $modal = self::sharedFormSource();
         $this->assertNotNull($modal, sprintf('%s must exist and be readable.', self::SHARED_FORM_PATH));
 
-        // 1) The catch block reads error.response.data.message.
+        // 1) The catch block reads the API envelope (`error.response.data`).
         $this->assertTrue(
             (bool) preg_match(
-                '/error\.response\?\.\s*data\?\.\s*message/',
+                '/error\.response\?\.\s*data/',
                 $modal
             ),
             sprintf(
-                '%s MUST keep the error.response.data.message read in the catch block '
-                    .'(PAC-EDIT-001). The 422 duplicate-email/phone envelope is surfaced verbatim '
-                    .'via useToast.',
+                '%s MUST read the API envelope in the catch block '
+                    .'(PAC-EDIT-001). The 422 duplicate-email/phone reason arrives there.',
                 self::SHARED_FORM_PATH
             )
         );
 
-        // 2) The catch block reads error.response.data.errors.
+        // 2) The catch block maps the validation bag onto its own fields
+        //    (#403: the reason lands on the input, not only on a toast) and
+        //    picks the server's message for the notice.
         $this->assertTrue(
             (bool) preg_match(
-                '/error\.response\?\.\s*data\?\.\s*errors/',
+                '/mapFieldErrors\s*\(\s*body\?\.\s*errors/',
                 $modal
             ),
             sprintf(
-                '%s MUST keep the error.response.data.errors read + the '
-                    .'Object.values(errors).flat() flattening '
-                    .'(PAC-EDIT-001). The 422 validation bag surfaces verbatim via useToast.',
+                '%s MUST map `body?.errors` with mapFieldErrors(...) (PAC-EDIT-001 / #403). '
+                    .'The 422 validation bag surfaces on its field.',
+                self::SHARED_FORM_PATH
+            )
+        );
+        $this->assertTrue(
+            (bool) preg_match('/pickValidationMessage\s*\(/', $modal),
+            sprintf(
+                '%s MUST use pickValidationMessage(...) for the notice (PAC-EDIT-001 / #403).',
                 self::SHARED_FORM_PATH
             )
         );
