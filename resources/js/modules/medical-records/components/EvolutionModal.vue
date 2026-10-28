@@ -58,6 +58,15 @@
 
       <fieldset data-evolution-section="soap" class="space-y-3">
         <legend class="text-sm font-semibold text-label">Registro SOAP</legend>
+        <p
+          v-if="contentError"
+          role="alert"
+          data-evolution-error
+          class="rounded-[var(--radius-panel)] p-3 text-sm text-systemRed-700 bg-systemRed-50"
+          style="border: 1px solid var(--color-hairline)"
+        >
+          {{ contentError }}
+        </p>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div data-evolution-field="subjective">
             <label
@@ -432,6 +441,7 @@ const emptyForm = () => ({
 
 const form = ref(emptyForm())
 const errors = ref({})
+const contentError = ref('')
 const submitting = ref(false)
 
 watch(
@@ -478,6 +488,30 @@ const text = value => {
 
   return trimmed === '' ? null : trimmed
 }
+
+// #425: the API refuses an act with no clinical content, so the form refuses
+// it first and paints the same reason. These are the blocks that document the
+// visit; `specialty`, the dates and the follow-up flag travel with the act but
+// do not document it.
+const CONTENT_FIELDS = [
+  'subjective',
+  'objective',
+  'assessment',
+  'plan',
+  'procedures_performed',
+  'materials_used',
+  'prescriptions',
+  'recommendations',
+  'next_appointment_notes'
+]
+
+const CONTENT_MESSAGE =
+  'La evolución debe registrar al menos un bloque SOAP, una indicación o una medición.'
+
+const hasClinicalContent = payload =>
+  CONTENT_FIELDS.some(field => Boolean(payload[field])) ||
+  payload.vital_signs !== null ||
+  payload.clinical_measurements !== null
 
 const numericSign = value => {
   if (value === '' || value === null || value === undefined) return null
@@ -554,11 +588,20 @@ const buildPayload = () => {
 const submitEvolution = async () => {
   if (submitting.value) return
 
+  const payload = buildPayload()
+
+  if (!hasClinicalContent(payload)) {
+    contentError.value = CONTENT_MESSAGE
+
+    return
+  }
+
   submitting.value = true
+  contentError.value = ''
   errors.value = {}
 
   try {
-    await addEvolution(props.record.id, buildPayload())
+    await addEvolution(props.record.id, payload)
     toast.success('Evolución registrada')
 
     emit('saved')
@@ -567,6 +610,7 @@ const submitEvolution = async () => {
 
     if (serverErrors) {
       errors.value = serverErrors
+      contentError.value = fieldError('content')
     }
 
     toast.error(err?.response?.data?.message || 'No pudimos guardar la evolución')

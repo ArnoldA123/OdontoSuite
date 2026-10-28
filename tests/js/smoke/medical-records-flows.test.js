@@ -77,6 +77,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
 
+import { useToast } from '../../../resources/js/composables/useToast'
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import MedicalRecordsPage from '../../../resources/js/modules/medical-records/MedicalRecordsPage.vue'
 import MedicalRecordModal from '../../../resources/js/modules/medical-records/components/MedicalRecordModal.vue'
@@ -285,6 +286,11 @@ describe('medical records component flows (#224)', () => {
       typeInto('[data-evolution-field="follow_up_date"] input', followUpDate)
       await flushPromises()
 
+      // #425: the form no longer sends an act with no content, so this case
+      // documents the visit with one SOAP block to reach the API at all.
+      typeInto('[data-evolution-field="plan"] textarea', 'Control en dos semanas')
+      await flushPromises()
+
       await submitForm('[data-evolution-form]')
 
       expect(harness.apiPost).toHaveBeenCalledTimes(1)
@@ -292,6 +298,57 @@ describe('medical records component flows (#224)', () => {
       expect(url).toBe('/api/medical-records/21/evolutions')
       expect(payload.requires_follow_up).toBe(true)
       expect(payload.follow_up_date).toBe(followUpDate)
+
+      wrapper.unmount()
+    })
+  })
+
+  describe('rechazar una evolución sin contenido', () => {
+    const contentMessage =
+      'La evolución debe registrar al menos un bloque SOAP, una indicación o una medición.'
+
+    it('does not reach the API and paints the reason in the SOAP block', async () => {
+      const { toasts, clearAll } = useToast()
+      clearAll()
+
+      const wrapper = await mountInBody(EvolutionModal, { record })
+
+      await submitForm('[data-evolution-form]')
+
+      expect(harness.apiPost).not.toHaveBeenCalled()
+
+      const error = find('[data-evolution-error]')
+      expect(error.getAttribute('role')).toBe('alert')
+      expect(error.textContent.trim()).toBe(contentMessage)
+      expect(find('[data-evolution-section="soap"]').contains(error)).toBe(true)
+
+      // #425 S4: no success toast, no close and no `saved` on an empty submit.
+      expect(toasts.value.some(toast => toast.type === 'success')).toBe(false)
+      expect(wrapper.emitted('saved')).toBeUndefined()
+      expect(wrapper.emitted('close')).toBeUndefined()
+
+      wrapper.unmount()
+    })
+
+    it('shows the message of a 422 that carries errors.content and keeps the modal open', async () => {
+      harness.apiPost.mockRejectedValue({
+        response: {
+          data: { message: contentMessage, errors: { content: [contentMessage] } }
+        }
+      })
+
+      const wrapper = await mountInBody(EvolutionModal, { record })
+
+      typeInto('[data-evolution-field="assessment"] textarea', 'Caries oclusal')
+      await flushPromises()
+
+      await submitForm('[data-evolution-form]')
+
+      expect(harness.apiPost).toHaveBeenCalledTimes(1)
+
+      expect(find('[data-evolution-error]').textContent.trim()).toBe(contentMessage)
+      expect(wrapper.emitted('saved')).toBeUndefined()
+      expect(wrapper.emitted('close')).toBeUndefined()
 
       wrapper.unmount()
     })

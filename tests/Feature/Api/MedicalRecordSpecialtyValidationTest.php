@@ -74,9 +74,12 @@ class MedicalRecordSpecialtyValidationTest extends TestCase
         $this->specialty('periodoncia', 'Periodoncia', active: false);
         $record = MedicalRecord::factory()->create();
 
+        // #425: the act must document something, so the payload carries a
+        // block; the rule under test is the catalog code, not the content.
         $this->actingAs($this->clinician(), 'sanctum')
             ->postJson("/api/medical-records/{$record->id}/evolutions", [
                 'specialty' => 'periodoncia',
+                'subjective' => 'Control periodontal',
             ])
             ->assertCreated();
     }

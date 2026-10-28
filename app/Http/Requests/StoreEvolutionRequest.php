@@ -6,9 +6,31 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreEvolutionRequest extends FormRequest
 {
+    /**
+     * #425: an evolution with no clinical content is a blank act on an
+     * immutable record, so the request refuses it before anything is written.
+     * These are the blocks that document the visit: the SOAP narrative and the
+     * indications. `specialty`, `evolution_date`, `requires_follow_up` and
+     * `cited_analysis_ids` travel with the act but do not document it.
+     */
+    private const CONTENT_TEXT_FIELDS = [
+        'subjective',
+        'objective',
+        'assessment',
+        'plan',
+        'procedures_performed',
+        'materials_used',
+        'prescriptions',
+        'recommendations',
+        'next_appointment_notes',
+    ];
+
+    private const CONTENT_MESSAGE = 'La evolución debe registrar al menos un bloque SOAP, una indicación o una medición.';
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -92,6 +114,56 @@ class StoreEvolutionRequest extends FormRequest
             'cited_analysis_ids' => 'sometimes|array|max:20',
             'cited_analysis_ids.*' => 'integer',
         ];
+    }
+
+    /**
+     * #425 S3: the act must carry a SOAP block, an indication, a vital sign or
+     * a clinical measurement. The error lands on `content` so the form has one
+     * block to paint, and `evolution_date` keeps its service default: an empty
+     * body is a 422, never a 500.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($this->hasClinicalContent()) {
+                return;
+            }
+
+            $validator->errors()->add('content', self::CONTENT_MESSAGE);
+        });
+    }
+
+    private function hasClinicalContent(): bool
+    {
+        foreach (self::CONTENT_TEXT_FIELDS as $field) {
+            $value = $this->input($field);
+
+            if (is_string($value) && trim($value) !== '') {
+                return true;
+            }
+        }
+
+        return $this->hasRecordedValue($this->input('vital_signs'))
+            || $this->hasRecordedValue($this->input('clinical_measurements'));
+    }
+
+    /**
+     * A measurement of `0` or a negative bleeding finding is a finding; an
+     * empty string or a null is the field left untouched by the form.
+     */
+    private function hasRecordedValue(mixed $block): bool
+    {
+        if (! is_array($block)) {
+            return false;
+        }
+
+        foreach ($block as $value) {
+            if ($value !== null && $value !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
