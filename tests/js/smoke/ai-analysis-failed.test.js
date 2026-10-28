@@ -238,7 +238,7 @@ describe('ai-analysis failed detail', () => {
 })
 
 describe('ai-analysis failed upload', () => {
-  it('keeps the failure on its own surface instead of opening the detail', async () => {
+  it('keeps the sheet open with the reason instead of opening the detail', async () => {
     postMock.mockResolvedValue({
       data: { id: 99, status: 'failed', failure_reason: FAILURE_REASON }
     })
@@ -250,11 +250,16 @@ describe('ai-analysis failed upload', () => {
 
     expect(successToasts()).toHaveLength(0)
     expect(wrapper.findComponent(AiAnalysisModal).exists()).toBe(false)
-    expect(wrapper.findComponent(SheetStub).props('modelValue')).toBe(false)
 
-    const analyzing = wrapper.findComponent(AnalyzingModal)
-    expect(analyzing.props('status')).toBe('failed')
-    expect(analyzing.props('message')).toBe(FAILURE_REASON)
+    // #427: the sheet stays on screen so the professional can retry, and the
+    // reason lands in its own inline error channel.
+    const sheet = wrapper.findComponent(SheetStub)
+    expect(sheet.props('modelValue')).toBe(true)
+    expect(sheet.props('errorMessage')).toBe(FAILURE_REASON)
+
+    // The progress surface is not dismissible by Escape: leaving it open would
+    // trap the page behind it.
+    expect(wrapper.findComponent(AnalyzingModal).props('show')).toBe(false)
 
     const urls = getMock.mock.calls.map(([requested]) => String(requested))
     expect(urls.some(requested => requested.includes('/api/ai-analysis?page=1'))).toBe(true)
@@ -267,9 +272,10 @@ describe('ai-analysis failed upload', () => {
     await submitNewAnalysis(wrapper)
 
     expect(wrapper.findComponent(AiAnalysisModal).exists()).toBe(false)
-    expect(wrapper.findComponent(AnalyzingModal).props('message')).toBe(
+    expect(wrapper.findComponent(SheetStub).props('errorMessage')).toBe(
       'No se pudo completar el análisis.'
     )
+    expect(wrapper.findComponent(AnalyzingModal).props('show')).toBe(false)
     expect(successToasts()).toHaveLength(0)
   })
 

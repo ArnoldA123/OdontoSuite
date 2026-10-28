@@ -147,3 +147,39 @@ no filtra nada, pero nombra una causa externa para un fallo interno.
 L13. (pendiente declarado) La corrida de navegador del instrumento U7
 (`walk-ai.js`, `walk-records.js`, `api-matrix.js`) no se ejecutó: requiere base
 sembrada y Chromium. Su alineación con el producto está verificada por lectura.
+
+L14. (corrida de navegador, primer intento) La sonda U7 necesita que la app corra
+contra `odontosuite_audit` literal: `fixtures-guarded.js` lo verifica en cada
+escritura con una guarda dura, así que el puente `tinker` rechazó la base
+dedicada que había creado (`analysis 1 does not exist`). Migrada
+`odontosuite_audit` con la migración de #427, la corrida completa pasa 32/32 en
+6.4 min.
+
+L15. (defecto del contrato, medido en navegador) La primera corrida dejó cuatro
+pasos `NO PROBADO` y uno `DEFECTO`: mi rama de fallo de #427 cerraba el sheet y
+dejaba abierto el `AnalyzingModal`, que es `:closable="false"` — sin Escape ni
+backdrop, la sonda quedó atrapada detrás y los cuatro pasos siguientes no
+pudieron ni pulsar una fila. Además contradecía mi propia spec S6 («no cierra el
+sheet»). Corregido: la rama de fallo deja el sheet abierto con el motivo en su
+canal en línea (`data-sheet-error`), cierra el progreso y refresca la lista, que
+es el mismo patrón que ya usaba el `catch`. RED con el código anterior
+(`expected false to be true`) y GREEN 54/54 en los cinco smokes de IA más 1417
+en la suite completa.
+
+L16. (corrida final) 32/32 pruebas, 5.1 min. `walk-records` 17/17,
+`walk-records-asistente` 2/2, `walk-specialties` 16/16, `api-matrix` 161 filas
+con 0 desajustes y `walk-ai` 15/17. Los dos `DEFECTO` restantes son ajenos a
+estos cinco issues y ya estaban en `origin/main`: `void-cited` trae el veredicto
+`'DEFECTO'` escrito a mano desde la auditoría original (el hit test ya reporta
+`insideConfirm: true`, así que el apilado que describía se corrigió en #423 y el
+veredicto quedó congelado), y `voided-trace` mide un control para ver anulados
+que el producto no tiene. Ninguno de los dos se tocó en esta rama.
+
+L17. (evidencia medida) Las cinco specs quedan verificadas en navegador real:
+`empty-tab-evoluciones` y `empty-tab-estadísticas` con 1 acción cada una (#424),
+`evolution-empty-submit` con «sin petición» y el motivo en línea (#425),
+`sheet-non-image` con 0 diálogos nativos y `sheet-oversize` con
+`vista previa retenida=false; selector disponible=1` (#426), `sheet-submit` con
+`estado failed`, el aviso del motivo y sin detalle abierto (#427), y
+`api-matrix` con las dos filas de `specialty-records` en 404 (#428). La evidencia
+vive en `.atl/qa-evidence/audit/ui/U7-424-428/`.

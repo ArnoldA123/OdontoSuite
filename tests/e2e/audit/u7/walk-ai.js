@@ -571,12 +571,16 @@ test('@U7 · U7b IA: lista, filtros, sheet, revisión, anulación y traza', asyn
         const detail = await page.evaluate(() => {
           const root = document.querySelector('[data-ai-detail]')
           const text = node => (node?.innerText ?? '').trim().replace(/\s+/g, ' ')
-          // #427: a failed row must not open the detail as if it had a result,
-          // so the walk measures both surfaces instead of assuming one.
-          const failure = document.querySelector('[data-progress-error]')
+          // #427: a failed row must not open the detail as if it had a result.
+          // The reason stays on the sheet the professional can retry from, so
+          // the walk reads both inline channels and the progress surface.
+          const failure =
+            document.querySelector('[data-sheet-error]') ??
+            document.querySelector('[data-progress-error]')
 
           return {
             sheetOpen: Boolean(document.querySelector('[data-ai-analysis-sheet]')),
+            progressOpen: Boolean(document.querySelector('[data-progress-error]')),
             failure: text(failure),
             detailOpened: Boolean(root),
             status: root
@@ -594,7 +598,8 @@ test('@U7 · U7b IA: lista, filtros, sheet, revisión, anulación y traza', asyn
         const failedPath =
           analysisStatus === 'failed' &&
           !detail.detailOpened &&
-          !detail.sheetOpen &&
+          detail.sheetOpen &&
+          !detail.progressOpen &&
           detail.failure.length > 0
 
         return {
@@ -611,11 +616,13 @@ test('@U7 · U7b IA: lista, filtros, sheet, revisión, anulación y traza', asyn
           detail:
             status !== 201
               ? `el envío no respondió 201 (${status})`
-              : analysisStatus === 'failed' && (detail.detailOpened || detail.sheetOpen)
-                ? 'Sin OPENAI_API_KEY el análisis nace en `failed`, pero la interfaz lo trata como completado: cierra el sheet como si hubiera resultado o abre el detalle con el pill «Fallido».'
-                : analysisStatus === 'failed' && detail.failure.length === 0
-                  ? 'El análisis falló y la pantalla no publica ningún motivo: el usuario lee «Fallido» sin causa.'
-                  : null,
+              : analysisStatus === 'failed' && detail.detailOpened
+                ? 'Sin OPENAI_API_KEY el análisis nace en `failed`, pero la interfaz abre el detalle como si hubiera resultado.'
+                : analysisStatus === 'failed' && detail.progressOpen
+                  ? 'El análisis falló y la interfaz deja abierto el modal de progreso, que no se cierra con Escape: la página queda atrapada detrás.'
+                  : analysisStatus === 'failed' && detail.failure.length === 0
+                    ? 'El análisis falló y la pantalla no publica ningún motivo: el usuario lee «Fallido» sin causa.'
+                    : null,
           extra: { beforeNotice, afterNotice, detail, status: body?.data?.status ?? null }
         }
       }
