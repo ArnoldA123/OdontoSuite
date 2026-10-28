@@ -223,6 +223,13 @@ class TreatmentPlanService
     {
         unset($itemData['id'], $itemData['treatment_plan_id']);
 
+        // #418: the write contract calls the line description `description`;
+        // the column and the read contract call it `procedure_description`.
+        if (array_key_exists('description', $itemData)) {
+            $itemData['procedure_description'] = $itemData['description'];
+            unset($itemData['description']);
+        }
+
         if (array_key_exists('status', $itemData)) {
             $status = $itemData['status'];
             unset($itemData['status']);
