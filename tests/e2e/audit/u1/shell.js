@@ -63,7 +63,7 @@ const LOAD_SETTLE_TIMEOUT = 15000
 const STEP_SETTLE_TIMEOUT = 8000
 const STEP_LIMIT = 360000
 
-const MENU_LABELS = Object.freeze(['Perfil', 'Configuración', 'Apariencia', 'Cerrar Sesión'])
+const MENU_LABELS = Object.freeze(['Cerrar Sesión'])
 const SHEET_ROLE = 'recepcionista'
 const SHEET_TITLE = 'Navegación'
 
@@ -409,6 +409,7 @@ test('@U1 shell · user menu items for administrador', async ({ page, request })
     role,
     dropdownVisible: false,
     menuName: null,
+    headerLines: [],
     items: [],
     escapeCloses: false,
     shots: [],
@@ -419,16 +420,16 @@ test('@U1 shell · user menu items for administrador', async ({ page, request })
   const readItems = () =>
     page.evaluate(() => {
       const menu = document.querySelector('#user-menu-dropdown')
-      if (!menu) return { buttons: [], labels: [] }
+      if (!menu) return { buttons: [], headerLines: [] }
 
       const buttons = Array.from(menu.querySelectorAll('button')).map(button =>
         button.innerText.trim()
       )
-      const labels = Array.from(menu.querySelectorAll('p'))
+      const headerLines = Array.from(menu.querySelectorAll('p'))
         .map(paragraph => paragraph.innerText.trim())
         .filter(Boolean)
 
-      return { buttons, labels }
+      return { buttons, headerLines }
     })
 
   // One click, one wait, one observation: whatever the item did (navigate, open a
@@ -505,14 +506,7 @@ test('@U1 shell · user menu items for administrador', async ({ page, request })
       await page.keyboard.press('Escape')
     }
 
-    if (declared.labels.includes('Apariencia')) {
-      evidence.items.push({
-        label: 'Apariencia',
-        verdict: 'CONFUSO',
-        observed:
-          'static paragraph inside the menu; no control follows it, so the menu announces an appearance section it does not offer'
-      })
-    }
+    evidence.headerLines = declared.headerLines
 
     evidence.items.sort(
       (left, right) => MENU_LABELS.indexOf(left.label) - MENU_LABELS.indexOf(right.label)

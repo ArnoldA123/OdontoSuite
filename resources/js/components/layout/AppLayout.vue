@@ -422,34 +422,13 @@
                         {{ safeUser.email }}
                       </p>
                     </div>
-                    <div class="py-2">
-                      <button
-                        class="w-full text-left px-4 py-2 text-sm text-theme-primary hover:bg-theme-surface transition-colors duration-200"
-                      >
-                        Perfil
-                      </button>
-                      <button
-                        class="w-full text-left px-4 py-2 text-sm text-theme-primary hover:bg-theme-surface transition-colors duration-200"
-                      >
-                        Configuración
-                      </button>
-                    </div>
-
                     <!--
-                      Theme Selector label — HOTFIX-DASH-001 compliance:
-                      design-taste-frontend §9.F "Section-Numbering Eyebrows"
-                      binary ban. The previous label used a letter-spaced
-                      uppercase style (the same signature the spec bans
-                      on sidebar section labels). Replaced with plain
-                      text-xs text-theme-secondary — the user menu sits
-                      inside a dropdown, the label reads as plain text
-                      not as an eyebrow.
+                      #380 — every entry in the menu does something: the
+                      identity block names the session and "Cerrar Sesión"
+                      ends it. There is no profile, settings or appearance
+                      surface behind the shell, so the menu offers none.
                     -->
-                    <div class="border-t border-theme px-4 py-3">
-                      <p class="text-xs text-theme-secondary mb-2">Apariencia</p>
-                    </div>
-
-                    <div class="border-t border-theme py-2">
+                    <div class="py-2">
                       <button
                         class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
                         @click="handleLogout"
