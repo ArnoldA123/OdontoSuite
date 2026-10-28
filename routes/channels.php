@@ -9,7 +9,12 @@ use Illuminate\Support\Facades\Broadcast;
  * App\Http\Controllers\Api\BroadcastingAuthController (the handler bound to
  * POST /api/broadcasting/auth). This project does not call Broadcast::routes(),
  * so the registrations below are never executed at runtime; they document the
- * channel names and role rules that the controller enforces.
+ * channel names and the effective rules.
+ *
+ * Issue #378/#384: the channel => role rule itself lives once, in
+ * App\Authorization\BroadcastChannels, as a channel => permission map resolved
+ * against App\Authorization\Permissions. The role lists below are the same rule
+ * written out as documentation; changing one without the other is drift.
  */
 
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
