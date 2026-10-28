@@ -82,6 +82,16 @@ const cardPaymentMethod = {
   commission_percentage: 3.5
 }
 
+const mpPaymentMethod = {
+  id: 9,
+  name: 'Mercado Pago',
+  description: 'Cobro con Mercado Pago',
+  gateway_type: 'mercadopago',
+  type: 'wallet',
+  requires_reference: false,
+  commission_percentage: 0
+}
+
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
@@ -544,5 +554,79 @@ describe('PaymentModal', () => {
     const success = wrapper.emitted('success')
     expect(success).toHaveLength(1)
     expect(document.querySelector('[data-accounting-lock-notice]')).toBeNull()
+  })
+
+  it('answers a blocked Mercado Pago preparation and retries that same path', async () => {
+    // #467 — the Mercado Pago preparation is a second door to /api/transactions,
+    // so it owes the same notice and its retry must resume it, not the manual
+    // submit.
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        id: 1,
+        name: 'Admin',
+        role: 'administrador',
+        permissions: ['override.accounting_lock']
+      })
+    )
+
+    harness.apiGet.mockImplementation(url => {
+      if (url === '/api/payment-methods/active') {
+        return Promise.resolve({ data: [mpPaymentMethod] })
+      }
+      return Promise.resolve({ data: [], meta: { total: 0 } })
+    })
+
+    const lockMessage =
+      'El módulo [cash_transactions] está bloqueado contablemente hasta el 2026-09-30: ' +
+      'la operación [create] sobre un registro de esa fecha requiere autorización registrada.'
+
+    harness.apiPost.mockRejectedValueOnce({
+      response: { status: 403, data: { code: 'accounting_lock_blocked', message: lockMessage } }
+    })
+
+    await mountPaymentModal()
+    await chooseOption('method', 'Mercado Pago')
+    document.querySelector('#tab-mercadopago').click()
+    await flushPromises()
+    await flushPromises()
+
+    expect(harness.apiPost).toHaveBeenCalledTimes(1)
+    expect(harness.apiPost.mock.calls[0][0]).toBe('/api/transactions')
+    expect(harness.apiPost.mock.calls[0][1]).not.toHaveProperty('lock_override_reason')
+    expect(document.querySelector('[data-payment-error]')).toBeNull()
+
+    const notice = document.querySelector('[data-accounting-lock-notice]')
+    expect(notice).not.toBeNull()
+    expect(notice.textContent).toContain(lockMessage)
+
+    const reason = document.querySelector('[data-accounting-lock-reason] input')
+    expect(reason).not.toBeNull()
+    reason.value = 'Gerencia autorizo el cobro'
+    reason.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+
+    harness.apiPost.mockResolvedValueOnce({
+      data: { id: 91, transaction_number: 'TX-91' },
+      meta: {}
+    })
+    document.querySelector('[data-accounting-lock-retry]').click()
+    await flushPromises()
+    await flushPromises()
+
+    const transactionCalls = harness.apiPost.mock.calls.filter(
+      ([url]) => url === '/api/transactions'
+    )
+    expect(transactionCalls).toHaveLength(2)
+    expect(transactionCalls.at(-1)[1]).toMatchObject({
+      patient_id: 5,
+      amount: 120,
+      description: 'Consulta',
+      payment_method_id: mpPaymentMethod.id,
+      lock_override_reason: 'Gerencia autorizo el cobro'
+    })
+
+    expect(document.querySelector('[data-accounting-lock-notice]')).toBeNull()
+    expect(document.querySelector('[data-payment-modal]')).not.toBeNull()
   })
 })
