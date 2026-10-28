@@ -80,7 +80,7 @@
       <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div class="md:col-span-2">
           <UiInput
-            v-model="filters.search"
+            v-model="filters.q"
             data-reception-search
             type="search"
             label="Buscar"
@@ -214,7 +214,7 @@ const { specialties, getSpecialties } = useSpecialties()
 
 const loadError = ref(false)
 const filters = reactive({
-  search: '',
+  q: '',
   specialty: '',
   page: 1,
   per_page: 12,
@@ -268,7 +268,7 @@ const onPageChange = page => {
   load()
 }
 
-watch(() => filters.search, onSearchInput)
+watch(() => filters.q, onSearchInput)
 watch(
   () => filters.specialty,
   () => {
