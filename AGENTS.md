@@ -626,7 +626,8 @@ documentada y no bloquea producción.
   `tests/e2e/cash-current.spec.js` cubre los tres estados del hero y queda como
   pase manual con guarda `CASH_CURRENT_BROWSER=1`; la evidencia de la corrida
   vive en `.atl/qa-evidence/audit/money-current/`. Suite MySQL completa
-  `OK (2804 tests, 17116 assertions)`; Vitest 1292 pruebas en 151 archivos.
+  `OK (2820 tests, 17187 assertions)`; Vitest 1319 pruebas, medidos tras
+  integrar `main` (#465).
 - **2026-10-27 (auditoría U6: el alta se explica como se guarda, la puerta de
   envío existe y cada acción se ofrece a quien puede ejecutarla,
   #414/#415/#420/#422)** — Cuatro hallazgos de la sesión U6 (#369). **#414**: el
