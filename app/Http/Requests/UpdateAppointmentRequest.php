@@ -65,6 +65,9 @@ class UpdateAppointmentRequest extends FormRequest
             'duration_minutes' => 'sometimes|required|integer|min:15|max:480',
             // BF-008: canonical enum matches DB (in_consultation is canonical).
             'status' => 'sometimes|required|in:scheduled,confirmed,cancelled,no_show,rescheduled',
+            // #394: el mismo contrato que la puerta de estado. Cancelar por la
+            // edición de la cita tampoco puede quedar sin motivo.
+            'cancellation_reason' => 'required_if:status,cancelled|nullable|string|max:255',
             'notes' => 'sometimes|nullable|string|max:1000',
             'treatment_notes' => 'sometimes|nullable|string|max:2000',
             // Slice 02 / T-02.12: ends_at must be after starts_at when both present.
@@ -89,6 +92,9 @@ class UpdateAppointmentRequest extends FormRequest
             'duration_minutes.min' => 'La duración mínima es de 15 minutos.',
             'duration_minutes.max' => 'La duración máxima es de 480 minutos (8 horas).',
             'status.in' => 'El estado seleccionado no es válido.',
+            'cancellation_reason.required_if' => 'Indica el motivo de la cancelación.',
+            'cancellation_reason.string' => 'El motivo de la cancelación debe ser un texto.',
+            'cancellation_reason.max' => 'El motivo de la cancelación no puede exceder 255 caracteres.',
             'notes.max' => 'Las notas no pueden exceder 1000 caracteres.',
             'treatment_notes.max' => 'Las notas de tratamiento no pueden exceder 2000 caracteres.',
             'ends_at.date' => 'La fecha de fin debe ser una fecha válida.',

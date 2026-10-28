@@ -41,7 +41,11 @@ class ReminderCancellationTest extends TestCase
         $appointment = $this->book($this->reminderNow->copy()->addHours(80));
         $this->assertCount(3, $this->remindersOf($appointment));
 
-        $this->appointments->updateAppointment($appointment, ['status' => 'cancelled']);
+        // #394: cancelar exige motivo, también por el servicio.
+        $this->appointments->updateAppointment($appointment, [
+            'status' => 'cancelled',
+            'cancellation_reason' => 'El paciente reprograma.',
+        ]);
 
         $appointment->refresh();
 
@@ -58,7 +62,10 @@ class ReminderCancellationTest extends TestCase
         $admin = User::factory()->create(['role' => 'administrador', 'is_active' => true]);
 
         $this->actingAs($admin, 'sanctum')
-            ->patchJson("/api/appointments/{$appointment->id}/status", ['status' => 'cancelled'])
+            ->patchJson("/api/appointments/{$appointment->id}/status", [
+                'status' => 'cancelled',
+                'cancellation_reason' => 'El paciente reprograma.',
+            ])
             ->assertOk();
 
         $appointment->refresh();
@@ -103,7 +110,10 @@ class ReminderCancellationTest extends TestCase
         $admin = User::factory()->create(['role' => 'administrador', 'is_active' => true]);
 
         $this->actingAs($admin, 'sanctum')
-            ->patchJson("/api/appointments/{$appointment->id}/status", ['status' => 'cancelled'])
+            ->patchJson("/api/appointments/{$appointment->id}/status", [
+                'status' => 'cancelled',
+                'cancellation_reason' => 'El paciente reprograma.',
+            ])
             ->assertOk();
         $this->assertSame([], $this->pendingHours($appointment), 'Cancelling MUST leave no pending reminder.');
 

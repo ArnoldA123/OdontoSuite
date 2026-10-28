@@ -54,6 +54,7 @@ class AppointmentController extends Controller
             'duration_minutes',
             'status',
             'notes',
+            'cancellation_reason',
             'treatment_notes',
             'idempotency_key',
             'created_by',
@@ -495,9 +496,16 @@ class AppointmentController extends Controller
      */
     public function updateStatus(Request $request, Appointment $appointment): JsonResponse
     {
+        // #394: cancelar es un acto deliberado. El motivo es obligatorio y vive
+        // en su propia columna, no en `notes`, que otra edición pisa.
         $validated = $request->validate([
             'status' => 'required|in:scheduled,confirmed,arrived,in_consultation,completed,cancelled,no_show,rescheduled',
             'notes' => 'nullable|string|max:1000',
+            'cancellation_reason' => 'required_if:status,cancelled|nullable|string|max:255',
+        ], [
+            'cancellation_reason.required_if' => 'Indica el motivo de la cancelación.',
+            'cancellation_reason.string' => 'El motivo de la cancelación debe ser un texto.',
+            'cancellation_reason.max' => 'El motivo de la cancelación no puede exceder 255 caracteres.',
         ]);
 
         // F1 (#281): the custody statuses are not reachable through the generic
@@ -516,10 +524,18 @@ class AppointmentController extends Controller
 
         $oldValues = $appointment->toArray();
         $previousStatus = $appointment->status;
+        // Una cita que sale de `cancelled` pierde el motivo: la traza queda en
+        // `audit_logs`, no en una fila que ya no describe una cancelación.
+        $cancellationReason = $validated['status'] === 'cancelled'
+            ? ($validated['cancellation_reason'] ?? null)
+            : null;
 
         DB::beginTransaction();
 
         try {
+            // La columna se escribe explícitamente: el motivo no es un campo de
+            // asignación masiva, sólo la regla de cancelación lo firma.
+            $appointment->cancellation_reason = $cancellationReason;
             $appointment->update([
                 'status' => $validated['status'],
                 'notes' => $validated['notes'] ?? $appointment->notes,
@@ -529,8 +545,10 @@ class AppointmentController extends Controller
             // Issue #154: this is the live cancellation path used by the UI,
             // so the pending reminders are cancelled in the same transaction;
             // reactivating the appointment puts them back on the pipeline.
+            // #394: the count is the consequence the success notice names.
+            $remindersCancelled = 0;
             if ($validated['status'] === 'cancelled') {
-                $this->reminderService->cancelReminders($appointment);
+                $remindersCancelled = $this->reminderService->cancelReminders($appointment);
             } elseif ($previousStatus === 'cancelled') {
                 $this->reminderService->rescheduleReminders($appointment);
             }
@@ -542,7 +560,10 @@ class AppointmentController extends Controller
                 $appointment,
                 $oldValues,
                 $appointment->fresh()->toArray(),
-                ['status_change' => $validated['status']]
+                [
+                    'status_change' => $validated['status'],
+                    'cancellation_reason' => $cancellationReason,
+                ]
             );
 
             DB::commit();
@@ -551,6 +572,7 @@ class AppointmentController extends Controller
                 'data' => $appointment,
                 'meta' => [
                     'message' => 'Estado de la cita actualizado exitosamente',
+                    'reminders_cancelled' => $remindersCancelled,
                 ],
             ]);
         } catch (\Exception $e) {

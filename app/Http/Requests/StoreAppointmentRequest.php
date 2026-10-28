@@ -89,6 +89,9 @@ class StoreAppointmentRequest extends FormRequest
             'duration_minutes' => 'required|integer|min:15|max:480',
             // BF-008: canonical enum (DB migrated from 'in_progress' to 'in_consultation').
             'status' => 'sometimes|nullable|in:scheduled,confirmed,cancelled,no_show,rescheduled',
+            // #394: crear una cita ya cancelada es la tercera puerta que puede
+            // dejar una cancelación sin motivo; declara el mismo contrato.
+            'cancellation_reason' => 'required_if:status,cancelled|nullable|string|max:255',
             'notes' => 'sometimes|nullable|string|max:1000',
             'idempotency_key' => 'sometimes|nullable|string|max:255',
         ];
@@ -123,6 +126,9 @@ class StoreAppointmentRequest extends FormRequest
             'duration_minutes.min' => 'La duración mínima es de 15 minutos.',
             'duration_minutes.max' => 'La duración máxima es de 480 minutos (8 horas).',
             'notes.max' => 'Las notas no pueden exceder 1000 caracteres.',
+            'cancellation_reason.required_if' => 'Indica el motivo de la cancelación.',
+            'cancellation_reason.string' => 'El motivo de la cancelación debe ser un texto.',
+            'cancellation_reason.max' => 'El motivo de la cancelación no puede exceder 255 caracteres.',
         ];
     }
 }
