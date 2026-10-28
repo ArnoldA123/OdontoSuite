@@ -324,7 +324,7 @@ query se pierde al volver.
 
 ## 9. Componentes UI disponibles
 
-`resources/js/components/ui/` contiene 33 componentes. Antes de crear un
+`resources/js/components/ui/` contiene 34 componentes. Antes de crear un
 componente nuevo o un spinner/spinner/empty-state ad-hoc, busca aqui:
 
 | Componente                            | Cuando usarlo                                                                                                                                                                                      |
