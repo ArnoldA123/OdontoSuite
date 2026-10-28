@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Services\BillingService;
+use App\Support\AppointmentBalance;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -23,19 +24,18 @@ class BillingController extends Controller
             $page = $this->service->readyToBill($filters);
 
             $items = collect($page->items())->map(function (Appointment $a) {
-                $paid = (float) $a->transactions()
-                    ->where('type', 'payment')
-                    ->where('status', 'completed')
-                    ->sum('amount');
+                // #393 — the balance comes from the single definition, which the
+                // paying door reads too.
+                $balance = AppointmentBalance::summary($a);
 
                 return [
                     'id' => $a->id,
                     'patient' => $a->patient?->only(['id', 'first_name', 'last_name', 'document_number']),
                     'appointment_type' => $a->appointmentType?->name,
                     'completed_at' => $a->completed_at?->toIso8601String(),
-                    'final_amount' => (float) $a->final_amount,
-                    'paid_amount' => round($paid, 2),
-                    'balance' => round(max(0, (float) $a->final_amount - $paid), 2),
+                    'final_amount' => $balance['total'],
+                    'paid_amount' => $balance['paid'],
+                    'balance' => $balance['balance'],
                     'has_quotation' => $a->quotations()->exists(),
                 ];
             });

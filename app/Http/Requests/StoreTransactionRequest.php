@@ -163,6 +163,13 @@ class StoreTransactionRequest extends FormRequest
                 'string',
                 'max:500',
             ],
+            // #410 (S9) — the override the accounting lock asks for travels with
+            // the retry; the guard validates its length and the permission.
+            'lock_override_reason' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
             'reference_number' => [
                 'nullable',
                 'string',

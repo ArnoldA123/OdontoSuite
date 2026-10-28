@@ -129,6 +129,14 @@ export class NotificationService {
         type: 'info',
         category: 'quotations'
       },
+      // #422: the act of sending is its own notification, not a generic
+      // "updated": the patient decision is now reachable from the screen.
+      'quotation.sent': {
+        title: 'Presupuesto enviado',
+        message: `El presupuesto de ${patientName} por ${amount} se envió al paciente`,
+        type: 'info',
+        category: 'quotations'
+      },
       'quotation.approved': {
         title: 'Presupuesto aprobado',
         message: `${patientName} ha aprobado el presupuesto de ${amount}`,

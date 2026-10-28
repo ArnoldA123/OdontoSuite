@@ -129,14 +129,23 @@
                 step="1"
                 :disabled="saving"
               />
-              <UiInput
-                v-model.number="item.unit_price"
-                label="Precio unitario"
-                type="number"
-                min="0"
-                step="0.01"
-                :disabled="saving"
-              />
+              <div data-item-price>
+                <UiInput
+                  v-model.number="item.unit_price"
+                  label="Precio unitario"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  :disabled="saving || isCatalogLine(item)"
+                />
+                <p
+                  v-if="isCatalogLine(item)"
+                  class="mt-1 text-xs text-theme-secondary"
+                  data-item-price-source
+                >
+                  {{ priceSourceCopy(item) }}
+                </p>
+              </div>
               <div>
                 <p class="block text-sm font-medium text-theme-primary mb-2">Total</p>
                 <p class="text-base font-semibold text-theme-primary tabular-nums" data-item-total>
@@ -169,8 +178,8 @@
                 class="text-xs text-theme-secondary"
                 :data-item-catalog="index"
               >
-                Procedimiento del catálogo vinculado. La descripción y el precio siguen siendo
-                editables.
+                Procedimiento del catálogo vinculado. El precio lo fija el tarifario; la descripción
+                sigue siendo editable.
               </p>
 
               <div
@@ -281,6 +290,12 @@
               {{ formatCurrency(-discountTotal) }}
             </dd>
           </div>
+          <div v-if="taxTotal > 0" class="flex items-center justify-between">
+            <dt class="text-theme-secondary">Base imponible</dt>
+            <dd class="font-medium text-theme-primary tabular-nums" data-summary-taxable-base>
+              {{ formatCurrency(taxableBase) }}
+            </dd>
+          </div>
           <div class="flex items-center justify-between">
             <dt class="text-theme-secondary">IGV</dt>
             <dd class="font-medium text-theme-primary tabular-nums" data-summary-tax>
@@ -362,6 +377,12 @@ import {
 } from '../../../composables/validationErrors'
 import { calendarDateKey } from '../quotationMeta'
 import {
+  FALLBACK_TAX_PERCENTAGE,
+  breakDown,
+  effectiveTaxRate,
+  priceSourceLabel
+} from '../quotationPricing'
+import {
   requiredSiteField,
   siteRequirementMessage,
   siteTypeOf
@@ -415,12 +436,28 @@ const errors = ref({})
 const submitError = ref('')
 const saving = ref(false)
 
+// #414 S1: the pricing context the API resolved for this estimate — the billing
+// policy rate plus the tariff of each catalog line. It only paints numbers; the
+// writer remains the authority and freezes them when the document is saved.
+const pricingContext = ref(null)
+
 const toNumber = value => {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : 0
 }
 
 const rowTotal = item => toNumber(item?.quantity) * toNumber(item?.unit_price)
+
+// #414 S1: a line that names a catalog procedure carries no price of its own —
+// the server discards it and freezes the resolved tariff — so the form shows the
+// resolved number with its origin instead of offering it as editable.
+const isCatalogLine = item => Boolean(item?.procedure_catalog_id)
+
+const priceSourceCopy = item => {
+  const label = priceSourceLabel(item?.price_source)
+
+  return label ? `Precio del tarifario: ${label}` : 'Precio del tarifario'
+}
 
 const itemDescription = item => String(item?.description ?? '').trim()
 
@@ -457,6 +494,7 @@ const onCatalogPick = (item, procedure) => {
   item.procedure_catalog_id = procedure.id
   item.description = procedure.name
   item.unit_price = Number(procedure.default_cost ?? 0)
+  item.price_source = null
   item.site_type = procedure.site_type ?? 'none'
 
   if (requiredSiteField(item.site_type) !== previousRequirement) {
@@ -466,6 +504,62 @@ const onCatalogPick = (item, procedure) => {
   }
 
   catalogItem.value = null
+  refreshPricing()
+}
+
+const catalogProcedureIds = () => [
+  ...new Set(
+    items.value
+      .map(item => Number(item.procedure_catalog_id))
+      .filter(id => Number.isInteger(id) && id > 0)
+  )
+]
+
+const applyResolvedPrices = context => {
+  const prices = context?.prices ?? {}
+
+  items.value.forEach(item => {
+    const id = Number(item.procedure_catalog_id)
+    if (!Number.isInteger(id) || id <= 0) return
+
+    const resolved = prices[id] ?? prices[String(id)]
+    if (!resolved) return
+
+    item.unit_price = toNumber(resolved.unit_price)
+    item.price_source = resolved.source ?? null
+  })
+}
+
+let pricingRequest = 0
+
+// #414 S1: the summary is the server's arithmetic, so the form asks the API for
+// the tariff of every catalog line on this estimate's issue date. When the
+// context cannot be read the form keeps the numbers it already paints and the
+// billing default: a pricing read never blocks the quotation.
+const refreshPricing = async () => {
+  // A free-text-only estimate has no tariff to resolve, but it still reads the
+  // policy rate the server will apply: the form never invents that number.
+  const procedureIds = catalogProcedureIds()
+  const request = ++pricingRequest
+
+  try {
+    const response = await get('/api/quotations/pricing', {
+      params: {
+        procedure_ids: procedureIds,
+        payer_id: payerId.value || null,
+        quotation_date: quotationDate.value || null,
+        treatment_plan_id: plan.value?.id ?? null
+      }
+    })
+
+    // A slower response never overwrites a newer one.
+    if (request !== pricingRequest) return
+
+    pricingContext.value = response?.data ?? null
+    applyResolvedPrices(pricingContext.value)
+  } catch {
+    // Keeps the numbers already on screen and the policy fallback.
+  }
 }
 
 const loadPayers = async () => {
@@ -520,20 +614,33 @@ const discountTotal = computed(() => {
   return toNumber(discountAmount.value)
 })
 
-// #289: the price already includes the IGV, so the preview decomposes the rate
-// out of the net amount exactly like App\Support\QuotationTax does.
-const taxTotal = computed(() => {
-  const net = subtotal.value - discountTotal.value
-  const rate = toNumber(taxPercentage.value)
+// The rate the document will be written with: an untouched field is not a zero,
+// it is the billing policy the API published.
+const policyTaxRate = computed(() => {
+  const declared = pricingContext.value?.tax_percentage
 
-  if (rate <= 0) return 0
+  if (declared === null || declared === undefined || declared === '') {
+    return FALLBACK_TAX_PERCENTAGE
+  }
 
-  const base = Math.round((net / (1 + rate / 100)) * 100) / 100
+  const rate = Number(declared)
 
-  return Math.round((net - base) * 100) / 100
+  return Number.isFinite(rate) ? rate : FALLBACK_TAX_PERCENTAGE
 })
 
-const total = computed(() => subtotal.value - discountTotal.value)
+// #289/#414: the price already includes the IGV, so the preview decomposes the
+// rate out of the net amount exactly like App\Support\QuotationTax does.
+const breakdown = computed(() =>
+  breakDown(
+    subtotal.value,
+    discountTotal.value,
+    effectiveTaxRate(taxPercentage.value, policyTaxRate.value)
+  )
+)
+
+const taxableBase = computed(() => breakdown.value.subtotal)
+const taxTotal = computed(() => breakdown.value.taxAmount)
+const total = computed(() => breakdown.value.totalAmount)
 
 const patientError = computed(() => errors.value.patient_id || errors.value.patient || '')
 
@@ -679,6 +786,7 @@ const handlePlanSelected = selectedPlan => {
     quantity: planItem.quantity,
     unit_price: planItem.unit_cost || planItem.unit_price || 0,
     procedure_catalog_id: planItem.procedure_catalog_id ?? null,
+    price_source: planItem.price_source ?? null,
     // The plan line declares the site its procedure demanded, so the estimate
     // inherits it and keeps the same applicability.
     site_type: siteTypeOf(planItem),
@@ -719,6 +827,7 @@ const initialize = () => {
     quantity: toNumber(item.quantity),
     unit_price: toNumber(item.unit_price),
     procedure_catalog_id: item.procedure_catalog_id ?? null,
+    price_source: item.price_source ?? null,
     site_type: siteTypeOf(item),
     dental_piece_id: item.dental_piece_id ?? null,
     tooth_surface_id: item.tooth_surface_id ?? null,
@@ -727,12 +836,28 @@ const initialize = () => {
   if (!items.value.length) items.value = [createEmptyItem()]
   discountPercentage.value = toNumber(current.discount_percentage)
   discountAmount.value = toNumber(current.discount_amount)
-  taxPercentage.value = toNumber(current.tax_percentage)
+  // An untouched rate stays untouched: an absent one is the billing policy, not
+  // an exempt document (#414 S1).
+  taxPercentage.value =
+    current.tax_percentage === null ||
+    current.tax_percentage === undefined ||
+    current.tax_percentage === ''
+      ? null
+      : toNumber(current.tax_percentage)
   termsConditions.value = current.terms_conditions || ''
   notes.value = current.notes || ''
 }
 
 watch(() => props.quotation, initialize, { immediate: true })
 
-onMounted(loadPayers)
+// #414 S1: the resolved tariff changes with the convenio, the issue date, the
+// plan and the procedure of each catalog line.
+watch(payerId, refreshPricing)
+watch(quotationDate, refreshPricing)
+watch(() => plan.value?.id, refreshPricing)
+
+onMounted(() => {
+  loadPayers()
+  refreshPricing()
+})
 </script>

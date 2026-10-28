@@ -101,7 +101,7 @@ app/
                            # RequireActiveCashSession (alias 'cash.session')
   Models/                  # 71 modelos Eloquent
   Services/                # 36 services + Reports/ (9 report services)
-  Events/                  # 36 eventos (10 listener classes, 13 cableos en AppServiceProvider)
+  Events/                  # 37 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
   Jobs/                    # ExportPatientFileJob, ClearDashboardCache
@@ -128,7 +128,7 @@ database/
                            #   ToothSurfaceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 261 rutas API (medido con php artisan route:list --json: uris api/…; 274 totales con web)
+  api.php                  # 263 rutas API (medido con php artisan route:list --json: uris api/…; 276 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -188,7 +188,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 71 modelos, 48 controllers API, 36 eventos (10 listener classes / 13 cableos
+- 71 modelos, 48 controllers API, 37 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 13 modelos con SoftDeletes (la historia clínica y sus evoluciones ya no lo
   usan: #292)
@@ -638,6 +638,83 @@ documentada y no bloquea producción.
   rejilla); la regla de #392 la fijan sus siete pruebas de API por las dos
   puertas.
 
+- **2026-10-27 (auditoría de dinero: saldo único, caja del actor, bloqueo
+  contable en el alta y búsqueda por nombre completo, #393/#407/#410/#412)** —
+  Cuatro hallazgos de la auditoría UI U5, un commit por issue. **#393**: nace
+  `App\Support\AppointmentBalance`, la única definición del saldo de una
+  atención (`final_amount` cuando existe, si no `total_cost`, menos los pagos
+  `completed`), y la leen `GET /api/appointments/ready-to-bill`, el desglose y
+  `POST /api/pending-payments/{id}/pay`; esa puerta bloquea la fila de la cita
+  mientras lee y escribe, admite cobros parciales, responde 409 con su propio
+  motivo cuando ya hay un pago registrado y 422 cuando el importe excede el
+  saldo. «Listos para facturar» gana la acción **Cobrar** y `PaymentModal`
+  incorpora el aviso de bloqueo contable. **#407**:
+  `CashRegisterService::getCurrentSession()` filtra siempre por el actor (la
+  exención del administrador desaparece) y `getLatestSession()` devuelve su
+  último turno; `GET /api/cash-register/current` publica la gaveta propia
+  abierta con `summary`, o la propia cerrada con un bloque `closing` (contado,
+  esperado, diferencia, fecha) y sin `summary`, así que el hero de
+  `/cash-register` distingue «Sin sesión» (KPIs `N/D`, «Abrir caja»), «Sesión
+  abierta» y «Sesión cerrada» con su arqueo, y ninguna acción de caja opera
+  sobre una gaveta cerrada o ajena. **#410**: `AccountingLockService::guard()`
+  corre también en el alta — `TransactionService::createTransaction` antes de
+  abrir su transacción y `CashMovementController@store` antes del insert—, sobre
+  la fecha contable de hoy y la sede de la sesión, así que un cobro o un
+  movimiento bloqueado responde `403 accounting_lock_blocked` y el aviso del
+  modal ofrece el motivo de administrador (≥10 caracteres) con
+  `accounting_lock_overridden`; finanzas no ve ese campo. **#412**:
+  `/api/patients/search` separa el término en palabras (AND entre palabras sobre
+  nombre y apellido, en cualquier orden) y acepta la cadena completa contra
+  `CONCAT(first_name, ' ', last_name)` sin perder documento, email ni teléfono,
+  y publica `name`; `TransactionModal` arma sus filas desde
+  `first_name`/`last_name` y deja de pintar `undefined`. Sin rutas, modelos,
+  migraciones ni permisos nuevos: los conteos de §4/§5 no cambian. Tests:
+  `AccountingLockCreationGuardTest` (8), `AppointmentPaymentBalanceTest` (5,
+  cierre real por `/appointments/{id}/complete`),
+  `CashRegisterCurrentSessionScopeTest` reescrito (tres estados y propiedad de
+  la gaveta), `PatientSearchFullNameTest` (6) y los smokes `caja-caja-actual`
+  (tres estados), `caja-ready-to-bill`, `caja-cobros`, `caja-depositos`,
+  `caja-transacciones` y `patient-selector`. El estado «Sesión cerrada» además
+  se midió en un navegador real (Playwright/Chromium) sobre una base dedicada:
+  `tests/e2e/cash-current.spec.js` cubre los tres estados del hero y queda como
+  pase manual con guarda `CASH_CURRENT_BROWSER=1`; la evidencia de la corrida
+  vive en `.atl/qa-evidence/audit/money-current/`. Suite MySQL completa
+  `OK (2820 tests, 17187 assertions)`; Vitest 1319 pruebas, medidos tras
+  integrar `main` (#465).
+- **2026-10-27 (auditoría U6: el alta se explica como se guarda, la puerta de
+  envío existe y cada acción se ofrece a quien puede ejecutarla,
+  #414/#415/#420/#422)** — Cuatro hallazgos de la sesión U6 (#369). **#414**: el
+  resumen del alta no coincidía con el documento porque la tasa vacía se pintaba
+  como 0 % mientras el servidor aplicaba la configurada, y el precio de una
+  línea de catálogo se leía de `default_cost` mientras el servidor lo congelaba
+  con `ProcedurePriceResolver` (convenio + sede + fecha de emisión). Nace
+  `GET /api/quotations/pricing` (`view.quotation`), lectura pura que publica la
+  tasa de política y la tarifa resuelta con las mismas reglas privadas del
+  escritor —también sin líneas de catálogo—; el modal pinta Subtotal, Descuento,
+  Base imponible, IGV y Total con `quotationPricing.js`, espejo Node-cargable de
+  `App\Support\QuotationTax`, y una línea de catálogo deja de ofrecer precio
+  propio: muestra el importe resuelto con su origen («Catálogo», «Sede»,
+  «Convenio», «Convenio y sede»). **#415**: ya entregado en `d16f8f1` (el helper
+  prefiere `errors` al `message` genérico); esta sesión lo verifica con los tres
+  smokes medidos. **#420**: `quotationMeta.js` deja de repetir la matriz —las
+  listas de roles y `canWriteQuotations()` desaparecen— y cada regla recibe el
+  booleano de `usePermissions().can.*`; presupuestos y planes encienden sus
+  acciones con él, el atajo `n` no abre el alta sin `manage.treatment_plan` y el
+  guard `QuotationsRedesignContractTest` pasa de prohibir `usePermissions` a
+  exigir el canon de #280. **#422**: `POST /api/quotations/{id}/send`
+  (`manage.quotation`) es el único escritor de `draft → sent`: sólo desde
+  borrador, con una fila de auditoría `quotation_sent` (actor y estado
+  anterior/nuevo) y `QuotationSent` por el canal privado `quotations`; la fila y
+  el pie del detalle ganan «Enviar», así que aprobar, rechazar, «Pendientes» y
+  «por vencer» dejan de depender de la facturación de una cita cerrada. Sin
+  migración: el rastro del envío es la auditoría. §4 sincronizado con valores
+  medidos: 37 eventos, 263 rutas API (276 totales con web). Tests:
+  `QuotationPricingContextTest` (6), `QuotationSendTest` (7),
+  `QuotationBroadcastChannelsTest` con el evento nuevo, `quotationPricing` (13),
+  `quotationMeta` ampliado y los smokes de alta, lista, detalle y planes; Vitest
+  **1309 pruebas en 150 archivos**; PHPUnit MySQL **OK (2799 tests, 17041
+  assertions)**; Pint 894 archivos, ESLint 0 errores / 36 avisos, Prettier y
+  `pnpm build` en verde; `node scripts/audit/doc-drift.mjs` 14/14.
 - **2026-10-27 (primitivas de diálogo: apilado, nombre accesible y foco del
   sheet, #423/#379/#385/#429)** — Los overlays dejan de compartir un plano.
   `resources/js/composables/useOverlayStack.js` mantiene una sola pila ordenada

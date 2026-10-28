@@ -37,6 +37,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/cash-register/ReadyToBillPage.vue'
+import PaymentModal from '../../../resources/js/modules/cash-register/components/PaymentModal.vue'
 import { formatCurrency } from '../../../resources/js/composables/useFormatters'
 import { globalToasts } from '../../../resources/js/composables/useToast'
 
@@ -126,6 +127,28 @@ const listCalls = () =>
   harness.apiGet.mock.calls.filter(call => call[0] === '/api/appointments/ready-to-bill')
 
 const lastListParams = () => listCalls().at(-1)[1].params
+
+const cashMethod = {
+  id: 1,
+  name: 'Efectivo',
+  type: 'cash',
+  requires_reference: false,
+  gateway_type: null,
+  commission_percentage: 0
+}
+
+const choosePaymentMethod = async label => {
+  await wrapper.find('[data-payment-method] button[aria-haspopup="true"]').trigger('click')
+  await flushPromises()
+
+  const option = wrapper
+    .findAll('[role="listbox"] button')
+    .find(button => button.text().includes(label))
+  expect(option, `option "${label}" must be listed`).toBeTruthy()
+
+  await option.trigger('click')
+  await flushPromises()
+}
 
 beforeEach(() => {
   harness.apiGet.mockReset()
@@ -325,6 +348,49 @@ describe('ready-to-bill: preview', () => {
     expect(wrapper.find('[data-preview-error]').exists()).toBe(false)
     expect(wrapper.text()).toContain('Subtotal')
     expect(wrapper.text()).toContain(formatCurrency(100))
+  })
+})
+
+describe('ready-to-bill: collection', () => {
+  it('collects the balance the row publishes through the payment modal', async () => {
+    harness.apiGet.mockImplementation(async url => {
+      if (url === '/api/payment-methods/active') return { data: [cashMethod] }
+      return { data: rows, meta }
+    })
+
+    await mountPage({ global: { stubs: { teleport: true } } })
+
+    const collect = wrapper.find('[data-collect-action="41"]')
+    expect(collect.exists()).toBe(true)
+    expect(wrapper.find('[data-preview-action="41"]').exists()).toBe(true)
+
+    await collect.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findComponent(PaymentModal).exists()).toBe(true)
+
+    const amount = wrapper.find('[data-payment-amount] input')
+    expect(amount.exists()).toBe(true)
+    expect(Number(amount.element.value.replace(/,/g, ''))).toBe(rows[0].balance)
+    expect(wrapper.find('[data-payment-concept] input').element.value).toBe('Consulta')
+
+    await choosePaymentMethod('Efectivo')
+
+    const listCallsBefore = listCalls().length
+
+    await wrapper.find('[data-payment-submit]').trigger('click')
+    await flushPromises()
+    await flushPromises()
+
+    expect(harness.apiPost).toHaveBeenCalledWith('/api/pending-payments/41/pay', {
+      payment_method_id: cashMethod.id,
+      amount: rows[0].balance,
+      description: 'Consulta'
+    })
+
+    // The collected row leaves the billable list: the page refreshes it.
+    expect(listCalls().length).toBeGreaterThan(listCallsBefore)
+    expect(globalToasts.value.some(toast => toast.type === 'success')).toBe(true)
   })
 })
 

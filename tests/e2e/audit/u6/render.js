@@ -73,8 +73,8 @@ const EXPECTATIONS = Object.freeze({
 })
 
 // Who holds the write door of each surface, by product permission
-// (`QUOTATION_WRITE_ROLES` / `manage.treatment_plan`). The row still measures the
-// API answer; this map only words what the answer means.
+// (`manage.quotation` / `manage.treatment_plan`). The row still measures the API
+// answer; this map only words what the answer means.
 const WRITE_ROLES = Object.freeze({
   quotations: ['administrador', 'finanzas', 'odontologo'],
   'treatment-plans': ['administrador', 'odontologo']
