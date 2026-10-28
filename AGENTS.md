@@ -629,8 +629,8 @@ documentada y no bloquea producción.
   archivos**; PHPUnit Unit **1491 pruebas, 9943 aserciones (51 saltadas por
   SQLite)**; `tests/Unit/DesignSystem` **957 pruebas, 5384 aserciones**; Pint,
   ESLint, Prettier y `node scripts/audit/doc-drift.mjs` (14/14) en verde.
-  Entrega: rama `fix/audit-ui-u11-452-456` en seis commits de unidad, sin push
-  ni PR (decisión del usuario).
+  Entrega: rama `fix/audit-ui-u11-452-456` en siete commits de unidad, publicada
+  en el PR #493.
 
 - **2026-10-28 (auditoría U9 de administración: la escritura sigue el permiso,
   el rechazo llega al campo y la lista deja de mentir,
