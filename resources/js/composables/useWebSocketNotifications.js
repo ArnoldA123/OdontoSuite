@@ -128,6 +128,7 @@ export function useWebSocketNotifications() {
         quotationsChannel
           .listen('.quotation.created', e => handleEvent('quotation.created', e))
           .listen('.quotation.updated', e => handleEvent('quotation.updated', e))
+          .listen('.quotation.sent', e => handleEvent('quotation.sent', e))
           .listen('.quotation.approved', e => handleEvent('quotation.approved', e))
           .listen('.quotation.rejected', e => handleEvent('quotation.rejected', e))
         channels['private-quotations'] = quotationsChannel

@@ -198,6 +198,37 @@ export function useQuotations() {
     }
   }
 
+  /**
+   * #422 S4: sending is the transition that starts the patient decision. The
+   * API answers with the quotation it already moved, so the list row and the
+   * open detail paint the state the server holds.
+   */
+  const sendQuotation = async id => {
+    try {
+      loading.value = true
+      error.value = null
+
+      const response = await post(`/api/quotations/${id}/send`, {})
+      const updatedQuotation = response.data
+
+      const index = quotations.value.findIndex(quotation => quotation.id === id)
+      if (index !== -1) {
+        quotations.value[index] = updatedQuotation
+      }
+
+      if (currentQuotation.value?.id === id) {
+        currentQuotation.value = updatedQuotation
+      }
+
+      return updatedQuotation
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Error al enviar presupuesto'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   const downloadPDF = async (id, filename) => {
     try {
       downloading.value = true
@@ -280,6 +311,7 @@ export function useQuotations() {
     deleteQuotation,
     approveQuotation,
     rejectQuotation,
+    sendQuotation,
     downloadPDF,
     getQuotationsByPatient,
     clearError,
