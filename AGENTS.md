@@ -585,6 +585,37 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (auditoría del dinero: el cobro explica su rechazo, la caja
+  representa su carga y el desglose no se contradice, #409/#411/#459)** — Tres
+  hallazgos de la auditoría UI U5. **#409**: `PaymentModal` enruta toda clave de
+  error del API al campo que el formulario pinta o al aviso general
+  `[data-payment-error]` —la clave `session` de un cobro sin gaveta abierta se
+  copiaba al estado y no tenía dónde caer—, y la puerta de cobros pendientes
+  envía `reference_number` y `notes` cuando el formulario los recoge, así que
+  Yape, tarjeta y transferencia se cobran con su referencia. **#411**:
+  `useCashRegister` separa `sessionLoading`/`sessionError` de `loading`/`error`,
+  así la carga del historial ya no borra el fallo de
+  `GET /api/cash-register/current`; el hero pinta skeleton en su badge y en los
+  cuatro KPIs mientras la primera lectura está en vuelo (nunca «Sin sesión» ni
+  `N/D`), publica «Estado no disponible» si esa lectura falla y deja el panel
+  `[data-caja-error]` con «Reintentar», que recupera sin recargar la página.
+  `UiSkeleton` honra sus props `width`/`height`: el rectángulo del variante
+  colapsaba a ancho cero dentro de una fila flex y las props estaban declaradas
+  pero muertas. Quien no las declara pinta el mismo tamaño que antes, y
+  `ProcedureStatsPage` —que ya pedía `height="320px"`— recibe por fin ese alto.
+  La prueba de navegador `tests/e2e/cash-loading.spec.js`
+  (`CASH_LOADING_BROWSER=1`) queda como pase manual con guarda y evidencia
+  medida. **#459**: `BillingService::paymentPreview` publica `amount_source`
+  (`plan_items`|`fixed_amount`) y, sin ítems del plan, el `subtotal` es el mismo
+  total que se cobra; el desglose nombra «Monto fijo por tipo de cita» junto a
+  la cifra. La cifra que se cobra, `final_amount` y el estado de cuenta no
+  cambian. Sin rutas, modelos, migraciones ni permisos nuevos: los conteos de
+  §4/§5 no cambian. Tests: `caja-cobros` (20), `caja-caja-actual` (5),
+  `useCashRegister` (7), `caja-ready-to-bill` (11), `ui-skeleton` (3) y
+  `AppointmentPaymentPreviewTest` (2); Vitest 1393 pruebas en 163 archivos;
+  suite MySQL `OK (2857 tests, 17386 assertions)`; Pint, ESLint, Prettier y
+  `node scripts/audit/doc-drift.mjs` (14/14) en verde.
+
 - **2026-10-28 (auditoría U4 de pacientes: la ficha ofrece lo que el rol puede
   leer, Especialidades respeta su contrato, la lista conserva sus filtros y el
   alta comunica, #399/#400/#401/#403/#404)** — Cinco hallazgos de la auditoría
