@@ -215,7 +215,13 @@ export function useAiAnalysis() {
       // makes the call signature honest.
       const response = await post('/api/ai-analysis/upload-and-analyze', formData)
 
-      success('Análisis completado exitosamente')
+      // #427 — the door answers 201 for a row the provider left failed; only a
+      // completed analysis is announced as a result here. The page paints the
+      // failure with its own reason.
+      if (response.data?.status === 'completed') {
+        success('Análisis completado exitosamente')
+      }
+
       return response.data
     } finally {
       loading.value = false

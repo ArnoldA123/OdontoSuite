@@ -9,6 +9,7 @@ use App\Models\ClinicalEncounter;
 use App\Models\User;
 use App\Support\DateFilter;
 use App\Support\PerPage;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -300,9 +301,27 @@ class AiImageAnalysisService
 
             $analysis->update([
                 'status' => 'failed',
+                'failure_reason' => $this->failureReasonFor($e),
                 'raw_response' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * #427 — the readable cause of a failed analysis. The provider body stays in
+     * `raw_response`: this sentence is what the professional reads.
+     */
+    private function failureReasonFor(\Throwable $e): string
+    {
+        $message = $e->getMessage();
+
+        if ($e instanceof ConnectionException
+            || stripos($message, 'timed out') !== false
+            || stripos($message, 'cURL') !== false) {
+            return 'No se pudo conectar con el proveedor de IA.';
+        }
+
+        return 'El proveedor de IA no devolvió un resultado válido.';
     }
 
     /**

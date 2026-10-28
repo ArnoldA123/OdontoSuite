@@ -41,6 +41,7 @@ class AiImageAnalysisResource extends JsonResource
             'voided' => $this->isVoided(),
             'voided_at' => $this->voided_at?->toISOString(),
             'void_reason' => $this->void_reason,
+            'failure_reason' => $this->failure_reason,
             'assistive' => (bool) $this->isAssistive(),
             'assistive_notice' => AiImageAnalysis::ASSISTIVE_NOTICE,
             'notice_acknowledged_at' => $this->notice_acknowledged_at?->toISOString(),

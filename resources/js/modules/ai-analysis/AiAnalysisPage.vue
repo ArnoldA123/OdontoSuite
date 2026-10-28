@@ -583,6 +583,17 @@ const handleSheetSubmit = async ({
       clinicalEncounterId
     )
 
+    // #427 — the door answers 201 for a row the provider left failed. That row
+    // is not a result: the sheet closes, the list refreshes and the failure
+    // keeps its own surface with the reason the API publishes.
+    if (result?.status !== 'completed') {
+      analysisStatus.value = 'failed'
+      analysisErrorMessage.value = result?.failure_reason || 'No se pudo completar el análisis.'
+      showSheet.value = false
+      await loadData(1)
+      return
+    }
+
     analysisStatus.value = 'completed'
     showAnalyzingModal.value = false
     showSheet.value = false

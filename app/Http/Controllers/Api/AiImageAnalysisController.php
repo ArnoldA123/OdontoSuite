@@ -69,7 +69,7 @@ class AiImageAnalysisController extends Controller
                     'noticeAcknowledgedBy',
                 ])),
                 'meta' => [
-                    'message' => 'Análisis solicitado exitosamente',
+                    'message' => $this->resultMessage($analysis->status, 'Análisis solicitado exitosamente'),
                 ],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -483,9 +483,9 @@ class AiImageAnalysisController extends Controller
                     'reviewedBy',
                     'noticeAcknowledgedBy',
                 ])),
-                'message' => 'Análisis completado exitosamente.',
+                'message' => $this->resultMessage($analysis->status, 'Análisis completado exitosamente.'),
                 'meta' => [
-                    'message' => 'Análisis completado exitosamente.',
+                    'message' => $this->resultMessage($analysis->status, 'Análisis completado exitosamente.'),
                 ],
             ], 201);
 
@@ -501,6 +501,15 @@ class AiImageAnalysisController extends Controller
                 'message' => 'Error al analizar la imagen.',
             ], 500);
         }
+    }
+
+    /**
+     * #427 — the door creates the row either way, so a failed analysis still
+     * answers 201. What it may not do is announce a result that does not exist.
+     */
+    private function resultMessage(?string $status, string $successMessage): string
+    {
+        return $status === 'failed' ? 'El análisis no se pudo completar.' : $successMessage;
     }
 
     /**
