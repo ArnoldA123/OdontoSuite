@@ -17,7 +17,7 @@ class StoreProcedureCatalogRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code' => 'required|string|max:50|unique:procedure_catalog,code',
+            'code' => 'required|string|max:20|unique:procedure_catalog,code',
             'name' => 'required|string|max:200',
             'description' => 'nullable|string|max:1000',
             'specialty_id' => 'nullable|integer|exists:specialties,id',
@@ -54,7 +54,7 @@ class StoreProcedureCatalogRequest extends FormRequest
         return [
             'code.required' => 'El codigo del procedimiento es obligatorio.',
             'code.unique' => 'Ya existe un procedimiento con este codigo.',
-            'code.max' => 'El codigo no puede exceder 50 caracteres.',
+            'code.max' => 'El codigo no puede exceder 20 caracteres.',
             'name.required' => 'El nombre del procedimiento es obligatorio.',
             'name.max' => 'El nombre no puede exceder 200 caracteres.',
             'description.max' => 'La descripcion no puede exceder 1000 caracteres.',

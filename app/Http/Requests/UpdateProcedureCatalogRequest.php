@@ -19,7 +19,7 @@ class UpdateProcedureCatalogRequest extends FormRequest
         $procedureId = $this->route('id');
 
         return [
-            'code' => "sometimes|string|max:50|unique:procedure_catalog,code,{$procedureId}",
+            'code' => "sometimes|string|max:20|unique:procedure_catalog,code,{$procedureId}",
             'name' => 'sometimes|required|string|max:200',
             'description' => 'nullable|string|max:1000',
             'specialty_id' => 'sometimes|nullable|integer|exists:specialties,id',
@@ -56,6 +56,7 @@ class UpdateProcedureCatalogRequest extends FormRequest
         return [
             'name.required' => 'El nombre del procedimiento es obligatorio.',
             'code.unique' => 'Ya existe un procedimiento con este codigo.',
+            'code.max' => 'El codigo no puede exceder 20 caracteres.',
             'specialty_id.exists' => 'La especialidad seleccionada no existe.',
             'site_type.in' => 'La aplicabilidad debe ser: sitio independiente, diente, superficie, cuadrante o arcada.',
             'default_cost.numeric' => 'El costo debe ser un numero valido.',

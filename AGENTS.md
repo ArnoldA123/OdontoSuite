@@ -585,6 +585,41 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (auditoría U8 del catálogo: escritura, detalle, lista y
+  tarifario, #434/#435/#436/#437)** — Cuatro hallazgos de la auditoría U8
+  (#371), un commit de unidad por issue. **#434**: duplicar lee el detalle del
+  original y copia `site_type`, `external_codes` y `material_recipe` (el índice
+  no lleva la receta), propone un código que cabe en `varchar(20)`
+  (`duplicateProcedureCode`) y las dos puertas de escritura declaran `max:20`
+  con el 422 «El codigo no puede exceder 20 caracteres.» en vez del 500 de
+  MySQL; la receta de insumos deja de ser invisible, el formulario la edita
+  (producto + cantidad, con validación por línea y el error del servidor en su
+  campo) y el detalle la publica con producto, cantidad y stock. **#435**: el
+  historial pide `App\\Models\\ProcedureCatalog` (doble barra en la petición)
+  mientras la API guarda `App\Models\ProcedureCatalog`, así que nunca encontraba
+  filas; y «Editar» abre el formulario con `?edit=<id>`: `/procedure-catalog`
+  declara `meta.preserveOnQuery` (como `/patients`, #401) para que retirar el
+  parámetro no re-monte la página que acaba de abrir el modal. El formulario se
+  abre siempre con el detalle del procedimiento —la fila del índice publica el
+  precio resuelto de la sede y no lleva la receta—, así editar no reescribe el
+  precio de lista ni vacía la receta. **#436**: la lista monta `UiDataTable`
+  (`data-table-scroll` + affordance) con los hooks de fila que mide la auditoría
+  (`row-attributes`) y la `Pagination` publica el `per_page` aplicado (20), así
+  que «Mostrando 1 a 20 de 46» deja de mentir; `UiDataTable` gana `table-class`
+  y `row-attributes` opcionales y aditivos. **#437**: el error de vigencia
+  invertida del precio de sede se enlaza al campo «Vigente hasta»
+  (`:error="formErrors.valid_to"`), sin tocar la regla del servidor. Sin rutas,
+  modelos, migraciones ni permisos nuevos: los conteos de §4/§5 no cambian (46
+  composables; `procedureCode.js` es un helper del módulo, no un composable).
+  Tests: `ProcedureCatalogCodeLengthTest` (3, MySQL), `procedureCode` (5), el
+  smoke del catálogo (8: copia completa, código que cabe, tabla y paginación,
+  puerta de edición y el formulario alimentado por el detalle), el del detalle
+  (4: receta, historial con el `model_type` real y navegación), el de la receta
+  del formulario (8), `data-table-contract` (2) y el del tarifario (5). Vitest
+  **1417 pruebas en 166 archivos**; suite MySQL **OK (2860 tests, 17400
+  assertions)**; Pint 911 archivos; ESLint 0 errores / 36 avisos; Prettier
+  limpio; `vite build` en verde; `node scripts/audit/doc-drift.mjs` 14/14.
+
 - **2026-10-28 (auditoría del dinero: el cobro explica su rechazo, la caja
   representa su carga y el desglose no se contradice, #409/#411/#459)** — Tres
   hallazgos de la auditoría UI U5. **#409**: `PaymentModal` enruta toda clave de
