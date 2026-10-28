@@ -86,7 +86,10 @@ class AppointmentStatusDoorGuardTest extends TestCase
             ->assertJsonPath('data.status', 'confirmed');
 
         $this->actingAs($reception, 'sanctum')
-            ->patchJson("/api/appointments/{$appointment->id}/status", ['status' => 'cancelled'])
+            ->patchJson("/api/appointments/{$appointment->id}/status", [
+                'status' => 'cancelled',
+                'cancellation_reason' => 'El paciente no asistirá.',
+            ])
             ->assertOk();
 
         $this->assertSame('cancelled', $appointment->fresh()->status);

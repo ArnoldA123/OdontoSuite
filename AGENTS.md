@@ -119,7 +119,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 153 migraciones
+  migrations/              # 155 migraciones
   seeders/                 # 17 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, DiagnosisCatalogSeeder,
                            #   AppointmentTypeSeeder, EnvironmentSeeder, ProcedureCatalogSeeder,
@@ -591,6 +591,61 @@ documentada y no bloquea producción.
   intento que lo produjo y «Autorizar y reintentar» no puede llevar la razón de
   una puerta de cobro a la otra. Sin rutas, modelos, migraciones ni permisos
   nuevos. Test: `caja-cobros` (17).
+- **2026-10-28 (cierre de los hallazgos U3 de la agenda,
+  #391/#392/#394/#395/#396/#397)** — Las seis issues que publicó la auditoría U3
+  dejan de ser hallazgos. **#392**: la regla «una cita cancelada libera su
+  horario» pasa al esquema — `appointments.slot_reservation`, columna generada y
+  almacenada que es NULL para `cancelled` y 1 para el resto, incluida en
+  `unique_user_time_slot` y `unique_chair_time_slot`— y las cuatro puertas que
+  escriben el horario traducen la violación de unicidad a 422 con
+  `conflict.type = slot_taken`, nunca 500; el pre-chequeo declara la misma regla
+  desde una sola constante del repositorio. **#391**: `ConsultationWizard` monta
+  sobre `UiModal` (rol, `aria-modal`, nombre accesible desde su `h2`, foco
+  atrapado, scroll contado por la pila y Escape del overlay superior); todas las
+  salidas pasan por una guardia que compara el acto con la huella tomada al
+  abrirlo y sólo pide confirmación si ya documenta algo. **#394**: la cita gana
+  `cancellation_reason` (255, nullable), obligatorio en las tres puertas que
+  pueden cancelar (estado, edición y alta ya cancelada), se limpia al reactivar
+  y el cambio de estado publica `meta.reminders_cancelled`; la agenda pide el
+  motivo en un diálogo propio y el aviso nombra los recordatorios cancelados.
+  **#395**: la agenda ofrece filtros de profesional, sillón y sede gobernados
+  por los permisos de lectura de cada población, re-lee el rango al cambiar de
+  filtro y tiene vacío propio del filtro; `GET /api/appointments` aplica
+  `dental_chair_id`. **#396**: una lectura fallida pinta bloque de error con
+  reintento (`[data-calendar-error]` / `[data-calendar-retry]`) en vez del
+  vacío, y el picker de procedimientos consulta favoritos sólo con
+  `manage.procedure_favorite` y liquida cada búsqueda por separado. **#397**: la
+  vista inicial sale del ancho del viewport (día por debajo de 768 px), la
+  semana elegida a mano vive en scroll horizontal propio (64 px de hora + 112 px
+  por día, piso de 848) con gradiente y aviso medidos, y el chip semanal separa
+  hora y paciente en dos líneas. Sin rutas, controllers ni modelos nuevos: §4
+  sube a **155 migraciones** (dos) y mantiene 48 controllers API, 71 modelos, 46
+  composables, 261 rutas API (274 con web). Tests: `AppointmentSlotReleaseTest`
+  (7), `AppointmentCalendarFiltersTest` (3), `AppointmentCancellationReasonTest`
+  (6), `AppointmentStatusDoorGuardTest` ajustado al contrato nuevo,
+  `ReminderCancellationTest` con motivo (4), 8 casos de filtros de agenda, 7 de
+  layout móvil, 6 del guardia de descarte del asistente y 6 de cancelación con
+  motivo; Vitest **1314 pruebas en 155 archivos**; suite MySQL **OK (2799 tests,
+  17073 assertions)**; Pint, ESLint, Prettier y `vite build` en verde;
+  `node scripts/audit/doc-drift.mjs` con sus 14 chequeos. Verificación de
+  navegador sobre la base `odontosuite_audit` migrada: las diez filas del
+  contrato de primitiva del asistente en verde (abierto por el escritorio del
+  profesional, porque la rejilla sólo pinta de 06:00 a 21:00 y la sesión corrió
+  de noche), la pila con un modal encima OK (Escape cierra sólo el superior y el
+  scroll sigue bloqueado), los filtros OK, el error de carga con bloque y
+  reintento OK, la cancelación con diálogo, motivo obligatorio,
+  `meta.reminders_cancelled` y motivo guardado OK, y la medición móvil de la
+  semana a 390 px (columna 112 px, scroll 848/306, hora del chip sin recortar y
+  documento sin desborde) como aserción de la prueba de navegador. Dos sondas
+  del instrumento se corrigieron para medir lo que la aceptación pide: la del
+  fondo del asistente reabre lo que Escape cerró y la de cancelación mide el
+  contrato nuevo. La reprogramación sobre un horario liberado se mide con una
+  fila propia,
+  `@U3 calendar · drag sobre un horario liberado por una cancelación`, que
+  agenda un par en el primer día con dos horas libres, cancela la segunda y
+  arrastra la primera hasta ese hueco: PATCH 200, chip movido y la cita
+  cancelada intacta.
+
 - **2026-10-28 (seguimientos de la auditoría de dinero: evidencia del intento
   bloqueado y reintento de Mercado Pago, #466/#467)** — Dos consecuencias que la
   verificación independiente de #468 dejó declaradas. **#466**:

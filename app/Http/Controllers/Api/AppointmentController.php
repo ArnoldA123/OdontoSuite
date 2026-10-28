@@ -15,6 +15,7 @@ use App\Models\AuditLog;
 use App\Services\AppointmentService;
 use App\Services\ReminderService;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -53,6 +54,7 @@ class AppointmentController extends Controller
             'duration_minutes',
             'status',
             'notes',
+            'cancellation_reason',
             'treatment_notes',
             'idempotency_key',
             'created_by',
@@ -93,6 +95,14 @@ class AppointmentController extends Controller
         // Filter by user (dentist)
         if ($request->has('user_id')) {
             $query->where('user_id', $request->get('user_id'));
+        }
+
+        // #395: la agenda acota por sillón como ya acota por profesional. Un
+        // valor vacío no filtra: el cliente manda el parámetro incluso cuando
+        // el filtro está limpio, y "sin filtro" no es "ningún sillón". El
+        // alcance por sede de abajo sigue gobernando la población.
+        if ($request->filled('dental_chair_id')) {
+            $query->where('dental_chair_id', (int) $request->get('dental_chair_id'));
         }
 
         // Filter by status
@@ -226,6 +236,15 @@ class AppointmentController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            if (($slotConflict = $this->slotConflictResponse($e)) !== null) {
+                Log::warning('Appointment slot taken while creating', [
+                    'user_id' => Auth::id(),
+                    'scheduled_at' => $validated['scheduled_at'] ?? null,
+                ]);
+
+                return $slotConflict;
+            }
+
             Log::error('Error creating appointment', [
                 'user_id' => Auth::id(),
                 'patient_id' => $validated['patient_id'] ?? null,
@@ -310,6 +329,15 @@ class AppointmentController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            if (($slotConflict = $this->slotConflictResponse($e)) !== null) {
+                Log::warning('Appointment slot taken while updating', [
+                    'appointment_id' => $appointment->id,
+                    'user_id' => Auth::id(),
+                ]);
+
+                return $slotConflict;
+            }
+
             Log::channel('audit')->error('Error updating appointment', [
                 'appointment_id' => $appointment->id,
                 'user_id' => Auth::id(),
@@ -393,6 +421,16 @@ class AppointmentController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            if (($slotConflict = $this->slotConflictResponse($e)) !== null) {
+                Log::warning('Appointment slot taken while rescheduling', [
+                    'appointment_id' => $appointment->id,
+                    'user_id' => Auth::id(),
+                    'scheduled_at' => $scheduledAt->toDateTimeString(),
+                ]);
+
+                return $slotConflict;
+            }
+
             Log::channel('audit')->error('Error rescheduling appointment', [
                 'appointment_id' => $appointment->id,
                 'user_id' => Auth::id(),
@@ -458,9 +496,16 @@ class AppointmentController extends Controller
      */
     public function updateStatus(Request $request, Appointment $appointment): JsonResponse
     {
+        // #394: cancelar es un acto deliberado. El motivo es obligatorio y vive
+        // en su propia columna, no en `notes`, que otra edición pisa.
         $validated = $request->validate([
             'status' => 'required|in:scheduled,confirmed,arrived,in_consultation,completed,cancelled,no_show,rescheduled',
             'notes' => 'nullable|string|max:1000',
+            'cancellation_reason' => 'required_if:status,cancelled|nullable|string|max:255',
+        ], [
+            'cancellation_reason.required_if' => 'Indica el motivo de la cancelación.',
+            'cancellation_reason.string' => 'El motivo de la cancelación debe ser un texto.',
+            'cancellation_reason.max' => 'El motivo de la cancelación no puede exceder 255 caracteres.',
         ]);
 
         // F1 (#281): the custody statuses are not reachable through the generic
@@ -479,10 +524,18 @@ class AppointmentController extends Controller
 
         $oldValues = $appointment->toArray();
         $previousStatus = $appointment->status;
+        // Una cita que sale de `cancelled` pierde el motivo: la traza queda en
+        // `audit_logs`, no en una fila que ya no describe una cancelación.
+        $cancellationReason = $validated['status'] === 'cancelled'
+            ? ($validated['cancellation_reason'] ?? null)
+            : null;
 
         DB::beginTransaction();
 
         try {
+            // La columna se escribe explícitamente: el motivo no es un campo de
+            // asignación masiva, sólo la regla de cancelación lo firma.
+            $appointment->cancellation_reason = $cancellationReason;
             $appointment->update([
                 'status' => $validated['status'],
                 'notes' => $validated['notes'] ?? $appointment->notes,
@@ -492,8 +545,10 @@ class AppointmentController extends Controller
             // Issue #154: this is the live cancellation path used by the UI,
             // so the pending reminders are cancelled in the same transaction;
             // reactivating the appointment puts them back on the pipeline.
+            // #394: the count is the consequence the success notice names.
+            $remindersCancelled = 0;
             if ($validated['status'] === 'cancelled') {
-                $this->reminderService->cancelReminders($appointment);
+                $remindersCancelled = $this->reminderService->cancelReminders($appointment);
             } elseif ($previousStatus === 'cancelled') {
                 $this->reminderService->rescheduleReminders($appointment);
             }
@@ -505,7 +560,10 @@ class AppointmentController extends Controller
                 $appointment,
                 $oldValues,
                 $appointment->fresh()->toArray(),
-                ['status_change' => $validated['status']]
+                [
+                    'status_change' => $validated['status'],
+                    'cancellation_reason' => $cancellationReason,
+                ]
             );
 
             DB::commit();
@@ -514,10 +572,22 @@ class AppointmentController extends Controller
                 'data' => $appointment,
                 'meta' => [
                     'message' => 'Estado de la cita actualizado exitosamente',
+                    'reminders_cancelled' => $remindersCancelled,
                 ],
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            if (($slotConflict = $this->slotConflictResponse($e)) !== null) {
+                Log::warning('Appointment slot taken while changing status', [
+                    'appointment_id' => $appointment->id,
+                    'user_id' => Auth::id(),
+                    'status' => $validated['status'] ?? null,
+                ]);
+
+                return $slotConflict;
+            }
+
             Log::channel('audit')->error('Error updating appointment status', [
                 'appointment_id' => $appointment->id,
                 'user_id' => Auth::id(),
@@ -533,6 +603,56 @@ class AppointmentController extends Controller
                 'error' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
+    }
+
+    /**
+     * Translate a slot uniqueness violation into a conflict response.
+     *
+     * #392: the pre-check normally answers first, so this is the backstop for
+     * the window it cannot cover — two requests clearing the pre-check at the
+     * same time, and the reactivation of a cancelled appointment whose slot
+     * was taken meanwhile. The engine rejected the write, so the door answers
+     * 422 with the same `conflict` shape the pre-check publishes instead of
+     * letting SQLSTATE 23000 become a 500.
+     */
+    private function slotConflictResponse(mixed $exception): ?JsonResponse
+    {
+        if (! $exception instanceof QueryException || ! $this->isSlotDuplicate($exception)) {
+            return null;
+        }
+
+        $message = 'Ese horario ya está ocupado por otra cita activa. Actualiza la agenda y vuelve a intentarlo.';
+
+        return response()->json([
+            'message' => $message,
+            'errors' => [
+                'scheduled_at' => [$message],
+            ],
+            'conflict' => [
+                'type' => 'slot_taken',
+                'conflicting_appointment' => null,
+            ],
+        ], 422);
+    }
+
+    /**
+     * A duplicate key on one of the two slot indexes, and nothing else: the
+     * idempotency key is unique too and a collision there is not a slot
+     * conflict.
+     */
+    private function isSlotDuplicate(QueryException $exception): bool
+    {
+        $message = $exception->getMessage();
+
+        $duplicateKey = (int) ($exception->errorInfo[1] ?? 0) === 1062
+            || str_contains($message, 'Duplicate entry');
+
+        if (! $duplicateKey) {
+            return false;
+        }
+
+        return str_contains($message, 'unique_user_time_slot')
+            || str_contains($message, 'unique_chair_time_slot');
     }
 
     /**

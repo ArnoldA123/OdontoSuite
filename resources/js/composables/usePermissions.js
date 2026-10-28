@@ -30,6 +30,11 @@ const PERMISSION_BY_KEY = {
   viewMyDay: 'view.my_day',
   startConsultation: 'start.consultation',
   announcePatient: 'announce.patient',
+  // #395: the agenda filters by these populations, so the surface only offers
+  // a filter when the session may read its population.
+  viewUser: 'view.user',
+  viewDentalChair: 'view.dental_chair',
+  viewBranch: 'view.branch',
 
   // F4 (#310) / F5 (#316): the continuity queue and the prosthetic laboratory.
   // Reading each desk is dispatch work; writing it belongs to the desk that
@@ -63,6 +68,7 @@ const PERMISSION_BY_KEY = {
   // Procedure catalog
   manageProcedureCatalog: 'manage.procedure_catalog',
   viewProcedureCatalog: 'view.procedure_catalog',
+  manageProcedureFavorite: 'manage.procedure_favorite',
 
   // Reminders
   manageReminders: 'manage.reminder',

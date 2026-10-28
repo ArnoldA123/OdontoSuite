@@ -92,7 +92,12 @@ class WaitingListCancellationTest extends TestCase
         $row = DB::table('appointments')->find($appointment->id);
 
         $this->assertSame('cancelled', $row->status);
-        $this->assertStringContainsString('Cancelación: El paciente no asistirá', (string) $row->notes);
+        $this->assertSame(
+            'El paciente no asistirá',
+            $row->cancellation_reason,
+            'The motive MUST live in its own column (#394), not in the generic notes.'
+        );
+        $this->assertStringNotContainsString('Cancelación', (string) $row->notes);
         $this->assertSame($actor->id, (int) $row->updated_by);
     }
 

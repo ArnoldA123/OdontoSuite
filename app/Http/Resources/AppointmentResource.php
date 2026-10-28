@@ -36,6 +36,7 @@ class AppointmentResource extends JsonResource
             'ends_at' => $this->ends_at?->toIso8601String(),
             'duration_minutes' => $this->duration_minutes,
             'status' => $this->status,
+            'cancellation_reason' => $this->cancellation_reason,
             'notes' => $this->notes,
             ...($readsClinicalRecord ? ['treatment_notes' => $this->treatment_notes] : []),
             'idempotency_key' => $this->idempotency_key,

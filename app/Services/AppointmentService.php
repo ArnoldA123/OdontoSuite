@@ -99,6 +99,13 @@ class AppointmentService
             try {
                 $endsAt = $scheduledAt->copy()->addMinutes($duration);
 
+                // #394: el motivo no es campo de asignación masiva; se escribe
+                // sobre el modelo y sólo cuando la cita nace cancelada.
+                $cancellationReason = ($data['status'] ?? null) === 'cancelled'
+                    ? ($data['cancellation_reason'] ?? null)
+                    : null;
+                unset($data['cancellation_reason']);
+
                 $appointmentData = array_merge($data, [
                     'scheduled_at' => $scheduledAt,
                     'created_by' => Auth::id(),
@@ -111,6 +118,11 @@ class AppointmentService
                 ]);
 
                 $appointment = Appointment::create($appointmentData);
+
+                if ($cancellationReason !== null) {
+                    $appointment->cancellation_reason = $cancellationReason;
+                    $appointment->save();
+                }
 
                 Log::info('AppointmentService::createAppointment - Appointment created', [
                     'appointment_id' => $appointment->id,
@@ -232,6 +244,16 @@ class AppointmentService
                 $data['ends_at'] = $scheduledAt->copy()->addMinutes($duration);
             }
 
+            // #394: el motivo de la cancelación vive en su propia columna y se
+            // limpia cuando la cita deja de estar cancelada. Se escribe sobre el
+            // modelo porque no es campo de asignación masiva: sólo esta regla lo
+            // firma.
+            $resultingStatus = $data['status'] ?? $appointment->status;
+            $appointment->cancellation_reason = $resultingStatus === 'cancelled'
+                ? ($data['cancellation_reason'] ?? $appointment->cancellation_reason)
+                : null;
+            unset($data['cancellation_reason']);
+
             $data['updated_by'] = Auth::id();
             $appointment->update($data);
 
@@ -263,6 +285,10 @@ class AppointmentService
 
     /**
      * Cancel an appointment and notify waiting list.
+     *
+     * #394: the motive lives in the appointment's own column, like every other
+     * cancellation door. It is not appended to `notes`, which any later edit
+     * overwrites.
      */
     public function cancelAppointment(Appointment $appointment, ?string $reason = null): Appointment
     {
@@ -271,9 +297,9 @@ class AppointmentService
         DB::beginTransaction();
 
         try {
+            $appointment->cancellation_reason = $reason;
             $appointment->update([
                 'status' => 'cancelled',
-                'notes' => $reason ? ($appointment->notes."\n\nCancelación: ".$reason) : $appointment->notes,
                 'updated_by' => Auth::id(),
             ]);
 
@@ -572,7 +598,7 @@ class AppointmentService
         // Get existing appointments for the day
         $existingAppointments = Appointment::where('user_id', $userId)
             ->whereDate('scheduled_at', $date)
-            ->where('status', '!=', 'cancelled')
+            ->where('status', '!=', AppointmentRepository::SLOT_RELEASED_STATUS)
             ->orderBy('scheduled_at')
             ->get();
 
