@@ -10,7 +10,7 @@ import { formatDate } from '../../composables/useFormatters'
 
 export const WEEK_DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
-// #397 S7: a 390 px la rejilla semanal comprimía cada día a 38 px y el chip a
+// Issue 397 (S7): a 390 px la rejilla semanal comprimía cada día a 38 px y el chip a
 // «1.». La vista con la que abre la agenda depende del ancho del viewport: por
 // debajo del punto de quiebre de escritorio abre en día, que es la vista donde
 // hora y paciente se leen. El selector de vista sigue ofreciendo «Semana» a
