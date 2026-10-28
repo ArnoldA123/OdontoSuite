@@ -553,9 +553,12 @@ test('@U9 walks profesionales', async ({ page }) => {
         const toast = await toastText(page)
         const rows = await rowCount(page, ROWS)
         const apiMessage = sent.body?.message ?? null
+        const actionable = /Desactívalo en su lugar\./.test(apiMessage ?? '')
         const told = Boolean(toast) && Boolean(apiMessage) && toast.includes(apiMessage)
+        const deliversActionable = told && actionable
+        const genericToast = /Error al eliminar el profesional/.test(toast)
 
-        entry.obtained = `fila sembrada «${seeded.name}» (id ${seeded.id}) · acciones de la fila ${JSON.stringify(seededActions)} · confirmación «${confirmText}» · DELETE ${sent.status ?? 'sin petición'} · mensaje de la API «${apiMessage ?? '—'}» · toast «${toast}» · la fila sigue en la lista ${rows > 0}`
+        entry.obtained = `fila sembrada «${seeded.name}» (id ${seeded.id}) · acciones de la fila ${JSON.stringify(seededActions)} · confirmación «${confirmText}» · DELETE ${sent.status ?? 'sin petición'} · mensaje de la API «${apiMessage ?? '—'}» (accionable ${actionable}) · toast «${toast}» (mensaje íntegro ${told}, aviso genérico ${genericToast}) · la fila sigue en la lista ${rows > 0}`
         entry.request = requestOf(sent)
         entry.detail = {
           seeded: { id: seeded.id, name: seeded.name, role: seeded.role },
@@ -564,6 +567,10 @@ test('@U9 walks profesionales', async ({ page }) => {
           ownActions,
           confirmText,
           apiMessage,
+          actionable,
+          tellsApiMessage: told,
+          deliversActionable,
+          genericToast,
           toast,
           rows,
           historyStatus: history.status,
@@ -571,10 +578,12 @@ test('@U9 walks profesionales', async ({ page }) => {
             labels.includes('Eliminar')
           )
         }
-        entry.verdict = sent.status === 409 && rows > 0 ? (told ? 'OK' : 'DEFECTO') : 'DEFECTO'
-        entry.notes = told
-          ? ''
-          : 'la API rechaza el borrado con un motivo accionable (409) y la superficie responde con un mensaje genérico: el motivo no llega al usuario, y «Eliminar» se ofrece igual sobre la fila que la API protege'
+        entry.verdict =
+          sent.status === 409 && rows > 0 ? (deliversActionable ? 'OK' : 'DEFECTO') : 'DEFECTO'
+        entry.notes =
+          entry.verdict === 'OK'
+            ? ''
+            : 'la API rechaza el borrado con un motivo accionable (409) y la superficie no entrega ese mensaje: el motivo no llega al usuario, y «Eliminar» se ofrece igual sobre la fila que la API protege'
 
         return entry
       }
@@ -754,7 +763,7 @@ test('@U9 walks profesionales', async ({ page }) => {
     await step(
       'states',
       'Medir el estado de carga, el vacío de un filtro y el error con reintento',
-      'La lista muestra su placeholder de carga, un vacío que explica el filtro y un error con reintento',
+      'La lista muestra su placeholder de carga, un vacío que explica el filtro y un bloque de error con reintento que declara «N/D» en vez de un equipo vacío',
       async entry => {
         const detail = { loading: null, empty: null, error: null }
 
@@ -819,32 +828,66 @@ test('@U9 walks profesionales', async ({ page }) => {
         await page.reload({ waitUntil: 'domcontentloaded' })
         await page.waitForTimeout(1500)
 
+        const errorPainted = await page
+          .locator('[data-team-error]')
+          .waitFor({ state: 'visible', timeout: 10000 })
+          .then(() => true)
+          .catch(() => false)
+        const errorText = (await visibleTexts(page, '[data-team-error]')).join(' | ')
         const errorBody = await listText(page)
-        const retry = await page.locator('main button').filter({ hasText: 'Reintentar' }).count()
+        const kpisInError = await visibleTexts(page, '[data-stat]')
+        const retry = page.locator('[data-team-retry]').first()
+        const retryOffered = (await retry.count()) > 0
+        const emptyShown = /Sin profesionales registrados/.test(errorBody)
+        const toast = await toastText(page)
 
         detail.error = {
-          toast: await toastText(page),
-          emptyShown: /Sin profesionales registrados/.test(errorBody),
-          retryButtons: retry,
+          painted: errorPainted,
+          text: errorText,
+          kpis: kpisInError,
+          allKpisUnavailable:
+            kpisInError.length === 4 && kpisInError.every(value => value === 'N/D'),
+          emptyShown,
+          toast,
+          retryOffered,
           shot: await shot(page, `shots/walk/${SLUG}/${entry.id}-error.png`)
         }
 
         await page.unroute('**/api/users*')
 
-        entry.obtained = `carga: ${detail.loading.visible ? 'muestra «Cargando profesionales...»' : 'sin placeholder observable'} · vacío: ${detail.empty.title && detail.empty.description ? '«Sin resultados» con su explicación' : 'sin texto de vacío'}${detail.empty.clearOffered ? ' y «Limpiar filtros»' : ' y sin acción'} · error 500: toast «${detail.error.toast}» · ${detail.error.emptyShown ? 'se pinta como «Sin profesionales registrados»' : 'no se pinta como vacío'} · botones «Reintentar» ${detail.error.retryButtons}`
+        if (retryOffered) {
+          await respondTo(page, { method: 'GET', path: '/api/users' }, () =>
+            retry.click({ timeout: 8000 })
+          )
+          await page.waitForTimeout(500)
+          await page
+            .locator(ROWS)
+            .first()
+            .waitFor({ state: 'visible', timeout: 10000 })
+            .catch(() => {})
+        }
+
+        detail.error.rowsAfterRetry = await rowCount(page, ROWS)
+        detail.error.kpisAfterRetry = await visibleTexts(page, '[data-stat]')
+
+        entry.obtained = `carga: ${detail.loading.visible ? 'muestra «Cargando profesionales...»' : 'sin placeholder observable'} · vacío: ${detail.empty.title && detail.empty.description ? '«Sin resultados» con su explicación' : 'sin texto de vacío'}${detail.empty.clearOffered ? ' y «Limpiar filtros»' : ' y sin acción'} · error 500: ${detail.error.painted ? `bloque «${detail.error.text.slice(0, 90)}»` : 'sin bloque de error'} · KPIs ${JSON.stringify(detail.error.kpis)} · «Sin profesionales registrados» ${detail.error.emptyShown ? 'pintado (vacío falso)' : 'no pintado'} · «Reintentar» ${detail.error.retryOffered ? 'ofrecido' : 'ausente'} · tras reintentar ${detail.error.rowsAfterRetry} fila(s) · KPIs ${JSON.stringify(detail.error.kpisAfterRetry)} · toast «${detail.error.toast}»`
         entry.detail = detail
         entry.verdict =
           detail.loading.visible &&
           detail.empty.title &&
           detail.empty.description &&
           detail.empty.clearOffered &&
-          detail.error.retryButtons > 0
+          detail.error.painted &&
+          detail.error.allKpisUnavailable &&
+          !detail.error.emptyShown &&
+          detail.error.retryOffered &&
+          detail.error.rowsAfterRetry > 0
             ? 'OK'
             : 'DEFECTO'
         entry.notes =
           entry.verdict === 'OK'
             ? ''
-            : 'el fallo de carga no ofrece reintento: solo deja un toast y la lista se presenta como «Sin profesionales registrados», un vacío de datos que no es tal'
+            : 'el fallo de carga se presenta como un vacío, no declara «N/D» en sus KPIs o no ofrece un reintento que devuelva el equipo'
 
         return entry
       }

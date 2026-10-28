@@ -1,9 +1,10 @@
 // Plan #13 (issue #372, U9) — layer 4: the payment methods ABM, action by action.
 //
-// The list declares six columns (Método, Pasarela, Comisión, Familia, Tipo,
-// Estado) and computes its KPI strip in the browser; there is no family filter
-// and the `requires_reference` flag lives only inside the form, so both absences
-// are measured instead of inferred. The system methods cannot be deleted:
+// The list declares seven columns (Método, Pasarela, Comisión, Familia,
+// Referencia, Tipo, Estado) and its KPI strip describes the unfiltered
+// directory, so a server filter that matches no rows cannot drag the counters
+// to zero. The family filter is client-side and the `requires_reference` flag
+// is published by the Referencia column. The system methods cannot be deleted:
 // `canDelete` is `!is_system && transactions_count === 0`, and the surface hides
 // the button while the form explains the rule.
 //
@@ -38,6 +39,7 @@ import {
   login,
   markExpected,
   pickOption,
+  readSelectOptions,
   requestOf,
   respondTo,
   rowCount,
@@ -106,6 +108,29 @@ const kpiCards = page =>
       }
     })
   )
+
+const referenceCells = page =>
+  page.evaluate(() =>
+    Array.from(document.querySelectorAll('main .data-table-row [data-row-reference]')).map(
+      node => ({
+        text: (node.innerText ?? '').trim(),
+        requires: node.getAttribute('data-requires-reference')
+      })
+    )
+  )
+
+const waitKpiTotal = (page, expected, timeout = 8000) =>
+  page
+    .waitForFunction(
+      value => {
+        const node = document.querySelector('[data-kpi-value="total"]')
+        return node ? (node.innerText ?? '').trim() === String(value) : false
+      },
+      expected,
+      { timeout, polling: 120 }
+    )
+    .then(() => true)
+    .catch(() => false)
 
 const pathOf = value => {
   try {
@@ -207,7 +232,7 @@ test('@U9 walks métodos de pago', async ({ page }) => {
     await step(
       'list',
       'Abrir /settings/payment-methods como administración',
-      'La lista pinta sus filas, los cuatro KPI, las cabeceras de metodo/pasarela/comisión/familia/ámbito y publica la referencia que cada método exige',
+      'La lista pinta sus filas, los cuatro KPI, las cabeceras de método/pasarela/comisión/familia/referencia/tipo y publica la referencia que cada método exige',
       async entry => {
         const painted = await page
           .locator(ROWS)
@@ -224,7 +249,14 @@ test('@U9 walks métodos de pago', async ({ page }) => {
         const call = lastCall(requests, 'GET', '/api/payment-methods')
         const familyHeader = headers.some(header => /familia/i.test(header))
         const referenceHeader = headers.some(header => /referencia/i.test(header))
-        const referenceMarks = rowTexts.filter(text => /referencia/i.test(text)).length
+        const referenceValues = await referenceCells(page)
+        const referencePublished =
+          referenceValues.length === rows &&
+          referenceValues.every(
+            cell =>
+              /^(Sí|No)$/.test(cell.text) &&
+              (cell.text === 'Sí' ? cell.requires === 'true' : cell.requires === 'false')
+          )
         const scopeHeader = headers.some(header => /^(tipo|ámbito)$/i.test(header))
         const familyMarks = rowTexts.filter(text =>
           /(Efectivo|Tarjeta|Transferencia|Billetera digital)/.test(text)
@@ -235,7 +267,7 @@ test('@U9 walks métodos de pago', async ({ page }) => {
         const kpisComplete =
           cards.length === 4 && cards.every(card => card.value !== null && card.caption)
 
-        entry.obtained = `${rows} filas · cabeceras ${headers.length} ${JSON.stringify(headers)} · filas con familia ${familyMarks}/${rows} y ámbito ${scopeMarks}/${rows} · columna de referencia ${referenceHeader} (marcas en filas ${referenceMarks}) · KPI ${JSON.stringify(cards.map(card => `${card.label} ${card.value} (${card.caption})`))} · «${caption ?? '—'}» · lista: ${primitive.primitive} (data-table-scroll ${primitive.dataTables}, affordance de scroll ${primitive.scrollAffordance}) · ficha de detalle: enlaces ${detailLinks}`
+        entry.obtained = `${rows} filas · cabeceras ${headers.length} ${JSON.stringify(headers)} · filas con familia ${familyMarks}/${rows} y ámbito ${scopeMarks}/${rows} · columna de referencia ${referenceHeader} con ${referenceValues.length} celda(s) ${JSON.stringify(referenceValues.slice(0, 6))} · KPI ${JSON.stringify(cards.map(card => `${card.label} ${card.value} (${card.caption})`))} · «${caption ?? '—'}» · lista: ${primitive.primitive} (data-table-scroll ${primitive.dataTables}, affordance de scroll ${primitive.scrollAffordance}) · ficha de detalle: enlaces ${detailLinks}`
         entry.request = call ? { method: call.method, path: call.path, status: call.status } : null
         entry.detail = {
           painted,
@@ -247,7 +279,8 @@ test('@U9 walks métodos de pago', async ({ page }) => {
           caption,
           familyHeader,
           referenceHeader,
-          referenceMarks,
+          referenceValues,
+          referencePublished,
           scopeHeader,
           detailSurface: { rowAction: false, links: detailLinks },
           totalMatchesRows: total?.value === String(rows)
@@ -257,17 +290,18 @@ test('@U9 walks métodos de pago', async ({ page }) => {
           kpisComplete &&
           total?.value === String(rows) &&
           familyHeader &&
+          referenceHeader &&
+          referencePublished &&
           scopeHeader &&
           familyMarks === rows &&
           scopeMarks === rows &&
-          (referenceHeader || referenceMarks > 0) &&
           detailLinks === 0
             ? 'OK'
             : 'DEFECTO'
         entry.notes =
           entry.verdict === 'OK'
             ? ''
-            : 'la lista publica la familia, la pasarela y el ámbito, pero no la referencia que cada método exige: esa marca sólo existe como casilla del formulario, así que el ABM no permite saber qué cobros la piden'
+            : 'la lista no publica la referencia que cada método exige en su columna, o la familia, el ámbito y los KPI no describen las filas pintadas'
 
         return entry
       }
@@ -275,8 +309,8 @@ test('@U9 walks métodos de pago', async ({ page }) => {
 
     await step(
       'filter',
-      'Buscar el método de la fixture, recorrer el filtro de estado e intentar filtrar por familia',
-      'La búsqueda deja exactamente su fila, el estado deja su población y existe un filtro por familia',
+      'Buscar el método de la fixture, recorrer el filtro de estado, aislar una familia y buscar un término sin coincidencias',
+      'La búsqueda deja exactamente su fila, el estado deja su población, la familia aísla sus métodos y los KPI conservan la población completa cuando un filtro no devuelve filas',
       async entry => {
         const { fixture } = fixtures.paymentMethods
         const before = await rowCount(page, ROWS)
@@ -286,6 +320,9 @@ test('@U9 walks métodos de pago', async ({ page }) => {
         const filteredTexts = await visibleTexts(page, ROWS)
         const searchCall = lastCall(requests, 'GET', '/api/payment-methods')
         const hitsFixture = Boolean(filteredTexts[0]?.includes(fixture.name))
+
+        const restored = await search(page, '')
+        const afterSearchClear = await rowCount(page, ROWS)
 
         const active = await pickStatus(page, 'Activos')
         const activeRows = await rowCount(page, ROWS)
@@ -297,10 +334,62 @@ test('@U9 walks métodos de pago', async ({ page }) => {
         const inactiveTexts = await visibleTexts(page, ROWS)
         const inactiveActive = inactiveTexts.filter(text => /\bActivo\b/.test(text)).length
         const inactiveEmpty = inactiveRows === 0 ? await listText(page) : null
-        const kpisAfterFilter = inactiveRows === 0 ? await kpiCards(page) : null
 
         const all = await pickStatus(page, 'Todos los estados')
         const allRows = await rowCount(page, ROWS)
+
+        const familyTrigger =
+          (await visibleTexts(page, '[data-type-filter] button'))[0]?.trim() ?? null
+        const familyOptions = await readSelectOptions(page, '[data-type-filter] button')
+        const familyPicked = await pickOption(page, '[data-type-filter] button', 'Tarjeta')
+        await page.waitForTimeout(200)
+
+        const familyRows = await rowCount(page, ROWS)
+        const familyTexts = await visibleTexts(page, `${ROWS} td:nth-child(4)`)
+        const familyIsolated =
+          familyPicked.ok &&
+          familyRows > 0 &&
+          familyTexts.length === familyRows &&
+          familyTexts.every(text => text === 'Tarjeta')
+
+        const familyReset = await pickOption(
+          page,
+          '[data-type-filter] button',
+          'Todas las familias'
+        )
+        await page.waitForTimeout(200)
+        const familyResetRows = await rowCount(page, ROWS)
+
+        const populationPending = page
+          .waitForResponse(
+            response => {
+              if (response.request().method() !== 'GET') return false
+
+              try {
+                const url = new URL(response.url())
+                return (
+                  url.pathname === '/api/payment-methods' &&
+                  !url.searchParams.has('q') &&
+                  !url.searchParams.has('is_active')
+                )
+              } catch {
+                return false
+              }
+            },
+            { timeout: 8000 }
+          )
+          .catch(() => null)
+
+        const noMatch = await search(page, 'ZZZ-AUDIT-U9-SIN-RESULTADOS')
+        const populationResponse = await populationPending
+        const noMatchRows = await rowCount(page, ROWS)
+        const noMatchBody = await listText(page)
+        const noMatchEmpty = /No se encontraron métodos de pago/.test(noMatchBody)
+        const kpisWithNoMatch = await waitKpiTotal(page, before).then(kept => {
+          return kpiCards(page).then(cards => ({ kept, cards }))
+        })
+        const noMatchTotal = kpisWithNoMatch.cards.find(card => card.key === 'total')?.value ?? null
+        const kpiKeptPopulation = kpisWithNoMatch.kept && noMatchTotal === String(before)
 
         const cleared = await search(page, '')
         const afterClear = await rowCount(page, ROWS)
@@ -308,16 +397,10 @@ test('@U9 walks métodos de pago', async ({ page }) => {
           .locator(SEARCH)
           .inputValue()
           .catch(() => null)
+        const familyTriggerAfter =
+          (await visibleTexts(page, '[data-type-filter] button'))[0]?.trim() ?? null
 
-        const familyFilter = await page
-          .locator('main button, main [role="button"], main select')
-          .evaluateAll(nodes =>
-            nodes
-              .map(node => ((node.innerText ?? '') || node.getAttribute('aria-label') || '').trim())
-              .filter(label => /familia/i.test(label))
-          )
-
-        entry.obtained = `«${fixture.name}» → ${filtered} fila (${hitsFixture ? 'la buscada' : 'otra'}) · q=${searchCall?.query?.q ?? '—'} ${searched.status ?? 'sin respuesta'} · Activos → ${activeRows} filas, ${activeInactive} inactivas · Inactivos → ${inactiveRows} filas, ${inactiveActive} activas${inactiveEmpty ? ` («${inactiveEmpty.slice(0, 80)}»)` : ''}${kpisAfterFilter ? ` · KPI con la lista filtrada ${JSON.stringify(kpisAfterFilter.map(card => `${card.label} ${card.value}`))}` : ''} · Todos → ${allRows} filas · limpiar → ${afterClear} filas, búsqueda «${searchValue ?? ''}» · filtro por familia ${JSON.stringify(familyFilter)}`
+        entry.obtained = `«${fixture.name}» → ${filtered} fila (${hitsFixture ? 'la buscada' : 'otra'}) · q=${searchCall?.query?.q ?? '—'} ${searched.status ?? 'sin respuesta'} · limpiar búsqueda → ${afterSearchClear} filas · Activos → ${activeRows} filas, ${activeInactive} inactivas · Inactivos → ${inactiveRows} filas, ${inactiveActive} activas${inactiveEmpty ? ` («${inactiveEmpty.slice(0, 80)}»)` : ''} · Todos → ${allRows} filas · familia «${familyTrigger ?? '—'}» con opciones ${JSON.stringify(familyOptions.options ?? [])} → «${familyPicked.selected ?? `no elegida (${familyPicked.reason})`}» ${familyRows} fila(s) ${JSON.stringify(familyTexts.slice(0, 6))} · restaurar «${familyReset.selected ?? `no elegido (${familyReset.reason})`}» → ${familyResetRows} filas · sin coincidencias «ZZZ-AUDIT-U9-SIN-RESULTADOS» → ${noMatchRows} fila(s)${noMatchEmpty ? ' con su vacío' : ''} · KPI con la lista vacía ${JSON.stringify(kpisWithNoMatch.cards.map(card => `${card.label} ${card.value}`))} (población conservada ${kpiKeptPopulation}) · limpiar → ${afterClear} filas, búsqueda «${searchValue ?? ''}», familia «${familyTriggerAfter ?? '—'}»`
         entry.request = searchCall
           ? { method: searchCall.method, path: searchCall.path, status: searchCall.status }
           : null
@@ -327,39 +410,67 @@ test('@U9 walks métodos de pago', async ({ page }) => {
           filtered,
           hitsFixture,
           searchCall,
+          restored,
+          afterSearchClear,
           active: { picked: active, rows: activeRows, texts: activeTexts },
           inactive: {
             picked: inactive,
             rows: inactiveRows,
             texts: inactiveTexts,
-            empty: inactiveEmpty,
-            kpis: kpisAfterFilter
+            empty: inactiveEmpty
           },
           all: { picked: all, rows: allRows },
+          familyTrigger,
+          familyOptions,
+          familyPicked,
+          familyRows,
+          familyTexts,
+          familyIsolated,
+          familyReset,
+          familyResetRows,
+          noMatch,
+          noMatchPopulationStatus: populationResponse?.status() ?? null,
+          noMatchRows,
+          noMatchEmpty,
+          kpisWithNoMatch,
+          kpiKeptPopulation,
           cleared,
           afterClear,
           searchValue,
-          familyFilter
+          familyTriggerAfter
         }
         entry.verdict =
           filtered === 1 &&
           hitsFixture &&
           searchCall?.query?.q === fixture.name &&
+          afterSearchClear === before &&
           activeRows > 0 &&
           activeInactive === 0 &&
           inactiveActive === 0 &&
           allRows === before &&
+          familyOptions.ok &&
+          familyPicked.ok &&
+          familyIsolated &&
+          familyReset.ok &&
+          familyResetRows === before &&
+          noMatch.status === 200 &&
+          populationResponse?.status() === 200 &&
+          noMatchRows === 0 &&
+          noMatchEmpty &&
+          kpiKeptPopulation &&
           afterClear === before &&
           searchValue === '' &&
-          familyFilter.length > 0
+          familyTriggerAfter === 'Todas las familias'
             ? 'OK'
             : 'DEFECTO'
         entry.notes =
           entry.verdict === 'OK'
             ? ''
-            : familyFilter.length === 0
-              ? `la superficie no ofrece filtro por familia: sólo se puede buscar por texto y filtrar por estado, así que el ABM no puede aislar las tarjetas, las transferencias ni las billeteras${kpisAfterFilter ? `; además los KPI se calculan sobre la lista filtrada, así que con un filtro sin coincidencias la tira publica ${JSON.stringify(kpisAfterFilter.map(card => `${card.label} ${card.value}`))} mientras el catálogo conserva sus métodos` : ''}`
-              : 'la búsqueda o el filtro de estado no dejan la población que prometen'
+            : !familyOptions.ok || !familyPicked.ok || !familyIsolated
+              ? 'la superficie no ofrece o no aplica el filtro por familia: el ABM no puede aislar las tarjetas, las transferencias ni las billeteras'
+              : !kpiKeptPopulation
+                ? 'los KPI describen la lista filtrada y no la población: con un filtro sin coincidencias la tira deja de publicar el catálogo completo'
+                : 'la búsqueda o el filtro de estado no dejan la población que prometen'
 
         return entry
       }
