@@ -93,6 +93,41 @@ const installCurrent = payload => {
   })
 }
 
+// #411 — the first reading of the drawer is the only one whose latency the hero
+// must represent, so the test parks it and lets every list answer first.
+const installDeferredCurrent = () => {
+  let release
+  const pendingCurrent = new Promise(resolve => {
+    release = resolve
+  })
+
+  harness.apiGet.mockImplementation(async url => {
+    if (url === '/api/cash-register/current') return pendingCurrent
+    if (url === '/api/cash-register/sessions') return emptyPage
+    if (url === '/api/transactions') return emptyPage
+    return { data: [] }
+  })
+
+  return { release: payload => release({ data: payload }) }
+}
+
+// First reading fails, the retry answers. `current` is answered per call so the
+// panel has a failure to paint and a recovery to offer.
+const installCurrentSequence = payloads => {
+  let index = 0
+  harness.apiGet.mockImplementation(async url => {
+    if (url === '/api/cash-register/current') {
+      const next = payloads[Math.min(index, payloads.length - 1)]
+      index += 1
+      if (next instanceof Error) throw next
+      return { data: next }
+    }
+    if (url === '/api/cash-register/sessions') return emptyPage
+    if (url === '/api/transactions') return emptyPage
+    return { data: [] }
+  })
+}
+
 const mountPage = async () => {
   const router = createRouter({
     history: createMemoryHistory(),
@@ -184,6 +219,59 @@ describe('Caja > la caja actual es la del actor (#407)', () => {
     expect(requestedUrls()).not.toContain('/api/transactions')
     expect(requestedUrls()).not.toContain('/api/cash-register/sessions/9/movements')
     expect(requestedUrls()).not.toContain('/api/cash-register/deposits')
+
+    wrapper.unmount()
+  })
+})
+
+describe('Caja > carga y error de la caja actual (#411)', () => {
+  it('paints its own loading state instead of Sin sesión while the first reading is in flight', async () => {
+    const deferred = installDeferredCurrent()
+
+    const wrapper = await mountPage()
+
+    // The drawer has not answered yet: the hero must not claim there is no
+    // session nor publish N/D balances it cannot know.
+    expect(wrapper.find('[data-hero-state]').exists()).toBe(false)
+    expect(wrapper.find('[data-caja-hero-loading]').exists()).toBe(true)
+    expect(wrapper.find('[data-caja-hero]').text()).not.toContain('Sin sesión')
+    expect(wrapper.find('[data-caja-hero]').text()).not.toContain('N/D')
+    expect(kpiValues(wrapper).every(value => value === '')).toBe(true)
+    expect(wrapper.find('[data-hero-action="open"]').exists()).toBe(false)
+
+    deferred.release({ session: OPEN_SESSION, summary: SUMMARY })
+    await flushPromises()
+
+    expect(wrapper.find('[data-caja-hero-loading]').exists()).toBe(false)
+    expect(heroState(wrapper)).toBe('Sesión abierta')
+    expect(kpiValues(wrapper)).toEqual(['S/ 100.00', 'S/ 320.00', 'S/ 70.00', 'S/ 250.00'])
+
+    wrapper.unmount()
+  })
+
+  it('keeps the session failure on the panel and recovers with Reintentar', async () => {
+    installCurrentSequence([
+      new Error('Caja no disponible'),
+      { session: OPEN_SESSION, summary: SUMMARY }
+    ])
+
+    const wrapper = await mountPage()
+
+    const panel = wrapper.find('[data-caja-error]')
+    expect(panel.exists()).toBe(true)
+    expect(normalize(panel.text())).toContain('Caja no disponible')
+    // The list that loaded afterwards must not wipe the reason.
+    expect(requestedUrls()).toContain('/api/cash-register/sessions')
+
+    const retry = wrapper.find('[data-caja-retry]')
+    expect(retry.exists()).toBe(true)
+
+    await retry.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-caja-error]').exists()).toBe(false)
+    expect(heroState(wrapper)).toBe('Sesión abierta')
+    expect(kpiValues(wrapper)).toEqual(['S/ 100.00', 'S/ 320.00', 'S/ 70.00', 'S/ 250.00'])
 
     wrapper.unmount()
   })
