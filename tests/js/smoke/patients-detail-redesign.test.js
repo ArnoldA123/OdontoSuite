@@ -826,6 +826,88 @@ describe('patient detail drawer gates (#399)', () => {
   })
 })
 
+// #400 — the aggregate endpoint answers one group per specialty, not a list.
+// The drawer flattens it, so an empty patient shows the tab's empty state (not
+// five ghost cards) and a real record shows its id, its group and a navigation
+// the router can match.
+describe('patient detail specialty records (#400)', () => {
+  const emptyGroups = {
+    implantologia: [],
+    ortodoncia: [],
+    endodoncia: [],
+    rehabilitacion: [],
+    cirugia_oral: []
+  }
+
+  beforeEach(() => {
+    localStorage.setItem('user', JSON.stringify({ id: 34, role: 'administrador' }))
+    harness.apiGet.mockReset()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.body.innerHTML = ''
+  })
+
+  it('shows its empty state instead of five ghost cards when every group is empty', async () => {
+    installGet(async url => (url === URLS.specialty ? { data: emptyGroups } : happyGet(url)))
+
+    const wrapper = await mountPage()
+
+    expect(
+      wrapper
+        .find('[data-patient-tab-panel="specialties"] [data-state="empty-specialties"]')
+        .exists()
+    ).toBe(true)
+    expect(wrapper.findAll('[data-specialty-record-id]')).toHaveLength(0)
+
+    wrapper.unmount()
+  })
+
+  it('renders one card per record with its id and group, and both actions reach a real route', async () => {
+    const record = {
+      id: 42,
+      patient_id: 7,
+      treatment_type: 'Alineadores',
+      treatment_start_date: '2026-02-01',
+      created_at: '2026-02-01T09:00:00.000000Z'
+    }
+    installGet(async url =>
+      url === URLS.specialty
+        ? { data: { ...emptyGroups, ortodoncia: [record] }, meta: { total: 1 } }
+        : happyGet(url)
+    )
+
+    const wrapper = await mountPage()
+
+    const cards = wrapper.findAll('[data-specialty-record-id]')
+    expect(cards).toHaveLength(1)
+    expect(cards[0].attributes('data-specialty-record-id')).toBe('42')
+    expect(cards[0].text()).toContain('Ortodoncia')
+    expect(cards[0].text()).toContain('Registro #42')
+
+    await cards[0]
+      .findAll('button')
+      .find(button => button.text() === 'Ver')
+      .trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.fullPath).toBe(
+      '/specialty-records?patient_id=7&specialty=ortodoncia&record_id=42'
+    )
+
+    await cards[0]
+      .findAll('button')
+      .find(button => button.text() === 'Editar')
+      .trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.fullPath).toBe(
+      '/specialty-records?patient_id=7&specialty=ortodoncia&record_id=42&edit=true'
+    )
+
+    wrapper.unmount()
+  })
+})
+
 // #313 (decision D1) — the specialty record is a clinical act with surgical
 // narrative, so the desk that cannot read it neither offers it nor asks for it.
 // The two cases pin both sides of the same boundary on the patient drawer: the

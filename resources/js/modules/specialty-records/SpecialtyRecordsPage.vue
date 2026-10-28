@@ -273,7 +273,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeftIcon,
   ArrowsRightLeftIcon,
@@ -283,6 +283,7 @@ import {
   UserIcon
 } from '@heroicons/vue/24/outline'
 import { useAuth } from '@/composables/useAuth'
+import { useApi } from '@/composables/useApi'
 import { useConfirm } from '@/composables/useConfirm'
 import { useEcho } from '@/composables/useEcho'
 import { useErrorHandler } from '@/composables/useErrorHandler'
@@ -308,6 +309,8 @@ import {
 } from './specialtyRecordMeta'
 
 const router = useRouter()
+const route = useRoute()
+const { get } = useApi()
 const { user } = useAuth()
 const { privateChannel, echo } = useEcho()
 const { confirm } = useConfirm()
@@ -402,6 +405,51 @@ const onPatientSelected = patient => {
 
   activeSpecialty.value = availableDefinitions.value[0]?.key ?? ''
   loadRecords()
+}
+
+/**
+ * #400: the patient drawer opens this page with the patient, the specialty and
+ * the record already chosen (`?patient_id=&specialty=&record_id=[&edit=true]`),
+ * so «Ver» and «Editar» land on a route the router actually matches. Legacy
+ * links without a patient keep the previous «choose a patient» start.
+ */
+const openFromQuery = async () => {
+  const patientId = Number(route.query.patient_id)
+  if (!Number.isInteger(patientId) || patientId <= 0) return false
+
+  try {
+    const response = await get(`/api/patients/${patientId}`)
+    selectedPatient.value = response?.data ?? null
+  } catch (error) {
+    handleError(error, 'No pudimos cargar el paciente')
+    return true
+  }
+
+  if (!selectedPatient.value) return true
+
+  const requested = String(route.query.specialty ?? '')
+  const definition = availableDefinitions.value.find(item => item.key === requested)
+  activeSpecialty.value = definition?.key ?? availableDefinitions.value[0]?.key ?? ''
+
+  await loadRecords()
+
+  const recordId = Number(route.query.record_id)
+  if (!Number.isInteger(recordId) || recordId <= 0) return true
+
+  const record = recordsFor(activeSpecialty.value).find(item => item.id === recordId)
+  if (!record) return true
+
+  selectedRecord.value = record
+  selectedRecordSpecialty.value = activeSpecialty.value
+
+  if (String(route.query.edit ?? '') === 'true') {
+    isEdit.value = true
+    showForm.value = true
+  } else {
+    showDetail.value = true
+  }
+
+  return true
 }
 
 const openCreate = () => {
@@ -501,8 +549,9 @@ const subscribeToRecords = () => {
     )
 }
 
-onMounted(() => {
-  activeSpecialty.value = availableDefinitions.value[0]?.key ?? ''
+onMounted(async () => {
+  const openedFromQuery = await openFromQuery()
+  if (!openedFromQuery) activeSpecialty.value = availableDefinitions.value[0]?.key ?? ''
   subscribeToRecords()
 })
 

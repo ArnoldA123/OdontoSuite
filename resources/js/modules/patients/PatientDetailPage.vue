@@ -516,6 +516,7 @@
                 <div
                   v-for="record in specialtyRecords"
                   :key="record.id"
+                  :data-specialty-record-id="record.id"
                   class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
                 >
                   <div class="flex justify-between items-start">
@@ -527,8 +528,8 @@
                         {{ record.description || 'Sin descripción' }}
                       </p>
                       <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
+                        <span>Registro #{{ record.id }}</span>
                         <span>Fecha: {{ formatDate(record.created_at) }}</span>
-                        <span>Especialidad: {{ getSpecialtyName(record.specialty_type) }}</span>
                       </div>
                     </div>
                     <div class="flex gap-2">
@@ -1065,7 +1066,7 @@ export default {
       specialtyRecordsError.value = false
       try {
         const response = await get(`/api/specialty-records/patient/${patient.value.id}/all`)
-        specialtyRecords.value = response.data
+        specialtyRecords.value = flattenSpecialtyRecords(response.data)
       } catch (error) {
         specialtyRecordsError.value = true
       } finally {
@@ -1153,13 +1154,35 @@ export default {
 
     const getSpecialtyName = specialty => {
       const names = {
+        implantologia: 'Implantología',
+        ortodoncia: 'Ortodoncia',
+        endodoncia: 'Endodoncia',
+        rehabilitacion: 'Rehabilitación',
+        cirugia_oral: 'Cirugía Oral',
         implantology: 'Implantología',
         orthodontics: 'Ortodoncia',
         endodontics: 'Endodoncia',
         rehabilitation: 'Rehabilitación',
         oral_surgery: 'Cirugía Oral'
       }
-      return names[specialty] || specialty
+      return names[specialty] || specialty || 'Especialidad'
+    }
+
+    /**
+     * #400: `GET /api/specialty-records/patient/{id}/all` answers one group
+     * per specialty, not a list. Flattening it here keeps the five groups from
+     * rendering as five ghost cards and gives each row the group it came from.
+     */
+    const flattenSpecialtyRecords = payload => {
+      if (Array.isArray(payload)) return payload
+      if (!payload || typeof payload !== 'object') return []
+
+      return Object.entries(payload).flatMap(([specialty, records]) =>
+        (Array.isArray(records) ? records : []).map(record => ({
+          ...record,
+          specialty_type: specialty
+        }))
+      )
     }
 
     const getAuditActionVariant = action => {
@@ -1285,11 +1308,15 @@ export default {
     }
 
     const viewSpecialtyRecord = (id, specialty) => {
-      router.push(`/specialty-records/${id}?specialty=${specialty}`)
+      router.push(
+        `/specialty-records?patient_id=${patient.value.id}&specialty=${specialty}&record_id=${id}`
+      )
     }
 
     const editSpecialtyRecord = (id, specialty) => {
-      router.push(`/specialty-records/${id}?edit=true&specialty=${specialty}`)
+      router.push(
+        `/specialty-records?patient_id=${patient.value.id}&specialty=${specialty}&record_id=${id}&edit=true`
+      )
     }
 
     // One-shot staggered entrance (60ms) per section, mirroring the
