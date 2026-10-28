@@ -590,6 +590,49 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (auditoría U10: el período sin actividad se explica y el
+  laboratorio distingue de quién es el caso, #447/#448/#449)** — Tres hallazgos
+  de la auditoría U10 (#373), un commit de unidad por issue. **#447**: el estado
+  vacío de `/business-intelligence` deja de derivarse del tamaño de la tabla.
+  Los tres reportes tabulares que publican su censo completo
+  (`PatientReportService`, `ProfessionalReportService`,
+  `UtilizationReportService`) suman las filas **ya materializadas** con el trait
+  `App\Services\Reports\Concerns\SummarizesPeriodActivity` y publican
+  `meta.summary = { appointments, revenue }` sin una segunda consulta
+  (`ReportController@tabularReport` lo reenvía sólo cuando existe), y el
+  dashboard se lee por `totalAppointments`/`totalRevenue`. `reportScope.js` gana
+  `isReportPeriodEmpty()` y `summaryShowsActivity()`: un período sin actividad,
+  aunque la tabla traiga 100 pacientes con sus contadores en cero, pinta la
+  tarjeta «Sin datos en el período» con «Ampliar a 90 días», y ninguna de las
+  superficies de datos (KPI, gráficos, resumen de ingresos, tabla y «Rendimiento
+  por Profesional») queda visible por debajo; un payload anterior al contrato
+  cae al conteo de filas, y un error nunca se pinta como vacío. **#449**:
+  `App\Policies\LabCasePolicy` es la única regla de propiedad del caso de
+  laboratorio —administración, odontología e implantología corrigen cualquier
+  caso de su sede; el técnico sólo el suyo, derivando el rol de
+  `Permissions::roleHas` y no de un array repetido— y
+  `App\Http\Resources\LabCaseResource` publica `can_edit` por caso, que combina
+  esa política con la fase: un caso `placed` deja de ser editable y
+  `LabCaseService::update()` lo rechaza con 422 y su motivo antes de escribir.
+  `LabCaseController@update` ejecuta la política antes de validar, así que un
+  caso ajeno responde 403 y no insinúa qué campos faltan. **#448**: `/lab-cases`
+  publica «Nuevo caso» en el héroe y «Editar» en la fila y en el detalle, con
+  `LabCaseFormModal`, sólo con `manage.lab_case` y sólo cuando la fila publica
+  `can_edit`; la afirmación del changelog de #316 («el formulario de
+  alta/edición se abre desde la propia página») pasa a ser cierta y verificada
+  en el test que antes fijaba su ausencia. El instrumento U10 se alinea con los
+  contratos nuevos: los pasos `07-no-edit` y `11-absent-create` se sustituyen
+  por `07-create`, `11-edit` y `12-absent-create` (medido como recepción), y
+  `08-foreign-put` mide el 403 de la regla de propiedad además de comprobar que
+  la fila no ofrece la edición. Sin rutas, modelos, migraciones ni permisos
+  nuevos: los conteos de §4/§5 no cambian. Tests:
+  `ReportPeriodActivitySummaryTest` (4, MySQL), `LabCaseOwnershipTest` (7,
+  MySQL), `biReportActivity` (7), `business-intelligence-reports` (22),
+  `business-intelligence-charts` (6, con el fixture del período vacío en cero),
+  `lab-cases` (15), `lab-case-form` (7) y `ui-manifest` (17, el formulario ya
+  pertenece a la superficie); Vitest **1490 pruebas en 172 archivos**; suite
+  MySQL y `doc-drift` 14/14.
+
 - **2026-10-28 (shell y recuperación: canales por permiso, menú sin no-ops, un
   solo `h1` y enlace de recuperación explicado, #378/#384/#380/#381/#382/#405)**
   — Seis hallazgos de la auditoría UI. **#378/#384**: el handshake de canales
