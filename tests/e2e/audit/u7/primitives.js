@@ -288,7 +288,7 @@ test('@U7 primitives · los diálogos de la historia clínica', async ({ page, r
     const addendumFromDetail = await contractFor(page, {
       route: RECORDS_ROUTE,
       slug: 'record-addendum',
-      label: 'Agregar addendum (desde el detalle)',
+      label: 'Nuevo addendum (desde el detalle)',
       kind: 'create',
       locator: page.locator('[data-detail-action="addendum"]').first(),
       note: 'a correction is an addendum, never an edit of the original'

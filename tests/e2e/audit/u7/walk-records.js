@@ -216,7 +216,7 @@ test('@U7 · U7a historia clínica: tabs, alta, evolución, adjunto, addendum y 
     // --- 03: create the history from the empty tab CTA ---------------------
     await step(
       'create-record',
-      'pulsar «Crear historia» en la tab general vacía y guardar el formulario sin llenar',
+      'pulsar «Nueva historia» en la tab general vacía y guardar el formulario sin llenar',
       'la historia se crea con el paciente fijado y aparece como primera fila del tab general',
       async () => {
         await tabButton(page, 'Historia general').click({ timeout: 10000 })

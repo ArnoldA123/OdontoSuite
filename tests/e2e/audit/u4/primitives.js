@@ -198,7 +198,7 @@ test('@U4 primitives · dialogs', async ({ page, request }) => {
     detailEvidence.dialogs.push(
       await contractFor(page, detailEvidence, {
         slug: 'patients-charge',
-        label: 'Registrar cargo',
+        label: 'Nuevo cargo',
         kind: 'create',
         selector: '[data-charge-patient-button]'
       })

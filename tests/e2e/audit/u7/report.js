@@ -128,7 +128,7 @@ const buildFindings = evidence => {
       surface: '/medical-records (tab Evoluciones y tab Estadísticas del paciente sin historia)',
       action: 'Abrir «Evoluciones» y «Estadísticas» con el paciente sin historia clínica',
       expected:
-        'Cada tab vacía ofrece la acción que la resuelve, como hacen «Historia general» («Crear historia»), «Adjuntos» («Subir el primer adjunto») y las cinco tabs de especialidades («Nuevo registro»).',
+        'Cada tab vacía ofrece la acción que la resuelve, como hacen «Historia general» («Nueva historia»), «Adjuntos» («Subir el primer adjunto») y las cinco tabs de especialidades («Nuevo registro»).',
       obtained: `${obtainedOf(records, 'empty-tab-evoluciones')} · Estadísticas: ${obtainedOf(records, 'empty-tab-estadísticas')} · Historia general: ${obtainedOf(records, 'empty-tab-historia-general')} · Adjuntos: ${obtainedOf(records, 'empty-tab-adjuntos')}`,
       layer: 4,
       origin: 'MEDIDO',
@@ -159,7 +159,7 @@ const buildFindings = evidence => {
       cause:
         'app/Http/Requests/StoreEvolutionRequest.php:52-73 (todos los campos SOAP son `sometimes|nullable`) + resources/js/modules/medical-records/components/EvolutionModal.vue:buildPayload (no valida contenido)',
       repro:
-        'Ficha del paciente → tab «Evoluciones» → «Nueva evolución» → «Registrar evolución» sin llenar nada → 201 y tarjeta sin bloques SOAP.',
+        'Ficha del paciente → tab «Evoluciones» → «Nueva evolución» → «Guardar evolución» sin llenar nada → 201 y tarjeta sin bloques SOAP.',
       evidence: [
         { file: 'walk-records.json', step: 'evolution-empty-submit' },
         { file: 'api-matrix.json', endpoint: '/api/medical-records/{id}/evolutions' }

@@ -632,7 +632,7 @@ test('@U4 detail · cargo', async ({ page, request }) => {
       domClosing: dom.kpis.closing ?? null
     })
 
-    // The second door: the Cuenta tab's own "Registrar cargo" button.
+    // The second door: the Cuenta tab's own "Nuevo cargo" button.
     await page.locator('[data-statement-charge]').click({ timeout: 5000 })
     const secondDialog = page.locator('[role="dialog"]:visible').last()
     const secondOpen = await secondDialog.isVisible().catch(() => false)

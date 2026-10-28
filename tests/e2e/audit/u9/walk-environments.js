@@ -268,7 +268,7 @@ test('@U9 walks ambientes', async ({ page }) => {
 
     await step(
       'create-empty',
-      'Abrir «Nuevo ambiente» y pulsar «Crear ambiente» sin nombre',
+      'Abrir «Nuevo ambiente» y pulsar «Guardar ambiente» sin nombre',
       'El envío vacío se rechaza con el motivo escrito en el campo del nombre; se registra si además queda un aviso genérico',
       async entry => {
         await clickByLabel(page, 'Nuevo ambiente')

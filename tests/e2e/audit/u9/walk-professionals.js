@@ -267,7 +267,11 @@ test('@U9 walks profesionales', async ({ page }) => {
           page,
           { method: 'POST', path: '/api/users' },
           () =>
-            dialog.locator('button').filter({ hasText: 'Crear' }).first().click({ timeout: 8000 }),
+            dialog
+              .locator('button')
+              .filter({ hasText: 'Guardar profesional' })
+              .first()
+              .click({ timeout: 8000 }),
           4000
         )
 
@@ -328,7 +332,11 @@ test('@U9 walks profesionales', async ({ page }) => {
         )
 
         const sent = await respondTo(page, { method: 'POST', path: '/api/users' }, () =>
-          dialog.locator('button').filter({ hasText: 'Crear' }).first().click({ timeout: 8000 })
+          dialog
+            .locator('button')
+            .filter({ hasText: 'Guardar profesional' })
+            .first()
+            .click({ timeout: 8000 })
         )
 
         await page.waitForTimeout(400)
