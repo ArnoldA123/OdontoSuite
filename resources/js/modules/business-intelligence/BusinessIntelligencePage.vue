@@ -222,200 +222,6 @@
       </section>
 
       <template v-else-if="!error">
-        <section
-          v-if="isDashboard"
-          aria-label="Resumen del período"
-          data-bi-kpis
-          class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
-        >
-          <UiCard
-            variant="glass"
-            padding="sm"
-            data-kpi-card="appointments"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-          >
-            <p class="text-xs font-medium uppercase text-theme-secondary">Citas</p>
-            <p
-              class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
-              data-kpi-value="appointments"
-            >
-              {{ formatNumber(dashboard.totalAppointments) }}
-            </p>
-            <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="appointments">
-              Agendadas en el período
-            </p>
-          </UiCard>
-
-          <UiCard
-            variant="glass"
-            padding="sm"
-            data-kpi-card="patients"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-          >
-            <p class="text-xs font-medium uppercase text-theme-secondary">Pacientes</p>
-            <p
-              class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
-              data-kpi-value="patients"
-            >
-              {{ formatNumber(dashboard.totalPatients) }}
-            </p>
-            <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="patients">
-              {{ formatNumber(dashboard.newPatients) }} nuevos en el período
-            </p>
-          </UiCard>
-
-          <UiCard
-            variant="glass"
-            padding="sm"
-            data-kpi-card="revenue"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-          >
-            <p class="text-xs font-medium uppercase text-theme-secondary">Ingresos netos</p>
-            <p
-              class="mt-2 text-2xl font-bold leading-none text-systemGreen-600 tabular-nums"
-              data-kpi-value="revenue"
-            >
-              {{ formatCurrency(dashboard.totalRevenue) }}
-            </p>
-            <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="revenue">
-              Devoluciones {{ formatCurrency(dashboard.totalRefunds) }}
-            </p>
-          </UiCard>
-
-          <UiCard
-            variant="glass"
-            padding="sm"
-            data-kpi-card="occupancy"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-          >
-            <p class="text-xs font-medium uppercase text-theme-secondary">Ocupación</p>
-            <p
-              class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
-              data-kpi-value="occupancy"
-            >
-              {{ formatPercent(dashboard.occupancyRate) }}
-            </p>
-            <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="occupancy">
-              {{ formatNumber(dashboard.usedHours) }} /
-              {{ formatNumber(dashboard.availableHours) }} h de silla
-            </p>
-          </UiCard>
-        </section>
-
-        <section
-          v-if="isDashboard && hasDashboardCharts"
-          aria-label="Gráficos del período"
-          data-bi-charts
-          class="grid grid-cols-1 gap-4 lg:grid-cols-2"
-        >
-          <UiCard
-            v-if="dashboard.appointmentsByDay.length > 0"
-            variant="glass"
-            data-chart-card="appointments-by-day"
-          >
-            <template #header>
-              <h2 class="text-lg font-semibold text-theme-primary">Citas por Día</h2>
-            </template>
-            <div class="h-64">
-              <canvas
-                ref="appointmentsChartRef"
-                data-chart="appointments-by-day"
-                role="img"
-                aria-label="Citas por día"
-              />
-            </div>
-          </UiCard>
-
-          <UiCard
-            v-if="dashboard.revenueByMonth.length > 0"
-            variant="glass"
-            data-chart-card="revenue-by-month"
-          >
-            <template #header>
-              <h2 class="text-lg font-semibold text-theme-primary">Ingresos Netos por Mes</h2>
-            </template>
-            <div class="h-64">
-              <canvas
-                ref="revenueChartRef"
-                data-chart="revenue-by-month"
-                role="img"
-                aria-label="Ingresos netos por mes"
-              />
-            </div>
-          </UiCard>
-        </section>
-
-        <section v-if="selectedReport === 'revenue' && revenueSummary" data-revenue-summary>
-          <UiCard variant="glass">
-            <template #header>
-              <h2 class="text-lg font-semibold text-theme-primary">Resumen del período</h2>
-            </template>
-            <dl class="grid grid-cols-1 gap-4 md:grid-cols-4">
-              <div>
-                <dt class="text-xs font-medium uppercase text-theme-secondary">
-                  Citas completadas
-                </dt>
-                <dd
-                  class="mt-1 text-xl font-semibold text-label tabular-nums"
-                  data-revenue-summary="appointments"
-                >
-                  {{ formatNumber(revenueSummary.appointments_count) }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs font-medium uppercase text-theme-secondary">Ingresos netos</dt>
-                <dd
-                  class="mt-1 text-xl font-semibold text-label tabular-nums"
-                  data-revenue-summary="revenue"
-                >
-                  {{ formatCurrency(revenueSummary.total_revenue) }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs font-medium uppercase text-theme-secondary">Devoluciones</dt>
-                <dd
-                  class="mt-1 text-xl font-semibold text-label tabular-nums"
-                  data-revenue-summary="refunds"
-                >
-                  {{ formatCurrency(revenueSummary.refunds) }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs font-medium uppercase text-theme-secondary">
-                  Promedio por cita
-                </dt>
-                <dd
-                  class="mt-1 text-xl font-semibold text-label tabular-nums"
-                  data-revenue-summary="average"
-                >
-                  {{ formatCurrency(revenueSummary.average_per_appointment) }}
-                </dd>
-              </div>
-            </dl>
-          </UiCard>
-        </section>
-
-        <section
-          v-if="selectedReport === 'revenue' && porDiaRows.length > 0"
-          aria-label="Ingresos por día"
-          data-bi-charts
-          class="grid grid-cols-1 gap-4"
-        >
-          <UiCard variant="glass" data-chart-card="revenue-by-day">
-            <template #header>
-              <h2 class="text-lg font-semibold text-theme-primary">Ingresos Netos por Día</h2>
-            </template>
-            <div class="h-64">
-              <canvas
-                ref="dailyRevenueChartRef"
-                data-chart="revenue-by-day"
-                role="img"
-                aria-label="Ingresos netos por día"
-              />
-            </div>
-          </UiCard>
-        </section>
-
         <UiCard v-if="isEmpty" variant="glass" data-report-empty>
           <UiEmptyState
             title="Sin datos en el período"
@@ -430,6 +236,200 @@
         </UiCard>
 
         <template v-else>
+          <section
+            v-if="isDashboard"
+            aria-label="Resumen del período"
+            data-bi-kpis
+            class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
+          >
+            <UiCard
+              variant="glass"
+              padding="sm"
+              data-kpi-card="appointments"
+              :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+            >
+              <p class="text-xs font-medium uppercase text-theme-secondary">Citas</p>
+              <p
+                class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+                data-kpi-value="appointments"
+              >
+                {{ formatNumber(dashboard.totalAppointments) }}
+              </p>
+              <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="appointments">
+                Agendadas en el período
+              </p>
+            </UiCard>
+
+            <UiCard
+              variant="glass"
+              padding="sm"
+              data-kpi-card="patients"
+              :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+            >
+              <p class="text-xs font-medium uppercase text-theme-secondary">Pacientes</p>
+              <p
+                class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+                data-kpi-value="patients"
+              >
+                {{ formatNumber(dashboard.totalPatients) }}
+              </p>
+              <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="patients">
+                {{ formatNumber(dashboard.newPatients) }} nuevos en el período
+              </p>
+            </UiCard>
+
+            <UiCard
+              variant="glass"
+              padding="sm"
+              data-kpi-card="revenue"
+              :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+            >
+              <p class="text-xs font-medium uppercase text-theme-secondary">Ingresos netos</p>
+              <p
+                class="mt-2 text-2xl font-bold leading-none text-systemGreen-600 tabular-nums"
+                data-kpi-value="revenue"
+              >
+                {{ formatCurrency(dashboard.totalRevenue) }}
+              </p>
+              <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="revenue">
+                Devoluciones {{ formatCurrency(dashboard.totalRefunds) }}
+              </p>
+            </UiCard>
+
+            <UiCard
+              variant="glass"
+              padding="sm"
+              data-kpi-card="occupancy"
+              :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+            >
+              <p class="text-xs font-medium uppercase text-theme-secondary">Ocupación</p>
+              <p
+                class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+                data-kpi-value="occupancy"
+              >
+                {{ formatPercent(dashboard.occupancyRate) }}
+              </p>
+              <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="occupancy">
+                {{ formatNumber(dashboard.usedHours) }} /
+                {{ formatNumber(dashboard.availableHours) }} h de silla
+              </p>
+            </UiCard>
+          </section>
+
+          <section
+            v-if="isDashboard && hasDashboardCharts"
+            aria-label="Gráficos del período"
+            data-bi-charts
+            class="grid grid-cols-1 gap-4 lg:grid-cols-2"
+          >
+            <UiCard
+              v-if="dashboard.appointmentsByDay.length > 0"
+              variant="glass"
+              data-chart-card="appointments-by-day"
+            >
+              <template #header>
+                <h2 class="text-lg font-semibold text-theme-primary">Citas por Día</h2>
+              </template>
+              <div class="h-64">
+                <canvas
+                  ref="appointmentsChartRef"
+                  data-chart="appointments-by-day"
+                  role="img"
+                  aria-label="Citas por día"
+                />
+              </div>
+            </UiCard>
+
+            <UiCard
+              v-if="dashboard.revenueByMonth.length > 0"
+              variant="glass"
+              data-chart-card="revenue-by-month"
+            >
+              <template #header>
+                <h2 class="text-lg font-semibold text-theme-primary">Ingresos Netos por Mes</h2>
+              </template>
+              <div class="h-64">
+                <canvas
+                  ref="revenueChartRef"
+                  data-chart="revenue-by-month"
+                  role="img"
+                  aria-label="Ingresos netos por mes"
+                />
+              </div>
+            </UiCard>
+          </section>
+
+          <section v-if="selectedReport === 'revenue' && revenueSummary" data-revenue-summary>
+            <UiCard variant="glass">
+              <template #header>
+                <h2 class="text-lg font-semibold text-theme-primary">Resumen del período</h2>
+              </template>
+              <dl class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div>
+                  <dt class="text-xs font-medium uppercase text-theme-secondary">
+                    Citas completadas
+                  </dt>
+                  <dd
+                    class="mt-1 text-xl font-semibold text-label tabular-nums"
+                    data-revenue-summary="appointments"
+                  >
+                    {{ formatNumber(revenueSummary.appointments_count) }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-medium uppercase text-theme-secondary">Ingresos netos</dt>
+                  <dd
+                    class="mt-1 text-xl font-semibold text-label tabular-nums"
+                    data-revenue-summary="revenue"
+                  >
+                    {{ formatCurrency(revenueSummary.total_revenue) }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-medium uppercase text-theme-secondary">Devoluciones</dt>
+                  <dd
+                    class="mt-1 text-xl font-semibold text-label tabular-nums"
+                    data-revenue-summary="refunds"
+                  >
+                    {{ formatCurrency(revenueSummary.refunds) }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-medium uppercase text-theme-secondary">
+                    Promedio por cita
+                  </dt>
+                  <dd
+                    class="mt-1 text-xl font-semibold text-label tabular-nums"
+                    data-revenue-summary="average"
+                  >
+                    {{ formatCurrency(revenueSummary.average_per_appointment) }}
+                  </dd>
+                </div>
+              </dl>
+            </UiCard>
+          </section>
+
+          <section
+            v-if="selectedReport === 'revenue' && porDiaRows.length > 0"
+            aria-label="Ingresos por día"
+            data-bi-charts
+            class="grid grid-cols-1 gap-4"
+          >
+            <UiCard variant="glass" data-chart-card="revenue-by-day">
+              <template #header>
+                <h2 class="text-lg font-semibold text-theme-primary">Ingresos Netos por Día</h2>
+              </template>
+              <div class="h-64">
+                <canvas
+                  ref="dailyRevenueChartRef"
+                  data-chart="revenue-by-day"
+                  role="img"
+                  aria-label="Ingresos netos por día"
+                />
+              </div>
+            </UiCard>
+          </section>
+
           <section
             v-if="isDashboard && dashboard.professionalPerformance.length > 0"
             aria-label="Rendimiento por profesional"
@@ -520,6 +520,7 @@ import {
   buildAppliedParams,
   canExportReport,
   hasGroupBranchScope,
+  isReportPeriodEmpty,
   toBranchOptions
 } from './reportScope'
 
@@ -649,6 +650,9 @@ const consolidated = ref(null)
 const reportRows = ref([])
 const reportColumns = ref([])
 const revenueSummary = ref(null)
+// `meta.summary` of the applied tabular report: the period's activity, which
+// the empty state reads instead of the size of the table (#447).
+const activitySummary = ref(null)
 const loading = ref(false)
 const error = ref(null)
 const exporting = ref('')
@@ -734,18 +738,15 @@ const visibleReportRows = computed(() => {
   return reportRows.value
 })
 
-const isEmpty = computed(() => {
-  if (isDashboard.value) {
-    return !hasDashboardCharts.value && dashboard.value.professionalPerformance.length === 0
-  }
-  if (isConsolidated.value) {
-    return (
-      !consolidated.value ||
-      (consolidated.value.by_branch.length === 0 && consolidated.value.by_professional.length === 0)
-    )
-  }
-  return reportRows.value.length === 0
-})
+const isEmpty = computed(() =>
+  isReportPeriodEmpty({
+    report: selectedReport.value,
+    rows: reportRows.value,
+    summary: activitySummary.value,
+    dashboard: dashboard.value,
+    consolidated: consolidated.value
+  })
+)
 
 const tableColumns = computed(() =>
   reportColumns.value.map(column => {
@@ -793,6 +794,7 @@ const clearData = () => {
   reportRows.value = []
   reportColumns.value = []
   revenueSummary.value = null
+  activitySummary.value = null
 }
 
 const destroyCharts = () => {
@@ -967,6 +969,7 @@ const loadReport = async () => {
       reportRows.value = []
       reportColumns.value = []
       revenueSummary.value = null
+      activitySummary.value = null
     } else if (isConsolidated.value) {
       const response = await get(CONSOLIDATED_ENDPOINT, { params: appliedParams() })
       if (!isCurrent()) {
@@ -977,6 +980,7 @@ const loadReport = async () => {
       reportRows.value = []
       reportColumns.value = []
       revenueSummary.value = null
+      activitySummary.value = null
     } else {
       const report = selectedReport.value
       const response = await get(`/api/reports/${report}`, {
@@ -987,6 +991,7 @@ const loadReport = async () => {
       }
       reportRows.value = Array.isArray(response?.data) ? response.data : []
       reportColumns.value = Array.isArray(response?.columns) ? response.columns : []
+      activitySummary.value = response?.meta?.summary ?? null
       revenueSummary.value = report === 'revenue' ? (response?.meta?.summary ?? null) : null
       if (report === 'revenue') {
         revenueDimension.value = availableRevenueDimensions.value[0] || REVENUE_DIMENSIONS[0]

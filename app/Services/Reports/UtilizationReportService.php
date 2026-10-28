@@ -7,6 +7,7 @@ use App\Models\DentalChair;
 use App\Services\Reports\Concerns\ResolvesBranchFilter;
 use App\Services\Reports\Concerns\ResolvesMoneyTotals;
 use App\Services\Reports\Concerns\ResolvesReportPeriod;
+use App\Services\Reports\Concerns\SummarizesPeriodActivity;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -15,6 +16,7 @@ class UtilizationReportService
     use ResolvesBranchFilter;
     use ResolvesMoneyTotals;
     use ResolvesReportPeriod;
+    use SummarizesPeriodActivity;
 
     /**
      * Chair utilization report.
@@ -45,7 +47,11 @@ class UtilizationReportService
         $environments = $query->orderBy('name')->get();
 
         if ($environments->isEmpty()) {
-            return ['data' => [], 'columns' => $this->columns()];
+            return [
+                'data' => [],
+                'summary' => $this->zeroPeriodActivity(),
+                'columns' => $this->columns(),
+            ];
         }
 
         $ids = $environments->pluck('id')->all();
@@ -113,6 +119,7 @@ class UtilizationReportService
 
         return [
             'data' => $data->toArray(),
+            'summary' => $this->periodActivity($data),
             'columns' => $this->columns(),
         ];
     }

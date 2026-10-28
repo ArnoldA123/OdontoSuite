@@ -29,12 +29,21 @@
             </p>
           </div>
 
-          <UiButton variant="secondary" :disabled="loading" data-lab-cases-refresh @click="load">
-            <template #icon-left>
-              <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
-            </template>
-            Actualizar
-          </UiButton>
+          <div class="flex flex-wrap items-center gap-3">
+            <UiButton v-if="canManage" data-lab-cases-create @click="openCreate">
+              <template #icon-left>
+                <PlusIcon class="h-4 w-4" aria-hidden="true" />
+              </template>
+              Nuevo caso
+            </UiButton>
+
+            <UiButton variant="secondary" :disabled="loading" data-lab-cases-refresh @click="load">
+              <template #icon-left>
+                <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
+              </template>
+              Actualizar
+            </UiButton>
+          </div>
         </div>
       </header>
 
@@ -213,9 +222,25 @@
           </template>
 
           <template #actions="{ row }">
-            <UiButton size="sm" variant="secondary" data-lab-case-open @click.stop="openCase(row)">
-              Ver
-            </UiButton>
+            <div class="flex items-center gap-1">
+              <UiButton
+                size="sm"
+                variant="secondary"
+                data-lab-case-open
+                @click.stop="openCase(row)"
+              >
+                Ver
+              </UiButton>
+              <UiButton
+                v-if="canEditCase(row)"
+                size="sm"
+                variant="ghost"
+                data-lab-case-edit
+                @click.stop="openEdit(row)"
+              >
+                Editar
+              </UiButton>
+            </div>
           </template>
         </UiDataTable>
 
@@ -234,14 +259,23 @@
       v-model="detailOpen"
       :lab-case="selectedCase"
       :can-manage="canManage"
+      :can-edit="canEditCase(selectedCase)"
       @updated="onCaseUpdated"
+      @edit="openEdit(selectedCase)"
     />
+
+    <LabCaseFormModal v-model="formOpen" :lab-case="editingCase" @saved="onCaseSaved" />
   </AppLayout>
 </template>
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { ArrowPathIcon, ExclamationTriangleIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import {
+  ArrowPathIcon,
+  ExclamationTriangleIcon,
+  PlusIcon,
+  XMarkIcon
+} from '@heroicons/vue/24/outline'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
@@ -252,6 +286,7 @@ import UiSelect from '../../components/ui/Select.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import LabCaseDetailModal from './LabCaseDetailModal.vue'
+import LabCaseFormModal from './LabCaseFormModal.vue'
 import {
   PHASES,
   formatDate,
@@ -284,6 +319,8 @@ const canManage = computed(() => Boolean(can.manageLabCase?.value))
 
 const detailOpen = ref(false)
 const selectedCase = ref(null)
+const formOpen = ref(false)
+const editingCase = ref(null)
 
 const columns = [
   { key: 'patient', label: 'Paciente' },
@@ -314,6 +351,26 @@ const onOverdueChange = event => setFilter({ overdue: event.target.checked })
 
 const clearFilters = () => setFilter({ status: '', technician_id: '', overdue: false })
 
+// The API publishes `can_edit` per case; a payload from before that contract
+// omits the key, and then the profile capability decides. A case the API
+// refuses to edit is never offered.
+const canEditCase = row => {
+  if (!canManage.value || !row?.id) return false
+  return row.can_edit !== false
+}
+
+const openCreate = () => {
+  editingCase.value = null
+  formOpen.value = true
+}
+
+const openEdit = row => {
+  if (!canEditCase(row)) return
+
+  editingCase.value = row
+  formOpen.value = true
+}
+
 // The row already carries its relations, so the detail opens instantly with it
 // and refreshes from the API behind the modal.
 const openCase = async row => {
@@ -331,6 +388,23 @@ const openCase = async row => {
 const onCaseUpdated = async fresh => {
   if (fresh) selectedCase.value = fresh
   await load()
+}
+
+const onCaseSaved = async saved => {
+  const targetId = editingCase.value?.id ?? saved?.id ?? null
+
+  formOpen.value = false
+  editingCase.value = null
+  await load()
+
+  if (!targetId || !detailOpen.value || selectedCase.value?.id !== targetId) return
+
+  try {
+    const fresh = await loadOne(targetId)
+    if (fresh) selectedCase.value = fresh
+  } catch (thrown) {
+    // The saved payload is a valid snapshot: the detail keeps it.
+  }
 }
 
 onMounted(async () => {

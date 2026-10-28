@@ -6,6 +6,7 @@ use App\Models\Patient;
 use App\Services\Reports\Concerns\ResolvesBranchFilter;
 use App\Services\Reports\Concerns\ResolvesMoneyTotals;
 use App\Services\Reports\Concerns\ResolvesReportPeriod;
+use App\Services\Reports\Concerns\SummarizesPeriodActivity;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -14,6 +15,7 @@ class PatientReportService
     use ResolvesBranchFilter;
     use ResolvesMoneyTotals;
     use ResolvesReportPeriod;
+    use SummarizesPeriodActivity;
 
     /**
      * Patient report.
@@ -99,6 +101,7 @@ class PatientReportService
 
         return [
             'data' => $data->toArray(),
+            'summary' => $this->periodActivity($data, 'total_spent'),
             'columns' => [
                 ['key' => 'id', 'label' => 'ID'],
                 ['key' => 'first_name', 'label' => 'Nombre'],

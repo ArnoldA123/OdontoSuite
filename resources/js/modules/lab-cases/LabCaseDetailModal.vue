@@ -104,6 +104,14 @@
         <UiButton variant="secondary" data-lab-case-close @click="emit('update:modelValue', false)">
           Cerrar
         </UiButton>
+        <UiButton
+          v-if="canEdit"
+          variant="primary"
+          data-lab-case-detail-edit
+          @click="emit('edit', labCase)"
+        >
+          Editar
+        </UiButton>
       </div>
     </template>
   </UiModal>
@@ -131,10 +139,12 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   labCase: { type: Object, default: null },
   // Projection of `can.manageLabCase`: a forgotten prop never grants a write.
-  canManage: { type: Boolean, default: false }
+  canManage: { type: Boolean, default: false },
+  // Projection of the case's `can_edit`; both are required to offer the edit.
+  canEdit: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['update:modelValue', 'updated'])
+const emit = defineEmits(['update:modelValue', 'updated', 'edit'])
 
 const { acting, transition } = useLabCases()
 

@@ -73,6 +73,71 @@ const appointmentsPayload = {
 
 const emptyAppointmentsPayload = { data: [], columns: appointmentsColumns }
 
+// #447 — the three tabular services return their whole census and only narrow
+// the counters, so an idle period still arrives with rows. The payloads below
+// model that: same population, `meta.summary` in zero.
+const censusRows = [
+  {
+    id: 1,
+    name: 'Lucía Ramos',
+    total_appointments: 0,
+    total_spent: 0
+  }
+]
+
+const censusColumns = [
+  { key: 'name', label: 'Nombre' },
+  { key: 'total_appointments', label: 'Citas' },
+  { key: 'total_spent', label: 'Gasto total (S/)' }
+]
+
+const censusPayload = summary => ({
+  data: censusRows,
+  columns: censusColumns,
+  ...(summary ? { meta: { message: 'ok', summary } } : {})
+})
+
+const idleSummary = { appointments: 0, revenue: 0 }
+const activeSummary = { appointments: 4, revenue: 1200 }
+
+const professionalRows = [
+  {
+    id: 1,
+    name: 'Dra. Ana Torres',
+    appointments: 0,
+    revenue: 0,
+    refunds: 0,
+    averagePerAppointment: 0
+  },
+  {
+    id: 2,
+    name: 'Dr. Luis Paredes',
+    appointments: 0,
+    revenue: 0,
+    refunds: 0,
+    averagePerAppointment: 0
+  }
+]
+
+const idleDashboardPayload = {
+  totalAppointments: 0,
+  totalPatients: 100,
+  newPatients: 0,
+  totalRevenue: 0,
+  totalRefunds: 0,
+  occupancyRate: 0,
+  usedHours: 0,
+  availableHours: 0,
+  appointmentsByDay: [],
+  revenueByMonth: [],
+  professionalPerformance: professionalRows
+}
+
+const activeDashboardPayload = {
+  ...dashboardPayload,
+  professionalPerformance: [{ ...professionalRows[0], appointments: 12, revenue: 900 }]
+}
+
 const revenuePayload = {
   data: [
     {
@@ -144,6 +209,8 @@ const baseResponses = url => {
   return Promise.resolve({ data: [] })
 }
 
+// Serves the dashboard payload and one payload per tabular report on top of
+// the filter lookups; anything not listed keeps the shared fallbacks.
 const mountPage = async () => {
   const router = createRouter({
     history: createMemoryHistory(),
@@ -156,6 +223,23 @@ const mountPage = async () => {
   await flushPromises()
   await flushPromises()
   return wrapper
+}
+
+const mountWithReports = async ({ dashboard = dashboardPayload, reports = {} } = {}) => {
+  getMock.mockImplementation(url => {
+    if (url === '/api/reports/dashboard') {
+      return Promise.resolve({ data: dashboard })
+    }
+    if (typeof url === 'string' && url.startsWith('/api/reports/')) {
+      const report = url.slice('/api/reports/'.length)
+      if (reports[report]) {
+        return Promise.resolve(reports[report])
+      }
+    }
+    return baseResponses(url)
+  })
+
+  return mountPage()
 }
 
 const selectOption = async (wrapper, containerSelector, label) => {
@@ -429,6 +513,169 @@ describe('business intelligence reports and states (T7)', () => {
     expect(downloadMock.mock.calls[0][1].params.format).toBe('pdf')
     expect(toasts.value.at(-1)?.message).toContain('No se pudo generar el archivo')
     expect(fetchSpy).not.toHaveBeenCalled()
+
+    wrapper.unmount()
+  })
+})
+
+// #447 S1/S2/S3 — the empty state of the applied period is decided by the
+// period's ACTIVITY, never by the size of the table: three of the tabular
+// services answer their whole census and the dashboard always ships
+// `professionalPerformance`, so an idle period used to paint rows of zeros
+// under a period that simply had nothing to report.
+describe('business intelligence empty period by activity (#447)', () => {
+  beforeEach(() => {
+    signInAs('administrador')
+    getMock.mockReset()
+    getMock.mockImplementation(baseResponses)
+    downloadMock.mockReset()
+    useToast().clearAll()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 19, 12, 0, 0))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  const expectEmptyCard = wrapper => {
+    const empty = wrapper.find('[data-report-empty]')
+    expect(empty.exists()).toBe(true)
+    expect(empty.text()).toContain('Sin datos en el período')
+    expect(empty.text()).toContain('No hay actividad registrada para los filtros aplicados.')
+    expect(empty.find('[data-widen-period]').exists()).toBe(true)
+  }
+
+  it('renders the empty period for a dashboard with professionals but no activity (#447 S1)', async () => {
+    const wrapper = await mountWithReports({ dashboard: idleDashboardPayload })
+
+    expectEmptyCard(wrapper)
+    expect(wrapper.find('[data-professional-table]').exists()).toBe(false)
+    expect(wrapper.find('[data-bi-kpis]').exists()).toBe(false)
+    expect(wrapper.find('[data-bi-charts]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('re-queries the ninety-day period from the empty dashboard card (#447 S3)', async () => {
+    const wrapper = await mountWithReports({ dashboard: idleDashboardPayload })
+
+    await wrapper.find('[data-widen-period]').trigger('click')
+    await vi.waitFor(() => {
+      expect(lastReportCall()[1].params.start_date).toBe('2026-07-22')
+    }, REPORT_SETTLE)
+
+    const [url, options] = lastReportCall()
+    expect(url).toBe('/api/reports/dashboard')
+    expect(options.params.end_date).toBe('2026-10-19')
+    expect(wrapper.find('[data-period-applied]').text()).toContain('90 días')
+
+    wrapper.unmount()
+  })
+
+  for (const [report, label] of [
+    ['patients', 'Reporte de Pacientes'],
+    ['professionals', 'Reporte de Profesionales'],
+    ['utilization', 'Utilización de Ambientes']
+  ]) {
+    it(`renders the empty period for an idle ${report} report whose census still has rows (#447 S1)`, async () => {
+      const wrapper = await mountWithReports({
+        reports: { [report]: censusPayload(idleSummary) }
+      })
+
+      await selectOption(wrapper, '[data-filters-report]', label)
+      await vi.waitFor(() => {
+        expect(wrapper.find('[data-report-empty]').exists()).toBe(true)
+      }, REPORT_SETTLE)
+
+      expectEmptyCard(wrapper)
+      expect(wrapper.find('[data-report-table]').exists()).toBe(false)
+
+      wrapper.unmount()
+    })
+
+    it(`keeps the ${report} table when the same census had activity in the period (#447 S2)`, async () => {
+      const wrapper = await mountWithReports({
+        reports: { [report]: censusPayload(activeSummary) }
+      })
+
+      await selectOption(wrapper, '[data-filters-report]', label)
+      await vi.waitFor(() => {
+        expect(wrapper.find('[data-report-table]').exists()).toBe(true)
+      }, REPORT_SETTLE)
+
+      expect(wrapper.find('[data-report-table]').text()).toContain('Lucía Ramos')
+      expect(wrapper.find('[data-report-empty]').exists()).toBe(false)
+
+      wrapper.unmount()
+    })
+  }
+
+  it('keeps the dashboard KPI strip and its table when the period had activity (#447 S2)', async () => {
+    const wrapper = await mountWithReports({ dashboard: activeDashboardPayload })
+
+    expect(wrapper.find('[data-bi-kpis]').exists()).toBe(true)
+    expect(wrapper.find('[data-kpi-value="appointments"]').text()).toBe('42')
+    expect(wrapper.find('[data-professional-table]').exists()).toBe(true)
+    expect(wrapper.find('[data-report-empty]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('keeps the empty period for a pre-#447 payload without meta.summary (#447 S2)', async () => {
+    const wrapper = await mountWithReports({
+      reports: { patients: { data: [], columns: censusColumns } }
+    })
+
+    await selectOption(wrapper, '[data-filters-report]', 'Reporte de Pacientes')
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-report-empty]').exists()).toBe(true)
+    }, REPORT_SETTLE)
+
+    expect(wrapper.find('[data-report-table]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('does not call an empty period a narrowed census with no rows (#447 S2)', async () => {
+    const wrapper = await mountWithReports({
+      reports: {
+        patients: { data: [], columns: censusColumns, meta: { summary: activeSummary } }
+      }
+    })
+
+    await selectOption(wrapper, '[data-filters-report]', 'Reporte de Pacientes')
+    await vi.waitFor(() => {
+      expect(lastReportCall()[0]).toBe('/api/reports/patients')
+    }, REPORT_SETTLE)
+    await flushPromises()
+
+    expect(wrapper.find('[data-report-empty]').exists()).toBe(false)
+    expect(wrapper.find('[data-report-table-section]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('never inherits the previous report activity summary (#447 S2)', async () => {
+    const wrapper = await mountWithReports({
+      reports: {
+        patients: censusPayload(activeSummary),
+        professionals: { data: [], columns: censusColumns }
+      }
+    })
+
+    await selectOption(wrapper, '[data-filters-report]', 'Reporte de Pacientes')
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-report-table]').exists()).toBe(true)
+    }, REPORT_SETTLE)
+
+    await selectOption(wrapper, '[data-filters-report]', 'Reporte de Profesionales')
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-report-empty]').exists()).toBe(true)
+    }, REPORT_SETTLE)
+
+    expect(wrapper.find('[data-report-table]').exists()).toBe(false)
 
     wrapper.unmount()
   })

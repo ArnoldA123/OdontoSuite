@@ -81,6 +81,14 @@ class LabCaseService
      */
     public function update(LabCase $case, array $data): LabCase
     {
+        // #449: placed work is finished work. The phase is not editable through
+        // this door anyway, so a placed case has nothing left to correct.
+        if ($case->status === LabCase::PHASE_PLACED) {
+            throw ValidationException::withMessages([
+                'status' => ['No se puede editar un caso de laboratorio ya colocado: el trabajo concluyó.'],
+            ]);
+        }
+
         $attributes = Arr::only($data, self::WRITABLE);
 
         if (array_key_exists('professional_id', $attributes)) {
