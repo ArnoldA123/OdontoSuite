@@ -47,11 +47,13 @@
           </h3>
           <!-- The primitive keeps its picker chrome; the sheet owns the size/type copy. -->
           <FileUpload
+            ref="upload"
             accept="image/*"
             preview
             :max-size="Number.POSITIVE_INFINITY"
             @file-selected="onFileSelected"
             @file-cleared="onFileCleared"
+            @file-rejected="onFileRejected"
           />
           <p
             v-if="stepErrors.image"
@@ -187,6 +189,7 @@ const categoryOptions = [
 
 const patient = ref(null)
 const file = ref(null)
+const upload = ref(null)
 const category = ref('radiografia')
 const description = ref('')
 const noticeAcknowledged = ref(false)
@@ -224,13 +227,21 @@ const onPatientSelected = selected => {
 const onFileSelected = selected => {
   const error = validateFile(selected)
   if (error) {
+    // The primitive adopted the file before this rule could run, so its
+    // internal state — and the preview it painted — must be dropped here.
     file.value = null
+    upload.value?.clear?.()
     stepErrors.value = { ...stepErrors.value, image: error }
     return
   }
 
   file.value = selected
   stepErrors.value = { ...stepErrors.value, image: '' }
+}
+
+const onFileRejected = rejection => {
+  file.value = null
+  stepErrors.value = { ...stepErrors.value, image: rejection?.message ?? '' }
 }
 
 const onFileCleared = () => {

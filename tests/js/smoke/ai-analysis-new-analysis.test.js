@@ -3,7 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath, URL as NodeURL } from 'node:url'
-import { h } from 'vue'
+import { defineComponent, h, ref } from 'vue'
 
 // T3 sheet contract: the "Nuevo análisis" flow moved off the inline card into
 // a UiSheet with numbered steps, page-local validation (20 MB / image type),
@@ -89,7 +89,8 @@ const textFile = () => new File(['x'], 'notes.txt', { type: 'text/plain' })
 
 // The patient selector and the upload primitive reach the network and the
 // native file picker. The sheet only consumes their emits, so the stubs pin
-// the contract: update:modelValue and fileSelected.
+// the contract: update:modelValue, fileSelected, fileRejected and the silent
+// clear() the sheet calls when its own 20 MB rule refuses an adopted file.
 const PatientSelectorStub = {
   name: 'PatientSelector',
   props: { modelValue: { type: Object, default: null } },
@@ -108,14 +109,36 @@ const PatientSelectorStub = {
   }
 }
 
-const FileUploadStub = {
+const FileUploadStub = defineComponent({
   name: 'FileUpload',
-  props: { accept: String, preview: Boolean, maxSize: Number },
-  emits: ['fileSelected', 'fileCleared'],
-  setup(_, { emit }) {
-    const send = file => () => emit('fileSelected', file)
+  // Mirrors the primitive's declared defaults so the stub cannot drift from the
+  // contract the sheet relies on.
+  props: {
+    accept: { type: String, default: 'image/*' },
+    preview: { type: Boolean, default: true },
+    maxSize: { type: Number, default: 20 * 1024 * 1024 }
+  },
+  emits: ['fileSelected', 'fileCleared', 'fileRejected'],
+  setup(_, { emit, expose }) {
+    const adopted = ref(null)
+
+    // Same contract as the primitive: clear() drops the internal file without
+    // emitting fileCleared, so the sheet keeps ownership of its own state.
+    expose({
+      clear: () => {
+        adopted.value = null
+      }
+    })
+
+    const send = file => () => {
+      adopted.value = file
+      emit('fileSelected', file)
+    }
+    const reject = payload => () => emit('fileRejected', payload)
+
     return () =>
       h('div', { 'data-stub-upload': '' }, [
+        adopted.value ? h('div', { 'data-stub-preview': '' }, adopted.value.name) : null,
         h(
           'button',
           { type: 'button', 'data-stub-file-image': '', onClick: send(imageFile()) },
@@ -130,10 +153,31 @@ const FileUploadStub = {
           'button',
           { type: 'button', 'data-stub-file-text': '', onClick: send(textFile()) },
           'text'
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            'data-stub-rejected-type': '',
+            onClick: reject({ reason: 'type', message: 'Solo se permiten archivos de imagen' })
+          },
+          'rejected type'
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            'data-stub-rejected-size': '',
+            onClick: reject({
+              reason: 'size',
+              message: 'El archivo es demasiado grande. Máximo 20 MB'
+            })
+          },
+          'rejected size'
         )
       ])
   }
-}
+})
 
 const mountPage = async ({ items = [row()] } = {}) => {
   getMock.mockImplementation(async url => {
@@ -331,6 +375,59 @@ describe('ai-analysis sheet validation', () => {
     await click('[data-stub-file-text]')
     expect(stepError('image').textContent.trim()).toBe('Solo se aceptan imágenes.')
     expect(submitButton().disabled).toBe(true)
+  })
+
+  it('shows a primitive type rejection inline instead of a native alert', async () => {
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    wrapper = await mountPage()
+    await openSheet(wrapper)
+
+    await click('[data-stub-rejected-type]')
+
+    expect(stepError('image')).not.toBeNull()
+    expect(stepError('image').getAttribute('role')).toBe('alert')
+    expect(stepError('image').textContent.trim()).toBe('Solo se permiten archivos de imagen')
+    expect(alertSpy).not.toHaveBeenCalled()
+    expect(document.querySelector('[data-stub-upload]')).not.toBeNull()
+    expect(document.querySelector('[data-stub-preview]')).toBeNull()
+    expect(submitButton().disabled).toBe(true)
+
+    alertSpy.mockRestore()
+  })
+
+  it('shows a primitive size rejection inline instead of a native alert', async () => {
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    wrapper = await mountPage()
+    await openSheet(wrapper)
+
+    await click('[data-stub-rejected-size]')
+
+    expect(stepError('image').textContent.trim()).toBe(
+      'El archivo es demasiado grande. Máximo 20 MB'
+    )
+    expect(alertSpy).not.toHaveBeenCalled()
+    expect(document.querySelector('[data-stub-upload]')).not.toBeNull()
+    expect(document.querySelector('[data-stub-preview]')).toBeNull()
+
+    alertSpy.mockRestore()
+  })
+
+  it('drops the adopted file and restores the picker when its own 20 MB rule rejects', async () => {
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    wrapper = await mountPage()
+    await openSheet(wrapper)
+
+    await click('[data-stub-file-big]')
+
+    expect(stepError('image').textContent.trim()).toBe('La imagen supera los 20 MB.')
+    // The primitive adopted the file before the sheet could measure it, so the
+    // sheet must call clear(): no retained preview, picker available again.
+    expect(document.querySelector('[data-stub-preview]')).toBeNull()
+    expect(document.querySelector('[data-stub-upload]')).not.toBeNull()
+    expect(alertSpy).not.toHaveBeenCalled()
+    expect(submitButton().disabled).toBe(true)
+
+    alertSpy.mockRestore()
   })
 
   it('asks for the patient, the image and the patient notice on an invalid submit', async () => {

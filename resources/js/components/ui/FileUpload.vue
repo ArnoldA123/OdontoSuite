@@ -11,7 +11,12 @@
       <!-- Vista Previa si hay imagen -->
       <div v-if="previewUrl" class="preview-container">
         <img :src="previewUrl" class="preview-image" />
-        <button class="clear-btn" @click="clearFile">
+        <button
+          type="button"
+          class="clear-btn"
+          aria-label="Quitar la imagen seleccionada"
+          @click="clearFile"
+        >
           <XMarkIcon class="w-5 h-5" />
         </button>
       </div>
@@ -63,7 +68,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['fileSelected', 'fileCleared'])
+const emit = defineEmits(['fileSelected', 'fileCleared', 'fileRejected'])
 
 const file = ref(null)
 const previewUrl = ref('')
@@ -85,16 +90,26 @@ const handleFileInput = event => {
   }
 }
 
+// Rejections belong to the consumer's inline error channel: the primitive
+// refuses the file (no preview, no fileSelected) and names the reason. The
+// native input is reset so picking the same file again fires `change`.
+const rejectFile = (reason, message) => {
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+  emit('fileRejected', { reason, message })
+}
+
 const handleFile = selectedFile => {
   // Validar tamaño
   if (selectedFile.size > props.maxSize) {
-    alert(`El archivo es demasiado grande. Máximo ${formatFileSize(props.maxSize)}`)
+    rejectFile('size', `El archivo es demasiado grande. Máximo ${formatFileSize(props.maxSize)}`)
     return
   }
 
   // Validar tipo
   if (!selectedFile.type.startsWith('image/')) {
-    alert('Solo se permiten archivos de imagen')
+    rejectFile('type', 'Solo se permiten archivos de imagen')
     return
   }
 
@@ -112,14 +127,26 @@ const handleFile = selectedFile => {
   emit('fileSelected', selectedFile)
 }
 
-const clearFile = () => {
+const resetFile = () => {
   file.value = null
   previewUrl.value = ''
   if (fileInput.value) {
     fileInput.value.value = ''
   }
+}
+
+const clearFile = () => {
+  resetFile()
   emit('fileCleared')
 }
+
+// Public, silent variant: a consumer that ran its own validation after
+// `fileSelected` drops the adopted file without echoing a second event.
+const clear = () => {
+  resetFile()
+}
+
+defineExpose({ clear })
 
 const formatFileSize = bytes => {
   if (bytes === 0) return '0 Bytes'
