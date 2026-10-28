@@ -33,7 +33,10 @@
             </template>
             Volver
           </UiButton>
-          <UiButton data-hero-action @click="showNewTypeModal = true">
+          <!-- #439: the write doors are the ones the route guards with
+               `manage.appointment_type`; a reader keeps list, filters, KPIs
+               and tabs. -->
+          <UiButton v-if="canManageAppointmentTypes" data-hero-action @click="openNewTypeModal">
             <template #icon-left>
               <PlusIcon class="w-4 h-4" aria-hidden="true" />
             </template>
@@ -287,6 +290,7 @@
                       Ver Detalle
                     </UiButton>
                     <UiButton
+                      v-if="canManageAppointmentTypes"
                       variant="ghost"
                       size="sm"
                       class="text-systemBlue-600 hover:text-systemBlue-700"
@@ -298,6 +302,7 @@
                       <PencilIcon class="h-4 w-4" aria-hidden="true" />
                     </UiButton>
                     <UiButton
+                      v-if="canManageAppointmentTypes"
                       variant="ghost"
                       size="sm"
                       class="text-systemRed-600 hover:text-systemRed-700"
@@ -320,8 +325,16 @@
 
   <!-- New Type Modal -->
   <UiModal v-model="showNewTypeModal" title="Nuevo Tipo de Cita" size="md">
-    <form id="form-new-type" class="space-y-4" @submit.prevent="createType">
-      <UiInput v-model="newType.name" label="Nombre del Tipo" type="text" required />
+    <!-- #440: `novalidate` hands the rejection to the page, so the empty
+         submit paints its field messages instead of a native bubble. -->
+    <form id="form-new-type" class="space-y-4" novalidate @submit.prevent="createType">
+      <UiInput
+        v-model="newType.name"
+        label="Nombre del Tipo"
+        type="text"
+        required
+        :error="createErrors.name"
+      />
       <UiTextarea v-model="newType.description" label="Descripción" :rows="3" />
       <UiInput
         v-model="newType.duration_minutes"
@@ -331,6 +344,7 @@
         max="480"
         step="15"
         required
+        :error="createErrors.duration_minutes"
       />
       <UiInput v-model="newType.price" label="Precio (S/)" type="number" min="0" step="0.01" />
       <div>
@@ -339,14 +353,6 @@
           v-model="newType.requires_confirmation"
           :options="booleanOptions"
           data-flag-select="requires_confirmation"
-        />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Requiere materiales</label>
-        <UiSelect
-          v-model="newType.requires_materials"
-          :options="booleanOptions"
-          data-flag-select="requires_materials"
         />
       </div>
       <div>
@@ -386,8 +392,20 @@
 
   <!-- Edit Type Modal -->
   <UiModal v-model="showEditTypeModal" title="Editar Tipo de Cita" size="md">
-    <form v-if="editingType" id="form-edit-type" class="space-y-4" @submit.prevent="updateType">
-      <UiInput v-model="editingType.name" label="Nombre" type="text" required />
+    <form
+      v-if="editingType"
+      id="form-edit-type"
+      class="space-y-4"
+      novalidate
+      @submit.prevent="updateType"
+    >
+      <UiInput
+        v-model="editingType.name"
+        label="Nombre"
+        type="text"
+        required
+        :error="editErrors.name"
+      />
       <UiTextarea v-model="editingType.description" label="Descripción" :rows="3" />
       <UiInput
         v-model="editingType.duration_minutes"
@@ -397,6 +415,7 @@
         max="480"
         step="15"
         required
+        :error="editErrors.duration_minutes"
       />
       <UiInput
         v-model="editingType.price"
@@ -414,13 +433,15 @@
           data-flag-select="requires_confirmation"
         />
       </div>
+      <!-- #444: `requires_materials` lo deriva la API de la receta del
+           procedimiento por defecto (#295). Se declara, no se ofrece. -->
       <div>
-        <label class="block text-sm font-medium text-theme-primary">Requiere materiales</label>
-        <UiSelect
-          v-model="editingType.requires_materials"
-          :options="booleanOptions"
-          data-flag-select="requires_materials"
-        />
+        <p class="text-sm font-medium text-theme-primary" data-derived-field="requires_materials">
+          Requiere materiales: {{ editingType.requires_materials ? 'Sí' : 'No' }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">
+          Derivado de la receta del procedimiento por defecto.
+        </p>
       </div>
       <div>
         <label class="block text-sm font-medium text-theme-primary">Modo consulta</label>
@@ -481,6 +502,8 @@ import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import { useConfirm } from '../../composables/useConfirm'
 import { useErrorHandler } from '../../composables/useErrorHandler'
+import { usePermissions } from '../../composables/usePermissions'
+import { normalizeValidationErrors } from '../../composables/validationErrors'
 import { formatCurrency } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
@@ -523,6 +546,10 @@ export default {
     const toast = useToast()
     const { confirm } = useConfirm()
     const { handleError } = useErrorHandler()
+    // #439: every write door of this catalog declares the permission its route
+    // demands (`manage.appointment_type`), so a reader never sees a 403 door.
+    const { can } = usePermissions()
+    const canManageAppointmentTypes = computed(() => can.manageAppointmentTypes.value)
 
     const loading = ref(false)
     const creating = ref(false)
@@ -534,18 +561,26 @@ export default {
     const showNewTypeModal = ref(false)
     const showEditTypeModal = ref(false)
     const editingType = ref(null)
+    // #440: the rejected form says what is missing next to the field, so both
+    // write modals own their field-error map (local rule or server 422).
+    const createErrors = ref({})
+    const editErrors = ref({})
 
-    const newType = ref({
+    // #444: `requires_materials` does not live here: the API derives it from
+    // the default procedure's recipe (#295), so the form neither offers nor
+    // sends it.
+    const emptyNewType = () => ({
       name: '',
       description: '',
       duration_minutes: 60,
       price: 0,
       requires_confirmation: true,
-      requires_materials: false,
       is_consultation_mode: false,
       color: DEFAULT_TYPE_COLOR,
       is_active: true
     })
+
+    const newType = ref(emptyNewType())
 
     const booleanOptions = [
       { value: true, label: 'Sí' },
@@ -662,27 +697,62 @@ export default {
       }
     }
 
+    // #440: the page validates the two rules the API demands (a name and a
+    // 15-480 minute duration) so an empty submit paints its message instead of
+    // reaching the network. The server keeps deciding; a 422 is mapped onto
+    // the same fields by `applyServerFieldErrors`.
+    const durationError = value => {
+      const raw = value === null || value === undefined ? '' : String(value).trim()
+      const minutes = Number(raw)
+      if (raw === '' || Number.isNaN(minutes) || minutes < 15 || minutes > 480) {
+        return 'La duración debe estar entre 15 y 480 minutos.'
+      }
+      return ''
+    }
+
+    const validateForm = (source, errorsRef) => {
+      const errors = {}
+      if (!String(source?.name ?? '').trim()) {
+        errors.name = 'El nombre es obligatorio.'
+      }
+      const duration = durationError(source?.duration_minutes)
+      if (duration) errors.duration_minutes = duration
+
+      errorsRef.value = errors
+      return Object.keys(errors).length === 0
+    }
+
+    // The 422 lands on its field; the toast is only for a rejection without a
+    // field to paint.
+    const applyServerFieldErrors = (error, errorsRef, fallbackMessage) => {
+      const fieldErrors = normalizeValidationErrors(error?.response?.data?.errors)
+      errorsRef.value = fieldErrors
+      if (Object.keys(fieldErrors).length === 0) {
+        handleError(error, fallbackMessage)
+      }
+    }
+
+    // #444: `requires_materials` is derived from the default procedure's
+    // recipe, so it is neither offered nor written.
+    const writePayload = source => {
+      const payload = { ...source }
+      delete payload.requires_materials
+      return payload
+    }
+
     const createType = async () => {
       if (creating.value) return
+      if (!validateForm(newType.value, createErrors)) return
       creating.value = true
       try {
         await post('/api/appointment-types', newType.value)
         showNewTypeModal.value = false
-        newType.value = {
-          name: '',
-          description: '',
-          duration_minutes: 60,
-          price: 0,
-          requires_confirmation: true,
-          requires_materials: false,
-          is_consultation_mode: false,
-          color: DEFAULT_TYPE_COLOR,
-          is_active: true
-        }
+        newType.value = emptyNewType()
+        createErrors.value = {}
         toast.success('Tipo de cita creado exitosamente')
         loadTypes()
       } catch (error) {
-        handleError(error, 'Error al crear el tipo de cita')
+        applyServerFieldErrors(error, createErrors, 'Error al crear el tipo de cita')
       } finally {
         creating.value = false
       }
@@ -699,7 +769,13 @@ export default {
         color: storedColor,
         duration_minutes: type.default_duration_minutes
       }
+      editErrors.value = {}
       showEditTypeModal.value = true
+    }
+
+    const openNewTypeModal = () => {
+      createErrors.value = {}
+      showNewTypeModal.value = true
     }
 
     const viewDetail = type => {
@@ -708,15 +784,17 @@ export default {
 
     const updateType = async () => {
       if (updating.value) return
+      if (!validateForm(editingType.value, editErrors)) return
       updating.value = true
       try {
-        await put(`/api/appointment-types/${editingType.value.id}`, editingType.value)
+        await put(`/api/appointment-types/${editingType.value.id}`, writePayload(editingType.value))
         showEditTypeModal.value = false
         editingType.value = null
+        editErrors.value = {}
         loadTypes()
         toast.success('Tipo de cita actualizado exitosamente')
       } catch (error) {
-        handleError(error, 'Error al actualizar el tipo de cita')
+        applyServerFieldErrors(error, editErrors, 'Error al actualizar el tipo de cita')
       } finally {
         updating.value = false
       }
@@ -771,6 +849,10 @@ export default {
       emptyStateDescription,
       showNewTypeModal,
       showEditTypeModal,
+      openNewTypeModal,
+      canManageAppointmentTypes,
+      createErrors,
+      editErrors,
       newType,
       editingType,
       booleanOptions,

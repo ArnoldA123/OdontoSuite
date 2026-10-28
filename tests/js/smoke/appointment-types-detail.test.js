@@ -63,6 +63,14 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 }))
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/appointment-types/AppointmentTypeDetailPage.vue'
+import rolePermissions from '../support/role-permissions.json'
+
+// #439: the hero's write door follows `usePermissions()`, a membership check on
+// the permission list the API publishes.
+const seedSession = role => {
+  localStorage.setItem('auth_token', 'test-token')
+  localStorage.setItem('user', JSON.stringify({ id: 1, role, permissions: rolePermissions[role] }))
+}
 
 const router = createRouter({
   history: createMemoryHistory(),
@@ -106,6 +114,7 @@ const openAuditTab = async wrapper => {
 
 describe('appointment-types detail smoke', () => {
   beforeEach(() => {
+    seedSession('administrador')
     getMock.mockReset()
     getMock.mockImplementation(async () => ({ data: {} }))
   })
@@ -138,6 +147,11 @@ describe('appointment-types detail smoke', () => {
     expect(wrapper.find('[data-detail-field="duration"]').classes()).toContain('tabular-nums')
     expect(wrapper.find('[data-detail-field="requires-confirmation"]').text()).toBe('Sí')
     expect(wrapper.find('[data-detail-field="requires-materials"]').text()).toBe('No')
+    // #444: the value is derived from the default procedure's recipe, and the
+    // detail declares it instead of offering it.
+    expect(wrapper.find('[data-detail-derived="requires-materials"]').text()).toBe(
+      'Derivado de la receta del procedimiento por defecto.'
+    )
     expect(wrapper.find('[data-detail-field="consultation-mode"]').text()).toBe('Sí')
 
     const price = wrapper.find('[data-detail-group="price"]')
@@ -292,6 +306,18 @@ describe('appointment-types detail smoke', () => {
     await flushPromises()
     expect(router.currentRoute.value.path).toBe('/appointment-types')
     expect(String(router.currentRoute.value.query.edit)).toBe('7')
+    wrapper.unmount()
+  })
+
+  it('hides Editar for a session without manage.appointment_type', async () => {
+    seedSession('recepcionista')
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-detail-action="edit"]').exists()).toBe(false)
+    // The read surface stays whole: hero, actions and the info groups.
+    expect(wrapper.find('[data-detail-action="back"]').exists()).toBe(true)
+    expect(wrapper.find('[data-detail-title]').text()).toBe('Limpieza dental')
+    expect(wrapper.find('[data-detail-group="operation"]').exists()).toBe(true)
     wrapper.unmount()
   })
 })

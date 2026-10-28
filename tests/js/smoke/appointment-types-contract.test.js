@@ -2,13 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// Appointment-types CRUD contract (2026-10-19 audit). Every rule here pins an
-// observable behavior of the page against the API contract:
+// Appointment-types CRUD contract (2026-10-19 audit, updated by #440/#444).
+// Every rule here pins an observable behavior of the page against the API
+// contract:
 //  - a delete refused with 409 shows the server message (the type still has
 //    appointments), never a generic "could not delete" toast;
 //  - a null price renders "No especificado", never `S/ 0.00`;
-//  - the modal footers submit their <form> (native required validation);
-//  - the create payload carries the three catalog flags.
+//  - the modal footers submit their <form> (the page validates it, #440);
+//  - an empty submit paints its field message and never calls the API (#440);
+//  - the create payload carries the two catalog flags the operator decides and
+//    never the derived `requires_materials` (#444).
 const { getMock, postMock, putMock, deleteMock, makeType } = vi.hoisted(() => {
   const makeType = (id, overrides = {}) => ({
     id,
@@ -60,6 +63,14 @@ import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/appointment-types/AppointmentTypesPage.vue'
 import { globalToasts } from '../../../resources/js/composables/useToast'
 import { colors } from '../../../resources/js/design-system/tokens.js'
+import rolePermissions from '../support/role-permissions.json'
+
+// #439: the page gates its write affordances on `usePermissions().can.*`, so
+// the suite works as the administrator the write doors belong to.
+const seedSession = role => {
+  localStorage.setItem('auth_token', 'test-token')
+  localStorage.setItem('user', JSON.stringify({ id: 1, role, permissions: rolePermissions[role] }))
+}
 
 const router = createRouter({
   history: createMemoryHistory(),
@@ -136,8 +147,12 @@ const setField = (labelText, value) => {
   input.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
+const hasDerivedMaterialsFlag = () =>
+  document.body.querySelector('[data-flag-select="requires_materials"]') !== null
+
 describe('appointment-types CRUD contract', () => {
   beforeEach(() => {
+    seedSession('administrador')
     globalToasts.value = []
     getMock.mockReset()
     postMock.mockReset()
@@ -187,19 +202,19 @@ describe('appointment-types CRUD contract', () => {
     wrapper.unmount()
   })
 
-  it('exposes the three catalog flags in the create modal and starts confirmation on', async () => {
+  it('exposes the two operator flags in the create modal and never the derived one', async () => {
     const wrapper = await mountPage([makeType(1, { name: 'Limpieza dental' })])
     await openNewModal(wrapper)
 
     expect(document.body.textContent).toContain('Requiere confirmación')
-    expect(document.body.textContent).toContain('Requiere materiales')
     expect(document.body.textContent).toContain('Modo consulta')
     expect(flagLabel('requires_confirmation')).toBe('Sí')
-    expect(flagLabel('requires_materials')).toBe('No')
     expect(flagLabel('is_consultation_mode')).toBe('No')
+    // #444: `requires_materials` lo deriva la API de la receta del
+    // procedimiento por defecto, así que el alta no lo ofrece.
+    expect(hasDerivedMaterialsFlag()).toBe(false)
 
     await chooseFlag('requires_confirmation', 'Sí')
-    await chooseFlag('requires_materials', 'Sí')
     await chooseFlag('is_consultation_mode', 'Sí')
     setField('Nombre del Tipo', 'Control de ortodoncia')
     setField('Duración (minutos)', '45')
@@ -209,14 +224,14 @@ describe('appointment-types CRUD contract', () => {
     expect(postMock).toHaveBeenCalledTimes(1)
     expect(postMock.mock.calls[0][1]).toMatchObject({
       requires_confirmation: true,
-      requires_materials: true,
       is_consultation_mode: true,
       is_active: true
     })
+    expect(postMock.mock.calls[0][1]).not.toHaveProperty('requires_materials')
     wrapper.unmount()
   })
 
-  it('exposes the three catalog flags in the edit modal and saves them', async () => {
+  it('saves the two operator flags from the edit modal and declares the derived value', async () => {
     const wrapper = await mountPage([
       makeType(1, {
         name: 'Limpieza dental',
@@ -228,19 +243,26 @@ describe('appointment-types CRUD contract', () => {
     await openEditModal(wrapper)
 
     expect(flagLabel('requires_confirmation')).toBe('Sí')
-    expect(flagLabel('requires_materials')).toBe('No')
     expect(flagLabel('is_consultation_mode')).toBe('Sí')
+    // #444: el control desaparece; el valor publicado se declara como derivado.
+    expect(hasDerivedMaterialsFlag()).toBe(false)
+    const derived = document.body.querySelector('[data-derived-field="requires_materials"]')
+    expect(derived).toBeTruthy()
+    expect(derived.textContent).toContain('Requiere materiales: No')
+    expect(document.body.textContent).toContain(
+      'Derivado de la receta del procedimiento por defecto.'
+    )
 
-    await chooseFlag('requires_materials', 'Sí')
+    await chooseFlag('is_consultation_mode', 'No')
     buttonByText('Actualizar').click()
     await flushPromises()
 
     expect(putMock).toHaveBeenCalledTimes(1)
     expect(putMock.mock.calls[0][1]).toMatchObject({
       requires_confirmation: true,
-      requires_materials: true,
-      is_consultation_mode: true
+      is_consultation_mode: false
     })
+    expect(putMock.mock.calls[0][1]).not.toHaveProperty('requires_materials')
     wrapper.unmount()
   })
 
@@ -283,6 +305,70 @@ describe('appointment-types CRUD contract', () => {
     expect(durationInput.getAttribute('min')).toBe('15')
     expect(durationInput.getAttribute('max')).toBe('480')
     expect(durationInput.getAttribute('step')).toBe('15')
+    // #440: the attributes stay as affordance, but `novalidate` hands the
+    // rejection to the page so the field message is the one the user reads.
+    expect(document.getElementById('form-new-type').hasAttribute('novalidate')).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('reports what the empty create form is missing instead of submitting', async () => {
+    const wrapper = await mountPage([makeType(1, { name: 'Limpieza dental' })])
+    await openNewModal(wrapper)
+
+    buttonByText('Crear').click()
+    await flushPromises()
+
+    expect(postMock).not.toHaveBeenCalled()
+    expect(document.body.textContent).toContain('El nombre es obligatorio.')
+    expect(document.body.textContent).not.toContain(
+      'La duración debe estar entre 15 y 480 minutos.'
+    )
+
+    setField('Nombre del Tipo', 'Control de ortodoncia')
+    setField('Duración (minutos)', '5')
+    buttonByText('Crear').click()
+    await flushPromises()
+
+    expect(postMock).not.toHaveBeenCalled()
+    expect(document.body.textContent).toContain('La duración debe estar entre 15 y 480 minutos.')
+    wrapper.unmount()
+  })
+
+  it('reports what the empty edit form is missing instead of submitting', async () => {
+    const wrapper = await mountPage([makeType(1, { name: 'Limpieza dental' })])
+    await openEditModal(wrapper)
+
+    setField('Nombre', '')
+    setField('Duración (minutos)', '')
+    buttonByText('Actualizar').click()
+    await flushPromises()
+
+    expect(putMock).not.toHaveBeenCalled()
+    expect(document.body.textContent).toContain('El nombre es obligatorio.')
+    expect(document.body.textContent).toContain('La duración debe estar entre 15 y 480 minutos.')
+    wrapper.unmount()
+  })
+
+  it('binds a server 422 to its field instead of only the toast', async () => {
+    const message = 'El nombre ya está en uso.'
+    postMock.mockRejectedValueOnce({
+      response: {
+        status: 422,
+        data: { message: 'Error de validación', errors: { name: [message] } }
+      },
+      status: 422
+    })
+
+    const wrapper = await mountPage([makeType(1, { name: 'Limpieza dental' })])
+    await openNewModal(wrapper)
+    setField('Nombre del Tipo', 'Control de ortodoncia')
+    setField('Duración (minutos)', '45')
+    buttonByText('Crear').click()
+    await flushPromises()
+
+    expect(postMock).toHaveBeenCalledTimes(1)
+    expect(document.body.textContent).toContain(message)
+    expect(globalToasts.value.map(t => t.message)).not.toContain(message)
     wrapper.unmount()
   })
 

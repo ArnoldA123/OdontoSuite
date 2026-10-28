@@ -68,19 +68,21 @@ nuevas) y §12 recibe su entrada.
 - T1 — #439: derivar de `usePermissions()` los controles de escritura de
   `/specialties`, `/professionals`, `/appointment-types` (+ detalle),
   `/environments`, `/settings/branches` y `/settings/payment-methods`.
-  Spec: S1-S2. Commit `fix(auth): …`.
+  Spec: S1-S2. Commits `63d7234c` (claves), `06aeb1ac` (especialidades),
+  `0147a92e` (sucursales), `90c1102e` (métodos de pago), `e5e54dba`
+  (ambientes), `fcf7c6a5` (profesionales).
 - T2 — #440: mensajes de campo y motivo del botón deshabilitado en ambientes,
   tipos de cita y traslados de sede. Spec: S3. Commit `fix(forms): …`.
 - T3 — #441: separar carga, error y vacío en la lista de profesionales.
-  Spec: S4. Commit `fix(professionals): …`.
+  Spec: S4. Commit `fcf7c6a5`.
 - T4 — #442: el rechazo del borrado de un profesional llega con el motivo de la
-  API. Spec: S5. Commit `fix(professionals): …`.
+  API. Spec: S5. Commit `fcf7c6a5`.
 - T5 — #443: el alta del detalle de tipo de cita abre el formulario sin remontar
   la vista. Spec: S6. Commit `fix(appointment-types): …`.
 - T6 — #444: el formulario de tipo de cita deja de ofrecer la bandera derivada.
   Spec: S7. Commit `fix(appointment-types): …`.
 - T7 — #445: columna de referencia, filtro de familia y KPI sobre la población
-  sin filtros en métodos de pago. Spec: S8. Commit `fix(payment-methods): …`.
+  sin filtros en métodos de pago. Spec: S8. Commit `90c1102e`.
 - T8 — Sincronizar `AGENTS.md` §12 y correr la verificación completa (Vitest,
   ESLint, Prettier, `doc-drift`). Spec: S9. Commit `docs: …`.
 
@@ -107,3 +109,12 @@ opt-out por ruta que ya usan `/patients` y `/procedure-catalog`, sin tocar la
 clave global de `router-view`); #444 retira el interruptor de las dos modales y
 declara el valor derivado como dato de sólo lectura; #445 añade la columna, el
 filtro de familia cliente y carga la población sin filtros para los KPI.
+
+L4. Corte de entrega y commits. La rama acumula ocho commits de unidad, uno por
+superficie más el andamiaje compartido (`63d7234c` claves de permiso,
+`a8b15c94` este documento). El primer corte de revisión queda en #439 (las seis
+superficies ocultando la escritura que la API niega); el segundo en los estados
+y formularios de #440, #441 y #442; el tercero en el catálogo de tipos de cita
+(#443, #444) y en el directorio de métodos de pago (#445). Con más de 400 líneas
+autoradas, la entrega se propone como cadenas de PR por corte, no como un único
+PR.
