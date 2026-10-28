@@ -31,6 +31,15 @@
         <p class="text-sm text-systemRed-600">{{ fieldError('general') }}</p>
       </div>
 
+      <AccountingLockNotice
+        v-if="lockBlocked"
+        v-model="lockReason"
+        :message="lockMessage"
+        :error="lockReasonError"
+        :loading="loading"
+        @retry="retryWithOverride"
+      />
+
       <form
         v-if="activeTab === 'manual'"
         class="space-y-4 md:space-y-6"
@@ -240,10 +249,12 @@ import UiTextarea from '@/components/ui/UiTextarea.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import PatientSelector from '@/components/ui/PatientSelector.vue'
+import AccountingLockNotice from '@/components/money/AccountingLockNotice.vue'
 import { useApi } from '@/composables/useApi'
 import { useTransactions } from '@/composables/useTransactions'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
+import { useAccountingLock } from '@/composables/useAccountingLock'
 import { formatCurrency, formatDateTime } from '@/composables/useFormatters'
 import MercadoPagoCheckout from '@/modules/cash-register/components/MercadoPagoCheckout.vue'
 
@@ -273,6 +284,19 @@ const { createTransaction } = useTransactions()
 const toast = useToast()
 const { authLogout } = useAuth()
 const router = useRouter()
+
+// #410 (S9) — the accounting freeze is answered by its own notice, on both
+// paying doors this modal can reach.
+const {
+  blocked: lockBlocked,
+  message: lockMessage,
+  reason: lockReason,
+  reasonError: lockReasonError,
+  reset: resetLock,
+  detect: detectLock,
+  applyValidationErrors: applyLockValidationErrors,
+  authorize: authorizeLock
+} = useAccountingLock()
 
 /**
  * Handle a confirmed 401 from any PaymentModal fetch: show a session-
@@ -455,13 +479,22 @@ const loadPatientAppointments = async patientId => {
   }
 }
 
-const submitManualPayment = async () => {
+const submitManualPayment = async override => {
+  const lockOverrideReason = override?.lock_override_reason
+
   if (props.selectedAppointment?.id) {
-    const response = await post(`/api/pending-payments/${props.selectedAppointment.id}/pay`, {
+    const payload = {
       payment_method_id: formData.value.payment_method_id,
       amount: formData.value.amount,
       description: formData.value.concept
-    })
+    }
+
+    if (lockOverrideReason) payload.lock_override_reason = lockOverrideReason
+
+    const response = await post(
+      `/api/pending-payments/${props.selectedAppointment.id}/pay`,
+      payload
+    )
 
     return response?.data ?? null
   }
@@ -474,11 +507,12 @@ const submitManualPayment = async () => {
     amount: formData.value.amount,
     reference_number: formData.value.reference || null,
     notes: formData.value.notes || null,
-    type: 'payment'
+    type: 'payment',
+    ...(lockOverrideReason ? { lock_override_reason: lockOverrideReason } : {})
   })
 }
 
-const handleSubmit = async () => {
+const handleSubmit = async override => {
   loading.value = true
   errors.value = {}
 
@@ -488,7 +522,9 @@ const handleSubmit = async () => {
   }
 
   try {
-    const transaction = await submitManualPayment()
+    const transaction = await submitManualPayment(override)
+
+    resetLock()
 
     emit('success', {
       transaction,
@@ -507,6 +543,9 @@ const handleSubmit = async () => {
 
     const apiError = error.response?.data
 
+    if (detectLock(error)) return
+    if (applyLockValidationErrors(apiError?.errors)) return
+
     if (apiError?.errors) {
       // #291: the API names the column (`reference_number`); the form names the
       // input (`reference`). The field error must land where the user types.
@@ -523,6 +562,14 @@ const handleSubmit = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const retryWithOverride = async () => {
+  const override = authorizeLock()
+  if (!override) return
+
+  errors.value = {}
+  await handleSubmit(override)
 }
 
 const switchToMercadoPago = async () => {
@@ -674,6 +721,9 @@ onMounted(() => {
 watch(
   () => props.modelValue,
   isOpen => {
+    // The lock notice belongs to one attempt, not to the modal.
+    resetLock()
+
     if (isOpen) {
       loadPaymentMethods()
       if (!props.selectedPatient) {
