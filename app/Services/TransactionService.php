@@ -36,8 +36,13 @@ class TransactionService
      * write-off and an adjustment are ledger entries that touch neither the
      * method nor the drawer and always require a registered administrator
      * authorization.
+     *
+     * #466 — `$accountingLockGuarded` says the caller already ran the accounting
+     * lock guard outside its own transaction, so the rejected attempt survives
+     * in `audit_logs`. It exists only for `PendingPaymentsController@pay`, which
+     * cannot hoist the guard otherwise because the drawer is resolved here.
      */
-    public function createTransaction(array $data): Transaction
+    public function createTransaction(array $data, bool $accountingLockGuarded = false): Transaction
     {
         $type = $data['type'] ?? MoneyVocabulary::PAYMENT;
 
@@ -55,7 +60,7 @@ class TransactionService
         $cashSession = null;
 
         if (MoneyVocabulary::movesCash($type)) {
-            $cashSession = $this->getActiveCashSession();
+            $cashSession = $this->activeCashSession();
 
             if (! $cashSession) {
                 throw ValidationException::withMessages([
@@ -67,23 +72,26 @@ class TransactionService
         // #410 (S8) — money created today is money inside the freeze too. The
         // guard runs before this service opens its transaction, so a blocked
         // charge leaves neither the row nor the drawer movement, and its attempt
-        // survives in `audit_logs`. A caller that already holds a transaction
-        // around the create (the pending-payment door, #393) rolls that audit
-        // back with the refusal; the 403 still answers the attempt. A ledger
-        // entry has no drawer, so the patient it belongs to is the record the
-        // trail names; a missing patient is already a validation error and
-        // never reaches this point.
-        $lockAuditable = $cashSession ?? Patient::query()->find($data['patient_id']);
+        // survives in `audit_logs`. A ledger entry has no drawer, so the patient
+        // it belongs to is the record the trail names; a missing patient is
+        // already a validation error and never reaches this point.
+        //
+        // #466 — a caller that cannot hoist the guard on its own (the pending
+        // payment door) already ran it outside its transaction, so running it
+        // again here would either roll the evidence back or audit it twice.
+        if (! $accountingLockGuarded) {
+            $lockAuditable = $cashSession ?? Patient::query()->find($data['patient_id']);
 
-        if ($lockAuditable !== null) {
-            $this->accountingLocks->guard(
-                AccountingLockService::CASH_TRANSACTIONS,
-                now(),
-                $cashSession?->branch_id ?? Auth::user()?->branch_id,
-                $lockAuditable,
-                'create',
-                $data['lock_override_reason'] ?? null,
-            );
+            if ($lockAuditable !== null) {
+                $this->accountingLocks->guard(
+                    AccountingLockService::CASH_TRANSACTIONS,
+                    now(),
+                    $cashSession?->branch_id ?? Auth::user()?->branch_id,
+                    $lockAuditable,
+                    'create',
+                    $data['lock_override_reason'] ?? null,
+                );
+            }
         }
 
         DB::beginTransaction();
@@ -636,8 +644,11 @@ class TransactionService
 
     /**
      * Get active cash session.
+     *
+     * #466 — public so a door that must guard before its own transaction can
+     * resolve the drawer this service would resolve anyway.
      */
-    private function getActiveCashSession(): ?CashRegisterSession
+    public function activeCashSession(): ?CashRegisterSession
     {
         return CashRegisterSession::where('user_id', Auth::id())
             ->where('status', 'open')

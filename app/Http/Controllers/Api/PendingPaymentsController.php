@@ -6,6 +6,8 @@ use App\Authorization\BranchAccess;
 use App\Exceptions\AccountingLockBlockedException;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
+use App\Services\AccountingLockService;
+use App\Services\TransactionService;
 use App\Support\AppointmentBalance;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -179,6 +181,32 @@ class PendingPaymentsController extends Controller
                 'lock_override_reason' => 'nullable|string|max:1000',
             ]);
 
+            // #466 — the guard runs before the transaction below, so a blocked
+            // attempt keeps its `audit_logs` entry instead of rolling back with
+            // the refusal. The drawer is resolved here, so the pre-check reads
+            // the appointment plainly and the authoritative locked read stays
+            // inside the transaction.
+            $guardedAppointment = Appointment::find($id);
+
+            if ($guardedAppointment instanceof Appointment
+                && $guardedAppointment->status === 'completed') {
+                BranchAccess::assertBranch(
+                    $request->user(),
+                    $guardedAppointment->branch_id === null ? null : (int) $guardedAppointment->branch_id,
+                );
+
+                $cashSession = app(TransactionService::class)->activeCashSession();
+
+                app(AccountingLockService::class)->guard(
+                    AccountingLockService::CASH_TRANSACTIONS,
+                    now(),
+                    $cashSession?->branch_id ?? Auth::user()?->branch_id,
+                    $guardedAppointment,
+                    'create',
+                    $validated['lock_override_reason'] ?? null,
+                );
+            }
+
             return DB::transaction(function () use ($request, $validated, $id) {
                 $appointment = Appointment::with(['patient', 'appointmentType'])
                     ->lockForUpdate()
@@ -229,7 +257,7 @@ class PendingPaymentsController extends Controller
                     ], 422);
                 }
 
-                $transaction = app(\App\Services\TransactionService::class)->createTransaction([
+                $transaction = app(TransactionService::class)->createTransaction([
                     'patient_id' => $appointment->patient_id,
                     'appointment_id' => $appointment->id,
                     'payment_method_id' => $validated['payment_method_id'],
@@ -242,7 +270,7 @@ class PendingPaymentsController extends Controller
                     'discount_amount' => $validated['discount_amount'] ?? 0,
                     'discount_authorized_by' => $validated['discount_authorized_by'] ?? null,
                     'lock_override_reason' => $validated['lock_override_reason'] ?? null,
-                ]);
+                ], accountingLockGuarded: true);
 
                 $newPaidAmount = round($paid + (float) $validated['amount'], 2);
                 $newBalance = round(max(0, $total - $newPaidAmount), 2);
