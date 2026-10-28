@@ -130,6 +130,9 @@ límite declarado, no como deuda silenciosa.
   el servicio y `LabCaseOwnershipTest`.
 - `9c689355` — 629 autoradas / 79 borradas — la superficie de laboratorio, sus
   smokes y el instrumento de auditoría alineado.
+- `4416a20a` — 179 autoradas / 18 borradas — las tres correcciones de la
+  verificación independiente con sus pruebas (la política en la puerta de fase,
+  el export sin fila inventada y el neto negativo como actividad).
 
 ## Log
 
