@@ -290,7 +290,7 @@ test('@U5 primitives · dialogs', async ({ page, request }) => {
     recepcionDrawer = await ensureDrawer(
       request,
       recepcion,
-      'Cerrar caja, Registrar depósito and Nueva transacción need an open drawer'
+      'Cerrar caja, Nuevo depósito and Nueva transacción need an open drawer'
     )
     await openLedger(page, recepcion)
 
@@ -306,7 +306,7 @@ test('@U5 primitives · dialogs', async ({ page, request }) => {
     entries.push(
       await contractFor(page, {
         slug: 'cash-deposit',
-        label: 'Registrar depósito',
+        label: 'Nuevo depósito',
         kind: 'create',
         locator: page.locator('[data-hero-action="deposit"]')
       })
@@ -326,7 +326,7 @@ test('@U5 primitives · dialogs', async ({ page, request }) => {
     entries.push(
       await contractFor(page, {
         slug: 'cash-payment',
-        label: 'Registrar cobro',
+        label: 'Nuevo cobro',
         kind: 'create',
         locator: page.locator('[data-section-action="payment"]')
       })

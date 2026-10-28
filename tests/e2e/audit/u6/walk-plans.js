@@ -210,7 +210,7 @@ test('@U6 · planes: alta, pila de modales, estados y superficies ausentes', asy
         // Line 2: free text, added through the editor's own button.
         await page
           .locator('[data-plan-modal]')
-          .getByRole('button', { name: 'Agregar procedimiento' })
+          .getByRole('button', { name: 'Nuevo procedimiento' })
           .first()
           .click({ timeout: 8000 })
         await page.locator('[data-plan-item]').nth(1).waitFor({ state: 'visible', timeout: 8000 })

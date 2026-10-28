@@ -290,7 +290,7 @@ const openAdHocPayment = async page => {
   if (!opened)
     return {
       ok: false,
-      reason: 'the Cobros section offers no «Registrar cobro»',
+      reason: 'the Cobros section offers no «Nuevo cobro»',
       debug: await dialogDebug(page)
     }
 
