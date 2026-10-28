@@ -96,14 +96,17 @@ describe('dashboard load states (T3)', () => {
     expect(error.text()).toContain('Reintentar')
     expect(error.find('svg').exists()).toBe(true)
 
-    // The failed stats must not be rendered as stale/empty content.
-    expect(wrapper.find('[data-stat-card="appointments-today"]').exists()).toBe(false)
-    expect(wrapper.find('[data-appointment-row]').exists()).toBe(false)
+    // #388 - the summary failure keeps its own block and does not unmount
+    // the sections whose own requests answered: the KPI strip and the agenda
+    // stay on screen from their own sources.
+    expect(wrapper.find('[data-stat-card="appointments-today"]').exists()).toBe(true)
+    expect(wrapper.find('[data-dashboard-block="hoy"]').exists()).toBe(true)
+    expect(wrapper.find('[data-appointment-row]').exists()).toBe(true)
 
     wrapper.unmount()
   })
 
-  it('re-issues the full load path when Reintentar is clicked and clears the error', async () => {
+  it('re-issues only the summary when Reintentar is clicked and clears the error', async () => {
     let attempt = 0
     const sixAppointments = Array.from({ length: 6 }, (_, idx) => makeAppointment(idx + 1))
     getMock.mockImplementation(async url => {
@@ -123,10 +126,13 @@ describe('dashboard load states (T3)', () => {
     await flushPromises()
     await flushPromises()
 
+    // #388 - the retry is summary-only: the other sources are neither
+    // re-fetched nor unmounted.
     expect(statsCalls()).toHaveLength(2)
-    expect(todayCalls()).toHaveLength(2)
-    expect(pendingCalls()).toHaveLength(2)
+    expect(todayCalls()).toHaveLength(1)
+    expect(pendingCalls()).toHaveLength(1)
     expect(wrapper.find('[data-state="error-stats"]').exists()).toBe(false)
+    expect(wrapper.find('[data-appointment-row]').exists()).toBe(true)
     expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('6')
 
     wrapper.unmount()
