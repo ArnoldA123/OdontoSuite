@@ -68,7 +68,7 @@
             </UiButton>
           </div>
         </div>
-        <p class="page-title relative mt-3 text-4xl font-semibold text-label">Pacientes</p>
+        <h1 class="page-title relative mt-3 text-4xl font-semibold text-label">Pacientes</h1>
         <p class="relative mt-2 text-base leading-relaxed text-theme-secondary">
           Gestiona la información de tus pacientes
         </p>

@@ -1155,14 +1155,29 @@ const pageTitledRoutes = [
   '/treatment-plans'
 ]
 
-// Detail surfaces whose page renders its own <h1> naming the entity it shows
-// (an appointment type, a catalog procedure, a professional). The topbar drops
-// its heading there so the document keeps one <h1>, and the visible one is the
-// page's. List routes keep their own ownership rules below.
-const pageOwnedHeadingPrefixes = ['/appointment-types/', '/procedure-catalog/', '/professionals/']
+// List surfaces whose page renders the visible title as its own <h1>
+// (`/patients`). The topbar drops its heading there so the document keeps one
+// <h1> and it is the page's.
+const pageOwnedHeadingRoutes = ['/patients']
 
-const pageOwnsHeading = computed(() =>
-  pageOwnedHeadingPrefixes.some(prefix => route.path.startsWith(prefix))
+// Detail surfaces whose page renders its own <h1> naming the entity it shows
+// (an appointment type, a catalog procedure, a professional, a patient). The
+// topbar drops its heading there for the same reason. List routes keep their
+// own ownership rules above.
+const pageOwnedHeadingPrefixes = [
+  '/appointment-types/',
+  '/procedure-catalog/',
+  '/patients/',
+  '/professionals/'
+]
+
+// The catch-all renders NotFoundPage, which owns the document heading (a `h1`
+// in the page body); a topbar heading there painted a second visible one.
+const pageOwnsHeading = computed(
+  () =>
+    route.name === 'not-found' ||
+    pageOwnedHeadingRoutes.includes(route.path) ||
+    pageOwnedHeadingPrefixes.some(prefix => route.path.startsWith(prefix))
 )
 
 const pageOwnsTitle = computed(

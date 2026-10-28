@@ -138,6 +138,15 @@ const wsStateOf = label => (label ?? '').replace('Estado de WebSocket:', '').tri
 const headingInMain = page =>
   page.evaluate(() => document.querySelector('main h1')?.innerText.trim() ?? '')
 
+// #381 — the document outline, not only the main heading: the shell used to
+// paint its own h1 above the 404, so the row counts the visible ones.
+const headingsOf = page =>
+  page.evaluate(() =>
+    Array.from(document.querySelectorAll('h1')).map(node =>
+      (node.innerText ?? '').trim().replace(/\s+/g, ' ')
+    )
+  )
+
 const checkOf = (checks, id) => checks?.find(check => check.id === id)
 
 // --- sidebar matrix per role ------------------------------------------------
@@ -268,6 +277,7 @@ for (const role of ROLES) {
       notFound: false,
       shellRendered: false,
       heading: '',
+      h1: { count: null, texts: [] },
       horizontalOverflow: null,
       viewports: { desktop: { ...DESKTOP } },
       shots: [],
@@ -292,8 +302,10 @@ for (const role of ROLES) {
 
       evidence.contentLength = await contentLength(page)
       evidence.rendered = evidence.contentLength > NAV_THRESHOLD
-      // The topbar owns the first h1 of the document; the page heading is the
-      // one inside <main>.
+      // The 404 page owns the document heading; the shell paints none, so the
+      // visible h1 list is exactly the page's.
+      evidence.h1.texts = await headingsOf(page)
+      evidence.h1.count = evidence.h1.texts.length
       evidence.heading = await headingInMain(page)
       evidence.notFound = /no encontrada/i.test(evidence.heading)
       evidence.shellRendered =
@@ -310,6 +322,7 @@ for (const role of ROLES) {
 
     expect(evidence.shellRendered, `shell around the 404 for ${role}`).toBe(true)
     expect(evidence.notFound, `page heading for ${role}`).toBe(true)
+    expect(evidence.h1.count, `visible h1 count for ${role}`).toBe(1)
     expect(evidence.shots, `captures for ${role}`).toHaveLength(1)
     expect(evidence.pageErrors, `page errors for ${role}`).toEqual([])
   })

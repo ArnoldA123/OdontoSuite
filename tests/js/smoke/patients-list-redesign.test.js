@@ -77,8 +77,13 @@ const listCalls = () =>
 const mountPage = async () => {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
+    routes: [
+      { path: '/patients', component: { template: '<div />' } },
+      { path: '/:pathMatch(.*)*', component: { template: '<div />' } }
+    ]
   })
+  await router.push('/patients')
+  await router.isReady()
   const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
   await flushPromises()
   return wrapper
@@ -111,14 +116,14 @@ describe('patients hero band (login language)', () => {
     }
 
     const heroTitle = hero.get('.page-title')
-    expect(heroTitle.element.tagName).toBe('P')
+    expect(heroTitle.element.tagName).toBe('H1')
     expect(heroTitle.text()).toBe('Pacientes')
     expect(heroTitle.classes()).toEqual(
       expect.arrayContaining(['page-title', 'text-4xl', 'font-semibold', 'text-label'])
     )
-    // The hero keeps the page-title element; the AppLayout topbar owns the
-    // page's single <h1> (duplicate-h1 fix: hero titles are non-heading).
-    expect(wrapper.findAll('h1').filter(heading => heading.text() === 'Pacientes')).toHaveLength(0)
+    // #405: the hero title is the document's heading and the topbar yields it,
+    // so the page paints one visible <h1> and no second one above it.
+    expect(wrapper.findAll('h1')).toHaveLength(1)
 
     expect(hero.text()).toContain('OdontoSuite')
     expect(hero.text()).toContain('Gestiona la información de tus pacientes')
@@ -129,23 +134,27 @@ describe('patients hero band (login language)', () => {
     wrapper.unmount()
   })
 
-  it('keeps the app-shell h1 contract: the page owns no h1, the page-title stays non-heading', async () => {
+  it('owns the document heading: one visible h1 and no heading in the topbar', async () => {
     const wrapper = await mountPage()
 
     const hero = wrapper.get('[data-patients-hero]')
     const title = hero.get('.page-title')
-    expect(title.element.tagName).toBe('P')
+    expect(title.element.tagName).toBe('H1')
     expect(title.text()).toBe('Pacientes')
     expect(title.classes()).toEqual(
       expect.arrayContaining(['page-title', 'text-4xl', 'font-semibold', 'text-label'])
     )
 
-    // The page source and the rendered page own ZERO <h1> elements.
-    expect(pageSource).not.toMatch(/<h1[\s>]/)
-    expect(hero.find('h1').exists()).toBe(false)
+    // #405: the shell cedes the heading on /patients, so the document keeps
+    // exactly one <h1> and it is the visible hero title.
+    const topbar = wrapper.get('[data-app-chrome="topbar"]')
+    expect(topbar.attributes('data-topbar-title-owner')).toBe('page')
+    expect(topbar.find('h1').exists()).toBe(false)
 
-    // The app-shell topbar owns the single <h1> (page-title map in AppLayout).
-    expect(wrapper.findAll('[data-app-chrome="topbar"] h1')).toHaveLength(1)
+    const headings = wrapper.findAll('h1')
+    expect(headings).toHaveLength(1)
+    expect(headings[0].element).toBe(title.element)
+    expect(headings[0].classes()).not.toContain('sr-only')
 
     wrapper.unmount()
   })
