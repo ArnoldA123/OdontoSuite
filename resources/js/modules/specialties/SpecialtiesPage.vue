@@ -29,7 +29,7 @@
             </template>
             Volver
           </UiButton>
-          <UiButton variant="primary" @click="openCreate">
+          <UiButton v-if="can.manageSpecialties?.value" variant="primary" @click="openCreate">
             <template #icon-left>
               <PlusIcon class="h-4 w-4" aria-hidden="true" />
             </template>
@@ -178,7 +178,9 @@
               <UiButton v-if="hasActiveFilters" variant="secondary" @click="clearFilters">
                 Limpiar filtros
               </UiButton>
-              <UiButton v-else @click="openCreate">Nueva especialidad</UiButton>
+              <UiButton v-else-if="can.manageSpecialties?.value" @click="openCreate">
+                Nueva especialidad
+              </UiButton>
             </template>
           </UiEmptyState>
         </div>
@@ -242,6 +244,7 @@
 
           <template #actions="{ row }">
             <UiButton
+              v-if="can.manageSpecialties?.value"
               variant="ghost"
               size="sm"
               class="text-systemBlue-600 hover:text-systemBlue-700"
@@ -251,6 +254,7 @@
               Editar
             </UiButton>
             <UiButton
+              v-if="can.manageSpecialties?.value"
               variant="ghost"
               size="sm"
               :class="row.is_active ? 'text-systemRed-700' : 'text-systemGreen-700'"
@@ -286,6 +290,7 @@ import {
 import { useApi } from '../../composables/useApi'
 import { useConfirm } from '../../composables/useConfirm'
 import { useErrorHandler } from '../../composables/useErrorHandler'
+import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
@@ -310,6 +315,9 @@ const { get, put } = useApi()
 const { confirm } = useConfirm()
 const toast = useToast()
 const { handleError } = useErrorHandler()
+// #439: writing the catalog needs the permission the API already demands; a
+// read-only session keeps the list, the filters and the KPIs.
+const { can } = usePermissions()
 
 const loading = ref(true)
 const loadError = ref(false)

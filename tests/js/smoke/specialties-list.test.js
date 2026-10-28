@@ -33,6 +33,14 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/specialties/SpecialtiesPage.vue'
 import { confirmIsOpen } from '../../../resources/js/composables/useConfirm'
+import rolePermissions from '../support/role-permissions.json'
+
+// #439: the page gates its write affordances on `usePermissions().can.*`, and
+// those flags are a membership check on the permission list the API publishes.
+const seedSession = role => {
+  localStorage.setItem('auth_token', 'test-token')
+  localStorage.setItem('user', JSON.stringify({ id: 1, role, permissions: rolePermissions[role] }))
+}
 
 const KPI_POPULATION = { total: 9, active: 7, inactive: 2, procedures: 48 }
 
@@ -102,6 +110,7 @@ const selectStatus = async (wrapper, label) => {
 beforeEach(() => {
   vi.clearAllMocks()
   document.body.innerHTML = ''
+  seedSession('administrador')
   getMock.mockResolvedValue({ data: [], meta: { kpis: KPI_POPULATION } })
 })
 
@@ -191,6 +200,22 @@ describe('specialties list smoke', () => {
 
     const inactiveRow = rowByText(wrapper, 'Ortodoncia')
     expect(inactiveRow.find('[data-row-action="toggle"]').text()).toBe('Activar')
+
+    wrapper.unmount()
+  })
+
+  it('offers no write affordance to a session without manage.specialty', async () => {
+    seedSession('recepcionista')
+    getMock.mockResolvedValue({ data: SPECIALTIES, meta: { kpis: KPI_POPULATION } })
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-specialties-hero]').text()).not.toContain('Nueva especialidad')
+    expect(rowByText(wrapper, 'Odontología general').text()).toContain('Odontología general')
+    expect(wrapper.find('[data-row-action="edit"]').exists()).toBe(false)
+    expect(wrapper.find('[data-row-action="toggle"]').exists()).toBe(false)
+    // The read surface stays whole: KPIs and filters are not gated.
+    expect(wrapper.find('[data-kpi-value="total"]').text()).toBe('9')
+    expect(wrapper.find('[data-status-filter]').exists()).toBe(true)
 
     wrapper.unmount()
   })
