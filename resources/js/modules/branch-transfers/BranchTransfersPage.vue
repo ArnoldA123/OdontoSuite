@@ -106,6 +106,15 @@
             >
               Enviar solicitud
             </UiButton>
+            <!-- #440: a disabled button does not say what the form is missing,
+                 so the reason the door is closed travels with it. -->
+            <p
+              v-if="!canSubmit && !submitting"
+              data-transfer-submit-hint
+              class="text-xs text-theme-secondary"
+            >
+              {{ submitHint }}
+            </p>
           </form>
         </UiCard>
       </section>
@@ -424,6 +433,13 @@ const canSubmit = computed(
     form.to_branch_id !== undefined &&
     form.reason.trim().length > 0 &&
     !submitting.value
+)
+
+// #440: the disabled submit explains which requirement is still open.
+const submitHint = computed(() =>
+  form.to_branch_id === null || form.to_branch_id === undefined
+    ? 'Elige la sede de destino para enviar la solicitud.'
+    : 'Escribe el motivo del traslado para enviar la solicitud.'
 )
 
 // The table renders exactly what the API scoped: own rows for a professional,
