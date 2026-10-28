@@ -952,8 +952,13 @@ test('@U9 walks tipos de cita', async ({ page }) => {
         const dialog = page.locator(DIALOG).last()
         await dialog.waitFor({ state: 'visible', timeout: 12000 }).catch(() => {})
 
+        // `DIALOG` is a Playwright selector: `:visible` is resolved by the
+        // locator engine, never by `document.querySelectorAll`.
+        const derivedField = page
+          .locator(`${DIALOG} [data-derived-field="requires_materials"]`)
+          .first()
         const derivedValue =
-          (await visibleTexts(page, `${DIALOG} [data-derived-field="requires_materials"]`))[0] ??
+          ((await derivedField.innerText().catch(() => '')) || '').trim().replace(/\s+/g, ' ') ||
           null
         const dialogText = (await dialog.innerText().catch(() => '')).trim().replace(/\s+/g, ' ')
         const derivedCaption = /Derivado de la receta del procedimiento por defecto\./.test(

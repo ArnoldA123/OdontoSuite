@@ -318,7 +318,18 @@ test('@U9 walks métodos de pago', async ({ page }) => {
         const searched = await search(page, fixture.name)
         const filtered = await rowCount(page, ROWS)
         const filteredTexts = await visibleTexts(page, ROWS)
-        const searchCall = lastCall(requests, 'GET', '/api/payment-methods')
+        // A filtered read is paired with an unfiltered population read on the
+        // same path, so the last call is the population one: the search is the
+        // call that carries `q`.
+        const searchCall =
+          [...requests]
+            .reverse()
+            .find(
+              entry =>
+                entry.method === 'GET' &&
+                entry.path === '/api/payment-methods' &&
+                entry.query?.q === fixture.name
+            ) ?? null
         const hitsFixture = Boolean(filteredTexts[0]?.includes(fixture.name))
 
         const restored = await search(page, '')

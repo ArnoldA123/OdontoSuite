@@ -303,10 +303,13 @@ test('@U9 walks ambientes', async ({ page }) => {
         const nameFieldText = ((await nameField.innerText().catch(() => '')) || '')
           .trim()
           .replace(/\s+/g, ' ')
+        // The input label also carries `text-error-500` when the field is
+        // invalid (Input.vue marks the label with the error class), so the
+        // reader has to skip it and take the paragraph that holds the message.
         const inlineMessage =
           (
             (await nameField
-              .locator('.text-error-500, [data-error]')
+              .locator('p.text-error-500, [data-error]')
               .first()
               .innerText()
               .catch(() => '')) || ''
