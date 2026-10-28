@@ -329,6 +329,10 @@ const activeTab = ref('manual')
 const pendingTransactionId = ref(null)
 const adHocPatient = ref(null)
 
+// #467 — the lock notice belongs to one attempt, and its retry has to resume
+// that attempt: the Mercado Pago preparation is not the manual submit.
+const retryAction = ref('manual')
+
 // Issue #199: without a pending row there is no preset patient or appointment,
 // so the modal is an ad-hoc charge and the patient is picked freely.
 const isAdHocPayment = computed(() => !props.selectedPatient && !props.selectedAppointment)
@@ -513,6 +517,7 @@ const submitManualPayment = async override => {
 }
 
 const handleSubmit = async override => {
+  retryAction.value = 'manual'
   loading.value = true
   errors.value = {}
 
@@ -569,11 +574,21 @@ const retryWithOverride = async () => {
   if (!override) return
 
   errors.value = {}
+
+  if (retryAction.value === 'mercadopago') {
+    await switchToMercadoPago(override)
+    return
+  }
+
   await handleSubmit(override)
 }
 
-const switchToMercadoPago = async () => {
+const switchToMercadoPago = async override => {
+  retryAction.value = 'mercadopago'
+
   if (!validateForm()) return
+
+  const lockOverrideReason = override?.lock_override_reason
 
   loading.value = true
   errors.value = {}
@@ -586,18 +601,23 @@ const switchToMercadoPago = async () => {
       amount: formData.value.amount,
       reference_number: null,
       notes: formData.value.notes || null,
-      type: 'payment'
+      type: 'payment',
+      ...(lockOverrideReason ? { lock_override_reason: lockOverrideReason } : {})
     })
 
     const txId = transaction?.id
 
     if (txId) {
+      resetLock()
       pendingTransactionId.value = txId
       activeTab.value = 'mercadopago'
     } else {
       toast.error('Error al crear la transacción para Mercado Pago')
     }
   } catch (error) {
+    if (detectLock(error)) return
+    if (applyLockValidationErrors(error.response?.data?.errors)) return
+
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors
     } else {
