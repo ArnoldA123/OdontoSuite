@@ -54,13 +54,15 @@ const PAYMENT_METHODS = [
   { id: 2, name: 'Tarjeta de crédito', is_active: true }
 ]
 
+// #412: the search endpoint publishes first_name/last_name (plus the additive
+// `name`), so the fixture carries exactly the contract the modal must read.
 const PATIENTS = [
   {
     id: 3,
-    name: 'Ana',
-    last_name: 'Torres',
+    first_name: 'Gonzalo',
+    last_name: 'Velasco',
     document_number: '45678912',
-    email: 'ana@test.com'
+    email: 'gonzalo.velasco@test.com'
   }
 ]
 
@@ -282,6 +284,34 @@ describe('Caja transaction modal', () => {
     await flushPromises()
 
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+  })
+
+  it('renders the patient row and card from first_name/last_name without an undefined', async () => {
+    wrapper = await mountOpenModal()
+
+    const patientInput = document.body.querySelector('[data-modal-patient-search] input')
+    patientInput.value = 'Gonzalo Velasco'
+    patientInput.dispatchEvent(new Event('input'))
+    await flushPromises()
+
+    expect(harness.apiGet).toHaveBeenCalledWith('/api/patients/search', {
+      params: { q: 'Gonzalo Velasco' }
+    })
+
+    const patientResult = document.body.querySelector('[data-patient-result]')
+    expect(patientResult).toBeTruthy()
+    expect(patientResult.textContent).toContain('Gonzalo Velasco')
+    expect(patientResult.textContent).not.toContain('undefined')
+
+    patientResult.click()
+    await flushPromises()
+
+    const patientField = document.body.querySelector('[data-modal-field="patient_id"]')
+    expect(patientField.textContent).toContain('Gonzalo Velasco')
+    expect(patientField.textContent).not.toContain('undefined')
+
+    const selectedInput = document.body.querySelector('[data-modal-patient-search] input')
+    expect(selectedInput.value).toBe('Gonzalo Velasco')
   })
 
   it('renders errors.general and field errors when the API rejects the transaction', async () => {

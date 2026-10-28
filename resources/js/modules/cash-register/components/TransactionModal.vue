@@ -67,7 +67,7 @@
             @click="selectPatient(patient)"
           >
             <div class="font-medium text-theme-primary">
-              {{ patient.name }} {{ patient.last_name }}
+              {{ patientFullName(patient) }}
             </div>
             <div class="text-sm text-theme-secondary">
               {{ patient.document_number || patient.dni }} - {{ patient.email }}
@@ -79,7 +79,7 @@
           <div class="flex items-center justify-between">
             <div>
               <div class="font-medium text-theme-primary">
-                {{ selectedPatient.name }} {{ selectedPatient.last_name }}
+                {{ patientFullName(selectedPatient) }}
               </div>
               <div class="text-sm text-theme-secondary">
                 {{ selectedPatient.document_number || selectedPatient.dni }} -
@@ -469,10 +469,20 @@ const searchPatients = async () => {
   }
 }
 
+// The search endpoint publishes first_name/last_name; `name` is not part of
+// its contract, so the row is assembled from the two fields it does publish.
+const patientFullName = patient => {
+  const parts = [patient?.first_name, patient?.last_name]
+    .map(value => String(value ?? '').trim())
+    .filter(Boolean)
+
+  return parts.join(' ')
+}
+
 const selectPatient = async patient => {
   selectedPatient.value = patient
   formData.value.patient_id = patient.id
-  patientSearch.value = `${patient.name} ${patient.last_name}`
+  patientSearch.value = patientFullName(patient)
   showPatientResults.value = false
   await loadPatientAppointments(patient.id)
 }

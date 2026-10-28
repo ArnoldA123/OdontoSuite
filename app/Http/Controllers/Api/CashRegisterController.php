@@ -70,11 +70,18 @@ class CashRegisterController extends Controller
 
     /**
      * Get current open session.
+     *
+     * #407 — this endpoint answers what the screen calls "mi caja": the
+     * actor's open session, or the actor's last one when it is closed. The
+     * administrator exemption is gone: a foreign drawer is read through
+     * `GET /api/cash-register/sessions/{id}`, whose owner-or-administrador
+     * policy (#193) labels it as somebody else's.
      */
     public function current(): JsonResponse
     {
         try {
-            $session = $this->cashRegisterService->getCurrentSession();
+            $session = $this->cashRegisterService->getCurrentSession()
+                ?? $this->cashRegisterService->getLatestSession();
 
             if (! $session) {
                 return response()->json([
@@ -85,12 +92,31 @@ class CashRegisterController extends Controller
                 ]);
             }
 
-            $summary = $this->cashRegisterService->getSessionSummary($session);
+            if ($session->status === 'open') {
+                return response()->json([
+                    'data' => [
+                        'session' => $session,
+                        'summary' => $this->cashRegisterService->getSessionSummary($session),
+                    ],
+                ]);
+            }
 
             return response()->json([
                 'data' => [
                     'session' => $session,
-                    'summary' => $summary,
+                    'closing' => [
+                        'closing_amount' => $session->closing_amount !== null
+                            ? (float) $session->closing_amount
+                            : null,
+                        'expected_amount' => $session->expected_amount !== null
+                            ? (float) $session->expected_amount
+                            : null,
+                        'difference_amount' => $session->difference_amount !== null
+                            ? (float) $session->difference_amount
+                            : null,
+                        'closed_at' => $session->closed_at?->toIso8601String(),
+                        'closing_notes' => $session->closing_notes,
+                    ],
                 ],
             ]);
         } catch (\Exception $e) {

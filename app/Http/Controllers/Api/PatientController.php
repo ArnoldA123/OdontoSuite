@@ -392,18 +392,36 @@ class PatientController extends Controller
         ]);
 
         $like = self::likePattern($validated['search']);
+        $words = preg_split('/\s+/', $validated['search'], -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
         $patients = Patient::where('is_active', true)
             ->when(
                 $validated['branch_id'] ?? null,
                 fn ($query, $branchId) => $query->where('branch_id', $branchId)
             )
-            ->where(function ($query) use ($like) {
+            ->where(function ($query) use ($like, $words) {
                 $query->where('first_name', 'like', $like)
                     ->orWhere('last_name', 'like', $like)
                     ->orWhere('email', 'like', $like)
                     ->orWhere('phone', 'like', $like)
-                    ->orWhere('document_number', 'like', $like);
+                    ->orWhere('document_number', 'like', $like)
+                    ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", [$like]);
+
+                // Full name split in words: every word must match one of the
+                // name columns, so both "Gonzalo Velasco" and "Velasco
+                // Gonzalo" find the same patient.
+                if (count($words) > 1) {
+                    $query->orWhere(function ($nameQuery) use ($words) {
+                        foreach ($words as $word) {
+                            $wordLike = self::likePattern($word);
+
+                            $nameQuery->where(function ($partQuery) use ($wordLike) {
+                                $partQuery->where('first_name', 'like', $wordLike)
+                                    ->orWhere('last_name', 'like', $wordLike);
+                            });
+                        }
+                    });
+                }
             })
             ->orderBy('last_name')
             ->orderBy('first_name')
@@ -424,6 +442,7 @@ class PatientController extends Controller
                 'id' => $p->id,
                 'first_name' => $p->first_name,
                 'last_name' => $p->last_name,
+                'name' => trim($p->first_name.' '.$p->last_name),
                 'dni' => $p->document_number,
                 'document_number' => $p->document_number,
                 'email' => $p->email,

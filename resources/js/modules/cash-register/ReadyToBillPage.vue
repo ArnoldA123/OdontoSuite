@@ -14,6 +14,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import { useApi } from '@/composables/useApi'
 import { useToast } from '@/composables/useToast'
 import { formatCurrency, formatDateTime } from '@/composables/useFormatters'
+import PaymentModal from './components/PaymentModal.vue'
 
 const { get, post } = useApi()
 const toast = useToast()
@@ -46,6 +47,9 @@ const previewData = ref(null)
 const previewLoading = ref(false)
 const previewError = ref('')
 const generatingId = ref(null)
+
+const collectOpen = ref(false)
+const collectingRow = ref(null)
 
 let filterTimer = null
 
@@ -173,6 +177,49 @@ const generateQuotation = async row => {
 
 const patientName = row =>
   [row.patient?.first_name, row.patient?.last_name].filter(Boolean).join(' ') || '—'
+
+// #393 (S2) — the row offers the collection of the balance it publishes.
+const collectingPatient = computed(() => {
+  const row = collectingRow.value
+  if (!row) return null
+
+  return {
+    id: row.patient?.id,
+    name: patientName(row),
+    document_number: row.patient?.document_number,
+    concept: row.appointment_type,
+    amount: row.balance
+  }
+})
+
+const collectingAppointment = computed(() => {
+  const row = collectingRow.value
+  if (!row) return null
+
+  return {
+    id: row.id,
+    date: row.completed_at,
+    appointment_type: { name: row.appointment_type }
+  }
+})
+
+const openCollect = row => {
+  collectingRow.value = row
+  collectOpen.value = true
+}
+
+const handleCollected = async paymentData => {
+  toast.success(
+    paymentData?.transactionNumber
+      ? `Cobro ${paymentData.transactionNumber} registrado`
+      : 'Cobro registrado correctamente'
+  )
+  await fetchRows()
+}
+
+watch(collectOpen, open => {
+  if (!open) collectingRow.value = null
+})
 
 watch(
   filters,
@@ -348,6 +395,14 @@ onBeforeUnmount(() => {
 
           <template #actions="{ row }">
             <UiButton
+              variant="primary"
+              size="xs"
+              :data-collect-action="row.id"
+              @click="openCollect(row)"
+            >
+              Cobrar
+            </UiButton>
+            <UiButton
               variant="secondary"
               size="xs"
               :data-preview-action="row.id"
@@ -499,4 +554,11 @@ onBeforeUnmount(() => {
       </UiButton>
     </template>
   </UiModal>
+
+  <PaymentModal
+    v-model="collectOpen"
+    :selected-patient="collectingPatient"
+    :selected-appointment="collectingAppointment"
+    @success="handleCollected"
+  />
 </template>

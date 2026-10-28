@@ -585,6 +585,49 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-27 (auditoría de dinero: saldo único, caja del actor, bloqueo
+  contable en el alta y búsqueda por nombre completo, #393/#407/#410/#412)** —
+  Cuatro hallazgos de la auditoría UI U5, un commit por issue. **#393**: nace
+  `App\Support\AppointmentBalance`, la única definición del saldo de una
+  atención (`final_amount` cuando existe, si no `total_cost`, menos los pagos
+  `completed`), y la leen `GET /api/appointments/ready-to-bill`, el desglose y
+  `POST /api/pending-payments/{id}/pay`; esa puerta bloquea la fila de la cita
+  mientras lee y escribe, admite cobros parciales, responde 409 con su propio
+  motivo cuando ya hay un pago registrado y 422 cuando el importe excede el
+  saldo. «Listos para facturar» gana la acción **Cobrar** y `PaymentModal`
+  incorpora el aviso de bloqueo contable. **#407**:
+  `CashRegisterService::getCurrentSession()` filtra siempre por el actor (la
+  exención del administrador desaparece) y `getLatestSession()` devuelve su
+  último turno; `GET /api/cash-register/current` publica la gaveta propia
+  abierta con `summary`, o la propia cerrada con un bloque `closing` (contado,
+  esperado, diferencia, fecha) y sin `summary`, así que el hero de
+  `/cash-register` distingue «Sin sesión» (KPIs `N/D`, «Abrir caja»), «Sesión
+  abierta» y «Sesión cerrada» con su arqueo, y ninguna acción de caja opera
+  sobre una gaveta cerrada o ajena. **#410**: `AccountingLockService::guard()`
+  corre también en el alta — `TransactionService::createTransaction` antes de
+  abrir su transacción y `CashMovementController@store` antes del insert—, sobre
+  la fecha contable de hoy y la sede de la sesión, así que un cobro o un
+  movimiento bloqueado responde `403 accounting_lock_blocked` y el aviso del
+  modal ofrece el motivo de administrador (≥10 caracteres) con
+  `accounting_lock_overridden`; finanzas no ve ese campo. **#412**:
+  `/api/patients/search` separa el término en palabras (AND entre palabras sobre
+  nombre y apellido, en cualquier orden) y acepta la cadena completa contra
+  `CONCAT(first_name, ' ', last_name)` sin perder documento, email ni teléfono,
+  y publica `name`; `TransactionModal` arma sus filas desde
+  `first_name`/`last_name` y deja de pintar `undefined`. Sin rutas, modelos,
+  migraciones ni permisos nuevos: los conteos de §4/§5 no cambian. Tests:
+  `AccountingLockCreationGuardTest` (8), `AppointmentPaymentBalanceTest` (5,
+  cierre real por `/appointments/{id}/complete`),
+  `CashRegisterCurrentSessionScopeTest` reescrito (tres estados y propiedad de
+  la gaveta), `PatientSearchFullNameTest` (6) y los smokes `caja-caja-actual`
+  (tres estados), `caja-ready-to-bill`, `caja-cobros`, `caja-depositos`,
+  `caja-transacciones` y `patient-selector`. El estado «Sesión cerrada» además
+  se midió en un navegador real (Playwright/Chromium) sobre una base dedicada:
+  `tests/e2e/cash-current.spec.js` cubre los tres estados del hero y queda como
+  pase manual con guarda `CASH_CURRENT_BROWSER=1`; la evidencia de la corrida
+  vive en `.atl/qa-evidence/audit/money-current/`. Suite MySQL completa
+  `OK (2820 tests, 17187 assertions)`; Vitest 1319 pruebas, medidos tras
+  integrar `main` (#465).
 - **2026-10-27 (auditoría U6: el alta se explica como se guarda, la puerta de
   envío existe y cada acción se ofrece a quien puede ejecutarla,
   #414/#415/#420/#422)** — Cuatro hallazgos de la sesión U6 (#369). **#414**: el

@@ -188,6 +188,7 @@ afterEach(() => {
   wrapper?.unmount()
   wrapper = null
   document.body.innerHTML = ''
+  localStorage.clear()
 })
 
 describe('Cobros: primitives', () => {
@@ -486,5 +487,62 @@ describe('PaymentModal', () => {
 
     expect(harness.apiPost).not.toHaveBeenCalled()
     expect(document.querySelector('[data-payment-error]')).toBeNull()
+  })
+
+  it('answers the accounting lock with its notice and retries with the override reason', async () => {
+    // #410 (S9): the override reason is offered only to the role that holds it.
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        id: 1,
+        name: 'Admin',
+        role: 'administrador',
+        permissions: ['override.accounting_lock']
+      })
+    )
+
+    const lockMessage =
+      'El módulo [cash_transactions] está bloqueado contablemente hasta el 2026-09-30: ' +
+      'la operación [create] sobre un registro de esa fecha requiere autorización registrada.'
+
+    harness.apiPost.mockRejectedValueOnce({
+      response: { status: 403, data: { code: 'accounting_lock_blocked', message: lockMessage } }
+    })
+
+    await mountPaymentModal()
+    await chooseOption('method', 'Efectivo')
+    await submitPayment()
+
+    const notice = document.querySelector('[data-accounting-lock-notice]')
+    expect(notice).not.toBeNull()
+    expect(notice.getAttribute('role')).toBe('alert')
+    expect(notice.textContent).toContain(lockMessage)
+    expect(document.querySelector('[data-payment-error]')).toBeNull()
+
+    const reason = document.querySelector('[data-accounting-lock-reason] input')
+    expect(reason).not.toBeNull()
+    reason.value = 'Gerencia autorizo el cierre'
+    reason.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+
+    harness.apiPost.mockResolvedValueOnce({
+      data: { id: 91, transaction_number: 'TX-91' },
+      meta: {}
+    })
+    document.querySelector('[data-accounting-lock-retry]').click()
+    await flushPromises()
+    await flushPromises()
+
+    const [url, payload] = harness.apiPost.mock.calls.at(-1)
+    expect(url).toBe('/api/pending-payments/7/pay')
+    expect(payload).toMatchObject({
+      payment_method_id: paymentMethod.id,
+      amount: 120,
+      lock_override_reason: 'Gerencia autorizo el cierre'
+    })
+
+    const success = wrapper.emitted('success')
+    expect(success).toHaveLength(1)
+    expect(document.querySelector('[data-accounting-lock-notice]')).toBeNull()
   })
 })
