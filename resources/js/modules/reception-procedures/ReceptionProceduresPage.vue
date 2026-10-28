@@ -112,7 +112,7 @@
       </div>
     </UiFilterBar>
 
-    <div v-if="loading" class="py-10 text-center">
+    <div v-if="bootLoading || loading" class="py-10 text-center" data-reception-loading>
       <LoadingSpinner text="Cargando procedimientos..." />
     </div>
 
@@ -222,6 +222,11 @@ const { procedures, loading, pagination, getProcedures, currentPage, totalPages 
 const { specialties, getSpecialties } = useSpecialties()
 
 const loadError = ref(false)
+// #452/#456 (U11, states): the page owns its first frame. `loading` only turns
+// on when the catalog request starts, and the specialty catalog is read first,
+// so the surface used to paint an empty list before its first read. The
+// placeholder stays mounted until the catalog answers; no second read is added.
+const bootLoading = ref(true)
 const filters = reactive({
   q: '',
   specialty: '',
@@ -267,6 +272,8 @@ const load = async () => {
     await getProcedures({ ...filters })
   } catch {
     loadError.value = true
+  } finally {
+    bootLoading.value = false
   }
 }
 
@@ -320,7 +327,9 @@ watch(
 const goBack = () => router.push('/dashboard')
 
 onMounted(async () => {
-  await getSpecialties(true)
+  // A failing specialty catalog cannot cancel the procedure read: the list the
+  // page exists for is the catalog of procedures, not its filter options.
+  await getSpecialties(true).catch(() => {})
   await load()
 })
 </script>

@@ -243,6 +243,26 @@ describe('ready-to-bill: list', () => {
     expect(wrapper.find('[data-rtb-table]').exists()).toBe(true)
   })
 
+  it('declares the empty state when the list has no rows', async () => {
+    // #452 (U11, states): a list that publishes a table owes a declared empty
+    // state; the text is the one the page already used.
+    harness.apiGet.mockResolvedValue({
+      data: [],
+      meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 }
+    })
+    await mountPage()
+
+    const empty = wrapper.find('[data-rtb-empty]')
+    expect(empty.exists()).toBe(true)
+    expect(empty.classes()).toContain('empty-state')
+    expect(empty.text()).toContain('No hay citas por cobrar')
+    expect(empty.text()).toContain('Las citas completadas con saldo pendiente')
+    // No invented actions: the empty state only explains the absence.
+    expect(empty.find('button').exists()).toBe(false)
+    expect(wrapper.find('[data-rtb-table]').exists()).toBe(false)
+    expect(wrapper.find('[data-rtb-loading]').exists()).toBe(false)
+  })
+
   it('renders the endpoint rows with formatted money and quotation state', async () => {
     await mountPage()
 
