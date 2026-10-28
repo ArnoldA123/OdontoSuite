@@ -307,4 +307,53 @@ describe('procedure stats page (T2)', () => {
 
     wrapper.unmount()
   })
+
+  it('mounts the filter bar primitive around the period controls', async () => {
+    const { wrapper } = await mountPage()
+
+    const bar = wrapper.find('[data-procedure-stats-filters]')
+
+    expect(bar.exists()).toBe(true)
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-filters-from]').exists()).toBe(true)
+    expect(bar.find('[data-filters-to]').exists()).toBe(true)
+    expect(bar.find('[data-filters-limit]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('«Limpiar filtros» restores the default window and Top N in one request', async () => {
+    const { wrapper } = await mountPage()
+
+    await wrapper.find('[data-preset="7d"]').trigger('click')
+    await flushPromises()
+
+    const limitSelect = wrapper.find('[data-filters-limit]')
+    await limitSelect.find('button').trigger('click')
+    await flushPromises()
+    const fifty = limitSelect.findAll('button').find(option => option.text() === '50')
+    await fifty.trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-filters-apply]').trigger('click')
+    await flushPromises()
+
+    getMock.mockClear()
+
+    const clear = wrapper.find('[data-filters-clear]')
+
+    expect(clear.text()).toBe('Limpiar filtros')
+
+    await clear.trigger('click')
+    await flushPromises()
+
+    expect(getMock).toHaveBeenCalledTimes(1)
+    expect(lastQuery().get('from')).toBe('2026-07-22')
+    expect(lastQuery().get('to')).toBe('2026-10-19')
+    expect(lastQuery().get('limit')).toBe('10')
+    expect(wrapper.find('[data-period-applied]').text()).toContain('90 días')
+    expect(wrapper.find('[data-period-applied]').text()).toContain('Top 10')
+
+    wrapper.unmount()
+  })
 })

@@ -254,6 +254,31 @@ describe('branches list smoke', () => {
 
     expect(rows(wrapper)).toHaveLength(3)
     expect(wrapper.find('[data-branch-search] input').element.value).toBe('')
+    // The directory is read once and filtered in memory: the reset issues no
+    // second request.
+    expect(
+      getMock.mock.calls.filter(([url]) => String(url).startsWith('/api/branches'))
+    ).toHaveLength(1)
+
+    wrapper.unmount()
+  })
+
+  it('mounts the filter bar primitive around the search, the status select and the count', async () => {
+    const { wrapper } = await mountPage()
+
+    const bar = wrapper.find('[data-branches-filters]')
+
+    expect(bar.exists()).toBe(true)
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-branch-search]').exists()).toBe(true)
+    expect(bar.find('[data-status-filter]').exists()).toBe(true)
+    expect(bar.find('[data-filter-count]').exists()).toBe(true)
+    expect(bar.find('[data-filters-clear]').exists()).toBe(false)
+
+    await wrapper.find('[data-branch-search] input').setValue('lima')
+    await flushPromises()
+
+    expect(bar.find('[data-filters-clear]').text()).toBe('Limpiar filtros')
 
     wrapper.unmount()
   })

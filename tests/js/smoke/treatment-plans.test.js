@@ -225,6 +225,50 @@ describe('treatment-plans page', () => {
     wrapper.unmount()
   })
 
+  it('mounts the filter bar primitive with the single clear verb', async () => {
+    const wrapper = await mountPage()
+
+    const bar = wrapper.get('[data-filters]')
+
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-filter-patient]').exists()).toBe(true)
+    expect(bar.find('[data-filter-status]').exists()).toBe(true)
+    expect(bar.find('[data-filter-from]').exists()).toBe(true)
+    expect(bar.find('[data-filter-to]').exists()).toBe(true)
+    expect(bar.find('[data-view-toggle]').exists()).toBe(true)
+
+    const clear = bar.get('[data-clear-filters]')
+    expect(clear.text()).toBe('Limpiar filtros')
+
+    // One clear verb only: the bare «Limpiar» label is gone from the surface.
+    expect(
+      wrapper.findAll('button').filter(button => button.text().trim() === 'Limpiar')
+    ).toHaveLength(0)
+
+    wrapper.unmount()
+  })
+
+  it('«Limpiar filtros» releases the preset and re-reads the defaults once', async () => {
+    const wrapper = await mountPage()
+
+    await wrapper.get('[data-quick-filter="active"]').trigger('click')
+    await flushPromises()
+
+    requests.length = 0
+
+    await wrapper.get('[data-clear-filters]').trigger('click')
+    await flushPromises()
+
+    const listCalls = requests.filter(r => r.url.includes('/api/treatment-plans?'))
+    expect(listCalls).toHaveLength(1)
+    expect(wrapper.get('[data-quick-filter="all"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.get('[data-filter-status] button[aria-haspopup="true"]').text()).toContain(
+      'Todos los estados'
+    )
+
+    wrapper.unmount()
+  })
+
   it('opens the detail and the edit form with the lines the list publishes', async () => {
     const wrapper = await mountPage()
 

@@ -646,6 +646,39 @@ describe('professionals smoke', () => {
     wrapper.unmount()
   })
 
+  it('mounts the filter bar primitive and resets to the defaults over the single team read', async () => {
+    installTeam(TEAM)
+    const wrapper = await mountPage()
+
+    const bar = wrapper.find('[data-team-filters]')
+
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-professionals-search]').exists()).toBe(true)
+    expect(bar.find('[data-professionals-specialty-filter]').exists()).toBe(true)
+
+    const teamReads = () =>
+      getMock.mock.calls.filter(([url]) => String(url).startsWith('/api/users?role=')).length
+
+    await chooseSelectOption(wrapper.find('[data-professionals-specialty-filter]'), 'Ortodoncia')
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(2)
+
+    const clear = wrapper.find('[data-team-clear-filters]')
+
+    expect(clear.text()).toBe('Limpiar filtros')
+
+    await clear.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-professionals-search] input').element.value).toBe('')
+    expect(wrapper.find('[data-professionals-specialty-filter]').text()).toContain(
+      'Todas las especialidades'
+    )
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(3)
+    expect(teamReads()).toBe(1)
+
+    wrapper.unmount()
+  })
+
   it('submits licence, branch and status from the create modal', async () => {
     installTeam(TEAM, [{ id: 7, name: 'Sede Miraflores' }])
     const wrapper = await mountPage({ stubs: { teleport: true } })

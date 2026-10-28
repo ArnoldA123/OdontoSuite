@@ -326,6 +326,45 @@ describe('quotations list redesign', () => {
     wrapper.unmount()
   })
 
+  it('mounts the filter bar primitive around search, status and the date range', async () => {
+    const wrapper = await mountPage()
+
+    const bar = wrapper.find('[data-quotations-filters]')
+
+    expect(bar.exists()).toBe(true)
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-quotations-search]').exists()).toBe(true)
+    expect(bar.find('[data-status-filter]').exists()).toBe(true)
+    expect(bar.find('[data-date-from]').exists()).toBe(true)
+    expect(bar.find('[data-date-to]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('«Limpiar filtros» restores the defaults and re-reads the list once', async () => {
+    const wrapper = await mountPage()
+
+    await wrapper.find('[data-quotations-search] input').setValue('PR-DRAFT')
+    await new Promise(resolve => setTimeout(resolve, 400))
+    await flushPromises()
+
+    const clear = wrapper.find('[data-filters-clear]')
+
+    expect(clear.exists()).toBe(true)
+    expect(clear.text()).toBe('Limpiar filtros')
+
+    await clear.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-quotations-search] input').element.value).toBe('')
+    expect(wrapper.find('[data-status-filter] button[aria-haspopup="true"]').text()).toContain(
+      'Todos los estados'
+    )
+    expect(wrapper.find('[data-filters-clear]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
   it('opens the detail named by the open query and drops it on close', async () => {
     const { wrapper, router } = await mountPageAt('/quotations?open=1')
 

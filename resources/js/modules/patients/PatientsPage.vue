@@ -239,8 +239,8 @@
         </div>
 
         <!-- Search and Filters -->
-        <UiCard variant="glass">
-          <div class="flex flex-col lg:flex-row gap-4">
+        <UiFilterBar :columns="2" data-patients-filters>
+          <div class="flex flex-col gap-4 sm:col-span-2 lg:flex-row">
             <div class="flex-1">
               <UiInput
                 v-model="searchQuery"
@@ -296,7 +296,7 @@
               </UiButton>
             </div>
           </div>
-        </UiCard>
+        </UiFilterBar>
 
         <!-- Patients List -->
         <UiCard variant="glass" class="overflow-hidden">
@@ -446,6 +446,7 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
+import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
@@ -464,6 +465,7 @@ export default {
     DentalMotifLayer,
     UiCard,
     UiButton,
+    UiFilterBar,
     UiInput,
     UiSelect,
     UiSectionEmpty,

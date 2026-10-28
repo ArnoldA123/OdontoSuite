@@ -237,4 +237,46 @@ describe('business intelligence page (T7)', () => {
 
     wrapper.unmount()
   })
+
+  it('mounts the filter bar primitive around every filter control', async () => {
+    const { wrapper } = await mountPage()
+
+    const bar = wrapper.find('[data-bi-filters]')
+
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-filters-from]').exists()).toBe(true)
+    expect(bar.find('[data-filters-to]').exists()).toBe(true)
+    expect(bar.find('[data-filters-professional]').exists()).toBe(true)
+    expect(bar.find('[data-filters-environment]').exists()).toBe(true)
+    expect(bar.find('[data-filters-report]').exists()).toBe(true)
+    expect(bar.find('[data-filters-reset]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('«Limpiar filtros» restores the applied defaults with a single re-query', async () => {
+    const { wrapper } = await mountPage()
+
+    await selectOption(wrapper, '[data-filters-professional]', 'Dra. Ana Torres')
+    await wrapper.find('[data-filters-apply]').trigger('click')
+    await flushPromises()
+
+    expect(lastReportCall()[1].params.professional_id).toBe(1)
+
+    getMock.mockClear()
+
+    const reset = wrapper.find('[data-filters-reset]')
+
+    expect(reset.text()).toBe('Limpiar filtros')
+
+    await reset.trigger('click')
+    await flushPromises()
+
+    expect(reportCalls()).toHaveLength(1)
+    expect(lastReportCall()[1].params.professional_id).toBe('')
+    expect(lastReportCall()[1].params.environment_id).toBe('')
+    expect(wrapper.find('[data-period-applied]').text()).toContain('30 días')
+
+    wrapper.unmount()
+  })
 })

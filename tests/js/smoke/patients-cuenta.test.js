@@ -268,6 +268,43 @@ describe('patient statement panel (#320 S4)', () => {
     wrapper = null
   })
 
+  it('mounts the filter bar primitive and «Limpiar filtros» re-reads the default period once', async () => {
+    wrapper = await mountPanel()
+
+    const bar = wrapper.get('[data-statement-filters]')
+
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-statement-date-from]').exists()).toBe(true)
+    expect(bar.find('[data-statement-date-to]').exists()).toBe(true)
+    expect(bar.find('[data-statement-apply]').exists()).toBe(true)
+
+    await setPanelField('[data-statement-date-from]', '2026-09-01')
+    await setPanelField('[data-statement-date-to]', '2026-09-30')
+    await wrapper.get('[data-statement-apply]').trigger('click')
+    await flushPromises()
+
+    expect(harness.get).toHaveBeenLastCalledWith(statementUrl('2026-09-01', '2026-09-30'))
+
+    harness.get.mockClear()
+
+    const clear = wrapper.get('[data-statement-clear]')
+
+    expect(clear.text()).toBe('Limpiar filtros')
+
+    await clear.trigger('click')
+    await flushPromises()
+
+    const { from, to } = defaultRange()
+
+    expect(harness.get).toHaveBeenCalledTimes(1)
+    expect(harness.get).toHaveBeenCalledWith(statementUrl(from, to))
+    expect(wrapper.find('[data-statement-date-from] input').element.value).toBe(from)
+    expect(wrapper.find('[data-statement-date-to] input').element.value).toBe(to)
+
+    wrapper.unmount()
+    wrapper = null
+  })
+
   it('renders the empty state when the period has no movements', async () => {
     harness.get.mockResolvedValue({ data: { ...STATEMENT, entries: [] } })
 

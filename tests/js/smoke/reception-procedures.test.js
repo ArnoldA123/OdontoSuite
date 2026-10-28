@@ -94,4 +94,45 @@ describe('reception-procedures smoke', () => {
 
     wrapper.unmount()
   })
+
+  it('mounts the filter bar primitive around the filter row', async () => {
+    const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+    await flushPromises()
+
+    const bar = wrapper.find('[data-reception-filters]')
+
+    expect(bar.exists()).toBe(true)
+    expect(bar.attributes('role')).toBe('search')
+    expect(bar.find('[data-reception-search]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('«Limpiar filtros» restores the defaults with a single request', async () => {
+    requestedUrls.length = 0
+    const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+    await flushPromises()
+
+    await wrapper.find('[data-reception-search] input').setValue('ENDO')
+    await new Promise(resolve => setTimeout(resolve, 400))
+    await flushPromises()
+
+    requestedUrls.length = 0
+
+    const clear = wrapper.find('[data-reception-clear-filters]')
+
+    expect(clear.text()).toBe('Limpiar filtros')
+
+    await clear.trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 400))
+    await flushPromises()
+
+    const catalogCalls = requestedUrls.filter(url => url.includes('/api/procedure-catalog?'))
+
+    expect(catalogCalls).toHaveLength(1)
+    expect(catalogCalls[0]).not.toContain('q=ENDO')
+    expect(wrapper.find('[data-reception-search] input').element.value).toBe('')
+
+    wrapper.unmount()
+  })
 })

@@ -175,53 +175,52 @@
         <p class="mt-1 text-sm text-theme-secondary" data-team-results>{{ resultsCaption }}</p>
       </div>
 
-      <div data-team-filters class="mb-4">
-        <UiCard variant="glass">
-          <div class="flex flex-col lg:flex-row gap-4">
-            <div class="flex-1">
-              <UiInput
-                v-model="searchQuery"
-                data-professionals-search
-                placeholder="Buscar profesionales por nombre, especialidad o email..."
-                class="w-full"
+      <UiFilterBar :columns="4" class="mb-4" data-team-filters>
+        <div class="sm:col-span-2">
+          <UiInput
+            v-model="searchQuery"
+            data-professionals-search
+            placeholder="Buscar profesionales por nombre, especialidad o email..."
+            class="w-full"
+          >
+            <template #prefix>
+              <svg
+                class="w-5 h-5 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <template #prefix>
-                  <svg
-                    class="w-5 h-5 text-theme-secondary"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </template>
-              </UiInput>
-            </div>
-            <div class="flex items-end gap-3">
-              <UiSelect
-                v-model="specialtyFilter"
-                data-professionals-specialty-filter
-                :options="specialtyFilterOptions"
-                placeholder="Todas las especialidades"
-                class="w-64"
-              />
-              <UiButton
-                v-if="hasActiveFilters"
-                variant="secondary"
-                data-team-clear-filters
-                @click="clearFilters"
-              >
-                Limpiar filtros
-              </UiButton>
-            </div>
-          </div>
-        </UiCard>
-      </div>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </template>
+          </UiInput>
+        </div>
+        <div class="flex items-end">
+          <UiSelect
+            v-model="specialtyFilter"
+            data-professionals-specialty-filter
+            :options="specialtyFilterOptions"
+            placeholder="Todas las especialidades"
+            class="w-full"
+          />
+        </div>
+        <div class="flex items-end">
+          <UiButton
+            v-if="hasActiveFilters"
+            variant="secondary"
+            class="w-full"
+            data-team-clear-filters
+            @click="clearFilters"
+          >
+            Limpiar filtros
+          </UiButton>
+        </div>
+      </UiFilterBar>
 
       <UiCard variant="glass" class="overflow-hidden">
         <div v-if="loading" data-team-loading class="p-6 md:p-8">
@@ -583,6 +582,7 @@ import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiBadge from '../../components/ui/Badge.vue'
 import UiCard from '../../components/ui/Card.vue'
+import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'

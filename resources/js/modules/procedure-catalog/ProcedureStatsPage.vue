@@ -61,73 +61,81 @@
       </p>
     </header>
 
-    <UiCard variant="glass" class="mb-6" data-procedure-stats-filters>
-      <template #header>
-        <h2 class="text-lg font-semibold text-theme-primary">Filtros</h2>
-      </template>
-      <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
-        <div class="lg:col-span-5">
-          <span class="mb-2 block text-sm font-medium text-theme-primary">Período</span>
-          <div
-            class="inline-flex gap-1 rounded-[var(--radius-control)] p-1"
-            style="border: 1px solid var(--color-hairline)"
-            role="group"
-            aria-label="Presets de período"
-          >
-            <UiButton
-              v-for="preset in presets"
-              :key="preset.id"
-              :variant="periodPreset === preset.id ? 'primary' : 'ghost'"
-              size="sm"
-              :aria-pressed="periodPreset === preset.id"
-              :data-preset="preset.id"
-              @click="selectPreset(preset)"
+    <UiFilterBar title="Filtros" :columns="2" class="mb-6" data-procedure-stats-filters>
+      <div class="sm:col-span-2">
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
+          <div class="lg:col-span-5">
+            <span class="mb-2 block text-sm font-medium text-theme-primary">Período</span>
+            <div
+              class="inline-flex gap-1 rounded-[var(--radius-control)] p-1"
+              style="border: 1px solid var(--color-hairline)"
+              role="group"
+              aria-label="Presets de período"
             >
-              {{ preset.label }}
+              <UiButton
+                v-for="preset in presets"
+                :key="preset.id"
+                :variant="periodPreset === preset.id ? 'primary' : 'ghost'"
+                size="sm"
+                :aria-pressed="periodPreset === preset.id"
+                :data-preset="preset.id"
+                @click="selectPreset(preset)"
+              >
+                {{ preset.label }}
+              </UiButton>
+            </div>
+          </div>
+          <div class="lg:col-span-2">
+            <UiInput
+              id="procedure-stats-from"
+              v-model="draft.from"
+              type="date"
+              label="Desde"
+              data-filters-from
+              @update:model-value="periodPreset = 'custom'"
+            />
+          </div>
+          <div class="lg:col-span-2">
+            <UiInput
+              id="procedure-stats-to"
+              v-model="draft.to"
+              type="date"
+              label="Hasta"
+              :error="rangeError"
+              data-filters-to
+              @update:model-value="periodPreset = 'custom'"
+            />
+          </div>
+          <div class="lg:col-span-1">
+            <UiSelect
+              v-model="draft.limit"
+              :options="limitOptions"
+              label="Top N"
+              data-filters-limit
+            />
+          </div>
+          <div class="lg:col-span-2">
+            <UiButton
+              class="w-full"
+              :disabled="!!rangeError || loading"
+              data-filters-apply
+              @click="applyFilters"
+            >
+              {{ loading ? 'Consultando...' : 'Aplicar filtros' }}
             </UiButton>
           </div>
         </div>
-        <div class="lg:col-span-2">
-          <UiInput
-            id="procedure-stats-from"
-            v-model="draft.from"
-            type="date"
-            label="Desde"
-            data-filters-from
-            @update:model-value="periodPreset = 'custom'"
-          />
-        </div>
-        <div class="lg:col-span-2">
-          <UiInput
-            id="procedure-stats-to"
-            v-model="draft.to"
-            type="date"
-            label="Hasta"
-            :error="rangeError"
-            data-filters-to
-            @update:model-value="periodPreset = 'custom'"
-          />
-        </div>
-        <div class="lg:col-span-1">
-          <UiSelect
-            v-model="draft.limit"
-            :options="limitOptions"
-            label="Top N"
-            data-filters-limit
-          />
-        </div>
-        <div class="lg:col-span-2">
-          <UiButton
-            class="w-full"
-            :disabled="!!rangeError || loading"
-            data-filters-apply
-            @click="applyFilters"
-          >
-            {{ loading ? 'Consultando...' : 'Aplicar filtros' }}
+
+        <div
+          class="mt-4 flex flex-wrap items-center justify-end gap-3 pt-4"
+          style="border-top: 1px solid var(--color-hairline)"
+        >
+          <UiButton variant="secondary" data-filters-clear @click="clearFilters">
+            Limpiar filtros
           </UiButton>
         </div>
       </div>
-    </UiCard>
+    </UiFilterBar>
 
     <div
       v-if="error"
@@ -391,6 +399,7 @@ import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
+import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'
@@ -712,6 +721,14 @@ const selectPreset = preset => {
   periodPreset.value = preset.id
   draft.value.from = daysBack(preset.days - 1)
   draft.value.to = daysBack(0)
+  applyFilters()
+}
+
+// The defaults are the 90-day window and the Top 10 the page opens with, so
+// clearing re-queries exactly once and lands on the same state as a first visit.
+const clearFilters = () => {
+  periodPreset.value = '90d'
+  draft.value = { from: daysBack(89), to: daysBack(0), limit: 10 }
   applyFilters()
 }
 

@@ -115,33 +115,34 @@
       </UiCard>
     </section>
 
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-end">
-        <div class="min-w-0 flex-1">
-          <UiInput
-            v-model="filters.q"
-            data-quotations-search
-            label="Buscar"
-            placeholder="Número, paciente o documento..."
-            class="w-full"
-            @input="onSearchInput"
-          >
-            <template #prefix>
-              <MagnifyingGlassIcon class="h-5 w-5 text-theme-secondary" aria-hidden="true" />
-            </template>
-          </UiInput>
-        </div>
-        <div class="w-full lg:w-56">
-          <UiSelect
-            v-model="filters.status"
-            data-status-filter
-            label="Estado"
-            :options="STATUS_FILTER_OPTIONS"
-            placeholder="Todos los estados"
-            @change="applyFilters"
-          />
-        </div>
-        <div class="grid grid-cols-2 gap-3 lg:w-[22rem]">
+    <UiFilterBar :columns="5" class="mb-6" data-quotations-filters>
+      <div class="sm:col-span-2">
+        <UiInput
+          v-model="filters.q"
+          data-quotations-search
+          label="Buscar"
+          placeholder="Número, paciente o documento..."
+          class="w-full"
+          @input="onSearchInput"
+        >
+          <template #prefix>
+            <MagnifyingGlassIcon class="h-5 w-5 text-theme-secondary" aria-hidden="true" />
+          </template>
+        </UiInput>
+      </div>
+      <div class="flex items-end">
+        <UiSelect
+          v-model="filters.status"
+          data-status-filter
+          label="Estado"
+          :options="STATUS_FILTER_OPTIONS"
+          placeholder="Todos los estados"
+          class="w-full"
+          @change="applyFilters"
+        />
+      </div>
+      <div class="flex items-end sm:col-span-2">
+        <div class="grid w-full grid-cols-2 gap-3">
           <UiInput
             v-model="filters.date_from"
             type="date"
@@ -161,7 +162,7 @@
 
       <div
         v-if="hasActiveFilters || patientFilter"
-        class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4"
+        class="col-span-full flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4"
       >
         <p class="text-sm text-theme-secondary" data-filters-summary>
           <span v-if="patientFilter">Mostrando los presupuestos de un paciente.</span>
@@ -171,7 +172,7 @@
           Limpiar filtros
         </UiButton>
       </div>
-    </UiCard>
+    </UiFilterBar>
 
     <section aria-label="Presupuestos" class="space-y-4">
       <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
@@ -425,6 +426,7 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import Pagination from '@/components/ui/Pagination.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiCard from '@/components/ui/Card.vue'
+import UiFilterBar from '@/components/ui/FilterBar.vue'
 import UiDataTable from '@/components/ui/DataTable.vue'
 import UiEmptyState from '@/components/ui/EmptyState.vue'
 import UiInput from '@/components/ui/Input.vue'

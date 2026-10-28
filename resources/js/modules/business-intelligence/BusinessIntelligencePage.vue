@@ -80,117 +80,115 @@
       </p>
     </header>
 
-    <UiCard variant="glass" class="mb-6" data-bi-filters>
-      <template #header>
-        <h2 class="text-lg font-semibold text-theme-primary">Filtros del reporte</h2>
-      </template>
-
-      <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
-        <div class="lg:col-span-3">
-          <span class="mb-2 block text-sm font-medium text-theme-primary">Período</span>
-          <div
-            class="inline-flex gap-1 rounded-[var(--radius-control)] p-1"
-            style="border: 1px solid var(--color-hairline)"
-            role="group"
-            aria-label="Presets de período"
-          >
-            <UiButton
-              v-for="preset in presets"
-              :key="preset.id"
-              :variant="periodPreset === preset.id ? 'primary' : 'ghost'"
-              size="sm"
-              :aria-pressed="periodPreset === preset.id"
-              :data-preset="preset.id"
-              @click="selectPreset(preset)"
+    <UiFilterBar title="Filtros del reporte" :columns="2" class="mb-6" data-bi-filters>
+      <div class="sm:col-span-2">
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
+          <div class="lg:col-span-3">
+            <span class="mb-2 block text-sm font-medium text-theme-primary">Período</span>
+            <div
+              class="inline-flex gap-1 rounded-[var(--radius-control)] p-1"
+              style="border: 1px solid var(--color-hairline)"
+              role="group"
+              aria-label="Presets de período"
             >
-              {{ preset.label }}
+              <UiButton
+                v-for="preset in presets"
+                :key="preset.id"
+                :variant="periodPreset === preset.id ? 'primary' : 'ghost'"
+                size="sm"
+                :aria-pressed="periodPreset === preset.id"
+                :data-preset="preset.id"
+                @click="selectPreset(preset)"
+              >
+                {{ preset.label }}
+              </UiButton>
+            </div>
+          </div>
+
+          <div class="lg:col-span-2">
+            <UiInput
+              id="bi-from"
+              v-model="draft.from"
+              type="date"
+              label="Desde"
+              data-filters-from
+              @update:model-value="periodPreset = 'custom'"
+            />
+          </div>
+
+          <div class="lg:col-span-2">
+            <UiInput
+              id="bi-to"
+              v-model="draft.to"
+              type="date"
+              label="Hasta"
+              :error="rangeError"
+              data-filters-to
+              @update:model-value="periodPreset = 'custom'"
+            />
+          </div>
+
+          <div v-if="groupBranchScope" class="lg:col-span-2">
+            <UiSelect
+              v-model="draft.branchId"
+              :options="branchOptions"
+              label="Sede"
+              data-filters-branch
+            />
+          </div>
+
+          <div class="lg:col-span-2">
+            <UiSelect
+              v-model="draft.professionalId"
+              :options="professionalOptions"
+              label="Profesional"
+              data-filters-professional
+            />
+          </div>
+
+          <div class="lg:col-span-2">
+            <UiSelect
+              v-model="draft.environmentId"
+              :options="environmentOptions"
+              label="Ambiente"
+              data-filters-environment
+            />
+          </div>
+
+          <div class="lg:col-span-1">
+            <UiButton
+              class="w-full"
+              :disabled="!!rangeError || loading"
+              data-filters-apply
+              @click="applyFilters"
+            >
+              Aplicar
             </UiButton>
           </div>
         </div>
 
-        <div class="lg:col-span-2">
-          <UiInput
-            id="bi-from"
-            v-model="draft.from"
-            type="date"
-            label="Desde"
-            data-filters-from
-            @update:model-value="periodPreset = 'custom'"
-          />
-        </div>
-
-        <div class="lg:col-span-2">
-          <UiInput
-            id="bi-to"
-            v-model="draft.to"
-            type="date"
-            label="Hasta"
-            :error="rangeError"
-            data-filters-to
-            @update:model-value="periodPreset = 'custom'"
-          />
-        </div>
-
-        <div v-if="groupBranchScope" class="lg:col-span-2">
-          <UiSelect
-            v-model="draft.branchId"
-            :options="branchOptions"
-            label="Sede"
-            data-filters-branch
-          />
-        </div>
-
-        <div class="lg:col-span-2">
-          <UiSelect
-            v-model="draft.professionalId"
-            :options="professionalOptions"
-            label="Profesional"
-            data-filters-professional
-          />
-        </div>
-
-        <div class="lg:col-span-2">
-          <UiSelect
-            v-model="draft.environmentId"
-            :options="environmentOptions"
-            label="Ambiente"
-            data-filters-environment
-          />
-        </div>
-
-        <div class="lg:col-span-1">
-          <UiButton
-            class="w-full"
-            :disabled="!!rangeError || loading"
-            data-filters-apply
-            @click="applyFilters"
-          >
-            Aplicar
+        <div
+          class="mt-4 flex flex-col gap-3 border-t pt-4 md:flex-row md:items-end md:justify-between"
+          style="border-color: var(--color-hairline)"
+        >
+          <div class="md:w-80">
+            <UiSelect
+              v-model="selectedReport"
+              :options="reportOptions"
+              label="Reporte"
+              data-filters-report
+              @change="applyFilters"
+            />
+          </div>
+          <UiButton variant="secondary" data-filters-reset @click="resetFilters">
+            <template #icon-left>
+              <ArrowUturnLeftIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Limpiar filtros
           </UiButton>
         </div>
       </div>
-
-      <div
-        class="mt-4 flex flex-col gap-3 border-t pt-4 md:flex-row md:items-end md:justify-between"
-        style="border-color: var(--color-hairline)"
-      >
-        <div class="md:w-80">
-          <UiSelect
-            v-model="selectedReport"
-            :options="reportOptions"
-            label="Reporte"
-            data-filters-report
-            @change="applyFilters"
-          />
-        </div>
-        <UiButton variant="secondary" data-filters-reset @click="resetFilters">
-          <template #icon-left>
-            <ArrowUturnLeftIcon class="w-4 h-4" aria-hidden="true" />
-          </template>
-          Limpiar filtros
-        </UiButton>
-      </div>
-    </UiCard>
+    </UiFilterBar>
 
     <div class="space-y-6" :aria-busy="loading">
       <DashboardSectionError
@@ -509,6 +507,7 @@ import { useToast } from '../../composables/useToast'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
+import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiInput from '../../components/ui/Input.vue'

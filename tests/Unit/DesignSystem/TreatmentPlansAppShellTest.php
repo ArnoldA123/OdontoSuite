@@ -353,7 +353,7 @@ class TreatmentPlansAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * S1/S4 - the filter card keeps every existing filter and exposes the five
+     * S1/S4 - the filter bar keeps every existing filter and exposes the five
      * quick presets plus the list/kanban toggle through stable hooks.
      */
     public function test_filters_expose_presets_and_view_toggle_hooks(): void
@@ -361,9 +361,9 @@ class TreatmentPlansAppShellTest extends ModuleAppShellTestCase
         $src = $this->pageSource();
 
         $filters = $this->extractBlock(
-            '~<UiCard\b[^>]*\bdata-filters\b[^>]*>[\s\S]*?</UiCard>~',
+            '~<UiFilterBar\b[^>]*\bdata-filters\b[^>]*>[\s\S]*?</UiFilterBar>~',
             $src,
-            'TreatmentPlansPage.vue must wrap its filters in a <UiCard data-filters> (S1 filter card).'
+            'TreatmentPlansPage.vue must wrap its filters in the shared <UiFilterBar data-filters> (S1/S4 filter bar).'
         );
 
         foreach (['patient_name', 'status', 'date_from', 'date_to'] as $filter) {
