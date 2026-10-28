@@ -306,6 +306,16 @@
               Editar
             </UiButton>
             <UiButton
+              v-if="canSendQuotation(row, can.sendQuotation?.value)"
+              variant="ghost"
+              size="sm"
+              class="text-systemBlue-600 hover:text-systemBlue-700"
+              data-row-action="send"
+              @click="sendToPatient(row)"
+            >
+              Enviar
+            </UiButton>
+            <UiButton
               v-if="canApproveQuotation(row, can.approveQuotation?.value)"
               variant="ghost"
               size="sm"
@@ -374,6 +384,7 @@
     @edit="startEditFromDetail"
     @approve="startApprovalFromDetail"
     @reject="startRejectFromDetail"
+    @send="sendFromDetail"
     @download="downloadQuotation"
   />
 
@@ -409,6 +420,7 @@ import { useEcho } from '@/composables/useEcho'
 import { useQuotations } from '@/composables/useQuotations'
 import { usePermissions } from '@/composables/usePermissions'
 import { useToast } from '@/composables/useToast'
+import { pickValidationMessage } from '@/composables/validationErrors'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Pagination from '@/components/ui/Pagination.vue'
 import UiButton from '@/components/ui/Button.vue'
@@ -430,6 +442,7 @@ import {
   canDownloadQuotation,
   canEditQuotation,
   canRejectQuotation,
+  canSendQuotation,
   expiryBadge,
   formatQuotationDate,
   getStatusMeta
@@ -450,6 +463,7 @@ const {
   currentPage,
   getQuotations,
   deleteQuotation,
+  sendQuotation,
   downloadPDF
 } = useQuotations()
 
@@ -698,6 +712,31 @@ const handleRejected = async () => {
   actionQuotation.value = null
   await refresh()
   toast.success('Presupuesto rechazado')
+}
+
+/**
+ * #422 S4: the screen creates `draft` quotations and only `sent` ones reach the
+ * patient decision, so this door is what makes approve/reject —and the
+ * «Pendientes» counters— reachable. The row action and the detail footer are
+ * the same handler; this one has no dialog, so the toast is its surface and it
+ * carries the reason the API published.
+ */
+const sendToPatient = async quotation => {
+  try {
+    await sendQuotation(quotation.id)
+    await refresh()
+    toast.success('Presupuesto enviado')
+
+    return true
+  } catch (err) {
+    toast.error(pickValidationMessage(err.response?.data, 'No pudimos enviar el presupuesto.'))
+
+    return false
+  }
+}
+
+const sendFromDetail = async quotation => {
+  if (await sendToPatient(quotation)) closeDetail()
 }
 
 const downloadQuotation = async quotation => {

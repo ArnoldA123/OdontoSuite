@@ -115,6 +115,7 @@ describe('quotations detail breakdown', () => {
     await mountDetail()
 
     expect(action('pdf')).not.toBeNull()
+    expect(action('send')).toBeNull()
     expect(action('edit')).toBeNull()
     expect(action('approve')).toBeNull()
     expect(action('reject')).toBeNull()
@@ -133,6 +134,8 @@ describe('quotations detail breakdown', () => {
     expect(action('approve')).not.toBeNull()
     expect(action('reject')).not.toBeNull()
     expect(action('edit')).toBeNull()
+    // #422 S4: a `sent` quotation is past the sending door.
+    expect(action('send')).toBeNull()
 
     wrapper.unmount()
     wrapper = null
@@ -142,6 +145,7 @@ describe('quotations detail breakdown', () => {
 
     expect(action('pdf')).not.toBeNull()
     expect(action('edit')).not.toBeNull()
+    expect(action('send')).not.toBeNull()
     expect(action('approve')).toBeNull()
     expect(action('reject')).toBeNull()
   })

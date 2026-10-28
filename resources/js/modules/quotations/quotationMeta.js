@@ -152,6 +152,12 @@ export function canEditQuotation(quotation, writable) {
   return granted(writable) && quotation?.status === 'draft'
 }
 
+// #422 S4: sending is the only door out of `draft`, so it takes the same state
+// the API accepts for it.
+export function canSendQuotation(quotation, writable) {
+  return granted(writable) && quotation?.status === 'draft'
+}
+
 export function canApproveQuotation(quotation, writable) {
   return granted(writable) && PENDING_STATUSES.includes(quotation?.status)
 }

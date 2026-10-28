@@ -66,7 +66,7 @@ const summary = {
   }
 }
 
-const apiState = vi.hoisted(() => ({ postReject: null, quotations: [] }))
+const apiState = vi.hoisted(() => ({ postReject: null, quotations: [], sentCalls: [] }))
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
@@ -78,8 +78,21 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
         meta: { current_page: 1, last_page: 1, per_page: 15, total: apiState.quotations.length }
       }
     },
-    post: async () => {
+    post: async (url, body) => {
       if (apiState.postReject) throw apiState.postReject
+
+      // #422 S4: sending persists the transition on the server, so the mock
+      // moves the row and the refresh that follows paints the new status.
+      const send = String(url).match(/\/api\/quotations\/(\d+)\/send$/)
+      if (send) {
+        apiState.sentCalls.push({ url: String(url), body })
+        const id = Number(send[1])
+        const sent = { ...apiState.quotations.find(row => row.id === id), status: 'sent' }
+        apiState.quotations = apiState.quotations.map(row => (row.id === id ? sent : row))
+
+        return { data: sent }
+      }
+
       return { data: {} }
     },
     put: async () => ({ data: {} }),
@@ -137,6 +150,7 @@ const mountPage = async () => (await mountPageAt('/quotations')).wrapper
 describe('quotations list redesign', () => {
   beforeEach(() => {
     apiState.postReject = null
+    apiState.sentCalls = []
     apiState.quotations = rows
     seedSession('administrador')
   })
@@ -274,6 +288,40 @@ describe('quotations list redesign', () => {
     expect(document.querySelector('[data-modal-error]').textContent).toContain(
       'Solo se puede aprobar un presupuesto enviado o visto.'
     )
+
+    wrapper.unmount()
+  })
+
+  it('offers the send door on a draft and paints the status the API now holds', async () => {
+    const wrapper = await mountPage()
+
+    const send = wrapper.find('[data-row-action="send"]')
+    expect(send.exists()).toBe(true)
+    expect(send.text()).toBe('Enviar')
+
+    // #422 S4: only the draft owes the act of sending; the two quotations that
+    // already reached the patient never show the door again.
+    expect(wrapper.findAll('[data-row-action="send"]')).toHaveLength(1)
+
+    await send.trigger('click')
+    await flushPromises()
+
+    expect(apiState.sentCalls).toHaveLength(1)
+    expect(apiState.sentCalls[0].url).toBe('/api/quotations/1/send')
+    expect(wrapper.text()).toContain('Presupuesto enviado')
+
+    const statuses = wrapper.findAll('[data-row-status]').map(node => node.text())
+    expect(statuses).toEqual(['Enviado', 'Enviado', 'Visto'])
+    expect(wrapper.find('[data-row-action="send"]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('never offers the send door to a session without manage.quotation', async () => {
+    seedSession('recepcionista')
+    const wrapper = await mountPage()
+
+    expect(wrapper.findAll('[data-row-action="send"]')).toHaveLength(0)
 
     wrapper.unmount()
   })

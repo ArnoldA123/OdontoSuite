@@ -8,6 +8,7 @@ import {
   canDownloadQuotation,
   canEditQuotation,
   canRejectQuotation,
+  canSendQuotation,
   calendarDateKey,
   expiryBadge,
   expiryState,
@@ -110,6 +111,11 @@ describe('quotations vocabulary', () => {
     expect(canRejectQuotation({ status: 'approved' }, true)).toBe(false)
     expect(canRejectQuotation({ status: 'sent' }, false)).toBe(false)
 
+    expect(canSendQuotation({ status: 'draft' }, true)).toBe(true)
+    expect(canSendQuotation({ status: 'sent' }, true)).toBe(false)
+    expect(canSendQuotation({ status: 'approved' }, true)).toBe(false)
+    expect(canSendQuotation({ status: 'draft' }, false)).toBe(false)
+
     expect(canDeleteQuotation({ status: 'draft' }, true)).toBe(true)
     expect(canDeleteQuotation({ status: 'sent' }, true)).toBe(false)
     expect(canDeleteQuotation({ status: 'draft' }, false)).toBe(false)
@@ -125,6 +131,7 @@ describe('quotations vocabulary', () => {
     expect(canCreateQuotation('administrador')).toBe(false)
     expect(canEditQuotation({ status: 'draft' }, 'administrador')).toBe(false)
     expect(canApproveQuotation({ status: 'viewed' }, 'administrador')).toBe(false)
+    expect(canSendQuotation({ status: 'draft' }, 'administrador')).toBe(false)
     expect(canDownloadQuotation('recepcionista')).toBe(false)
   })
 
