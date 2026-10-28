@@ -53,6 +53,11 @@ const PERMISSION_BY_KEY = {
   manageAppointmentTypes: 'manage.appointment_type',
   manageEnvironments: 'manage.dental_chair',
   manageBranches: 'manage.branch',
+  // #439: the six administrative directories gate their write affordances on
+  // the same permission their route demands; a receptionist session holds the
+  // read grants only, so the surfaces stop offering doors the API refuses.
+  manageSpecialties: 'manage.specialty',
+  managePaymentMethods: 'manage.payment_method',
   // #305: asking for a branch transfer is self-service; deciding it is group
   // scope, so the two flags are distinct.
   requestBranchTransfer: 'request.branch_transfer',
