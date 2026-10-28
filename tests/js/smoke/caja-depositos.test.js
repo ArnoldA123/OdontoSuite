@@ -342,7 +342,7 @@ describe('Caja > deposit action (S6)', () => {
   it('gates the hero action on the deposit permission alone', () => {
     expect(pageSource).toContain('data-hero-action="deposit"')
     expect(pageSource).toContain('can.manageCashDeposit')
-    expect(pageSource).toContain('hasActiveSession.value && can.manageCashDeposit.value')
+    expect(pageSource).toContain('isOpen.value && can.manageCashDeposit.value')
     // No role list: the clinical desks must never see the action, and the
     // permission matrix is the only source (#280).
     expect(pageSource).not.toMatch(/hasRole\(|user\.value\?\.role|role === 'administrador'/)

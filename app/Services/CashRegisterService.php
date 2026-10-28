@@ -10,6 +10,7 @@ use App\Models\CashRegisterSession;
 use App\Models\Transaction;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -159,14 +160,37 @@ class CashRegisterService
 
     public function getCurrentSession(?int $branchId = null): ?CashRegisterSession
     {
-        $query = CashRegisterSession::where('status', 'open');
+        return $this->actorSessionQuery('open', $branchId)
+            ->latest('opened_at')
+            ->first();
+    }
 
-        // Cash follow-up S3: owner-or-administrador, the rule
-        // CashRegisterPolicy::view already enforces (#193). The previous guard
-        // used userCanManageCashRegister(), which admits the three cash roles
-        // and therefore never scoped anything.
-        if (Auth::user()?->role !== 'administrador') {
-            $query->where('user_id', Auth::id());
+    /**
+     * The actor's most recent session of the branch, whatever its status.
+     *
+     * #407 — `/cash-register/current` answers this when the actor has no open
+     * drawer, so the screen can still say "Sesión cerrada" with its counts
+     * instead of falling back to somebody else's open session.
+     */
+    public function getLatestSession(?int $branchId = null): ?CashRegisterSession
+    {
+        return $this->actorSessionQuery(null, $branchId)
+            ->latest('opened_at')
+            ->first();
+    }
+
+    /**
+     * Scope a session read to the actor, and to their branch unless one is
+     * named. The ownership rule is the same one CashRegisterPolicy::view
+     * enforces (#193): a foreign drawer is read through
+     * `GET /api/cash-register/sessions/{id}`, never through this lookup.
+     */
+    private function actorSessionQuery(?string $status, ?int $branchId): Builder
+    {
+        $query = CashRegisterSession::query()->where('user_id', Auth::id());
+
+        if ($status !== null) {
+            $query->where('status', $status);
         }
 
         if ($branchId) {
@@ -175,9 +199,7 @@ class CashRegisterService
             $query->where('branch_id', Auth::user()->branch_id);
         }
 
-        return $query->with(['user', 'branch', 'movements'])
-            ->latest('opened_at')
-            ->first();
+        return $query->with(['user', 'branch', 'movements']);
     }
 
     /**
