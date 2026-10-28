@@ -78,6 +78,18 @@ const ALL_TABS = Object.freeze([
   'audit'
 ])
 
+// #399: the drawer only offers the reads the authenticated desk can perform,
+// so the probe names the gate behind every hidden tab.
+const TAB_GATES = Object.freeze({
+  'treatment-plans': 'manage.treatment_plan',
+  quotations: 'view.quotation',
+  'medical-records': 'manage.medical_record',
+  specialties: 'manage.specialty_record',
+  laboratorio: 'view.lab_case',
+  cuenta: 'view.patient_statement',
+  audit: 'view.audit_log'
+})
+
 const TAB_ENDPOINTS = Object.freeze({
   data: id => ({ path: `/api/patients/${id}` }),
   'treatment-plans': id => ({ path: '/api/treatment-plans', query: `patient_id=${id}` }),
@@ -400,14 +412,7 @@ test('@U4 detail · tabs', async ({ page, request }) => {
             id: tabId,
             endpoint: TAB_ENDPOINTS[tabId](empty.id).path,
             status: response.status,
-            gate:
-              tabId === 'laboratorio'
-                ? 'view.lab_case'
-                : tabId === 'cuenta'
-                  ? 'view.patient_statement'
-                  : tabId === 'specialties'
-                    ? 'manage.specialty_record'
-                    : null
+            gate: TAB_GATES[tabId] ?? null
           })
         }
 
@@ -423,36 +428,38 @@ test('@U4 detail · tabs', async ({ page, request }) => {
 
     const adminTabs = evidence.roles.administrador?.tabs ?? []
     const adminRequests = adminTabs.every(tab => tab.request.status === 200)
-    const finanzasPlan = evidence.roles.finanzas?.tabs.find(tab => tab.id === 'treatment-plans')
-    const finanzasRecord = evidence.roles.finanzas?.tabs.find(tab => tab.id === 'medical-records')
+    const finanzasVisible = evidence.roles.finanzas?.visibleTabs ?? []
+    const finanzasHidden = evidence.roles.finanzas?.hiddenTabs ?? []
+    const finanzasHiddenIds = finanzasHidden.map(tab => tab.id)
+    const finanzasDenied = finanzasHidden.every(tab => tab.status === 403)
 
     evidence.findings = {
       adminEveryTabLoaded: adminRequests,
       adminTabCount: adminTabs.length,
+      // #399: finance reads quotations and the ledger; plans, records, their
+      // specialty act and the audit trail are not its desk, so the endpoints
+      // answer 403 and the tabs are not offered.
       finanzas: {
-        visible: evidence.roles.finanzas?.visibleTabs ?? [],
-        hidden: evidence.roles.finanzas?.hiddenTabs ?? [],
-        planes: finanzasPlan ? `${finanzasPlan.request.status}/${finanzasPlan.state}` : null,
-        historia: finanzasRecord ? `${finanzasRecord.request.status}/${finanzasRecord.state}` : null
+        visible: finanzasVisible,
+        hidden: finanzasHidden,
+        hiddenDenied: finanzasDenied
       },
       recepcionista: {
-        planes: evidence.roles.recepcionista?.tabs.find(tab => tab.id === 'treatment-plans')
-          ?.request.status,
-        historia: evidence.roles.recepcionista?.tabs.find(tab => tab.id === 'medical-records')
-          ?.request.status,
+        visible: evidence.roles.recepcionista?.visibleTabs ?? [],
         hidden: evidence.roles.recepcionista?.hiddenTabs ?? []
       },
       odontologo: {
-        historial: evidence.roles.odontologo?.tabs.find(tab => tab.id === 'audit')?.request.status,
-        historialState: evidence.roles.odontologo?.tabs.find(tab => tab.id === 'audit')?.state,
+        visible: evidence.roles.odontologo?.visibleTabs ?? [],
         hidden: evidence.roles.odontologo?.hiddenTabs ?? []
       }
     }
 
-    evidence.verdict =
-      adminTabs.length >= 6 && adminRequests && (evidence.roles.finanzas?.tabs.length ?? 0) >= 4
-        ? 'OK'
-        : 'DEFECTO'
+    const financeContract =
+      finanzasVisible.join(',') === 'data,quotations,cuenta' &&
+      ['treatment-plans', 'medical-records', 'audit'].every(id => finanzasHiddenIds.includes(id)) &&
+      finanzasDenied
+
+    evidence.verdict = adminTabs.length === 8 && adminRequests && financeContract ? 'OK' : 'DEFECTO'
   } finally {
     await closeDialog(page)
     evidence.pageErrors = diagnostics.pageErrors
@@ -1135,14 +1142,20 @@ test('@U4 detail · exportación', async ({ page, request }) => {
         role => fixtures.sessions?.[role]?.permissions?.['export.patient'] !== true
       ),
       note:
-        'all four audited roles hold export.patient; finanzas holds the grant but ' +
-        'PatientPolicy::export() refuses it, so the button is visible and the request is 403'
+        'all four audited roles hold export.patient; finanzas holds the grant, ' +
+        'PatientPolicy::export() refuses it, and the surface follows the capability ' +
+        'the payload publishes, so finanzas sees no button and no 403'
     }
 
     const adminExport = evidence.roles.administrador?.click?.status ?? null
-    const finanzasExport = evidence.roles.finanzas?.click?.status ?? null
+    const finanzasButton = evidence.roles.finanzas?.buttonVisible === true
 
-    evidence.verdict = adminExport === 200 && finanzasExport === 403 ? 'OK' : 'DEFECTO'
+    evidence.verdict =
+      adminExport === 200 &&
+      evidence.roles.administrador?.click?.contentType?.includes('pdf') &&
+      !finanzasButton
+        ? 'OK'
+        : 'DEFECTO'
     evidence.failedRequests = classifyFailures(diagnostics.failedRequests, 'admin')
   } finally {
     evidence.pageErrors = diagnostics.pageErrors

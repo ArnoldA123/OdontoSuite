@@ -658,8 +658,8 @@ test('@U4 list · alta', async ({ page, request }) => {
     await form.waitFor({ state: 'visible', timeout: 8000 })
     record('opened', { dialog: await page.locator('[role="dialog"]:visible').last().isVisible() })
 
-    // 1) Empty submit: the form is `novalidate`? No: the form has native
-    // `required` inputs and no `novalidate`, so the browser blocks the submit.
+    // 1) Empty submit: the form is `novalidate` and paints the required
+    // fields itself, in Spanish, through the same channel as a server 422.
     await submitPatientForm(page)
     await page.evaluate(
       () =>
@@ -670,7 +670,11 @@ test('@U4 list · alta', async ({ page, request }) => {
     record('emptySubmit', {
       validity: await formValidity(page),
       postAttempts: requestsTo(tracker, 'POST', '/api/patients').length,
-      dialogStillOpen: await dialogOpen(page)
+      dialogStillOpen: await dialogOpen(page),
+      inlineFieldError: Boolean(
+        await page.locator('[data-patient-field="first_name"] [aria-invalid="true"]').count()
+      ),
+      fieldText: (await page.locator('[data-patient-field="first_name"]').innerText()).trim()
     })
 
     // 2) Duplicate document of a seeded patient.
@@ -720,7 +724,11 @@ test('@U4 list · alta', async ({ page, request }) => {
       message: futureBody?.message ?? null,
       fieldMessage: futureBody?.errors?.birth_date?.[0] ?? null,
       toast: await waitForToast(page, 'fecha', 6000),
-      dialogStillOpen: await dialogOpen(page)
+      dialogStillOpen: await dialogOpen(page),
+      inlineFieldError: Boolean(
+        await page.locator('[data-patient-field="birth_date"] [aria-invalid="true"]').count()
+      ),
+      fieldText: (await page.locator('[data-patient-field="birth_date"]').innerText()).trim()
     })
 
     // 4) Happy path.
@@ -762,10 +770,14 @@ test('@U4 list · alta', async ({ page, request }) => {
 
     evidence.verdict =
       evidence.steps.emptySubmit.postAttempts === 0 &&
+      evidence.steps.emptySubmit.inlineFieldError === true &&
       duplicateStatus === 422 &&
+      evidence.steps.duplicateDocument.inlineFieldError === true &&
       futureStatus === 422 &&
+      evidence.steps.futureBirthDate.inlineFieldError === true &&
       createdStatus === 201 &&
-      evidence.steps.happyPath.rowInserted === true
+      evidence.steps.happyPath.rowInserted === true &&
+      !String(evidence.steps.happyPath.toast ?? '').includes('null')
         ? 'OK'
         : 'DEFECTO'
     evidence.failedRequests = classifyFailures(diagnostics.failedRequests, 'admin')

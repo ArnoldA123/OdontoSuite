@@ -75,8 +75,8 @@ Una rama, un commit de unidad por issue, más el del instrumento.
 - T1 · #399 · S1-S2 · inline (un solo escritor del módulo) · commit —
 - T2 · #400 · S5-S7 · inline · commit —
 - T3 · #401 · S8-S9-S11 · inline · commit —
-- T4 · #403 · S12-S14 · worker (backend i18n) + inline (formulario) · commit —
-- T5 · #404 · S16-S17 · inline · commit —
+- T4 · #403 · S12-S14 · worker (backend i18n) + inline (formulario) · `b37c997e`
+- T5 · #404 · S16-S17 · inline · `cf96f864`
 - T6 · #399-#404 · S3-S4-S10-S15-S18-S19 · inline · commit —
 - T7 · verificación · suite MySQL, Vitest, lint/format/build, doc-drift, sondas
   U4
@@ -102,3 +102,9 @@ Una rama, un commit de unidad por issue, más el del instrumento.
 - L6: Rebanada 1 cerrada con 401 líneas autoradas (aviso de presupuesto de
   revisión). Las tres rebanadas declaradas arriba son la estrategia de entrega;
   los PR siguen siendo decisión del dueño.
+- L7: Las sondas U4 se alinean al contrato corregido: `detail-tabs` exige las 8
+  tabs del administrador y el conjunto exacto de finanzas (data, quotations,
+  cuenta) con sus tres ausencias en 403; `detail-export` exige
+  `roles.finanzas.buttonVisible === false`; `list-create` mide
+  `inlineFieldError` en el envío vacío y en la fecha futura; `list-return` ya
+  mide búsqueda y estado en la petición de vuelta.
