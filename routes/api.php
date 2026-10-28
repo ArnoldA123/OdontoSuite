@@ -455,6 +455,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('quotations/{id}', [QuotationController::class, 'update']);
         Route::delete('quotations/{id}', [QuotationController::class, 'destroy']);
         Route::post('quotations/{id}/approve', [QuotationController::class, 'approve']);
+        // #422 S4: the patient decision starts here — the screen only creates
+        // `draft` quotations, and approve/reject require `sent` or `viewed`.
+        Route::post('quotations/{id}/send', [QuotationController::class, 'send']);
         Route::post('quotations/{id}/reject', [QuotationController::class, 'reject']);
     });
 

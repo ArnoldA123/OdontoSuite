@@ -305,6 +305,39 @@ class QuotationController extends Controller
     }
 
     /**
+     * Enviar presupuesto al paciente.
+     *
+     * #422 S4: the screen creates `draft` quotations and only `sent` ones reach
+     * the patient decision, so this is the door that starts it.
+     */
+    public function send(int $id): JsonResponse
+    {
+        try {
+            $quotation = $this->quotationService->sendQuotation($id);
+
+            return response()->json([
+                'data' => $quotation,
+                'meta' => [
+                    'message' => 'Presupuesto enviado exitosamente',
+                ],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (ModelNotFoundException) {
+            return response()->json(['message' => 'Presupuesto no encontrado'], 404);
+        } catch (\Exception $e) {
+            Log::error('No se pudo enviar el presupuesto', ['exception' => $e]);
+
+            return response()->json([
+                'message' => 'Error al enviar presupuesto',
+            ], 500);
+        }
+    }
+
+    /**
      * Rechazar presupuesto.
      */
     public function reject(Request $request, int $id): JsonResponse

@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Events\QuotationApproved;
 use App\Events\QuotationCreated;
 use App\Events\QuotationRejected;
+use App\Events\QuotationSent;
 use App\Events\QuotationUpdated;
+use App\Models\AuditLog;
 use App\Models\ProcedureCatalog;
 use App\Models\Quotation;
 use App\Models\QuotationApproval;
@@ -307,6 +309,63 @@ class QuotationService
             $quotation->load(['items', 'patient', 'treatmentPlan', 'createdBy']);
 
             // Emitir evento de WebSocket
+            try {
+                event(new QuotationUpdated($quotation));
+            } catch (\Throwable $e) {
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+            }
+
+            return $quotation;
+        });
+    }
+
+    /**
+     * Enviar presupuesto al paciente.
+     *
+     * #422 S4: the manual quotation is born `draft` and the patient decision
+     * only starts from `sent`, so this door is the writer of that state. The
+     * act leaves its trace in `audit_logs` (`quotation_sent`) instead of a new
+     * column: the actor and the date of the sending live with the audit trail.
+     */
+    public function sendQuotation(int $id): Quotation
+    {
+        return DB::transaction(function () use ($id) {
+            $quotation = Quotation::findOrFail($id);
+
+            if ($quotation->status !== 'draft') {
+                throw ValidationException::withMessages([
+                    'status' => sprintf(
+                        'Solo se puede enviar un presupuesto en borrador. Estado actual: %s.',
+                        $quotation->status
+                    ),
+                ]);
+            }
+
+            $actor = Auth::user();
+
+            $quotation->update(['status' => 'sent']);
+
+            // The act of sending is the trace: no `sent_at` column, the actor
+            // and the date live in the audit row of #422 S4.
+            if ($actor !== null) {
+                AuditLog::log(
+                    $actor,
+                    'quotation_sent',
+                    $quotation,
+                    ['status' => 'draft'],
+                    ['status' => 'sent'],
+                );
+            }
+
+            $quotation->refresh();
+            $quotation->load(['items', 'patient', 'treatmentPlan', 'createdBy', 'approvals']);
+
+            try {
+                event(new QuotationSent($quotation));
+            } catch (\Throwable $e) {
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+            }
+
             try {
                 event(new QuotationUpdated($quotation));
             } catch (\Throwable $e) {
