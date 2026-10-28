@@ -80,6 +80,12 @@ señor Arnold.
 - Un commit por issue (T1–T6), con sus pruebas al lado del comportamiento, más
   un commit de documentación al cierre. La revisión nativa se corre por unidad
   de riesgo cuando el interruptor RDD esté activo.
+- **Límite de slice declarado (T2, commit `d226ace0`)**: la unidad de #391
+  reporta 1 711 líneas autoradas porque los siete pasos del asistente suben un
+  nivel al montar sobre `UiModal` y Prettier reindenta el archivo completo; el
+  cambio real es de ~170 líneas (`git diff -w`). El asistente es una sola
+  superficie de diálogo y partirla dejaría el componente a medio migrar, mismo
+  criterio que el instrumento de U3 en `audit-ui-u3.md`.
 - Las migraciones nuevas suben el conteo de `AGENTS.md` §4 y el guard
   `scripts/audit/doc-drift.mjs` debe quedar verde en cada commit.
 - Suite con base de datos real (MySQL/MariaDB de XAMPP por socket, base

@@ -572,7 +572,7 @@ class AppointmentService
         // Get existing appointments for the day
         $existingAppointments = Appointment::where('user_id', $userId)
             ->whereDate('scheduled_at', $date)
-            ->where('status', '!=', 'cancelled')
+            ->where('status', '!=', AppointmentRepository::SLOT_RELEASED_STATUS)
             ->orderBy('scheduled_at')
             ->get();
 
