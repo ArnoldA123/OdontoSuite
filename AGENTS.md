@@ -73,22 +73,27 @@ build.
 
 ```bash
 # Backend
-php artisan serve                 # API en :8000
-php artisan reverb:start          # WebSocket
+php artisan serve                 # API en :8000        [fondo]
+php artisan reverb:start          # WebSocket           [fondo]
 php artisan migrate --seed        # DB + datos demo
 php artisan test                  # tests PHPUnit
 php artisan route:list            # ver rutas API
 php artisan tinker                # REPL
 
 # Frontend
-pnpm dev                          # Vite dev server (HMR)
+pnpm dev                          # Vite dev server (HMR) [fondo]
 pnpm build                        # build producción
 pnpm lint:check                   # ESLint
 pnpm format:check                 # Prettier
 
 # Todo-en-uno
-composer dev                      # concurrently: server + reverb + queue + pail + vite
+composer dev                      # concurrently: server + reverb + queue + pail + vite [fondo]
 ```
+
+Los marcados `[fondo]` son procesos que no retornan: se lanzan con la
+herramienta `bash_background` y se cierran con `job_stop`. En `bash` síncrono el
+turno queda esperando hasta que se cancela. Igual para `queue:listen`, `pail`,
+`watch` y `tail -f`.
 
 ---
 
