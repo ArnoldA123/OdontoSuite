@@ -338,32 +338,61 @@ for (const role of ROLES) {
       }
       evidence.mobileSnapshot = await readCalendar(page)
       evidence.mobileContentLength = await contentLength(page)
-      // The document does not overflow at 390; the week grid squeezes instead.
-      // Record what the squeeze costs: column width and what the chip still
-      // shows of its title. `truncated` is the visible text vs the full title.
-      evidence.mobileLayout = await page.evaluate(() => {
-        const pressed = document.querySelector('[data-calendar-view][aria-pressed="true"]')
-        const chips = Array.from(document.querySelectorAll('[data-calendar-appointment]'))
-        const dayCells = Array.from(document.querySelectorAll('[data-calendar-slot-day]'))
-        const round = value => Math.round(value)
 
-        return {
-          view: pressed?.textContent.trim() ?? null,
-          viewportWidth: window.innerWidth,
-          dayColumnWidth: dayCells[0] ? round(dayCells[0].getBoundingClientRect().width) : null,
-          chips: chips.slice(0, 4).map(chip => {
-            const full = chip.getAttribute('title') ?? ''
-            const visible = (chip.innerText ?? '').replace(/\s+/g, ' ').trim()
-            const box = chip.getBoundingClientRect()
-            return {
-              visibleText: visible,
-              title: full,
-              width: round(box.width),
-              truncated: Boolean(full) && !full.startsWith(visible)
-            }
-          })
-        }
-      })
+      // #397: at 390px the agenda now opens on a readable view (Day). Measure
+      // what the default view actually is, then switch to Week on purpose: the
+      // grid is still a choice, and the acceptance measures its column width and
+      // the chip text when it is chosen.
+      const measureMobileLayout = () =>
+        page.evaluate(() => {
+          const pressed = document.querySelector('[data-calendar-view][aria-pressed="true"]')
+          const chips = Array.from(document.querySelectorAll('[data-calendar-appointment]'))
+          const dayCells = Array.from(document.querySelectorAll('[data-calendar-slot-day]'))
+          const scroll = document.querySelector('[data-calendar-week-scroll]')
+          const chipTime = document.querySelector('[data-calendar-chip-time]')
+          const round = value => Math.round(value)
+
+          return {
+            view: pressed?.textContent.trim() ?? null,
+            viewportWidth: window.innerWidth,
+            dayColumnWidth: dayCells[0] ? round(dayCells[0].getBoundingClientRect().width) : null,
+            weekScroll: scroll
+              ? {
+                  scrollWidth: round(scroll.scrollWidth),
+                  clientWidth: round(scroll.clientWidth),
+                  scrolls: scroll.scrollWidth > scroll.clientWidth + 1
+                }
+              : null,
+            chipTime: chipTime
+              ? {
+                  text: (chipTime.innerText ?? '').replace(/\s+/g, ' ').trim(),
+                  width: round(chipTime.getBoundingClientRect().width),
+                  clipped: chipTime.scrollWidth > chipTime.clientWidth + 1
+                }
+              : null,
+            chips: chips.slice(0, 4).map(chip => {
+              const full = chip.getAttribute('title') ?? ''
+              const visible = (chip.innerText ?? '').replace(/\s+/g, ' ').trim()
+              const box = chip.getBoundingClientRect()
+              return {
+                visibleText: visible,
+                title: full,
+                width: round(box.width),
+                truncated: Boolean(full) && !full.startsWith(visible)
+              }
+            })
+          }
+        })
+
+      evidence.mobileLayout = await measureMobileLayout()
+
+      const weekButton = page.locator('[data-calendar-view="week"]')
+      if ((await weekButton.count().catch(() => 0)) > 0) {
+        await weekButton.first().click({ force: true })
+        await settleCalendar(page)
+        evidence.mobileWeekLayout = await measureMobileLayout()
+      }
+
       evidence.shots.push(await shot(page, `shots/u3-calendar-${role}-mobile.png`))
       evidence.failedRequests = classifyFailures(diagnostics.failedRequests, expectation)
     } finally {
@@ -376,6 +405,28 @@ for (const role of ROLES) {
 
     expect(evidence.shots, `captures for ${role}`).toHaveLength(2)
     expect(evidence.pageErrors, `page errors for ${role}`).toEqual([])
+    expect(evidence.horizontalOverflow, `document overflows at 390px for ${role}`).toBe(false)
+
+    // #397 acceptance: at 390px the week grid keeps a readable column and the
+    // chip text is not reduced to a single character. Measured, not assumed.
+    if (evidence.mobileWeekLayout) {
+      expect(
+        evidence.mobileWeekLayout.dayColumnWidth,
+        `week column width at 390px for ${role}`
+      ).toBeGreaterThanOrEqual(96)
+      expect(
+        evidence.mobileWeekLayout.chipTime?.text?.length ?? 0,
+        `chip time text at 390px for ${role}`
+      ).toBeGreaterThan(1)
+      expect(
+        evidence.mobileWeekLayout.chipTime?.clipped,
+        `chip time clipped at 390px for ${role}`
+      ).toBe(false)
+      expect(
+        evidence.mobileWeekLayout.weekScroll?.scrolls,
+        `week grid scrolls instead of squeezing for ${role}`
+      ).toBe(true)
+    }
   })
 }
 
@@ -1365,7 +1416,50 @@ test('@U3 calendar · cancelar cita', async ({ page, request }) => {
     }))
     evidence.shots.push(await shot(page, 'shots/u3-calendar-cancel-detail.png'))
 
-    const patch = page
+    const beforeMotive = page
+      .waitForResponse(
+        response =>
+          response.request().method() === 'PATCH' &&
+          new URL(response.url()).pathname.endsWith(`/api/appointments/${appointment.id}/status`),
+        { timeout: 2500 }
+      )
+      .catch(() => null)
+
+    await page.locator('[data-calendar-action="status-cancelled"]').click({ timeout: 5000 })
+
+    // #394: cancelar abre una confirmación con motivo obligatorio; el PATCH no
+    // sale hasta que el motivo está escrito y confirmado.
+    const dialog = page.locator('[data-calendar-cancel]')
+    await dialog.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
+    const confirmation = await dialog.isVisible().catch(() => false)
+
+    const earlyPatch = await beforeMotive
+    const motiveField = (await page.locator('[data-calendar-cancel-reason] textarea').count()) > 0
+
+    // The motive field is `required`, so Chromium enforces the empty submit with
+    // its own validation before the component's message renders. Both paths
+    // block the write; what the probe guarantees is that nothing was sent and
+    // the dialog stayed open with the act intact.
+    await page
+      .locator('[data-calendar-cancel-confirm]')
+      .click({ timeout: 5000 })
+      .catch(() => {})
+    const nativeValidation = await page
+      .locator('[data-calendar-cancel-reason] textarea')
+      .evaluate(field => ({
+        valueMissing: Boolean(field.validity?.valueMissing),
+        message: field.validationMessage ?? ''
+      }))
+      .catch(() => null)
+    const dialogAfterEmptySubmit = await dialog.isVisible().catch(() => false)
+
+    const reasonText = 'El paciente no puede asistir; recepción reprograma.'
+    await page
+      .locator('[data-calendar-cancel-reason] textarea')
+      .fill(reasonText, { timeout: 5000 })
+      .catch(() => {})
+
+    const confirmed = page
       .waitForResponse(
         response =>
           response.request().method() === 'PATCH' &&
@@ -1374,39 +1468,38 @@ test('@U3 calendar · cancelar cita', async ({ page, request }) => {
       )
       .catch(() => null)
 
-    await page.locator('[data-calendar-action="status-cancelled"]').click({ timeout: 5000 })
+    await page.locator('[data-calendar-cancel-confirm]').click({ timeout: 5000 })
 
-    // A destructive confirmation would be an alertdialog and would stop the
-    // request; a motive field would live inside the detail modal. Both are
-    // observed in a bounded window instead of asserted.
-    const alert = await page
-      .locator('[role="alertdialog"]:visible')
-      .waitFor({ state: 'visible', timeout: 700 })
-      .then(() => true)
-      .catch(() => false)
-    const motive = await page
-      .locator('[data-calendar-detail] textarea, [data-calendar-detail] input[type="text"]')
-      .count()
-      .catch(() => 0)
-
-    const response = await patch
+    const response = await confirmed
     const body = await response?.json().catch(() => null)
-    const toast = await waitForToast(page, 'Estado actualizado', 6000)
+    const requestBody = response?.request().postDataJSON?.() ?? null
+    const toast = await waitForToast(page, 'Cita cancelada', 8000)
 
-    evidence.confirmation = alert
-    evidence.motiveField = motive > 0
+    evidence.confirmation = confirmation
+    evidence.motiveField = motiveField
+    evidence.nativeValidation = nativeValidation
+    evidence.dialogKeptOnEmptySubmit = dialogAfterEmptySubmit
+    evidence.patchBeforeMotive = earlyPatch?.status() ?? null
     evidence.patch = {
       status: response?.status() ?? null,
       responseStatus: body?.data?.status ?? null,
+      reason: requestBody?.cancellation_reason ?? null,
+      remindersCancelled: body?.meta?.reminders_cancelled ?? null,
+      metaKeys: Object.keys(body?.meta ?? {}),
       toast
     }
     evidence.detailBefore = detailBefore
+    evidence.dialogClosed = await dialog
+      .waitFor({ state: 'hidden', timeout: 5000 })
+      .then(() => true)
+      .catch(() => false)
 
     const statusResponse = await request.get(`${BASE_URL}/api/appointments/${appointment.id}`, {
       headers: { Authorization: `Bearer ${session.token}`, Accept: 'application/json' }
     })
     const statusBody = await statusResponse.json().catch(() => null)
     evidence.statusAfter = statusBody?.data?.status ?? null
+    evidence.cancellationReason = statusBody?.data?.cancellation_reason ?? null
 
     await page
       .waitForFunction(
@@ -1441,13 +1534,19 @@ test('@U3 calendar · cancelar cita', async ({ page, request }) => {
     evidence.reminders.afterCount = evidence.reminders.after.rows.length
 
     evidence.verdict =
-      evidence.patch.status === 200 && evidence.statusAfter === 'cancelled'
-        ? evidence.confirmation || evidence.motiveField
-          ? 'CONFUSO'
-          : 'DEFECTO'
+      evidence.patch.status === 200 &&
+      evidence.statusAfter === 'cancelled' &&
+      evidence.cancellationReason === reasonText &&
+      confirmation &&
+      motiveField &&
+      evidence.dialogKeptOnEmptySubmit &&
+      evidence.patchBeforeMotive === null
+        ? 'OK'
         : 'DEFECTO'
     evidence.reason =
-      'cancelar ejecuta el PATCH sin confirmación y sin campo de motivo; la interfaz solo muestra «Estado actualizado»'
+      evidence.verdict === 'OK'
+        ? null
+        : 'la cancelación no pidió el motivo, no lo guardó o lo envió antes de confirmarlo'
 
     evidence.shots.push(await shot(page, 'shots/u3-calendar-cancel-after.png'))
     evidence.failedRequests = classifyFailures(diagnostics.failedRequests, 'owner')
