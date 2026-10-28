@@ -633,10 +633,12 @@ documentada y no bloquea producción.
   documento sin desborde) como aserción de la prueba de navegador. Dos sondas
   del instrumento se corrigieron para medir lo que la aceptación pide: la del
   fondo del asistente reabre lo que Escape cerró y la de cancelación mide el
-  contrato nuevo. La reprogramación por drag sobre un horario liberado quedó
-  **NO PROBADO en navegador** (a las 21:55 no queda franja futura en la
-  rejilla); la regla de #392 la fijan sus siete pruebas de API por las dos
-  puertas.
+  contrato nuevo. La reprogramación sobre un horario liberado se mide con una
+  fila propia,
+  `@U3 calendar · drag sobre un horario liberado por una cancelación`, que
+  agenda un par en el primer día con dos horas libres, cancela la segunda y
+  arrastra la primera hasta ese hueco: PATCH 200, chip movido y la cita
+  cancelada intacta.
 
 - **2026-10-27 (auditoría de dinero: saldo único, caja del actor, bloqueo
   contable en el alta y búsqueda por nombre completo, #393/#407/#410/#412)** —
