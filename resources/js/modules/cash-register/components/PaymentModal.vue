@@ -431,6 +431,12 @@ const handleModelUpdate = value => {
 }
 
 const onTabChange = newTabId => {
+  // #472 — the lock notice belongs to the attempt that produced it: moving to
+  // another tab withdraws it, so a later failure cannot retry the other door
+  // with a reason the operator wrote for this one.
+  resetLock()
+  retryAction.value = 'manual'
+
   if (newTabId === 'mercadopago') {
     activeTab.value = 'manual'
     switchToMercadoPago()

@@ -585,6 +585,12 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (el aviso de bloqueo del modal de cobro no sobrevive al cambio de
+  pestaña, #472)** — `PaymentModal` reinicia el estado del bloqueo contable y el
+  destino del reintento al cambiar de pestaña, así el aviso describe siempre el
+  intento que lo produjo y «Autorizar y reintentar» no puede llevar la razón de
+  una puerta de cobro a la otra. Sin rutas, modelos, migraciones ni permisos
+  nuevos. Test: `caja-cobros` (17).
 - **2026-10-28 (seguimientos de la auditoría de dinero: evidencia del intento
   bloqueado y reintento de Mercado Pago, #466/#467)** — Dos consecuencias que la
   verificación independiente de #468 dejó declaradas. **#466**:
