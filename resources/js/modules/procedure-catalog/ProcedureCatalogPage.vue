@@ -334,6 +334,7 @@
         <UiInput
           v-model="duplicateForm.code"
           label="Código del nuevo procedimiento"
+          maxlength="20"
           :error="duplicateErrors.code"
           required
         />
@@ -392,6 +393,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner.vue'
 import Pagination from '../../components/ui/Pagination.vue'
 import ImportCsvModal from '../../components/procedures/ImportCsvModal.vue'
 import ProcedureCatalogFormModal from './ProcedureCatalogFormModal.vue'
+import { PROCEDURE_CODE_MAX_LENGTH, duplicateProcedureCode } from './procedureCode'
 
 const route = useRoute()
 const router = useRouter()
@@ -655,7 +657,7 @@ const confirmReactivate = async procedure => {
 const openDuplicate = procedure => {
   duplicateSource.value = procedure
   duplicateForm.value = {
-    code: `${procedure.code}-COPIA`,
+    code: duplicateProcedureCode(procedure.code),
     name: `${procedure.name} (copia)`
   }
   duplicateErrors.value = {}
@@ -664,16 +666,40 @@ const openDuplicate = procedure => {
 
 const submitDuplicate = async () => {
   if (duplicating.value || !duplicateSource.value) return
+
+  const code = duplicateForm.value.code.trim()
+  const name = duplicateForm.value.name.trim()
+  const localErrors = {}
+
+  if (!code) localErrors.code = 'Requerido'
+  else if (code.length > PROCEDURE_CODE_MAX_LENGTH) {
+    localErrors.code = `Máximo ${PROCEDURE_CODE_MAX_LENGTH} caracteres.`
+  }
+  if (!name) localErrors.name = 'Requerido'
+
+  duplicateErrors.value = localErrors
+  if (Object.keys(localErrors).length > 0) return
+
   duplicating.value = true
-  duplicateErrors.value = {}
   try {
-    const source = duplicateSource.value
+    // #434: the list row does not carry the inventory recipe; the copy reads
+    // the original detail so the duplicate keeps applicability, equivalences
+    // and recipe.
+    let source
+    try {
+      source = (await get(`/api/procedure-catalog/${duplicateSource.value.id}`)).data
+    } catch {
+      toast.error('No se pudo leer el procedimiento original para duplicarlo')
+      return
+    }
+
     const created = await createProcedure({
-      code: duplicateForm.value.code.trim(),
-      name: duplicateForm.value.name.trim(),
+      code,
+      name,
       description: source.description,
-      specialty_id: source.specialty_id,
+      specialty_id: source.specialty_id ?? null,
       legacy_specialty: source.legacy_specialty,
+      site_type: source.site_type ?? 'none',
       default_cost: source.default_cost,
       default_duration_minutes: source.default_duration_minutes,
       requirements: source.requirements,
@@ -683,6 +709,15 @@ const submitDuplicate = async () => {
       steps: source.steps,
       contraindications: source.contraindications,
       post_procedure_care: source.post_procedure_care,
+      external_codes: (source.external_codes ?? []).map(externalCode => ({
+        system: externalCode.system,
+        code: externalCode.code,
+        description: externalCode.description ?? null
+      })),
+      material_recipe: (source.material_recipe ?? []).map(line => ({
+        product_id: line.product_id,
+        quantity: Number(line.quantity)
+      })),
       is_active: true
     })
     showDuplicateModal.value = false

@@ -132,6 +132,108 @@
         </ul>
       </section>
 
+      <!-- #295 S4/#434 S2: recipe of the stock inputs the procedure consumes. -->
+      <section data-form-group="material-recipe">
+        <h3 class="text-base font-semibold text-label">Receta de insumos</h3>
+        <p class="mt-1 text-sm text-theme-secondary">
+          Insumos del almacén que este procedimiento consume. El cierre de la atención descuenta
+          estas cantidades del stock.
+        </p>
+
+        <p v-if="productsLoading" class="mt-3 text-xs text-theme-secondary">
+          Cargando insumos del inventario…
+        </p>
+
+        <p
+          v-else-if="productsError"
+          data-material-recipe-load-error
+          class="mt-3 flex flex-wrap items-center gap-2 text-xs text-systemRed-600"
+        >
+          <span>{{ productsError }}</span>
+          <UiButton
+            type="button"
+            variant="ghost"
+            size="sm"
+            data-material-recipe-retry
+            @click="loadProducts"
+          >
+            Reintentar
+          </UiButton>
+        </p>
+
+        <div v-if="form.material_recipe.length" class="mt-4 space-y-3">
+          <div
+            v-for="(materialLine, index) in form.material_recipe"
+            :key="index"
+            :data-material-recipe-row="index"
+            class="grid grid-cols-1 items-start gap-3 md:grid-cols-[1fr_160px_auto]"
+          >
+            <div :data-material-recipe-product="index">
+              <UiSelect
+                v-model="materialLine.product_id"
+                :options="productOptions"
+                label="Insumo"
+                placeholder="Seleccionar insumo"
+                searchable
+                :error="errors[`material_recipe.${index}.product_id`]"
+              />
+              <p
+                v-if="errors[`material_recipe.${index}.product_id`]"
+                class="mt-1 text-xs text-systemRed-600"
+              >
+                {{ errors[`material_recipe.${index}.product_id`] }}
+              </p>
+            </div>
+            <UiInput
+              v-model.number="materialLine.quantity"
+              label="Cantidad"
+              type="number"
+              step="0.001"
+              min="0"
+              :data-material-recipe-quantity="index"
+              :error="errors[`material_recipe.${index}.quantity`]"
+            />
+            <UiButton
+              type="button"
+              variant="icon"
+              size="sm"
+              class="mt-7"
+              aria-label="Quitar insumo"
+              :data-material-recipe-remove="index"
+              @click="removeMaterialLine(index)"
+            >
+              <XMarkIcon class="h-4 w-4" aria-hidden="true" />
+            </UiButton>
+          </div>
+        </div>
+
+        <p v-else class="mt-4 text-sm text-theme-secondary" data-material-recipe-empty>
+          Este procedimiento no declara receta de insumos.
+        </p>
+
+        <UiButton
+          type="button"
+          variant="secondary"
+          size="sm"
+          class="mt-3"
+          data-material-recipe-add
+          @click="addMaterialLine"
+        >
+          <template #icon-left>
+            <PlusIcon class="h-4 w-4" aria-hidden="true" />
+          </template>
+          Agregar insumo
+        </UiButton>
+
+        <ul
+          v-if="materialRecipeErrors.length"
+          data-material-recipe-errors
+          class="mt-3 space-y-1 text-xs text-systemRed-600"
+        >
+          <li v-for="(message, index) in materialRecipeErrors" :key="index">{{ message }}</li>
+        </ul>
+      </section>
+
       <section data-form-group="pricing">
         <h3 class="text-base font-semibold text-label">Valor y duración</h3>
         <p class="mt-1 text-sm text-theme-secondary">
@@ -231,6 +333,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { XMarkIcon, PlusIcon } from '@heroicons/vue/24/outline'
+import { useApi } from '../../composables/useApi'
 import { useProcedureCatalog } from '../../composables/useProcedureCatalog'
 import { useToast } from '../../composables/useToast'
 import { SITE_TYPE_OPTIONS } from './procedureSite'
@@ -247,6 +350,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved'])
 
+const { get } = useApi()
 const { createProcedure, updateProcedure } = useProcedureCatalog()
 const toast = useToast()
 
@@ -254,6 +358,65 @@ const isEdit = computed(() => Boolean(props.procedure))
 const saving = ref(false)
 const errors = ref({})
 const formError = ref('')
+
+// #295 S4: the recipe consumes stock; the editor offers the inventory catalogue
+// and keeps the products the recipe already declares, even when the page does
+// not include them (inactive or outside the first page).
+const products = ref([])
+const productsLoading = ref(false)
+const productsError = ref('')
+const recipeSeeds = ref([])
+
+const materialRecipeErrors = computed(() =>
+  Object.entries(errors.value)
+    .filter(([field]) => /^material_recipe(\.\d+)?$/.test(field))
+    .map(([, message]) => message)
+)
+
+const productOptionLabel = product => {
+  const base = product.code ? `${product.name} — ${product.code}` : product.name
+  return product.unit ? `${base} (${product.unit})` : base
+}
+
+const productOptions = computed(() => {
+  const seen = new Set()
+  const options = []
+  const push = product => {
+    const id = Number(product.id)
+    if (seen.has(id)) return
+    seen.add(id)
+    options.push({ value: id, label: productOptionLabel(product) })
+  }
+
+  products.value.forEach(push)
+  recipeSeeds.value.forEach(push)
+  return options
+})
+
+const loadProducts = async () => {
+  productsLoading.value = true
+  productsError.value = ''
+  try {
+    const response = await get('/api/inventory/products', {
+      params: { per_page: 100, is_active: 1 }
+    })
+    products.value = Array.isArray(response?.data) ? response.data : []
+  } catch (error) {
+    products.value = []
+    productsError.value =
+      error?.response?.data?.message || 'No se pudieron cargar los insumos del inventario.'
+  } finally {
+    productsLoading.value = false
+  }
+}
+
+const addMaterialLine = () => {
+  form.value.material_recipe.push({ product_id: null, quantity: null })
+}
+
+const removeMaterialLine = index => {
+  form.value.material_recipe.splice(index, 1)
+}
 
 const activeOptions = [
   { value: true, label: 'Activo' },
@@ -306,13 +469,24 @@ const getEmptyForm = () => ({
   contraindications: '',
   post_procedure_care: '',
   is_active: true,
-  external_codes: []
+  external_codes: [],
+  material_recipe: []
 })
 
 const form = ref(getEmptyForm())
 
 onMounted(() => {
+  loadProducts()
   if (!props.procedure) return
+  const recipe = props.procedure.material_recipe ?? []
+  recipeSeeds.value = recipe
+    .filter(line => line.product_id !== null && line.product_id !== undefined)
+    .map(line => ({
+      id: Number(line.product_id),
+      name: line.product_name || `Insumo #${line.product_id}`,
+      code: null,
+      unit: line.unit || ''
+    }))
   form.value = {
     code: props.procedure.code,
     name: props.procedure.name,
@@ -332,6 +506,10 @@ onMounted(() => {
       system: externalCode.system,
       code: externalCode.code ?? '',
       description: externalCode.description ?? ''
+    })),
+    material_recipe: recipe.map(line => ({
+      product_id: line.product_id ?? null,
+      quantity: line.quantity === null || line.quantity === undefined ? null : Number(line.quantity)
     }))
   }
 })
@@ -350,6 +528,14 @@ const validate = () => {
   if (!form.value.default_duration_minutes || form.value.default_duration_minutes < 5) {
     nextErrors.default_duration_minutes = 'Mínimo 5 min'
   }
+  form.value.material_recipe.forEach((materialLine, index) => {
+    if (!materialLine.product_id) {
+      nextErrors[`material_recipe.${index}.product_id`] = 'Selecciona el insumo'
+    }
+    if (!(Number(materialLine.quantity) > 0)) {
+      nextErrors[`material_recipe.${index}.quantity`] = 'La cantidad debe ser mayor a cero.'
+    }
+  })
   errors.value = nextErrors
   return Object.keys(nextErrors).length === 0
 }
@@ -370,7 +556,12 @@ const onSubmit = async () => {
           system: externalCode.system,
           code: externalCode.code.trim(),
           description: (externalCode.description || '').trim() || null
-        }))
+        })),
+      // #295 S4: the list replaces the whole recipe; `[]` clears it.
+      material_recipe: form.value.material_recipe.map(materialLine => ({
+        product_id: materialLine.product_id,
+        quantity: Number(materialLine.quantity)
+      }))
     }
     let result
     if (isEdit.value) {

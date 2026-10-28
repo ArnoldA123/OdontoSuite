@@ -313,6 +313,45 @@
               </dl>
             </UiCard>
           </div>
+
+          <!-- #434: the recipe is catalog data the encounter closure consumes;
+               the detail publishes it and the administrator reads it here. -->
+          <UiCard variant="glass" data-detail-group="material-recipe">
+            <h2 class="text-2xl font-semibold text-label">Receta de insumos</h2>
+            <p class="mt-1 text-sm text-theme-secondary">
+              Insumos del almacén que el cierre de la atención descuenta para este procedimiento
+            </p>
+
+            <div
+              v-if="materialRecipe.length"
+              class="mt-6 divide-y divide-hairline"
+              data-material-recipe-list
+            >
+              <article
+                v-for="(line, index) in materialRecipe"
+                :key="`${line.product_id}-${index}`"
+                data-material-recipe-row
+                class="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3 first:pt-0 last:pb-0"
+              >
+                <p class="text-sm font-medium text-label" data-material-recipe-name>
+                  {{ line.product_name || `Insumo #${line.product_id}` }}
+                </p>
+                <p class="text-sm text-theme-primary tabular-nums" data-material-recipe-quantity>
+                  {{ formatNumber(line.quantity) }} {{ line.unit || '' }}
+                </p>
+                <p class="text-sm text-theme-secondary tabular-nums">
+                  {{ formatCurrency(line.cost_price) }} por unidad
+                </p>
+                <p class="text-sm text-theme-secondary tabular-nums">
+                  Stock: {{ formatNumber(line.stock_quantity) }} {{ line.unit || '' }}
+                </p>
+              </article>
+            </div>
+
+            <p v-else class="mt-6 text-sm text-theme-secondary" data-material-recipe-empty>
+              Este procedimiento no declara receta de insumos.
+            </p>
+          </UiCard>
         </div>
       </template>
 
@@ -461,7 +500,7 @@ import { useApi } from '../../composables/useApi'
 import { useAuditLogs } from '../../composables/useAuditLogs'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
-import { formatCurrency, formatDateTime } from '../../composables/useFormatters'
+import { formatCurrency, formatDateTime, formatNumber } from '../../composables/useFormatters'
 import { SITE_TYPE_LABELS } from './procedureSite'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
@@ -494,6 +533,12 @@ const siteTypeLabel = computed(
 
 const externalCodes = computed(() =>
   Array.isArray(procedure.value?.external_codes) ? procedure.value.external_codes : []
+)
+
+// #434: the inputs the procedure consumes, published by `show()` with the
+// product name, unit and the stock the warehouse declares today.
+const materialRecipe = computed(() =>
+  Array.isArray(procedure.value?.material_recipe) ? procedure.value.material_recipe : []
 )
 
 const externalSystemLabels = {
