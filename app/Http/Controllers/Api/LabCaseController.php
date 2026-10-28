@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLabCaseRequest;
 use App\Http\Requests\TransitionLabCaseRequest;
 use App\Http\Requests\UpdateLabCaseRequest;
+use App\Http\Resources\LabCaseResource;
 use App\Models\LabCase;
 use App\Services\LabCaseService;
 use App\Support\PerPage;
@@ -13,6 +14,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -63,7 +65,7 @@ class LabCaseController extends Controller
                 ->paginate(PerPage::resolve($request->input('per_page')));
 
             return response()->json([
-                'data' => $page->items(),
+                'data' => LabCaseResource::collection($page->items())->resolve($request),
                 'meta' => [
                     'current_page' => $page->currentPage(),
                     'last_page' => $page->lastPage(),
@@ -83,7 +85,9 @@ class LabCaseController extends Controller
     public function show(LabCase $labCase): JsonResponse
     {
         try {
-            return response()->json(['data' => $labCase->load(self::RELATIONS)]);
+            return response()->json([
+                'data' => (new LabCaseResource($labCase->load(self::RELATIONS)))->resolve(request()),
+            ]);
         } catch (ModelNotFoundException $e) {
             throw $e;
         } catch (\Throwable $e) {
@@ -99,7 +103,7 @@ class LabCaseController extends Controller
             $case = $this->cases->create($request->validated(), $request->user());
 
             return response()->json([
-                'data' => $case->load(self::RELATIONS),
+                'data' => (new LabCaseResource($case->load(self::RELATIONS)))->resolve($request),
                 'meta' => ['message' => 'Caso de laboratorio registrado exitosamente'],
             ], 201);
         } catch (ValidationException|AuthorizationException $e) {
@@ -113,11 +117,16 @@ class LabCaseController extends Controller
 
     public function update(UpdateLabCaseRequest $request, LabCase $labCase): JsonResponse
     {
+        // #449: the middleware owns the role and this owns the work order. The
+        // policy runs before validation so a foreign case is a 403 with no
+        // hint about which fields the payload would have needed.
+        Gate::authorize('update', $labCase);
+
         try {
             $case = $this->cases->update($labCase, $request->validated());
 
             return response()->json([
-                'data' => $case->load(self::RELATIONS),
+                'data' => (new LabCaseResource($case->load(self::RELATIONS)))->resolve($request),
                 'meta' => ['message' => 'Caso de laboratorio actualizado exitosamente'],
             ]);
         } catch (ValidationException|AuthorizationException $e) {
@@ -131,11 +140,16 @@ class LabCaseController extends Controller
 
     public function transition(TransitionLabCaseRequest $request, LabCase $labCase): JsonResponse
     {
+        // #449: the same work order answers to the same owner on both doors.
+        // Moving the phase is a write to the case, so the technician who cannot
+        // correct it cannot advance it either.
+        Gate::authorize('update', $labCase);
+
         try {
             $case = $this->cases->transition($labCase, (string) $request->validated()['phase']);
 
             return response()->json([
-                'data' => $case->load(self::RELATIONS),
+                'data' => (new LabCaseResource($case->load(self::RELATIONS)))->resolve($request),
                 'meta' => ['message' => 'Fase del caso de laboratorio actualizada exitosamente'],
             ]);
         } catch (ValidationException|AuthorizationException $e) {
