@@ -287,6 +287,7 @@
         </CashSectionHeader>
 
         <TransactionList
+          v-if="!listBootLoading"
           :transactions="transactions"
           :loading="transactionsLoading"
           :pagination="pagination"
@@ -295,6 +296,13 @@
           @void="voidTransaction"
           @receipt="downloadReceipt"
         />
+        <div v-else data-caja-list-loading>
+          <UiSkeleton
+            variant="table"
+            animation="wave"
+            aria-label="Cargando transacciones de la sesión"
+          />
+        </div>
       </div>
 
       <div v-if="activeTab === 'movements'">
@@ -319,12 +327,20 @@
         </CashSectionHeader>
 
         <MovementList
+          v-if="!listBootLoading"
           :movements="movements"
           :loading="movementsLoading"
           :pagination="movementPagination"
           :summary="summary"
           @refresh="loadMovements"
         />
+        <div v-else data-caja-list-loading>
+          <UiSkeleton
+            variant="table"
+            animation="wave"
+            aria-label="Cargando movimientos de la sesión"
+          />
+        </div>
       </div>
 
       <div v-if="activeTab === 'history'">
@@ -345,11 +361,19 @@
         </CashSectionHeader>
 
         <SessionList
+          v-if="!listBootLoading"
           :sessions="sessions"
           :loading="sessionsLoading"
           :pagination="sessionPagination"
           @refresh="loadSessions"
         />
+        <div v-else data-caja-list-loading>
+          <UiSkeleton
+            variant="table"
+            animation="wave"
+            aria-label="Cargando historial de sesiones"
+          />
+        </div>
       </div>
 
       <div v-if="activeTab === 'reports'">
@@ -413,6 +437,7 @@ import { formatCurrency, formatDateTime } from '@/composables/useFormatters'
 import UiButton from '@/components/ui/Button.vue'
 import UiCard from '@/components/ui/Card.vue'
 import UiTabs from '@/components/ui/Tabs.vue'
+import UiSkeleton from '@/components/ui/Skeleton.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import CashSectionHeader from './components/CashSectionHeader.vue'
 import TransactionList from './components/TransactionList.vue'
@@ -512,6 +537,25 @@ const sessionStatusText = computed(() => {
 // #411 — only the first reading takes the hero: a background refresh keeps the
 // balances it already knows instead of flashing skeletons over them.
 const heroLoading = computed(() => sessionLoading.value && !currentSession.value)
+
+// #452 (U11, states): the list of the active tab is this page's, so its first
+// read is represented here with the shared primitive; the lists keep their own
+// spinner for a refresh, which by then has rows to keep on screen.
+const listBootLoading = computed(() => {
+  if (activeTab.value === 'transactions') {
+    return heroLoading.value || (transactionsLoading.value && transactions.value.length === 0)
+  }
+
+  if (activeTab.value === 'movements') {
+    return heroLoading.value || (movementsLoading.value && movements.value.length === 0)
+  }
+
+  if (activeTab.value === 'history') {
+    return sessionsLoading.value && sessions.value.length === 0
+  }
+
+  return false
+})
 
 // #320 (S6): registering a deposit is counter work, so the permission is what
 // keeps clinical desks out of this button. #407 adds the other half: only an

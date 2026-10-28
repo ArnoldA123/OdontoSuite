@@ -200,6 +200,49 @@ describe('ready-to-bill: shell', () => {
 })
 
 describe('ready-to-bill: list', () => {
+  // #452 (U11, states): the page, not the table it delegates to, represents the
+  // first read — `UiDataTable` paints a bare spinner the instrument cannot see,
+  // and the empty state used to answer before the first payload arrived.
+  it('paints the skeleton primitive in the list region while the first read is in flight', async () => {
+    let releaseRows
+    harness.apiGet.mockImplementation(url => {
+      if (url === '/api/appointments/ready-to-bill') {
+        return new Promise(resolve => {
+          releaseRows = resolve
+        })
+      }
+      return Promise.resolve({ data: [] })
+    })
+
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
+    })
+    await router.push('/cash-register/ready-to-bill')
+    await router.isReady()
+
+    wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+
+    expect(wrapper.find('[data-rtb-loading] .skeleton-container').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('No hay citas por cobrar')
+
+    releaseRows({ data: rows, meta })
+    await flushPromises()
+
+    expect(wrapper.find('[data-rtb-loading]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-rtb-table] tbody tr')).toHaveLength(2)
+
+    // The placeholder belongs to the first read: a refresh keeps the delegated
+    // table mounted (it owns its inline loading row) instead of swapping the
+    // whole list region for the skeleton.
+    harness.apiGet.mockImplementation(() => new Promise(() => {}))
+    await wrapper.find('[data-hero-action="refresh"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-rtb-loading]').exists()).toBe(false)
+    expect(wrapper.find('[data-rtb-table]').exists()).toBe(true)
+  })
+
   it('renders the endpoint rows with formatted money and quotation state', async () => {
     await mountPage()
 

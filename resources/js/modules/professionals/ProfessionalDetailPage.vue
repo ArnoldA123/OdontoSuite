@@ -89,9 +89,8 @@
             description="Revisa la conexión e intenta de nuevo."
           />
         </div>
-        <div v-else-if="!professional" class="p-8 text-center">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
-          <p class="mt-2 text-theme-secondary">Cargando profesional...</p>
+        <div v-else-if="!professional" data-professional-facts-loading class="p-6 md:p-8">
+          <UiSkeleton variant="card" animation="wave" aria-label="Cargando profesional..." />
         </div>
         <div v-else data-professional-facts class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
           <div v-for="row in factRows" :key="row.key" :data-fact-row="row.key" class="min-w-0">
@@ -116,9 +115,12 @@
 
       <!-- Historial de auditoría -->
       <UiCard v-else variant="glass">
-        <div v-if="auditLogsLoading" class="p-8 text-center">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
-          <p class="mt-2 text-theme-secondary">Cargando historial de auditoría...</p>
+        <div v-if="auditLogsLoading" data-professional-audit-loading class="p-6 md:p-8">
+          <UiSkeleton
+            variant="card"
+            animation="wave"
+            aria-label="Cargando historial de auditoría..."
+          />
         </div>
         <div v-else-if="auditLogs.length === 0" class="p-4">
           <UiSectionEmpty
@@ -198,6 +200,7 @@ import UiBadge from '../../components/ui/Badge.vue'
 import Breadcrumbs from '../../components/ui/Breadcrumbs.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
+import UiSkeleton from '../../components/ui/Skeleton.vue'
 import { SPECIALTY_LABELS, ROLE_LABELS } from './professionals.constants'
 
 const route = useRoute()

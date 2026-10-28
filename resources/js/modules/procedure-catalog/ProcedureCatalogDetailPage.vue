@@ -67,6 +67,8 @@
       </div>
     </header>
 
+    <!-- Skeleton (#452): the loading branch paints the skeleton primitive, so
+         the surface represents its first read. -->
     <div v-if="loading" data-detail-skeleton class="space-y-6" aria-busy="true">
       <div
         class="p-6 md:p-8"
@@ -77,9 +79,12 @@
           box-shadow: var(--elevation-2);
         "
       >
-        <div class="h-3 w-24 rounded border border-hairline bg-systemGray-100" />
-        <div class="mt-3 h-9 w-72 max-w-full rounded border border-hairline bg-systemGray-100" />
-        <div class="mt-3 h-4 w-48 rounded border border-hairline bg-systemGray-100" />
+        <UiSkeleton
+          variant="text"
+          :count="3"
+          animation="wave"
+          aria-label="Cargando procedimiento"
+        />
       </div>
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div
@@ -92,13 +97,7 @@
             border-radius: var(--radius-panel);
           "
         >
-          <div class="h-6 w-40 rounded border border-hairline bg-systemGray-100" />
-          <div class="mt-2 h-4 w-56 rounded border border-hairline bg-systemGray-100" />
-          <div class="mt-6 space-y-3">
-            <div class="h-4 w-full rounded border border-hairline bg-systemGray-100" />
-            <div class="h-4 w-2/3 rounded border border-hairline bg-systemGray-100" />
-            <div class="h-4 w-1/2 rounded border border-hairline bg-systemGray-100" />
-          </div>
+          <UiSkeleton variant="text" :count="5" animation="wave" />
         </div>
       </div>
     </div>
@@ -508,6 +507,7 @@ import UiCard from '../../components/ui/Card.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiTabs from '../../components/ui/Tabs.vue'
+import UiSkeleton from '../../components/ui/Skeleton.vue'
 import LoadingSpinner from '../../components/ui/LoadingSpinner.vue'
 import BranchTariffPanel from './BranchTariffPanel.vue'
 

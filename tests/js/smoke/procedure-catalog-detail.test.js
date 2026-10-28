@@ -180,4 +180,38 @@ describe('procedure-catalog detail', () => {
 
     wrapper.unmount()
   })
+
+  // #452 (U11, states): the pending record paints the skeleton primitive, not
+  // a hand-rolled block of grey boxes the instrument cannot recognise.
+  it('paints the skeleton primitive while the record is in flight', async () => {
+    let resolveProcedure
+    getMock.mockImplementation(url => {
+      if (String(url).includes('/api/procedure-catalog/7')) {
+        return new Promise(resolve => {
+          resolveProcedure = resolve
+        })
+      }
+      return Promise.resolve({ data: [] })
+    })
+
+    const router = makeRouter()
+    await router.push('/procedure-catalog/7')
+    await router.isReady()
+    const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+
+    expect(wrapper.find('[data-detail-skeleton]').exists()).toBe(true)
+    expect(wrapper.find('[data-detail-skeleton] .skeleton-container').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('Endodoncia unirradicular')
+
+    resolveProcedure({ data: procedure })
+    await flushPromises()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    await flushPromises()
+
+    expect(wrapper.find('[data-detail-skeleton]').exists()).toBe(false)
+    expect(wrapper.find('.skeleton-container').exists()).toBe(false)
+    expect(wrapper.find('[data-detail-title]').text()).toContain('Endodoncia unirradicular')
+
+    wrapper.unmount()
+  })
 })

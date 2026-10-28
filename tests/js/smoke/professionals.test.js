@@ -750,4 +750,40 @@ describe('professionals smoke', () => {
 
     wrapper.unmount()
   })
+
+  // #452 (U11, states): the surface represents its first read with the
+  // skeleton primitive instead of a spinner with a sentence, and never claims
+  // an empty team while the team it is waiting for has not arrived.
+  it('paints the skeleton primitive while the first team read is in flight', async () => {
+    const originalImplementation = getMock.getMockImplementation()
+    let releaseUsers
+
+    getMock.mockImplementation(async url => {
+      if (typeof url === 'string' && url.startsWith('/api/users?role=')) {
+        return new Promise(resolve => {
+          releaseUsers = resolve
+        })
+      }
+      if (typeof url === 'string' && url.startsWith('/api/branches')) {
+        return { data: [] }
+      }
+      return { data: [] }
+    })
+
+    const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+
+    expect(wrapper.find('[data-team-loading] .skeleton-container').exists()).toBe(true)
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(0)
+    expect(wrapper.text()).not.toContain('Cargando profesionales...')
+    expect(wrapper.text()).not.toContain('Sin profesionales registrados')
+
+    releaseUsers({ data: TEAM })
+    await flushPromises()
+
+    expect(wrapper.find('[data-team-loading]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(3)
+
+    getMock.mockImplementation(originalImplementation)
+    wrapper.unmount()
+  })
 })

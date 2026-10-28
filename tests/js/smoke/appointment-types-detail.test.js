@@ -174,6 +174,9 @@ describe('appointment-types detail smoke', () => {
     wrapper.unmount()
   })
 
+  // #452 (U11, states): the placeholder the loading branch paints is the
+  // skeleton primitive, so the instrument can see the surface representing its
+  // first read instead of a hand-rolled block of grey boxes.
   it('shows the hero + info skeleton while the record is pending', async () => {
     let resolveType
     getMock.mockImplementation(url => {
@@ -190,12 +193,14 @@ describe('appointment-types detail smoke', () => {
     const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
 
     expect(wrapper.find('[data-detail-skeleton]').exists()).toBe(true)
+    expect(wrapper.find('[data-detail-skeleton] .skeleton-container').exists()).toBe(true)
     expect(wrapper.text()).not.toContain('Limpieza dental')
     expect(wrapper.find('[data-detail-hero]').text()).not.toContain('Cargando')
 
     resolveType({ data: makeType() })
     await flushPromises()
     expect(wrapper.find('[data-detail-skeleton]').exists()).toBe(false)
+    expect(wrapper.find('.skeleton-container').exists()).toBe(false)
     expect(wrapper.find('[data-detail-title]').text()).toBe('Limpieza dental')
     wrapper.unmount()
   })

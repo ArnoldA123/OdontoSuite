@@ -18,8 +18,8 @@
     </div>
 
     <!-- Lista de pacientes -->
-    <div v-if="isLoading" class="flex justify-center py-4">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+    <div v-if="isLoading" class="py-4" data-patient-selector-loading>
+      <LoadingSpinner size="md" aria-label="Cargando pacientes" />
     </div>
 
     <div v-else-if="filteredPatients.length === 0 && !isLoading" class="text-center py-4">
@@ -116,6 +116,7 @@ import {
   XMarkIcon
 } from '@heroicons/vue/24/outline'
 import { useApi } from '@/composables/useApi'
+import LoadingSpinner from './LoadingSpinner.vue'
 
 const props = defineProps({
   modelValue: {

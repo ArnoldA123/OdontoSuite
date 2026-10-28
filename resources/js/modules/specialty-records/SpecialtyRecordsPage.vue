@@ -149,7 +149,14 @@
       </UiCard>
 
       <section aria-label="Registros de especialidades">
-        <div v-if="availableDefinitions.length === 0" data-specialty-records-no-specialties>
+        <!-- #452: the workspace resolves its deep-link patient before it can
+             answer «Selecciona un paciente», so the placeholder is the first
+             state and not a branch behind the response it is waiting for. -->
+        <div v-if="booting" data-specialty-records-loading>
+          <UiSkeleton variant="card" animation="wave" aria-label="Cargando registros..." />
+        </div>
+
+        <div v-else-if="availableDefinitions.length === 0" data-specialty-records-no-specialties>
           <UiEmptyState
             title="Sin especialidades asignadas"
             description="Tu rol no tiene especialidades clínicas habilitadas. Solicita acceso al administrador."
@@ -327,6 +334,10 @@ const showDetail = ref(false)
 const showPatientModal = ref(false)
 const isEdit = ref(false)
 const loadError = ref(false)
+// #452 (U11, states): the deep link is a real read before the workspace can
+// say «Selecciona un paciente», so that frame is a placeholder, not a promise
+// the page had already broken.
+const booting = ref(true)
 
 const availableDefinitions = computed(() => definitionsForRole(user.value?.role))
 const activeDefinition = computed(() => getSpecialtyDefinition(activeSpecialty.value))
@@ -550,9 +561,13 @@ const subscribeToRecords = () => {
 }
 
 onMounted(async () => {
-  const openedFromQuery = await openFromQuery()
-  if (!openedFromQuery) activeSpecialty.value = availableDefinitions.value[0]?.key ?? ''
-  subscribeToRecords()
+  try {
+    const openedFromQuery = await openFromQuery()
+    if (!openedFromQuery) activeSpecialty.value = availableDefinitions.value[0]?.key ?? ''
+    subscribeToRecords()
+  } finally {
+    booting.value = false
+  }
 })
 
 onUnmounted(() => {

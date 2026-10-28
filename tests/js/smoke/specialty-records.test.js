@@ -418,4 +418,38 @@ describe('specialty-records deep link (#400)', () => {
 
     wrapper.unmount()
   })
+
+  // #452 (U11, states): while the deep link resolves its patient and its
+  // records, the workspace publishes the skeleton primitive. It used to flash
+  // «Selecciona un paciente» — a promise the page had already broken — and the
+  // records panel only reached its own skeleton once a patient existed.
+  it('paints the skeleton primitive while the deep link resolves', async () => {
+    let releasePatient
+    harness.apiGet.mockImplementation(url => {
+      if (url === '/api/patients/7') {
+        return new Promise(resolve => {
+          releasePatient = resolve
+        })
+      }
+      if (url === '/api/patients') return Promise.resolve({ data: [patient] })
+      if (url === '/api/specialty-records/patient/7/all') return Promise.resolve(keyedPayload)
+      return Promise.resolve({ data: [] })
+    })
+
+    await router.push('/specialty-records?patient_id=7&specialty=ortodoncia')
+
+    const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+
+    expect(wrapper.find('[data-specialty-records-loading] .skeleton-container').exists()).toBe(true)
+    expect(wrapper.find('[data-specialty-records-no-patient]').exists()).toBe(false)
+
+    releasePatient({ data: patient })
+    await flushPromises()
+
+    expect(wrapper.find('[data-specialty-records-loading]').exists()).toBe(false)
+    expect(wrapper.find('[data-specialty-records-panel]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Ana Torres')
+
+    wrapper.unmount()
+  })
 })

@@ -224,9 +224,8 @@
       </div>
 
       <UiCard variant="glass" class="overflow-hidden">
-        <div v-if="loading" class="p-8 text-center">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
-          <p class="mt-2 text-theme-secondary">Cargando profesionales...</p>
+        <div v-if="loading" data-team-loading class="p-6 md:p-8">
+          <UiSkeleton variant="table" animation="wave" aria-label="Cargando profesionales..." />
         </div>
 
         <div v-else-if="loadError" class="p-6 md:p-8">
@@ -585,6 +584,7 @@ import UiCard from '../../components/ui/Card.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
+import UiSkeleton from '../../components/ui/Skeleton.vue'
 import {
   SPECIALTY_LABELS,
   SPECIALTY_OPTIONS,
@@ -599,7 +599,8 @@ const { handleError } = useErrorHandler()
 const { confirm } = useConfirm()
 const { can } = usePermissions()
 
-const loading = ref(false)
+// #452 (U11, states): the first frame is the placeholder, not an empty team.
+const loading = ref(true)
 const loadError = ref(false)
 const creating = ref(false)
 const updating = ref(false)
