@@ -30,7 +30,7 @@
             </template>
             Volver
           </UiButton>
-          <UiButton data-hero-action @click="openCreate">
+          <UiButton v-if="can.manageBranches?.value" data-hero-action @click="openCreate">
             <template #icon-left>
               <PlusIcon class="w-4 h-4" aria-hidden="true" />
             </template>
@@ -179,7 +179,9 @@
               <UiButton v-if="hasActiveFilters" variant="secondary" @click="clearFilters">
                 Limpiar filtros
               </UiButton>
-              <UiButton v-else @click="openCreate">Nueva sucursal</UiButton>
+              <UiButton v-else-if="can.manageBranches?.value" @click="openCreate">
+                Nueva sucursal
+              </UiButton>
             </template>
           </UiEmptyState>
         </div>
@@ -232,6 +234,7 @@
               Ver
             </UiButton>
             <UiButton
+              v-if="can.manageBranches?.value"
               variant="ghost"
               size="sm"
               class="text-systemBlue-600 hover:text-systemBlue-700"
@@ -243,6 +246,7 @@
               <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
             </UiButton>
             <UiButton
+              v-if="can.manageBranches?.value"
               variant="ghost"
               size="sm"
               :class="
@@ -281,6 +285,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { useBranches } from '../../../composables/useBranches'
 import { useConfirm } from '../../../composables/useConfirm'
+import { usePermissions } from '../../../composables/usePermissions'
 import { useToast } from '../../../composables/useToast'
 import {
   formatBranchLocation,
@@ -302,6 +307,9 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const { confirm } = useConfirm()
+// #439: the directory keeps its read surface for every session; writing it
+// needs the permission the API already demands.
+const { can } = usePermissions()
 const { branches, loading, getBranches, toggleActive } = useBranches()
 
 const searchQuery = ref('')
