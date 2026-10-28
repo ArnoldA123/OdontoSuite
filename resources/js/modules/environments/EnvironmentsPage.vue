@@ -19,7 +19,7 @@
           </template>
           Volver
         </UiButton>
-        <UiButton @click="showNewEnvironmentModal = true">
+        <UiButton v-if="canManageEnvironments" @click="openCreateModal">
           <template #icon-left>
             <PlusIcon class="w-4 h-4" aria-hidden="true" />
           </template>
@@ -101,7 +101,9 @@
             <UiButton v-if="hasActiveFilters" variant="secondary" @click="clearFilters">
               Limpiar filtros
             </UiButton>
-            <UiButton v-else @click="showNewEnvironmentModal = true">Nuevo ambiente</UiButton>
+            <UiButton v-else-if="canManageEnvironments" @click="openCreateModal">
+              Nuevo ambiente
+            </UiButton>
           </template>
         </UiEmptyState>
       </div>
@@ -145,25 +147,41 @@
             </template>
             Ver detalle
           </UiButton>
-          <UiButton variant="ghost" size="sm" @click="editEnvironment(row)">
+          <UiButton
+            v-if="canManageEnvironments"
+            variant="ghost"
+            size="sm"
+            @click="editEnvironment(row)"
+          >
             <template #icon-left>
               <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
             </template>
             Editar
           </UiButton>
-          <UiButton v-if="row.is_active" variant="ghost" size="sm" @click="archiveEnvironment(row)">
+          <UiButton
+            v-if="canManageEnvironments && row.is_active"
+            variant="ghost"
+            size="sm"
+            @click="archiveEnvironment(row)"
+          >
             <template #icon-left>
               <ArchiveBoxIcon class="w-4 h-4" aria-hidden="true" />
             </template>
             Archivar
           </UiButton>
-          <UiButton v-else variant="ghost" size="sm" @click="reactivateEnvironment(row)">
+          <UiButton
+            v-else-if="canManageEnvironments"
+            variant="ghost"
+            size="sm"
+            @click="reactivateEnvironment(row)"
+          >
             <template #icon-left>
               <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
             </template>
             Reactivar
           </UiButton>
           <UiButton
+            v-if="canManageEnvironments"
             variant="ghost"
             size="sm"
             class="text-systemRed-700"
@@ -198,6 +216,7 @@
             label="Nombre del ambiente"
             class="w-full"
             required
+            :error="createErrors.name"
             :disabled="creating"
           />
         </div>
@@ -288,6 +307,7 @@
               label="Nombre del ambiente"
               class="w-full"
               required
+              :error="editErrors.name"
               :disabled="updating"
             />
           </div>
@@ -390,6 +410,7 @@ import {
 import { useApi } from '../../composables/useApi'
 import { useConfirm } from '../../composables/useConfirm'
 import { useErrorHandler } from '../../composables/useErrorHandler'
+import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { getStatusText, getStatusVariant } from './environmentStatus'
 import AppLayout from '../../components/layout/AppLayout.vue'
@@ -410,6 +431,12 @@ const { get, post, put, delete: remove } = useApi()
 const { confirm } = useConfirm()
 const toast = useToast()
 const { handleError } = useErrorHandler()
+const { can } = usePermissions()
+
+// #439: the page offers a write door only to a session that holds the same
+// permission its route demands (`manage.dental_chair`). Readers keep the list,
+// the filters and "Ver detalle".
+const canManageEnvironments = computed(() => Boolean(can.manageEnvironments?.value))
 
 const loading = ref(false)
 const creating = ref(false)
@@ -423,6 +450,8 @@ const archivedFilter = ref('exclude')
 const showNewEnvironmentModal = ref(false)
 const showEditEnvironmentModal = ref(false)
 const editingEnvironment = ref(null)
+const createErrors = ref({})
+const editErrors = ref({})
 
 const newEnvironment = ref({
   name: '',
@@ -612,12 +641,34 @@ const clearFilters = () => {
   loadEnvironments()
 }
 
+// #440: a rejected save names the field that failed. `/api/dental-chairs`
+// answers 422 with `errors.<field>`, so the first message per key feeds the
+// modal field and the toast is reserved for errors that carry no field.
+const fieldErrors = error => {
+  const errors = error?.response?.data?.errors
+  if (!errors || typeof errors !== 'object') return null
+  const mapped = Object.fromEntries(
+    Object.entries(errors).map(([field, messages]) => [
+      field,
+      Array.isArray(messages) ? messages[0] : messages
+    ])
+  )
+  return Object.keys(mapped).length > 0 ? mapped : null
+}
+
+const openCreateModal = () => {
+  createErrors.value = {}
+  showNewEnvironmentModal.value = true
+}
+
 const createEnvironment = async () => {
   if (creating.value) return
   creating.value = true
+  createErrors.value = {}
   try {
     await post('/api/dental-chairs', newEnvironment.value)
     showNewEnvironmentModal.value = false
+    createErrors.value = {}
     newEnvironment.value = {
       name: '',
       description: '',
@@ -627,6 +678,11 @@ const createEnvironment = async () => {
     toast.success('Ambiente creado exitosamente')
     reloadCurrentView()
   } catch (error) {
+    const errors = fieldErrors(error)
+    if (errors) {
+      createErrors.value = errors
+      return
+    }
     handleError(error, 'Error al crear el ambiente')
   } finally {
     creating.value = false
@@ -634,6 +690,7 @@ const createEnvironment = async () => {
 }
 
 const editEnvironment = environment => {
+  editErrors.value = {}
   editingEnvironment.value = { ...environment }
   showEditEnvironmentModal.value = true
 }
@@ -645,13 +702,20 @@ const viewDetail = environment => {
 const updateEnvironment = async () => {
   if (updating.value) return
   updating.value = true
+  editErrors.value = {}
   try {
     await put(`/api/dental-chairs/${editingEnvironment.value.id}`, editingEnvironment.value)
     showEditEnvironmentModal.value = false
     editingEnvironment.value = null
+    editErrors.value = {}
     reloadCurrentView()
     toast.success('Ambiente actualizado exitosamente')
   } catch (error) {
+    const errors = fieldErrors(error)
+    if (errors) {
+      editErrors.value = errors
+      return
+    }
     handleError(error, 'Error al actualizar el ambiente')
   } finally {
     updating.value = false

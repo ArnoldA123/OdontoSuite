@@ -7,8 +7,8 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 // useApi and useConfirm are the only mocked boundaries. Branch names come from
 // the /api/branches/active dictionary (id -> name); it is a lookup, never a
 // second team source.
-const { getMock, postMock, putMock, removeMock, confirmMock, makeUser, installTeam } = vi.hoisted(
-  () => {
+const { getMock, postMock, putMock, removeMock, confirmMock, makeUser, installTeam, failUsers } =
+  vi.hoisted(() => {
     const makeUser = (id, overrides = {}) => ({
       id,
       name: `Profesional ${id}`,
@@ -23,10 +23,17 @@ const { getMock, postMock, putMock, removeMock, confirmMock, makeUser, installTe
       ...overrides
     })
 
-    const state = { users: [], branches: [] }
+    const state = { users: [], branches: [], usersFailures: 0 }
 
     const getMock = vi.fn(async url => {
       if (typeof url === 'string' && url.startsWith('/api/users?role=')) {
+        if (state.usersFailures > 0) {
+          state.usersFailures -= 1
+          throw {
+            response: { status: 500, data: { message: 'Error del servidor' } },
+            status: 500
+          }
+        }
         return { data: state.users }
       }
       if (typeof url === 'string' && url.startsWith('/api/branches')) {
@@ -38,19 +45,29 @@ const { getMock, postMock, putMock, removeMock, confirmMock, makeUser, installTe
     const installTeam = (users, branches = []) => {
       state.users = users
       state.branches = branches
+      state.usersFailures = 0
+    }
+
+    // #441: the next N team reads answer 500, so the retry can recover.
+    const failUsers = (times = 1) => {
+      state.usersFailures = times
     }
 
     return {
       getMock,
       postMock: vi.fn(async () => ({ data: {} })),
       putMock: vi.fn(async () => ({ data: {} })),
-      removeMock: vi.fn(async () => ({ data: {} })),
+      removeMock: vi.fn(async url => {
+        const id = Number(String(url).split('/').pop())
+        state.users = state.users.filter(user => user.id !== id)
+        return { data: {} }
+      }),
       confirmMock: vi.fn(async () => true),
       makeUser,
-      installTeam
+      installTeam,
+      failUsers
     }
-  }
-)
+  })
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
@@ -87,8 +104,21 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
 import uiComponents from '../../../resources/js/plugins/ui-components'
+import { useToast } from '../../../resources/js/composables/useToast'
 import { SPECIALTY_OPTIONS } from '../../../resources/js/modules/professionals/professionals.constants'
 import Page from '../../../resources/js/modules/professionals/ProfessionalsPage.vue'
+import rolePermissions from '../support/role-permissions.json'
+
+// #439: the page gates its write affordances on the session's permissions, so
+// every mount needs a session. The admin default keeps the pre-existing cases
+// exercising the full surface.
+const seedSession = role => {
+  localStorage.setItem('auth_token', 'test-token')
+  localStorage.setItem('user', JSON.stringify({ id: 1, role, permissions: rolePermissions[role] }))
+}
+
+const toastsOf = () => useToast().toasts.value
+
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
@@ -157,6 +187,8 @@ describe('professionals smoke', () => {
     confirmMock.mockClear()
     confirmMock.mockResolvedValue(true)
     installTeam([])
+    seedSession('administrador')
+    useToast().clearAll()
   })
 
   it('mounts ProfessionalsPage.vue and renders content', async () => {
@@ -495,6 +527,102 @@ describe('professionals smoke', () => {
     expect(pushSpy).toHaveBeenCalledWith('/professionals/2')
 
     pushSpy.mockRestore()
+    wrapper.unmount()
+  })
+
+  it('renders the team without create, edit or delete controls for a read-only session', async () => {
+    seedSession('recepcionista')
+    installTeam(TEAM)
+    const wrapper = await mountPage()
+
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(3)
+    expect(findButtonByText(wrapper, 'Nuevo Profesional')).toBeUndefined()
+
+    const labels = wrapper
+      .findAll('[data-team-row]')[0]
+      .findAll('button')
+      .map(button => button.text().trim())
+    expect(labels).toContain('Ver Detalle')
+    expect(labels).not.toContain('Editar')
+    expect(labels).not.toContain('Eliminar')
+
+    wrapper.unmount()
+  })
+
+  it('separates a failed read from an empty list and recovers on retry', async () => {
+    installTeam(TEAM)
+    failUsers(1)
+    const wrapper = await mountPage()
+
+    const error = wrapper.find('[data-team-error]')
+    expect(error.exists()).toBe(true)
+    expect(error.attributes('role')).toBe('alert')
+    expect(error.text()).toContain('No pudimos cargar los profesionales')
+    expect(error.text()).toContain('Revisa tu conexión y vuelve a intentarlo.')
+    expect(wrapper.text()).not.toContain('Sin profesionales registrados')
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(0)
+
+    for (const stat of ['team-total', 'team-active', 'team-inactive', 'team-specialties']) {
+      expect(wrapper.find(`[data-stat="${stat}"]`).text()).toBe('N/D')
+    }
+
+    const retry = error.findAll('button').find(button => button.text().trim() === 'Reintentar')
+    expect(retry).toBeTruthy()
+    await retry.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-team-error]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(3)
+    expect(wrapper.find('[data-stat="team-total"]').text()).toBe('3')
+
+    wrapper.unmount()
+  })
+
+  it('surfaces the API message when the delete is refused', async () => {
+    installTeam(TEAM)
+    removeMock.mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: {
+          message:
+            'No se puede eliminar a Ana Torres: tiene 11 citas, 23 movimientos de caja, 4 sesiones de caja y 43 transacciones. Desactívalo en su lugar.'
+        }
+      }
+    })
+    const wrapper = await mountPage()
+
+    await wrapper
+      .findAll('[data-team-row]')[0]
+      .findAll('button')
+      .find(button => button.text().includes('Eliminar'))
+      .trigger('click')
+    await flushPromises()
+
+    expect(removeMock).toHaveBeenCalledWith('/api/users/1')
+    const messages = toastsOf().map(toast => toast.message)
+    expect(messages.at(-1)).toContain('Desactívalo en su lugar')
+    expect(messages).not.toContain('Error al eliminar el profesional')
+
+    wrapper.unmount()
+  })
+
+  it('removes the row and confirms the delete when the API answers 200', async () => {
+    installTeam(TEAM)
+    const wrapper = await mountPage()
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(3)
+
+    await wrapper
+      .findAll('[data-team-row]')[0]
+      .findAll('button')
+      .find(button => button.text().includes('Eliminar'))
+      .trigger('click')
+    await flushPromises()
+
+    expect(removeMock).toHaveBeenCalledWith('/api/users/1')
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(2)
+    expect(wrapper.text()).not.toContain('Ana Torres')
+    expect(toastsOf().map(toast => toast.message)).toContain('Profesional eliminado exitosamente')
+
     wrapper.unmount()
   })
 

@@ -37,7 +37,7 @@
           </svg>
           <span class="text-sm font-semibold tracking-tight text-label">OdontoSuite</span>
         </p>
-        <div class="flex items-center gap-3">
+        <div v-if="can.manageUsers.value" class="flex items-center gap-3">
           <UiButton @click="openCreateModal">
             <template #icon-left>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,7 +80,7 @@
             class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
             data-stat="team-total"
           >
-            {{ teamKpis.total }}
+            {{ kpiValue(teamKpis.total) }}
           </p>
           <p class="mt-1 text-xs text-theme-secondary line-clamp-2" data-kpi-caption="team-total">
             Equipo clínico completo
@@ -103,7 +103,7 @@
             class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
             data-stat="team-active"
           >
-            {{ teamKpis.active }}
+            {{ kpiValue(teamKpis.active) }}
           </p>
           <p class="mt-1 text-xs text-theme-secondary line-clamp-2" data-kpi-caption="team-active">
             Con cuenta habilitada
@@ -126,7 +126,7 @@
             class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
             data-stat="team-inactive"
           >
-            {{ teamKpis.inactive }}
+            {{ kpiValue(teamKpis.inactive) }}
           </p>
           <p
             class="mt-1 text-xs text-theme-secondary line-clamp-2"
@@ -152,7 +152,7 @@
             class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
             data-stat="team-specialties"
           >
-            {{ teamKpis.specialties }}
+            {{ kpiValue(teamKpis.specialties) }}
           </p>
           <p
             class="mt-1 text-xs text-theme-secondary line-clamp-2"
@@ -227,6 +227,40 @@
         <div v-if="loading" class="p-8 text-center">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
           <p class="mt-2 text-theme-secondary">Cargando profesionales...</p>
+        </div>
+
+        <div v-else-if="loadError" class="p-6 md:p-8">
+          <div
+            data-team-error
+            role="alert"
+            class="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-panel)] border border-hairline bg-systemRed-50 p-5"
+          >
+            <div class="flex min-w-0 items-center gap-3">
+              <svg
+                class="h-6 w-6 flex-shrink-0 text-systemRed-600"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.051 3.378c.866-1.5 3.032-1.5 3.898 0l7.354 12.748zM12 15.75h.007v.008H12v-.008z"
+                />
+              </svg>
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-label">No pudimos cargar los profesionales</p>
+                <p class="text-sm text-theme-secondary">
+                  Revisa tu conexión y vuelve a intentarlo.
+                </p>
+              </div>
+            </div>
+            <UiButton variant="secondary" size="sm" data-team-retry @click="loadProfessionals">
+              Reintentar
+            </UiButton>
+          </div>
         </div>
 
         <div v-else-if="showEmptyTeam" class="p-8">
@@ -359,6 +393,7 @@
                       Ver Detalle
                     </UiButton>
                     <UiButton
+                      v-if="can.manageUsers.value"
                       variant="ghost"
                       size="sm"
                       class="text-accent hover:text-primary-800"
@@ -367,6 +402,7 @@
                       Editar
                     </UiButton>
                     <UiButton
+                      v-if="can.manageUsers.value"
                       variant="ghost"
                       size="sm"
                       class="text-red-600 hover:text-red-900"
@@ -539,6 +575,7 @@ import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import { useErrorHandler } from '../../composables/useErrorHandler'
 import { useConfirm } from '../../composables/useConfirm'
+import { usePermissions } from '../../composables/usePermissions'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
@@ -560,8 +597,10 @@ const { get, post, put, delete: remove } = useApi()
 const toast = useToast()
 const { handleError } = useErrorHandler()
 const { confirm } = useConfirm()
+const { can } = usePermissions()
 
 const loading = ref(false)
+const loadError = ref(false)
 const creating = ref(false)
 const updating = ref(false)
 const team = ref([])
@@ -644,6 +683,10 @@ const secondaryLine = professional => {
   const parts = [professional.username, professional.email].filter(Boolean)
   return parts.length > 0 ? parts.join(' · ') : 'N/D'
 }
+
+// #441: a failed read is not an empty team, so the four counters declare the
+// missing data instead of reporting zeros.
+const kpiValue = value => (loadError.value ? 'N/D' : value)
 
 const teamKpis = computed(() => {
   let active = 0
@@ -747,12 +790,15 @@ const loadBranches = async () => {
 
 const loadProfessionals = async () => {
   loading.value = true
+  loadError.value = false
   try {
     const response = await get(`/api/users?role=${encodeURIComponent(CLINICAL_ROLES.join(','))}`)
     team.value = response?.data || []
+    loadError.value = false
   } catch (error) {
     handleError(error, 'Error al cargar los profesionales. Por favor, recarga la página.')
     team.value = []
+    loadError.value = true
   } finally {
     loading.value = false
   }
@@ -831,7 +877,7 @@ const deleteProfessional = async professional => {
       loadProfessionals()
       toast.success('Profesional eliminado exitosamente')
     } catch (error) {
-      handleError(error, 'Error al eliminar el profesional')
+      handleError(error)
     }
   }
 }
