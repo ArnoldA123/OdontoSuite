@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { readFileSync } from 'node:fs'
 
 const harness = vi.hoisted(() => ({ apiGet: vi.fn() }))
 
@@ -243,8 +244,6 @@ const mountAt = async path => {
   return wrapper
 }
 
-const currentQuery = () => new URLSearchParams(window.location.search)
-
 describe('patients list filter state (#401)', () => {
   beforeEach(() => {
     localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
@@ -281,10 +280,9 @@ describe('patients list filter state (#401)', () => {
     wrapper.unmount()
   })
 
-  it('writes the applied filters into the URL without a router navigation', async () => {
+  it('writes the applied filters into the route query', async () => {
     const wrapper = await mountAt('/patients')
     const router = wrapper.vm.$router
-    const before = router.currentRoute.value.fullPath
 
     vi.useFakeTimers()
     await searchInput(wrapper).setValue('AUDIT-U4')
@@ -294,25 +292,31 @@ describe('patients list filter state (#401)', () => {
     await chooseOption(wrapper, 'active', 'Activos')
     await flushPromises()
 
-    expect(currentQuery().get('search')).toBe('AUDIT-U4')
-    expect(currentQuery().get('active')).toBe('true')
-    // The shell keys the view by fullPath; the URL is written without touching
-    // the route, so the search field keeps its focus and its instance.
-    expect(router.currentRoute.value.fullPath).toBe(before)
+    expect(router.currentRoute.value.query.search).toBe('AUDIT-U4')
+    expect(router.currentRoute.value.query.active).toBe('true')
 
     wrapper.unmount()
   })
 
-  it('clears the URL when the reset control runs', async () => {
+  it('clears the query when the reset control runs', async () => {
     const wrapper = await mountAt('/patients?search=ANA&active=true&page=3')
+    const router = wrapper.vm.$router
+
     await wrapper.get('[data-reset-filters]').trigger('click')
     await flushPromises()
 
-    expect(currentQuery().get('search')).toBeNull()
-    expect(currentQuery().get('active')).toBeNull()
-    expect(currentQuery().get('page')).toBeNull()
+    expect(router.currentRoute.value.query.search).toBeUndefined()
+    expect(router.currentRoute.value.query.active).toBeUndefined()
+    expect(router.currentRoute.value.query.page).toBeUndefined()
 
     wrapper.unmount()
+  })
+
+  it('opts the route out of the query remount so the search keeps its focus', () => {
+    const app = readFileSync('resources/js/app.js', 'utf8')
+
+    expect(app).toContain('$route.meta.preserveOnQuery ? $route.path : $route.fullPath')
+    expect(app).toContain('meta: { preserveOnQuery: true }')
   })
 
   it('names the reset control for assistive technology', async () => {

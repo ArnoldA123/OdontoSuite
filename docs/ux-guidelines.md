@@ -307,12 +307,20 @@ con la lista explicita de componentes que vale la pena cachear. No usar
 modulos con WebSocket.
 
 Alternativa ya en uso: espejar el estado en el query de la URL. `/patients`
-escribe busqueda, estado, sucursal, orden, tamano de pagina y pagina con
-`history.replaceState`, y los lee al montar, asi que «atras» devuelve la misma
-lista. El `replaceState` (y no `router.replace`) es deliberado: con
-`:key="$route.fullPath"`, una navegacion del router por cada tecla remontaria la
-vista y el campo de busqueda perderia el foco. La misma tecnica sirve cuando una
-vista debe sobrevivir el viaje lista → detalle → lista sin `keep-alive`.
+escribe busqueda, estado, sucursal, orden, tamano de pagina y pagina en la ruta
+con `router.replace({ query })` y los lee al montar, asi que «atras» devuelve la
+misma lista. Para que el reemplazo no remonte la vista (y el campo de busqueda
+pierda el foco), esa ruta declara `meta: { preserveOnQuery: true }` y el shell
+usa `$route.path` como `key` en lugar de `$route.fullPath`:
+
+```js
+template: '<router-view :key="$route.meta.preserveOnQuery ? $route.path : $route.fullPath" />'
+```
+
+El resto de las rutas conserva `fullPath`. Ojo: escribir la URL con
+`history.replaceState` **no** sirve con Vue Router 4: su `push` reescribe la
+entrada actual con `historyState.current` antes de empujar la siguiente, y el
+query se pierde al volver.
 
 ## 9. Componentes UI disponibles
 

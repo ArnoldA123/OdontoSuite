@@ -681,19 +681,23 @@ export default {
     let searchDebounceTimer = null
 
     /**
-     * #401: writing the query with `history.replaceState` (not `router.replace`)
-     * keeps the address bar truthful without remounting the page: the shell
-     * keys the view by `$route.fullPath`, and a router navigation per keystroke
-     * would throw away the focus of the search field.
+     * #401: the filters live in the URL too, so the browser's back button
+     * returns to the same query, order, page size and page. The `/patients`
+     * route opts out of the full-path key (`meta.preserveOnQuery`), so a query
+     * replace does not remount the view and the search field keeps its focus.
      */
-    const syncFilterQuery = page => {
-      if (typeof window === 'undefined' || !window.history?.replaceState) return
+    const querySignature = query =>
+      JSON.stringify(
+        Object.entries(query ?? {})
+          .filter(([, value]) => value !== null && value !== undefined && value !== '')
+          .sort(([a], [b]) => a.localeCompare(b))
+      )
 
-      const url = new URL(window.location.href)
-      const { searchParams } = url
+    const syncFilterQuery = page => {
+      const next = { ...route.query }
       const set = (key, value) => {
-        if (value === null || value === undefined || value === '') searchParams.delete(key)
-        else searchParams.set(key, String(value))
+        if (value === null || value === undefined || value === '') delete next[key]
+        else next[key] = String(value)
       }
 
       const [sort, direction] = sortFilter.value.split('-')
@@ -710,9 +714,8 @@ export default {
       set('per_page', perPageFilter.value === 15 ? '' : perPageFilter.value)
       set('page', page <= 1 ? '' : page)
 
-      const next = `${url.pathname}${url.search}`
-      if (next !== `${window.location.pathname}${window.location.search}`) {
-        window.history.replaceState(window.history.state, '', next)
+      if (querySignature(next) !== querySignature(route.query)) {
+        router.replace({ query: next })
       }
     }
 
