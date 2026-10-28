@@ -112,6 +112,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useProcedureFavorites } from '../../composables/useProcedureFavorites'
+import { usePermissions } from '../../composables/usePermissions'
 import { formatCurrency } from '../../composables/useFormatters'
 import LoadingSpinner from '../ui/LoadingSpinner.vue'
 
@@ -123,6 +124,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'select'])
 
 const { favorites, forMe, loading, getFavorites, getForMe } = useProcedureFavorites()
+const { can } = usePermissions()
 
 const search = ref('')
 
@@ -140,10 +142,15 @@ const select = proc => {
 }
 
 const load = async () => {
-  await Promise.all([
-    getFavorites(),
-    getForMe(props.specialty ? { specialty: props.specialty } : {})
-  ])
+  const requests = []
+  // #396: favorites is a clinical permission; asking for it from a desk that
+  // lacks it answers 403. Skip the lookup and never let a rejected lookup
+  // escape the component as an unhandled promise rejection.
+  if (can.manageProcedureFavorite?.value) {
+    requests.push(getFavorites())
+  }
+  requests.push(getForMe(props.specialty ? { specialty: props.specialty } : {}))
+  await Promise.allSettled(requests)
 }
 
 watch(

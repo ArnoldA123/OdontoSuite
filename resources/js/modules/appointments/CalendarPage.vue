@@ -153,6 +153,28 @@
         <p class="mt-4 text-theme-secondary">Cargando agenda...</p>
       </div>
 
+      <!-- Load error: a failed range read must never masquerade as a free agenda -->
+      <div
+        v-else-if="loadError"
+        data-calendar-error
+        role="alert"
+        class="flex flex-wrap items-center gap-4 p-4 rounded-ios bg-systemRed-50 border border-hairline"
+      >
+        <ExclamationTriangleIcon
+          class="h-8 w-8 flex-shrink-0 text-systemRed-600"
+          aria-hidden="true"
+        />
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-medium text-theme-primary">No pudimos cargar las citas</p>
+          <p class="mt-1 text-sm text-theme-secondary" data-calendar-error-message>
+            {{ loadError }}
+          </p>
+        </div>
+        <UiButton variant="primary" size="sm" data-calendar-retry @click="loadAppointments">
+          Reintentar
+        </UiButton>
+      </div>
+
       <!-- Empty State (D1/D9) -->
       <div
         v-else-if="appointments.length === 0"
@@ -625,6 +647,7 @@ import {
   CalendarDaysIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ExclamationTriangleIcon,
   PlusIcon
 } from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
@@ -677,6 +700,7 @@ export default {
     CalendarDaysIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
+    ExclamationTriangleIcon,
     PlusIcon,
     NewAppointmentModal,
     ConsultationWizard
@@ -695,6 +719,9 @@ export default {
     // T7: starts true so the D1/D9 empty block never flashes before the
     // first range load (empty state must never appear while loading).
     const loading = ref(true)
+    // #396: a failed range read is an explicit surface state, never the
+    // empty agenda block.
+    const loadError = ref(null)
     const currentView = ref('week')
     const currentDate = ref(new Date())
     const appointments = ref([])
@@ -800,6 +827,7 @@ export default {
     const legendStatuses = APPOINTMENT_STATUS_KEYS.filter(key => key !== 'in_consultation')
 
     const loadedAppointmentsCaption = computed(() => {
+      if (loadError.value) return 'No se pudieron cargar las citas del rango actual'
       const count = appointments.value.length
       if (count === 0) return 'Sin citas cargadas en el rango actual'
       return count === 1
@@ -849,8 +877,10 @@ export default {
         // La API devuelve { data: [...], meta: {...} }
         // useApi ya parsea el JSON, por lo que response.data es el array directamente
         appointments.value = response?.data || []
+        loadError.value = null
       } catch (error) {
         toast.error('Error al cargar las citas')
+        loadError.value = normalizeError(error, 'Revisa tu conexión y vuelve a intentarlo.')
         appointments.value = []
       } finally {
         loading.value = false
@@ -1305,6 +1335,7 @@ export default {
     return {
       can,
       loading,
+      loadError,
       currentView,
       currentDate,
       appointments,
