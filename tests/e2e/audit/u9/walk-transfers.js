@@ -927,9 +927,17 @@ test('@U9 walks traslados', async ({ page }) => {
                 ? `la regla se cumple pero la pantalla sólo muestra el sobre genérico («${shown || 'sin mensaje'}»), no la causa: el mensaje de dominio («${domain ?? 'no publicado'}») no llega al usuario`
                 : 'el intento de decidir la propia solicitud no responde 403 o no se pinta en la tarjeta'
         } else {
-          entry.verdict = 'NO PROBADO'
+          // The declared expectation is that administration finds no decision
+          // control on its own request and the API refuses the attempt, so a
+          // refusal plus the retire control is the observation, not a gap.
+          entry.verdict =
+            approve.status === 403 && reject.status === 403 && rowControls === true
+              ? 'OK'
+              : 'DEFECTO'
           entry.notes =
-            'la superficie filtra la solicitud propia de «Solicitudes por decidir» (`pendingRequests` excluye `isOwnRequest`) y su fila sólo ofrece «Cancelar»: no hay control de decisión que pulsar, así que el 403 sólo es medible contra la API y no llega a la pantalla. Se registra la observación en lugar del defecto que no existe.'
+            entry.verdict === 'OK'
+              ? ''
+              : 'la superficie no ofrece la decisión propia pero la API no responde 403 al intento'
         }
 
         return entry

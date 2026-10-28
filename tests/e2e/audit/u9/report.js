@@ -754,7 +754,13 @@ test('@U9 informe de la sesión — capas consolidadas, recorrido, puerta y gale
   )
 
   // --- the instrument's own assertions ------------------------------------
-  expect(findings.length, 'hallazgos crudos del recorrido y de la capa 2').toBeGreaterThan(0)
+  // A session where every action is OK publishes zero findings, so the report
+  // checks that the raw list matches what the layers declare instead of
+  // assuming a defect exists.
+  const declaredFindings =
+    FINDING_VERDICTS.reduce((total, verdict) => total + (gate.actions.byVerdict[verdict] ?? 0), 0) +
+    gate.writeAffordances.count
+  expect(findings.length, 'hallazgos crudos del recorrido y de la capa 2').toBe(declaredFindings)
   expect(gate.writeAffordances.count, 'filas negativas de la capa 2 con escritura ofrecida').toBe(
     render.totals.negativeRowsWithWriteAffordances
   )
