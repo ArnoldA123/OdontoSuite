@@ -82,6 +82,16 @@ const cardPaymentMethod = {
   commission_percentage: 3.5
 }
 
+const walletPaymentMethod = {
+  id: 11,
+  name: 'Yape',
+  description: 'Billetera digital',
+  gateway_type: null,
+  type: 'wallet',
+  requires_reference: true,
+  commission_percentage: 0
+}
+
 const mpPaymentMethod = {
   id: 9,
   name: 'Mercado Pago',
@@ -384,6 +394,93 @@ describe('PaymentModal', () => {
     const reference = document.querySelector('[data-payment-reference]')
     expect(reference.textContent).toContain('exige un número de referencia')
     expect(wrapper.emitted('success')).toBeUndefined()
+  })
+
+  it('surfaces the error keys with no visible field in the general notice', async () => {
+    // #409 — a 422 whose reason hangs from a key the form cannot paint
+    // (`session`) used to be copied to state and never rendered.
+    harness.apiPost.mockRejectedValue({
+      response: {
+        status: 422,
+        data: {
+          message: 'Los datos proporcionados no son válidos.',
+          errors: {
+            session: ['No hay una sesión de caja abierta para esta sucursal.']
+          }
+        }
+      }
+    })
+
+    await mountPaymentModal()
+    await chooseOption('method', 'Efectivo')
+    await submitPayment()
+
+    const error = document.querySelector('[data-payment-error]')
+    expect(error).not.toBeNull()
+    expect(error.textContent).toContain('No hay una sesión de caja abierta para esta sucursal.')
+    expect(wrapper.emitted('success')).toBeUndefined()
+  })
+
+  it('shows the wallet rejection on the reference field when it travels empty', async () => {
+    harness.apiGet.mockImplementation(url => {
+      if (url === '/api/payment-methods/active') {
+        return Promise.resolve({ data: [walletPaymentMethod] })
+      }
+      return Promise.resolve({ data: [], meta: { total: 0 } })
+    })
+    harness.apiPost.mockRejectedValue({
+      response: {
+        status: 422,
+        data: {
+          message: 'El método de pago Yape exige un número de referencia.',
+          errors: {
+            reference_number: ['El método de pago Yape exige un número de referencia.']
+          }
+        }
+      }
+    })
+
+    await mountPaymentModal()
+    await chooseOption('method', 'Yape')
+    await submitPayment()
+
+    expect(document.querySelector('[data-payment-reference]').textContent).toContain(
+      'exige un número de referencia'
+    )
+    expect(wrapper.emitted('success')).toBeUndefined()
+  })
+
+  it('sends the wallet reference and the notes with a pending appointment payment', async () => {
+    harness.apiGet.mockImplementation(url => {
+      if (url === '/api/payment-methods/active') {
+        return Promise.resolve({ data: [walletPaymentMethod] })
+      }
+      return Promise.resolve({ data: [], meta: { total: 0 } })
+    })
+
+    await mountPaymentModal()
+    await chooseOption('method', 'Yape')
+
+    const reference = document.querySelector('[data-payment-reference] input')
+    reference.value = 'OP-778812'
+    reference.dispatchEvent(new Event('input'))
+    await flushPromises()
+    const notes = document.querySelector('[data-payment-notes]')
+    notes.value = 'Pago con Yape del titular'
+    notes.dispatchEvent(new Event('input'))
+    await flushPromises()
+
+    await submitPayment()
+
+    expect(harness.apiPost).toHaveBeenCalledTimes(1)
+    expect(harness.apiPost).toHaveBeenCalledWith('/api/pending-payments/7/pay', {
+      payment_method_id: 11,
+      amount: 120,
+      description: 'Consulta',
+      reference_number: 'OP-778812',
+      notes: 'Pago con Yape del titular'
+    })
+    expect(wrapper.emitted('success')).toHaveLength(1)
   })
 
   it('pays the pending appointment through its own endpoint', async () => {
