@@ -29,7 +29,7 @@
             </template>
             Volver
           </UiButton>
-          <UiButton variant="primary" @click="openCreate">
+          <UiButton v-if="can.managePaymentMethods?.value" variant="primary" @click="openCreate">
             <template #icon-left>
               <PlusIcon class="h-4 w-4" aria-hidden="true" />
             </template>
@@ -131,6 +131,13 @@
           data-status-filter
           @change="loadMethods"
         />
+        <UiSelect
+          v-model="typeFilter"
+          :options="TYPE_FILTER_OPTIONS"
+          placeholder="Todas las familias"
+          class="w-48"
+          data-type-filter
+        />
       </div>
     </UiCard>
 
@@ -168,7 +175,7 @@
           </UiButton>
         </div>
 
-        <div v-else-if="methods.length === 0" data-pm-empty>
+        <div v-else-if="filteredMethods.length === 0" data-pm-empty>
           <UiEmptyState
             :title="emptyStateTitle"
             :description="emptyStateDescription"
@@ -178,14 +185,16 @@
               <UiButton v-if="hasActiveFilters" variant="secondary" @click="clearFilters">
                 Limpiar filtros
               </UiButton>
-              <UiButton v-else @click="openCreate">Nuevo método</UiButton>
+              <UiButton v-else-if="can.managePaymentMethods?.value" @click="openCreate">
+                Nuevo método
+              </UiButton>
             </template>
           </UiEmptyState>
         </div>
 
         <UiDataTable
           v-else
-          :data="methods"
+          :data="filteredMethods"
           :columns="columns"
           :searchable="false"
           :show-header="false"
@@ -238,6 +247,16 @@
             />
           </template>
 
+          <template #cell-reference="{ row }">
+            <span
+              data-row-reference
+              :data-requires-reference="row.requires_reference ? 'true' : 'false'"
+              class="text-sm text-theme-primary"
+            >
+              {{ row.requires_reference ? 'Sí' : 'No' }}
+            </span>
+          </template>
+
           <template #cell-scope="{ row }">
             <UiStatusBadge
               :variant="getScopeVariant(row.is_system)"
@@ -256,6 +275,7 @@
 
           <template #actions="{ row }">
             <UiButton
+              v-if="can.managePaymentMethods?.value"
               variant="ghost"
               size="sm"
               class="text-systemBlue-600 hover:text-systemBlue-700"
@@ -265,6 +285,7 @@
               Editar
             </UiButton>
             <UiButton
+              v-if="can.managePaymentMethods?.value"
               variant="ghost"
               size="sm"
               :class="row.is_active ? 'text-systemRed-700' : 'text-systemGreen-700'"
@@ -274,7 +295,7 @@
               {{ row.is_active ? 'Desactivar' : 'Activar' }}
             </UiButton>
             <UiButton
-              v-if="canDelete(row)"
+              v-if="can.managePaymentMethods?.value && canDelete(row)"
               variant="ghost"
               size="sm"
               class="text-systemRed-700"
@@ -310,6 +331,7 @@ import {
 import { useApi } from '../../../composables/useApi'
 import { useConfirm } from '../../../composables/useConfirm'
 import { useErrorHandler } from '../../../composables/useErrorHandler'
+import { usePermissions } from '../../../composables/usePermissions'
 import { useToast } from '../../../composables/useToast'
 import AppLayout from '../../../components/layout/AppLayout.vue'
 import UiButton from '../../../components/ui/Button.vue'
@@ -323,6 +345,7 @@ import UiStatusBadge from '../../../components/ui/StatusBadge.vue'
 import PaymentMethodFormModal from './PaymentMethodFormModal.vue'
 import {
   STATUS_FILTER_OPTIONS,
+  TYPE_FILTER_OPTIONS,
   canDelete,
   formatCommission,
   getGatewayLabel,
@@ -339,12 +362,21 @@ const { get, put, delete: remove } = useApi()
 const { confirm } = useConfirm()
 const toast = useToast()
 const { handleError } = useErrorHandler()
+// #439: writing the directory needs the permission the API already demands; a
+// read-only session keeps the list, the filters and the KPIs.
+const { can } = usePermissions()
 
 const loading = ref(true)
 const loadError = ref(false)
+// #445: the KPI strip describes the whole directory, so a filtered read is
+// paired with an unfiltered population read.
+const populationLoading = ref(false)
+const populationError = ref(false)
 const methods = ref([])
+const population = ref([])
 const searchQuery = ref('')
 const statusFilter = ref('')
+const typeFilter = ref('')
 const showForm = ref(false)
 const editingMethod = ref(null)
 
@@ -355,28 +387,53 @@ const columns = [
   { key: 'gateway', label: 'Pasarela' },
   { key: 'commission', label: 'Comisión' },
   { key: 'family', label: 'Familia' },
+  { key: 'reference', label: 'Referencia' },
   { key: 'scope', label: 'Tipo' },
   { key: 'status', label: 'Estado' }
 ]
 
-const hasActiveFilters = computed(
+// The two server filters narrow the read; the family filter is client-side and
+// never changes the population.
+const serverFiltersActive = computed(
   () => searchQuery.value.trim() !== '' || statusFilter.value !== ''
 )
 
-const kpisUnavailable = computed(() => loading.value || loadError.value)
+const hasActiveFilters = computed(() => serverFiltersActive.value || typeFilter.value !== '')
 
-const kpiTotal = computed(() => (kpisUnavailable.value ? 'N/D' : String(methods.value.length)))
+const filteredMethods = computed(() =>
+  typeFilter.value === ''
+    ? methods.value
+    : methods.value.filter(method => method.type === typeFilter.value)
+)
+
+const populationMethods = computed(() =>
+  serverFiltersActive.value ? population.value : methods.value
+)
+
+const kpisUnavailable = computed(
+  () => loading.value || populationLoading.value || loadError.value || populationError.value
+)
+
+const kpiTotal = computed(() =>
+  kpisUnavailable.value ? 'N/D' : String(populationMethods.value.length)
+)
 
 const kpiActive = computed(() =>
-  kpisUnavailable.value ? 'N/D' : String(methods.value.filter(method => method.is_active).length)
+  kpisUnavailable.value
+    ? 'N/D'
+    : String(populationMethods.value.filter(method => method.is_active).length)
 )
 
 const kpiInactive = computed(() =>
-  kpisUnavailable.value ? 'N/D' : String(methods.value.filter(method => !method.is_active).length)
+  kpisUnavailable.value
+    ? 'N/D'
+    : String(populationMethods.value.filter(method => !method.is_active).length)
 )
 
 const kpiSystem = computed(() =>
-  kpisUnavailable.value ? 'N/D' : String(methods.value.filter(method => method.is_system).length)
+  kpisUnavailable.value
+    ? 'N/D'
+    : String(populationMethods.value.filter(method => method.is_system).length)
 )
 
 const emptyStateTitle = computed(() =>
@@ -398,17 +455,44 @@ const listUrl = () => {
   return search ? `/api/payment-methods?${search}` : '/api/payment-methods'
 }
 
+const fetchMethods = async url => {
+  const response = await get(url)
+  return Array.isArray(response?.data) ? response.data : []
+}
+
 const loadMethods = async () => {
+  const needsPopulation = serverFiltersActive.value
+
   loading.value = true
   loadError.value = false
-  try {
-    const response = await get(listUrl())
-    methods.value = Array.isArray(response?.data) ? response.data : []
-  } catch {
+  populationLoading.value = needsPopulation
+  populationError.value = false
+
+  const [listResult, populationResult] = await Promise.allSettled([
+    fetchMethods(listUrl()),
+    needsPopulation ? fetchMethods('/api/payment-methods') : Promise.resolve([])
+  ])
+
+  loading.value = false
+  populationLoading.value = false
+
+  if (listResult.status === 'fulfilled') {
+    methods.value = listResult.value
+  } else {
     loadError.value = true
     methods.value = []
-  } finally {
-    loading.value = false
+  }
+
+  if (!needsPopulation) {
+    population.value = []
+    return
+  }
+
+  if (populationResult.status === 'fulfilled') {
+    population.value = populationResult.value
+  } else {
+    populationError.value = true
+    population.value = []
   }
 }
 
@@ -420,6 +504,7 @@ const onSearchInput = () => {
 const clearFilters = () => {
   searchQuery.value = ''
   statusFilter.value = ''
+  typeFilter.value = ''
   loadMethods()
 }
 
