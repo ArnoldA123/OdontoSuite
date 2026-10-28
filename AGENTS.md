@@ -585,6 +585,12 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (el aviso de bloqueo del modal de cobro no sobrevive al cambio de
+  pestaña, #472)** — `PaymentModal` reinicia el estado del bloqueo contable y el
+  destino del reintento al cambiar de pestaña, así el aviso describe siempre el
+  intento que lo produjo y «Autorizar y reintentar» no puede llevar la razón de
+  una puerta de cobro a la otra. Sin rutas, modelos, migraciones ni permisos
+  nuevos. Test: `caja-cobros` (17).
 - **2026-10-28 (cierre de los hallazgos U3 de la agenda,
   #391/#392/#394/#395/#396/#397)** — Las seis issues que publicó la auditoría U3
   dejan de ser hallazgos. **#392**: la regla «una cita cancelada libera su

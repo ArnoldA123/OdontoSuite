@@ -629,4 +629,53 @@ describe('PaymentModal', () => {
     expect(document.querySelector('[data-accounting-lock-notice]')).toBeNull()
     expect(document.querySelector('[data-payment-modal]')).not.toBeNull()
   })
+
+  it('withdraws a blocked manual notice when the operator moves to another tab', async () => {
+    // #472 — the notice and its retry belong to the action that was blocked: a
+    // tab change must not leave the reason stranded over a different door.
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        id: 1,
+        name: 'Admin',
+        role: 'administrador',
+        permissions: ['override.accounting_lock']
+      })
+    )
+
+    harness.apiGet.mockImplementation(url => {
+      if (url === '/api/payment-methods/active') {
+        return Promise.resolve({ data: [mpPaymentMethod] })
+      }
+      return Promise.resolve({ data: [], meta: { total: 0 } })
+    })
+
+    harness.apiPost.mockRejectedValueOnce({
+      response: {
+        status: 403,
+        data: {
+          code: 'accounting_lock_blocked',
+          message: 'El módulo [cash_transactions] está bloqueado contablemente.'
+        }
+      }
+    })
+
+    await mountPaymentModal()
+    await chooseOption('method', 'Mercado Pago')
+    await submitPayment()
+
+    expect(document.querySelector('[data-accounting-lock-notice]')).not.toBeNull()
+
+    // Moving to the Mercado Pago tab starts a different action, and its failure
+    // is not the lock: the stale notice must be gone.
+    harness.apiPost.mockRejectedValueOnce({
+      response: { status: 500, data: { message: 'No se pudo preparar el pago' } }
+    })
+    document.querySelector('#tab-mercadopago').click()
+    await flushPromises()
+    await flushPromises()
+
+    expect(document.querySelector('[data-accounting-lock-notice]')).toBeNull()
+    expect(document.querySelector('[data-accounting-lock-reason]')).toBeNull()
+  })
 })
