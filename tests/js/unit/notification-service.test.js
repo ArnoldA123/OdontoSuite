@@ -39,4 +39,16 @@ describe('quotation notifications', () => {
     expect(notification.type).toBe('info')
     expect(notification.category).toBe('quotations')
   })
+
+  it('announces the send as its own event (#422)', () => {
+    const notification = NotificationService.convertEventToNotification('quotation.sent', {
+      quotation: { total_amount: 1400, patient: { full_name: 'Ana Pérez' } }
+    })
+
+    expect(notification.title).toBe('Presupuesto enviado')
+    expect(notification.type).toBe('info')
+    expect(notification.category).toBe('quotations')
+    expect(notification.message).toContain('Ana Pérez')
+    expect(notification.message).toMatch(/S\/\s1,400\.00/)
+  })
 })
