@@ -90,7 +90,7 @@ class TreatmentPlanController extends Controller
             $result = $this->treatmentPlanService->getPlans($filters);
 
             return response()->json([
-                'data' => $result->items(),
+                'data' => \App\Http\Resources\TreatmentPlanResource::collection($result->items()),
                 'meta' => [
                     'current_page' => $result->currentPage(),
                     'last_page' => $result->lastPage(),

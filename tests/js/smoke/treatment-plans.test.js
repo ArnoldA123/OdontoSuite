@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
@@ -22,6 +22,7 @@ const SUMMARY = {
 
 const PLAN = {
   id: 7,
+  patient_id: 3,
   plan_number: 'TP-2026-ABC123',
   title: 'Rehabilitación oral',
   status: 'proposed',
@@ -31,21 +32,46 @@ const PLAN = {
   is_overdue: true,
   patient: { first_name: 'Ana', last_name: 'Quispe' },
   progress: {
-    total_items: 4,
+    total_items: 2,
     completed_items: 1,
     progress_percentage: 25,
     completed_cost: 0,
     remaining_cost: 1500
-  }
+  },
+  // #417: the index now publishes the lines of every plan, so the row the card
+  // hands to the detail and the edit form is the same document `GET /{id}`
+  // returns.
+  items: [
+    {
+      id: 1,
+      procedure_name: 'Limpieza dental',
+      procedure_description: 'Detartraje supragingival',
+      quantity: 1,
+      unit_cost: 500,
+      total_cost: 500,
+      phase_number: 1
+    },
+    {
+      id: 2,
+      procedure_name: 'Corona de porcelana',
+      procedure_description: 'Pieza 16',
+      quantity: 1,
+      unit_cost: 1000,
+      total_cost: 1000,
+      phase_number: 2,
+      dental_piece_id: 16
+    }
+  ]
 }
 
-const apiState = vi.hoisted(() => ({ postReject: null, plans: [] }))
+const apiState = vi.hoisted(() => ({ postReject: null, plans: [], detail: null }))
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
     get: async url => {
       requests.push({ method: 'get', url })
       if (url.includes('/summary')) return { data: SUMMARY }
+      if (/\/api\/treatment-plans\/\d+$/.test(url)) return { data: apiState.detail }
       return {
         data: apiState.plans,
         meta: { current_page: 1, last_page: 3, per_page: 15, total: 31 }
@@ -56,7 +82,11 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
       if (apiState.postReject) throw apiState.postReject
       return { data: { ...PLAN, id: 8 } }
     },
-    put: async () => ({ data: {} }),
+    put: async (url, body) => {
+      requests.push({ method: 'put', url, body })
+      apiState.detail = { ...apiState.detail, ...body }
+      return { data: apiState.detail }
+    },
     patch: async () => ({ data: {} }),
     delete: async () => ({ data: {} }),
     setToken: () => {},
@@ -130,10 +160,17 @@ describe('treatment-plans page', () => {
     requests.length = 0
     apiState.postReject = null
     apiState.plans = [{ ...PLAN }]
+    apiState.detail = { ...PLAN }
     globalToasts.value = []
     confirmMock.mockReset()
     confirmMock.mockResolvedValue(true)
     seedSession('administrador')
+  })
+
+  // A failing assertion aborts before its own unmount; the next test mounts a
+  // page whose overlays are teleported to <body> and would read stale DOM.
+  afterEach(() => {
+    document.body.innerHTML = ''
   })
 
   it('mounts TreatmentPlansPage.vue and renders content', async () => {
@@ -186,6 +223,108 @@ describe('treatment-plans page', () => {
     expect(url).not.toContain('status=overdue')
 
     wrapper.unmount()
+  })
+
+  it('opens the detail and the edit form with the lines the list publishes', async () => {
+    const wrapper = await mountPage()
+
+    // The card count comes from the same payload: before #417 the index had no
+    // lines and the card announced "0 procedimientos".
+    expect(wrapper.get('[data-plan-items]').text()).toBe('2')
+
+    wrapper.findComponent(TreatmentPlanCard).vm.$emit('view', PLAN)
+    await flushPromises()
+
+    const detail = document.querySelector('[data-plan-detail]')
+    expect(detail).toBeTruthy()
+    expect(detail.querySelectorAll('[data-detail-item]')).toHaveLength(2)
+    expect(detail.textContent).toContain('Corona de porcelana')
+
+    detail.querySelector('[data-action="edit"]').click()
+    await flushPromises()
+
+    const itemRows = document.querySelectorAll('[data-plan-item]')
+    expect(itemRows).toHaveLength(2)
+    expect(itemRows[0].querySelector('[data-plan-item-field="name"] input').value).toBe(
+      'Limpieza dental'
+    )
+    expect(itemRows[1].querySelector('[data-plan-item-field="name"] input').value).toBe(
+      'Corona de porcelana'
+    )
+
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('keeps the detail intact when the edit form above it closes', async () => {
+    const wrapper = await mountPage()
+
+    wrapper.findComponent(TreatmentPlanCard).vm.$emit('view', PLAN)
+    await flushPromises()
+
+    const detail = () => document.querySelector('[data-plan-detail]')
+    expect(detail()).toBeTruthy()
+    expect(detail().querySelector('[data-detail-title]').textContent).toContain(
+      'Rehabilitación oral'
+    )
+
+    detail().querySelector('[data-action="edit"]').click()
+    await flushPromises()
+    expect(document.querySelector('[data-plan-modal]')).toBeTruthy()
+
+    // The form is clean, so Escape closes only the top overlay: the detail
+    // under it was reading a plan the page must not clear.
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await flushPromises()
+    // Vue reports a render thrown from a slot on a later tick; let it land
+    // before reading the detail, so the defect cannot hide behind timing.
+    await new Promise(resolve => setTimeout(resolve, 0))
+    await flushPromises()
+
+    expect(document.querySelector('[data-plan-modal]')).toBeNull()
+    // The rule itself: closing the form never clears the plan the detail under
+    // it is reading.
+    expect(wrapper.vm.selectedPlan?.id).toBe(PLAN.id)
+    expect(detail()).toBeTruthy()
+    expect(detail().querySelector('[data-detail-title]')?.textContent).toContain(
+      'Rehabilitación oral'
+    )
+    expect(detail().querySelectorAll('[data-detail-item]')).toHaveLength(2)
+
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('refreshes the open detail with the saved lines instead of leaving it stale', async () => {
+    const wrapper = await mountPage()
+
+    wrapper.findComponent(TreatmentPlanCard).vm.$emit('view', PLAN)
+    await flushPromises()
+
+    document.querySelector('[data-plan-detail] [data-action="edit"]').click()
+    await flushPromises()
+
+    const title = document.querySelector('[data-plan-field="title"] input')
+    title.value = 'Rehabilitación superior'
+    title.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+
+    // jsdom does not submit a form from a button associated by `form`; the
+    // contract under test is the submit handler, so dispatch it directly.
+    document
+      .querySelector('#treatment-plan-form')
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    await flushPromises()
+    await flushPromises()
+    const save = requests.find(request => request.method === 'put')
+    expect(save.url).toBe('/api/treatment-plans/7')
+    expect(requests.some(request => request.url === '/api/treatment-plans/7')).toBe(true)
+    expect(document.querySelector('[data-plan-detail] [data-detail-title]').textContent).toContain(
+      'Rehabilitación superior'
+    )
+
+    wrapper.unmount()
+    document.body.innerHTML = ''
   })
 
   it('duplicates a plan through the plan id, never through the whole object', async () => {
