@@ -32,7 +32,12 @@ class ProcedureCatalogResource extends JsonResource
             // 'legacy_specialty' (Sprint 2 DM-7) marcado deprecated. Mantenido
             // para que consumidores existentes no rompan. Usar 'specialty' (FK).
             'legacy_specialty' => $this->legacy_specialty,
-            'default_cost' => (float) $this->default_cost,
+            // #431: el índice resuelve el tarifario de la sede; `list_cost`
+            // conserva el precio de lista y `price_source` nombra el origen.
+            // `show()` sigue publicando la lista (sin precio resuelto).
+            'default_cost' => (float) ($this->resolved_cost ?? $this->default_cost),
+            'list_cost' => (float) ($this->list_cost ?? $this->default_cost),
+            'price_source' => $this->whenNotNull($this->price_source),
             'default_duration_minutes' => $this->default_duration_minutes,
             'requirements' => $this->requirements,
             'materials_needed' => $this->materials_needed,
