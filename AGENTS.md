@@ -620,7 +620,7 @@ documentada y no bloquea producción.
   `ReminderCancellationTest` con motivo (4), 8 casos de filtros de agenda, 7 de
   layout móvil, 6 del guardia de descarte del asistente y 6 de cancelación con
   motivo; Vitest **1314 pruebas en 155 archivos**; suite MySQL **OK (2799 tests,
-  17072 assertions)**; Pint, ESLint, Prettier y `vite build` en verde;
+  17073 assertions)**; Pint, ESLint, Prettier y `vite build` en verde;
   `node scripts/audit/doc-drift.mjs` con sus 14 chequeos. Verificación de
   navegador sobre la base `odontosuite_audit` migrada: las diez filas del
   contrato de primitiva del asistente en verde (abierto por el escritorio del

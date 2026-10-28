@@ -182,7 +182,7 @@ señor Arnold.
 ## Verificación
 
 - **Suite MySQL** (`vendor/bin/phpunit -c phpunit.mysql.xml` contra
-  `odontosuite_u3_test` por socket): **OK (2799 tests, 17072 assertions)**.
+  `odontosuite_u3_test` por socket): **OK (2799 tests, 17073 assertions)**.
 - **Vitest**: `155 archivos / 1314 pruebas` en verde.
 - **Build**: `vite build` en `8.34 s`, artefactos en `public/build`
   (gitignored).
@@ -220,3 +220,22 @@ señor Arnold.
   de entrada sólo pide `inspect` cuando la revisión es debida o la pide el
   usuario. La verificación funcional (suite completa y sondas de navegador)
   corrió por su cuenta y no se sustituye por este dictamen.
+
+## Verificación independiente
+
+- Un verificador de solo lectura recorrió criterios, código y suites sobre la
+  rama: **PASS** en las seis issues, con `OK (2799 tests, 17073 assertions)` en
+  MySQL, `155 archivos / 1314 pruebas` en Vitest, Pint (896 archivos), ESLint
+  (0 errores), Prettier y los 14 chequeos de deriva. Leyó los riesgos
+  transversales (escritores de `appointments`, reactivación contra el índice
+  único, exposición del recurso y descarte silencioso en el alta) sin hallazgos
+  bloqueantes.
+- Dos cierres posteriores al dictamen: `cancelAppointment()`, la puerta heredada
+  sin ruta HTTP, escribía el motivo en `notes` —ahora usa la columna— y la sonda
+  de cancelación conserva el motivo del salto en su evidencia (su `finally` la
+  sobrescribía). Suite final: `OK (2799 tests, 17073 assertions)`.
+- Prueba de navegador dirigida sobre la API del worktree (cita creada por API,
+  agenda abierta, cancelación por la interfaz): diálogo con `role="dialog"` y
+  `aria-modal="true"`, envío vacío bloqueado, **cero** PATCH antes del motivo,
+  PATCH 200 con `cancellation_reason`, `meta.reminders_cancelled: 0`, estado y
+  motivo guardados en la base de auditoría, y aviso «Cita cancelada».
