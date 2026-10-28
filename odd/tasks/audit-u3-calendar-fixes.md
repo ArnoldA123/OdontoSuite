@@ -206,10 +206,12 @@ señor Arnold.
   `render for administrador|odontologo` **OK** con la aserción nueva a 390 px
   (columna 112 px, contenedor 848/306, hora del chip sin recortar y documento
   sin desborde).
-- **NO PROBADO en navegador**: la reprogramación por drag sobre un horario
-  liberado (`@U3 calendar · reprogramar por drag` se salta a las 21:55 porque no
-  queda franja futura en la rejilla del día). La regla de #392 la fijan las siete
-  pruebas de API, incluidas las dos puertas.
+- **Horario liberado en navegador**: la sonda compartida se salta de noche
+  (agenda `ahora + 75 min` contra una rejilla de 06:00 a 21:00), así que la fila
+  nueva `@U3 calendar · drag sobre un horario liberado por una cancelación`
+  agenda su propio par en el primer día con dos horas libres, cancela la segunda
+  y arrastra la primera hasta el hueco: **PATCH 200**, toast «Cita
+  reprogramada», chip movido y la cita cancelada intacta.
 
 ## Revisión nativa (RDD)
 
