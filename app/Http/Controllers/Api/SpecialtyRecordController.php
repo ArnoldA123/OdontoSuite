@@ -7,6 +7,7 @@ use App\Events\SpecialtyRecordUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateSpecialtyRecordRequest;
 use App\Services\SpecialtyRecordService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -178,6 +179,10 @@ class SpecialtyRecordController extends Controller
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Registro de especialidad no encontrado',
+            ], 404);
         } catch (\Exception $e) {
             Log::error('Error al actualizar registro de especialidad', ['exception' => $e]);
 
@@ -209,6 +214,10 @@ class SpecialtyRecordController extends Controller
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Registro de especialidad no encontrado',
+            ], 404);
         } catch (\Exception $e) {
             Log::error('Error al eliminar registro de especialidad', ['exception' => $e]);
 

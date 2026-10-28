@@ -209,12 +209,7 @@ const definitionsFor = fixtures => {
       permission: 'manage.specialty_record',
       expect: { grant: [404], deny: [404] },
       kind: 'missing-target',
-      deviation: {
-        status: 500,
-        cause:
-          'app/Http/Controllers/Api/SpecialtyRecordController.php::destroy catches \\Exception and answers 500; App\\Services\\SpecialtyRecordService::deleteRecord throws ModelNotFoundException for a missing id',
-        note: 'un id inexistente responde 500 «Error al eliminar registro de especialidad» en lugar de 404'
-      }
+      note: '#428: el controlador desenlaza ModelNotFoundException antes del catch genérico, así que un id inexistente responde el mismo 404 que show()'
     },
     {
       endpoint: '/api/specialty-records/{id}',
@@ -224,12 +219,7 @@ const definitionsFor = fixtures => {
       permission: 'manage.specialty_record',
       expect: { grant: [404], deny: [404] },
       kind: 'missing-target',
-      deviation: {
-        status: 500,
-        cause:
-          'app/Http/Controllers/Api/SpecialtyRecordController.php::update catches \\Exception and answers 500; SpecialtyRecordService::updateRecord throws ModelNotFoundException for a missing id',
-        note: 'el mismo defecto en la puerta de edición'
-      }
+      note: '#428: misma rama en la puerta de edición; el intento no deja error de servidor en el log'
     },
     {
       endpoint: '/api/specialty-records/patient/{id}/all',
