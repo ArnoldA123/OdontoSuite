@@ -764,7 +764,10 @@ const { privateChannel, echo } = useEcho()
 const canViewCashRegister = computed(() => can.viewCashRegister?.value === true)
 
 // State
-const loading = ref(false)
+// #387 - the first frame is the skeleton. Starting `false` painted the
+// content branch with empty arrays before the sources resolved, so the page
+// published its empty states on load.
+const loading = ref(true)
 const todayAppointments = ref([])
 // T5 week preview. Kept separate from the agenda so a failing upcoming
 // request never blocks the day's protagonists.
@@ -1268,6 +1271,17 @@ const fetchPending = async () => {
   }
 }
 
+/**
+ * #387 - the cash session joins the load batch instead of gating it: the
+ * dashboard's four day sources never wait on the register. Already-loaded
+ * sessions are not re-fetched, and the permission gate of #345 stays: a role
+ * without `view.cash_register` never asks for it.
+ */
+const loadCashSession = () => {
+  if (!canViewCashRegister.value || currentSession.value) return Promise.resolve()
+  return loadCurrentSession()
+}
+
 const loadDashboardData = async () => {
   if (!isAuthenticated.value) {
     router.push('/login')
@@ -1288,7 +1302,8 @@ const loadDashboardData = async () => {
       fetchStats(),
       fetchTodayAppointments(),
       fetchUpcomingAppointments(),
-      fetchPending()
+      fetchPending(),
+      loadCashSession()
     ])
 
     if (statsResult.unauthorized) {
@@ -1334,12 +1349,6 @@ const loadDashboardData = async () => {
       pendingError.value = false
     } else {
       pendingError.value = true
-    }
-
-    // Load cash session if not already loaded. #345: only the roles that can
-    // read the register ask for it.
-    if (canViewCashRegister.value && !currentSession.value && hasActiveSession.value === false) {
-      await loadCurrentSession()
     }
   } finally {
     loading.value = false
@@ -1447,12 +1456,8 @@ onMounted(async () => {
     router.replace({ query: {} })
   }
 
-  // Cargar sesión de caja primero, sólo si el rol puede leerla (#345)
-  if (canViewCashRegister.value) {
-    await loadCurrentSession()
-  }
-
-  // Luego cargar datos del dashboard
+  // Cargar los datos del dashboard. #387: la caja ya viaja dentro del lote
+  // paralelo, así que no se pide antes ni bloquea a las cuatro fuentes.
   await loadDashboardData()
 
   // Suscribirse a canales WebSocket (Reverb is often not running locally;
