@@ -590,6 +590,33 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (auditoría U6 de planes: el selector busca en el servidor, el
+  índice publica sus líneas y la línea admite descripción opcional,
+  #416/#417/#418/#419)** — Cuatro hallazgos de la auditoría UI U6 (#369), un
+  commit de unidad por issue. **#416**: `ProcedureCatalogPicker` envía `q` al
+  índice (el parámetro que `ProcedureCatalogController@index` lee; `search` no
+  existe) y pagina con el término vivo, así el buscador alcanza cualquier
+  procedimiento del catálogo y no sólo las 12 filas cargadas; el filtro local
+  por nombre/código se retira porque el servidor también busca por descripción.
+  **#417**: `GET /api/treatment-plans` devuelve `TreatmentPlanResource` con
+  `items` y `progress` (e `items.consumptions` precargados), así la tarjeta
+  cuenta sus procedimientos, la ficha muestra sus líneas y «Editar» abre el
+  formulario con ellas; el recurso es el mismo del `GET /{id}`. **#418**:
+  `items.*.description` es opcional en el alta (la regla ya era `nullable` en el
+  `PUT` y en `POST /items`) y la descripción escrita se persiste en
+  `procedure_description`, que es lo que el recurso publica; el nombre del
+  procedimiento sigue siendo obligatorio, así que «Descripción breve (opcional)»
+  deja de mentir. **#419**: cerrar el formulario sobre el detalle ya no limpia
+  `selectedPlan` mientras la ficha está abierta, y guardar desde ese formulario
+  refresca la ficha con `GET /api/treatment-plans/{id}` en vez de dejar el
+  snapshot anterior. Sin rutas, modelos, migraciones ni permisos nuevos: los
+  conteos de §4/§5 no cambian. Tests: `procedure-catalog-picker` (3),
+  `TreatmentPlansIndexPayloadTest` (2), `TreatmentPlanItemDescriptionTest` (5),
+  dos casos nuevos en `treatment-plans` (15 en el archivo); Vitest **172
+  archivos / 1468 pruebas**; suite MySQL **OK (2890 pruebas, 17662
+  aserciones)**; Pint 919 archivos, ESLint 0 errores / 36 avisos, Prettier
+  limpio, `vite build` en verde y `node scripts/audit/doc-drift.mjs` 14/14.
+
 - **2026-10-28 (shell y recuperación: canales por permiso, menú sin no-ops, un
   solo `h1` y enlace de recuperación explicado, #378/#384/#380/#381/#382/#405)**
   — Seis hallazgos de la auditoría UI. **#378/#384**: el handshake de canales
