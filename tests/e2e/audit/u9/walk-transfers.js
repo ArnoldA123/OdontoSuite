@@ -132,6 +132,7 @@ const tableState = page =>
       currentBranch: text(document.querySelector('[data-branch-current-name]')) || null,
       form: Boolean(document.querySelector('[data-transfer-form]')),
       formError: text(document.querySelector('[data-transfer-form-error]')) || null,
+      submitHint: text(document.querySelector('[data-transfer-submit-hint]')) || null,
       decisionsSection: Boolean(document.querySelector('[data-transfers-decisions]')),
       h1: Array.from(document.querySelectorAll('h1')).map(text).filter(Boolean)
     }
@@ -430,7 +431,7 @@ test('@U9 walks traslados', async ({ page }) => {
     await step(
       'create-empty',
       'Elegir sede de destino y enviar la solicitud sin motivo',
-      'El envío sin motivo no registra nada y el mensaje del campo explica qué falta',
+      'El envío sin motivo no registra nada, el botón deshabilitado explica qué falta y la API conserva su 422',
       async entry => {
         await primeSession(page, requester)
         await gotoSurface(page, SURFACE)
@@ -440,7 +441,11 @@ test('@U9 walks traslados', async ({ page }) => {
           .waitFor({ state: 'visible', timeout: 12000 })
           .then(() => true)
           .catch(() => false)
+        const initialHint =
+          (await visibleTexts(page, '[data-transfer-submit-hint]'))[0]?.trim() ?? null
         const picked = await pickOption(page, BRANCH_TRIGGER, targetName)
+        const hintAfterBranch =
+          (await visibleTexts(page, '[data-transfer-submit-hint]'))[0]?.trim() ?? null
         const disabled = await page.locator('[data-transfer-submit]').isDisabled()
 
         const attempted = await respondTo(
@@ -462,13 +467,18 @@ test('@U9 walks traslados', async ({ page }) => {
           to_branch_id: targetId
         })
         const serverMessage = probe.body?.errors?.reason?.[0] ?? null
-        const explained = Boolean(state.formError)
+        const hintExplains =
+          Boolean(initialHint && /sede de destino/i.test(initialHint)) &&
+          Boolean(hintAfterBranch && /motivo/i.test(hintAfterBranch))
 
-        entry.obtained = `formulario ${painted} · destino «${picked.selected ?? `no elegido (${picked.reason})`}» · motivo vacío → «Enviar solicitud» ${disabled ? 'deshabilitado' : 'habilitado'} · POST desde la pantalla ${attempted.status ?? 'no se envió'} · mensaje en el formulario «${state.formError ?? 'ninguno'}» · errores de campo ${JSON.stringify(errors.messages)} · filas antes ${before} · la API responde ${probe.status ?? 'sin respuesta'} «${serverMessage ?? '—'}»`
+        entry.obtained = `formulario ${painted} · pista inicial «${initialHint ?? 'ninguna'}» · destino «${picked.selected ?? `no elegido (${picked.reason})`}» · pista tras elegir sede «${hintAfterBranch ?? 'ninguna'}» · motivo vacío → «Enviar solicitud» ${disabled ? 'deshabilitado' : 'habilitado'} · POST desde la pantalla ${attempted.status ?? 'no se envió'} · mensaje en el formulario «${state.formError ?? 'ninguno'}» · errores de campo ${JSON.stringify(errors.messages)} · filas antes ${before} · la API responde ${probe.status ?? 'sin respuesta'} «${serverMessage ?? '—'}»`
         entry.request = requestOf(attempted)
         entry.detail = {
           painted,
+          initialHint,
           picked,
+          hintAfterBranch,
+          hintExplains,
           disabled,
           attempted: { status: attempted.status, acted: attempted.acted },
           formError: state.formError,
@@ -476,12 +486,25 @@ test('@U9 walks traslados', async ({ page }) => {
           serverMessage,
           rowsBefore: before
         }
-        entry.verdict = explained ? 'OK' : attempted.status === null ? 'CONFUSO' : 'DEFECTO'
-        entry.notes = explained
-          ? ''
-          : attempted.status === null
-            ? `el control se apaga sin decir qué falta: el 422 de la API («${serverMessage ?? 'sin mensaje'}») no llega a ningún campo, así que el usuario no puede predecir que el motivo es lo que bloquea el envío`
-            : 'el envío sin motivo llega al servidor y su rechazo no se pinta en el campo'
+        const controlClosed = painted && disabled && attempted.status === null
+        const apiContract = probe.status === 422 && Boolean(serverMessage)
+
+        entry.verdict =
+          controlClosed && hintExplains && apiContract
+            ? 'OK'
+            : !controlClosed
+              ? 'DEFECTO'
+              : !hintExplains
+                ? 'CONFUSO'
+                : 'DEFECTO'
+        entry.notes =
+          entry.verdict === 'OK'
+            ? ''
+            : !controlClosed
+              ? 'el envío sin motivo llega al servidor o el control no se apaga'
+              : !hintExplains
+                ? `el control se apaga sin decir qué falta: la pista «${hintAfterBranch ?? 'ausente'}» no nombra el motivo`
+                : `la API no conserva el 422 con el motivo del campo («${serverMessage ?? 'sin mensaje'}»)`
 
         return entry
       }

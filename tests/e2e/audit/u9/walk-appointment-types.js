@@ -9,9 +9,12 @@
 // when the type still has appointments.
 //
 // The type this walk creates is deactivated through the form and deleted through
-// the row, so the run leaves nothing behind. `DEFECTO` / `NO-OP` / `CONFUSO` are
-// evidence, never a thrown failure: the only hard assertions are that no
-// `pageerror` was raised and that every declared step was recorded.
+// the row, so the run leaves nothing behind. `requires_materials` is not a
+// control: the API derives it from the default procedure's recipe (#295, #444),
+// so the edit modal declares it and the detail names where it comes from.
+// `DEFECTO` / `NO-OP` / `CONFUSO` are evidence, never a thrown failure: the only
+// hard assertions are that no `pageerror` was raised and that every declared
+// step was recorded.
 
 import { test, expect } from 'playwright/test'
 
@@ -245,8 +248,8 @@ test('@U9 walks tipos de cita', async ({ page }) => {
 
     await step(
       'create-empty',
-      'Abrir «Nuevo tipo» y enviar el formulario vacío',
-      'El formulario marca en el campo lo que falta y no dispara ningún POST',
+      'Abrir «Nuevo tipo» y enviar el formulario sin nombre y sin duración',
+      'El formulario marca el nombre y la duración en su campo y no dispara ningún POST',
       async entry => {
         await page.locator('[data-hero-action]').click({ timeout: 8000 })
 
@@ -274,41 +277,70 @@ test('@U9 walks tipos de cita', async ({ page }) => {
             .inputValue()
             .catch(() => null)
         }
+        const noValidate = await dialog
+          .locator('form#form-new-type')
+          .evaluate(form => form.hasAttribute('novalidate'))
+          .catch(() => null)
 
         const postsBefore = requests.filter(
           call => call.method === 'POST' && call.path === '/api/appointment-types'
         ).length
 
-        const attempt = await respondTo(
+        const emptyAttempt = await respondTo(
           page,
           { method: 'POST', path: '/api/appointment-types' },
           () => dialog.locator(CREATE_SUBMIT).click({ timeout: 8000 }),
-          4000
+          2000
         )
+        await page.waitForTimeout(250)
 
+        const emptyErrors = await fieldErrors(page)
+
+        // The create form starts with a valid duration (60), so the second
+        // submit clears it to read the range rule the page owns.
+        await fillField(page, 'Duración (minutos)', '')
+
+        const invalidAttempt = await respondTo(
+          page,
+          { method: 'POST', path: '/api/appointment-types' },
+          () => dialog.locator(CREATE_SUBMIT).click({ timeout: 8000 }),
+          2000
+        )
         await page.waitForTimeout(400)
 
         const errors = await fieldErrors(page)
         const postsAfter = requests.filter(
           call => call.method === 'POST' && call.path === '/api/appointment-types'
         ).length
+        const namesName = errors.messages.some(message =>
+          /El nombre es obligatorio\./.test(message)
+        )
+        const namesDuration = errors.messages.some(message =>
+          /La duración debe estar entre 15 y 480 minutos\./.test(message)
+        )
 
-        entry.obtained = `diálogo «${title}» · valores por defecto duración «${defaults.duration ?? '—'}» y color «${defaults.color ?? '—'}» · campos inválidos ${JSON.stringify(errors.nativeInvalid)} · mensajes en el campo ${JSON.stringify(errors.messages)} · POST ${postsBefore} → ${postsAfter}${attempt.status ? ` (${attempt.status})` : ''}`
-        entry.request = requestOf(attempt)
+        entry.obtained = `diálogo «${title}» · valores por defecto duración «${defaults.duration ?? '—'}» y color «${defaults.color ?? '—'}» · formulario novalidate ${noValidate} · envío intacto: ${JSON.stringify(emptyErrors.messages)} · envío sin duración: ${JSON.stringify(errors.messages)} · campos inválidos ${JSON.stringify(errors.nativeInvalid)} · POST ${postsBefore} → ${postsAfter}${emptyAttempt.status || invalidAttempt.status ? ` (${emptyAttempt.status ?? invalidAttempt.status})` : ''}`
+        entry.request = requestOf(invalidAttempt)
         entry.detail = {
           title,
           defaults,
+          noValidate,
+          emptyErrors,
           errors,
+          emptyAttempt: { status: emptyAttempt.status, acted: emptyAttempt.acted },
+          invalidAttempt: { status: invalidAttempt.status, acted: invalidAttempt.acted },
           postsBefore,
           postsAfter,
           dialogOpen: await dialog.isVisible().catch(() => false)
         }
         entry.verdict =
-          painted && postsAfter === postsBefore && errors.messages.length > 0 ? 'OK' : 'DEFECTO'
+          painted && noValidate === true && postsAfter === postsBefore && namesName && namesDuration
+            ? 'OK'
+            : 'DEFECTO'
         entry.notes =
           entry.verdict === 'OK'
             ? ''
-            : `el envío vacío no deja un error escrito en el campo: la validación se delega al navegador (${JSON.stringify(errors.nativeInvalid)}) y la página no pinta el mensaje`
+            : 'el envío sin nombre o sin duración no deja el mensaje en su campo, o dispara una escritura: la página debe validar en línea con `novalidate`'
 
         await closeDialog(page)
 
@@ -319,12 +351,17 @@ test('@U9 walks tipos de cita', async ({ page }) => {
     await step(
       'create',
       'Crear un tipo de cita con nombre, duración, color y una bandera',
-      'El POST responde 201 con los cuatro valores y la fila aparece en la lista',
+      'El POST responde 201 con los valores del formulario, sin la bandera derivada, y la fila aparece en la lista',
       async entry => {
         await page.locator('[data-hero-action]').click({ timeout: 8000 })
 
         const dialog = page.locator(DIALOG).last()
         await dialog.waitFor({ state: 'visible', timeout: 12000 }).catch(() => {})
+
+        const flagControls = await dialog
+          .locator('[data-flag-select]')
+          .evaluateAll(nodes => nodes.map(node => node.getAttribute('data-flag-select')))
+        const materialsControls = flagControls.includes('requires_materials') ? 1 : 0
 
         await fillField(page, 'Nombre del Tipo', walkName)
         await fillField(page, 'Duración (minutos)', '45')
@@ -336,9 +373,36 @@ test('@U9 walks tipos de cita', async ({ page }) => {
           'No'
         )
 
+        const pendingCreate = page
+          .waitForRequest(
+            request => {
+              if (request.method() !== 'POST') return false
+              try {
+                return new URL(request.url()).pathname === '/api/appointment-types'
+              } catch {
+                return false
+              }
+            },
+            { timeout: 15000 }
+          )
+          .catch(() => null)
+
         const sent = await respondTo(page, { method: 'POST', path: '/api/appointment-types' }, () =>
           dialog.locator(CREATE_SUBMIT).click({ timeout: 8000 })
         )
+
+        const createRequest = await pendingCreate
+        let payload = null
+
+        try {
+          payload = createRequest ? createRequest.postDataJSON() : null
+        } catch {
+          payload = null
+        }
+
+        const payloadDeclaresMaterials = payload
+          ? Object.prototype.hasOwnProperty.call(payload, 'requires_materials')
+          : null
 
         await page.waitForTimeout(400)
 
@@ -359,22 +423,35 @@ test('@U9 walks tipos de cita', async ({ page }) => {
         const listed = Boolean(rowText?.includes(walkName))
         const data = sent.body?.data ?? null
 
-        entry.obtained = `POST ${sent.status ?? 'sin petición'} · id ${id ?? '—'} · duración ${data?.default_duration_minutes ?? '—'} min · color ${data?.color ?? '—'} · requiere confirmación ${data?.requires_confirmation ?? '—'} (bandera «${flag.selected ?? `no elegida (${flag.reason})`}») · toast «${toast}» · ${rows} fila ${listed ? 'con el nombre' : 'sin el nombre'}`
+        entry.obtained = `POST ${sent.status ?? 'sin petición'} · id ${id ?? '—'} · duración ${data?.default_duration_minutes ?? '—'} min · color ${data?.color ?? '—'} · requiere confirmación ${data?.requires_confirmation ?? '—'} (bandera «${flag.selected ?? `no elegida (${flag.reason})`}») · banderas del formulario ${JSON.stringify(flagControls)} · control derivado requires_materials ${materialsControls} · payload sin requires_materials ${payloadDeclaresMaterials === false} · toast «${toast}» · ${rows} fila ${listed ? 'con el nombre' : 'sin el nombre'}`
         entry.request = requestOf(sent)
-        entry.detail = { id, toast, rows, rowText, flag, data }
+        entry.detail = {
+          id,
+          toast,
+          rows,
+          rowText,
+          flag,
+          flagControls,
+          materialsControls,
+          payloadDeclaresMaterials,
+          payloadKeys: payload ? Object.keys(payload) : null,
+          data
+        }
         entry.verdict =
           sent.status === 201 &&
           id !== null &&
           data?.default_duration_minutes === 45 &&
           data?.color === walkColor &&
           data?.requires_confirmation === false &&
+          materialsControls === 0 &&
+          payloadDeclaresMaterials === false &&
           listed
             ? 'OK'
             : 'DEFECTO'
         entry.notes =
           entry.verdict === 'OK'
             ? ''
-            : 'el alta no guarda la duración, el color o la bandera declarada, o la fila no queda visible'
+            : 'el alta no guarda los valores del formulario, ofrece o envía la bandera derivada, o la fila no queda visible'
 
         return entry
       }
@@ -848,8 +925,8 @@ test('@U9 walks tipos de cita', async ({ page }) => {
     )
     await step(
       'flags',
-      'Cambiar «Requiere materiales» en la edición del tipo de la fixture',
-      'El valor que el formulario deja fijar es el que la API y la ficha publican',
+      'Leer la declaración derivada de «Requiere materiales» y guardar el tipo de la fixture',
+      'La edición no ofrece el control, declara que el valor se deriva de la receta, el PUT no envía la bandera y la API y la ficha publican el valor derivado',
       async entry => {
         const fixture = fixtures.appointmentTypes.detail
 
@@ -875,30 +952,49 @@ test('@U9 walks tipos de cita', async ({ page }) => {
         const dialog = page.locator(DIALOG).last()
         await dialog.waitFor({ state: 'visible', timeout: 12000 }).catch(() => {})
 
-        const pick = await pickOption(
-          page,
-          page.locator(`${DIALOG} [data-flag-select="requires_materials"] button`),
-          'Sí'
+        const derivedValue =
+          (await visibleTexts(page, `${DIALOG} [data-derived-field="requires_materials"]`))[0] ??
+          null
+        const dialogText = (await dialog.innerText().catch(() => '')).trim().replace(/\s+/g, ' ')
+        const derivedCaption = /Derivado de la receta del procedimiento por defecto\./.test(
+          dialogText
         )
+        const flagControls = await dialog
+          .locator('[data-flag-select]')
+          .evaluateAll(nodes => nodes.map(node => node.getAttribute('data-flag-select')))
+        const materialsControls = flagControls.includes('requires_materials') ? 1 : 0
 
-        // The fixture type was created without a price, and the edit form marks
-        // «Precio» as required: the first save never leaves the browser. The
-        // observation is kept, then the field is filled so the flag can be read.
-        const blocked = await respondTo(
-          page,
-          { method: 'PUT', path: /^\/api\/appointment-types\/\d+$/ },
-          () => dialog.locator(EDIT_SUBMIT).click({ timeout: 8000 }),
-          2500
-        )
-        const blockedFields = (await fieldErrors(page)).nativeInvalid
-
-        await fillField(page, 'Precio', '0')
+        const pendingWrite = page
+          .waitForRequest(
+            request => {
+              if (request.method() !== 'PUT') return false
+              try {
+                return /^\/api\/appointment-types\/\d+$/.test(new URL(request.url()).pathname)
+              } catch {
+                return false
+              }
+            },
+            { timeout: 15000 }
+          )
+          .catch(() => null)
 
         const sent = await respondTo(
           page,
           { method: 'PUT', path: /^\/api\/appointment-types\/\d+$/ },
           () => dialog.locator(EDIT_SUBMIT).click({ timeout: 8000 })
         )
+        const writeRequest = await pendingWrite
+        let payload = null
+
+        try {
+          payload = writeRequest ? writeRequest.postDataJSON() : null
+        } catch {
+          payload = null
+        }
+
+        const payloadDeclaresMaterials = payload
+          ? Object.prototype.hasOwnProperty.call(payload, 'requires_materials')
+          : null
 
         await page.waitForTimeout(400)
 
@@ -926,25 +1022,39 @@ test('@U9 walks tipos de cita', async ({ page }) => {
 
         const detailValue =
           (await visibleTexts(page, '[data-detail-field="requires-materials"]'))[0] ?? null
-        const honoured = published === true && detailValue === 'Sí'
+        const detailDeclared =
+          (await visibleTexts(page, '[data-detail-derived="requires-materials"]'))[0] ?? null
+        const derivedHonoured =
+          Boolean(derivedValue?.includes('Requiere materiales')) &&
+          derivedCaption &&
+          materialsControls === 0 &&
+          sent.status === 200 &&
+          payloadDeclaresMaterials === false &&
+          published === false &&
+          detailValue === 'No' &&
+          /Derivado de la receta del procedimiento por defecto\./.test(detailDeclared ?? '')
 
-        entry.obtained = `control elegido «${pick.selected ?? `no elegido (${pick.reason})`}» · guardar sin precio no envía nada (campos inválidos ${JSON.stringify(blockedFields)}) · PUT tras llenar el precio ${sent.status ?? 'sin petición'} · requiere materiales publicado ${published ?? '—'} · la ficha pinta «${detailValue ?? '—'}» · toast «${toast}»`
+        entry.obtained = `control «Requiere materiales» en la edición ${materialsControls} (banderas del formulario ${JSON.stringify(flagControls)}) · declaración «${derivedValue ?? '—'}» con la nota derivada ${derivedCaption} · PUT ${sent.status ?? 'sin petición'} · payload sin requires_materials ${payloadDeclaresMaterials === false} (${JSON.stringify(Object.keys(payload ?? {}))}) · requiere materiales publicado ${published ?? '—'} · la ficha pinta «${detailValue ?? '—'}» y declara «${detailDeclared ?? '—'}» · toast «${toast}»`
         entry.request = requestOf(sent)
         entry.detail = {
-          pick,
+          derivedValue,
+          derivedCaption,
+          materialsControls,
+          flagControls,
+          payloadDeclaresMaterials,
+          payloadKeys: payload ? Object.keys(payload) : null,
           opened,
-          blockedStatus: blocked.status,
-          blockedFields,
           published,
           detailValue,
-          honoured,
+          detailDeclared,
+          derivedHonoured,
           source:
-            'AppointmentType::toResponseArray publica requires_materials derivado del recetario del procedimiento (#295)'
+            'AppointmentType::toResponseArray publica requires_materials derivado del recetario del procedimiento (#295, #444)'
         }
-        entry.verdict = honoured ? 'OK' : 'DEFECTO'
-        entry.notes = honoured
+        entry.verdict = derivedHonoured ? 'OK' : 'DEFECTO'
+        entry.notes = derivedHonoured
           ? ''
-          : 'el formulario deja fijar «Requiere materiales», el API lo acepta y ni la respuesta ni la ficha lo publican: el valor se deriva del recetario del procedimiento (#295), así que el control no gobierna nada'
+          : 'la edición ofrece el control derivado, el PUT envía la bandera, o la API y la ficha no publican el valor derivado del recetario del procedimiento'
 
         await page.goBack({ waitUntil: 'domcontentloaded' }).catch(() => {})
         await settle(page)

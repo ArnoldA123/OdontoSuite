@@ -269,7 +269,7 @@ test('@U9 walks ambientes', async ({ page }) => {
     await step(
       'create-empty',
       'Abrir «Nuevo ambiente» y pulsar «Crear ambiente» sin nombre',
-      'El envío vacío se rechaza y el usuario se entera de qué campo falta',
+      'El envío vacío se rechaza con el motivo escrito en el campo del nombre; se registra si además queda un aviso genérico',
       async entry => {
         await clickByLabel(page, 'Nuevo ambiente')
 
@@ -298,25 +298,59 @@ test('@U9 walks ambientes', async ({ page }) => {
         const errors = await fieldErrors(page)
         const apiMessage = sent.body?.message ?? null
         const apiFields = sent.body?.errors ? Object.keys(sent.body.errors) : []
-        const named = [toast, apiMessage, ...errors.messages].some(message =>
-          /nombre|name|requerid|obligator/i.test(String(message ?? ''))
+        const apiFieldMessage = sent.body?.errors?.name?.[0] ?? null
+        const nameField = dialog.locator('[data-field="name"]')
+        const nameFieldText = ((await nameField.innerText().catch(() => '')) || '')
+          .trim()
+          .replace(/\s+/g, ' ')
+        const inlineMessage =
+          (
+            (await nameField
+              .locator('.text-error-500, [data-error]')
+              .first()
+              .innerText()
+              .catch(() => '')) || ''
+          )
+            .trim()
+            .replace(/\s+/g, ' ') || null
+        const inlineNamesField = Boolean(
+          inlineMessage &&
+          /nombre|name/i.test(nameFieldText) &&
+          /obligator|requerid/i.test(inlineMessage)
         )
+        const inlineCarriesServerMessage = Boolean(
+          inlineMessage &&
+          (!apiFieldMessage ||
+            inlineMessage.includes(apiFieldMessage) ||
+            apiFieldMessage.includes(inlineMessage))
+        )
+        const toastFired = Boolean(toast)
+        const dialogOpen = await dialog.isVisible().catch(() => false)
 
-        entry.obtained = `diálogo «${title}» · POST ${sent.status ?? 'sin petición'} · mensaje de la API «${apiMessage ?? '—'}» con campos ${JSON.stringify(apiFields)} · mensajes en el campo ${JSON.stringify(errors.messages)} · toast «${toast}»`
+        entry.obtained = `diálogo «${title}» · POST ${sent.status ?? 'sin petición'} · mensaje de la API «${apiMessage ?? '—'}» con campos ${JSON.stringify(apiFields)} y motivo del campo «${apiFieldMessage ?? '—'}» · mensaje en el campo del nombre «${inlineMessage ?? 'ninguno'}» · mensajes de campo ${JSON.stringify(errors.messages)} · toast ${toastFired ? `«${toast}»` : 'sin aviso genérico'}`
         entry.request = requestOf(sent)
         entry.detail = {
           title,
           toast,
+          toastFired,
           errors,
           apiMessage,
           apiFields,
-          dialogOpen: await dialog.isVisible().catch(() => false)
+          apiFieldMessage,
+          nameFieldText,
+          inlineMessage,
+          inlineNamesField,
+          inlineCarriesServerMessage,
+          dialogOpen
         }
-        entry.verdict = sent.status === 422 && named ? 'OK' : 'DEFECTO'
+        entry.verdict =
+          sent.status === 422 && inlineNamesField && inlineCarriesServerMessage && dialogOpen
+            ? 'OK'
+            : 'DEFECTO'
         entry.notes =
           entry.verdict === 'OK'
             ? ''
-            : 'la API rechaza el alta vacía con el campo que falta, pero la superficie solo muestra un aviso genérico: el motivo no llega al formulario'
+            : 'la API rechaza el alta vacía con el campo que falta, pero el motivo no se escribe en el campo del nombre del formulario'
 
         return entry
       }
