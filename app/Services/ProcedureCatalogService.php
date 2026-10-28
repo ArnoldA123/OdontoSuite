@@ -42,8 +42,10 @@ class ProcedureCatalogService
             });
         }
 
-        if (array_key_exists('is_active', $filters) && $filters['is_active'] !== null) {
-            $query->where('is_active', (bool) $filters['is_active']);
+        if (array_key_exists('is_active', $filters) && $filters['is_active'] !== null && $filters['is_active'] !== '') {
+            // #433: el parámetro llega como cadena y `(bool) 'false'` es true;
+            // se normaliza con la misma regla que el resto del índice.
+            $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
         }
 
         if (! empty($filters['q'])) {
