@@ -186,6 +186,13 @@ class PendingPaymentsController extends Controller
             // the refusal. The drawer is resolved here, so the pre-check reads
             // the appointment plainly and the authoritative locked read stays
             // inside the transaction.
+            //
+            // The flag records whether the guard actually ran: if this plain
+            // read does not see a closed attention but the locked read does, the
+            // service guards inside the transaction instead of writing money no
+            // guard ever saw (its evidence may roll back, but the money never
+            // enters).
+            $accountingLockGuarded = false;
             $guardedAppointment = Appointment::find($id);
 
             if ($guardedAppointment instanceof Appointment
@@ -205,9 +212,11 @@ class PendingPaymentsController extends Controller
                     'create',
                     $validated['lock_override_reason'] ?? null,
                 );
+
+                $accountingLockGuarded = true;
             }
 
-            return DB::transaction(function () use ($request, $validated, $id) {
+            return DB::transaction(function () use ($request, $validated, $id, $accountingLockGuarded) {
                 $appointment = Appointment::with(['patient', 'appointmentType'])
                     ->lockForUpdate()
                     ->find($id);
@@ -270,7 +279,7 @@ class PendingPaymentsController extends Controller
                     'discount_amount' => $validated['discount_amount'] ?? 0,
                     'discount_authorized_by' => $validated['discount_authorized_by'] ?? null,
                     'lock_override_reason' => $validated['lock_override_reason'] ?? null,
-                ], accountingLockGuarded: true);
+                ], accountingLockGuarded: $accountingLockGuarded);
 
                 $newPaidAmount = round($paid + (float) $validated['amount'], 2);
                 $newBalance = round(max(0, $total - $newPaidAmount), 2);
