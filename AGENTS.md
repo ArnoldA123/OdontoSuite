@@ -585,6 +585,31 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (el primer frame es el skeleton, el resumen no se lleva la página
+  y el error de red habla español, #387/#388/#389)** — Tres hallazgos de la
+  auditoría UI U2, un commit por issue. **#387**: `/dashboard` arranca con
+  `loading = true`, así que el primer frame es el skeleton y no el contenido con
+  los arreglos vacíos, y la sesión de caja entra como quinta fuente del mismo
+  `Promise.all` de `loadDashboardData` en vez de precederlo (un rol sin
+  `view.cash_register` sigue sin pedirla, #345); `/my-day` arranca igual y sus
+  cuatro contadores leen `—` hasta la primera respuesta, con `hasLoaded` en
+  `useMyDay` para que un fallo no pinte ceros. **#388**: «Hoy», «Requiere tu
+  atención» y «Próximos días» dejan de colgar de `!statsError`; el error del
+  resumen se queda en su espacio, los count-ups y la entrada de secciones ya no
+  dependen de él y «Reintentar» re-consulta sólo `/api/dashboard/stats` con
+  `retryStats()`. **#389**: `messageFor` de `useMyDay` sólo devuelve el sobre de
+  la API (`error.message`, luego `message`) y cae al texto español ante un fallo
+  de transporte, así que un `Failed to fetch` ya no llega al aviso; un 409 de
+  custodia conserva su mensaje. Sin rutas, modelos, migraciones ni permisos
+  nuevos: los conteos de §4/§5 no cambian. Tests: `dashboard-first-paint` (3),
+  `my-day-first-paint` (1), `dashboard-section-isolation` (2),
+  `my-day-error-message` (3) y las dos filas de `dashboard-states` reescritas al
+  contrato nuevo; `tests/e2e/u2-resilience.spec.js` mide las cuatro condiciones
+  en Chromium sobre una base dedicada (`U2_RESILIENCE_BROWSER=1`, evidencia en
+  `.atl/qa-evidence/audit/u2-resilience/`). Vitest **1362 pruebas en 162
+  archivos**; PHPUnit Unit **OK (1427 pruebas, 9709 aserciones; 51 saltadas por
+  SQLite)**; ESLint 0 errores / 36 avisos, Prettier y `vite build` en verde;
+  `node scripts/audit/doc-drift.mjs` 14/14; navegador **4/4 filas**.
 - **2026-10-28 (el aviso de bloqueo del modal de cobro no sobrevive al cambio de
   pestaña, #472)** — `PaymentModal` reinicia el estado del bloqueo contable y el
   destino del reintento al cambiar de pestaña, así el aviso describe siempre el

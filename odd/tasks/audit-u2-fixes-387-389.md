@@ -1,8 +1,8 @@
 # Task: cierre de hallazgos U2 — primer frame, aislamiento y copy de error (#387/#388/#389)
 
-Status: OPEN. Rama `fix/audit-u2-387-389` en el worktree `<ruta-local>` desde
-`56103c5d`. Un commit por issue con su prueba al lado; la revisión nativa, el
-push y el PR quedan como decisión del señor Arnold.
+Status: DONE. Rama `fix/audit-u2-387-389` en el worktree `<ruta-local>` desde
+`56103c5d`. Un commit por issue con su prueba al lado; el push y el PR quedan
+como decisión del señor Arnold.
 
 ## Specs
 
@@ -67,25 +67,75 @@ push y el PR quedan como decisión del señor Arnold.
   al repo principal: se invoca `./node_modules/.bin/<bin>`.
 
 ## Tasks
+- [x] **T1** · S2, S5, S6 · `delegated` · #387: el dashboard arranca con el
+  skeleton (`loading = true`) y la caja entra como quinta fuente del mismo
+  `Promise.all`; Mi día arranca con el skeleton y sus contadores leen `—` hasta
+  la primera respuesta (`hasLoaded` en el composable). Pruebas
+  `dashboard-first-paint` (3) y `my-day-first-paint` (1); filas `@387` de
+  navegador. Commit `731e98c1`.
+- [x] **T2** · S3, S5 · `delegated` · #388: los tres bloques dejan de colgar de
+  `!statsError`; el error del resumen se queda en su espacio y `retryStats()`
+  re-consulta sólo `/api/dashboard/stats`. Los count-ups y la entrada de
+  secciones dejan de depender del resumen. Prueba `dashboard-section-isolation`
+  (2), reescritura de las dos filas de `dashboard-states` que fijaban el
+  contrato anterior y fila `@388` de navegador. Commit `e0ed2822`.
+- [x] **T3** · S4, S5 · `delegated` · #389: `messageFor` sólo devuelve el sobre
+  de la API y cae al texto español en un fallo de transporte; un 409 de
+  custodia conserva su mensaje. Prueba `my-day-error-message` (3) y fila `@389`
+  de navegador. Commit `1430e9d2`.
+- [x] **T4** · S1–S7 · `inline` · Verificación en el worktree: Vitest completo,
+  ESLint, Prettier, build, suite Unit de PHPUnit, `doc-drift` y la corrida de
+  navegador sobre una base dedicada (ver «Evidencia medida»).
+- [x] **T5** · S1, S7 · `inline` · Cierre: entrada de AGENTS.md §12 con los
+  números medidos, esta nota en DONE y el veredicto por `S#`.
 
-- [ ] **T1** · S2, S5, S6 · `inline` · #387: el dashboard arranca con el
-  skeleton y la caja entra en el lote paralelo; Mi día arranca con el skeleton y
-  sus contadores no pintan 0 antes de la primera respuesta. Pruebas
-  `dashboard-first-paint` y `my-day-first-paint`; fila de navegador del primer
-  frame.
-- [ ] **T2** · S3, S5 · `inline` · #388: un fallo de `stats` deja su bloque de
-  error en su espacio y el resto de la página montada; el reintento re-consulta
-  sólo el resumen. Prueba `dashboard-section-isolation`; fila de navegador con
-  `stats` cortado.
-- [ ] **T3** · S4, S5 · `inline` · #389: el mensaje de error de Mi día prefiere
-  el sobre de la API y cae al texto español ante un fallo de transporte; un 409
-  de custodia conserva su mensaje. Pruebas `my-day-error-message`; filas de
-  navegador de error y reintento.
-- [ ] **T4** · S1–S7 · `inline` · Verificación: Vitest, ESLint, Prettier, build,
-  corrida de navegador con evidencia y guard de deriva de AGENTS.md.
-- [ ] **T5** · S1, S7 · `inline` · Cierre: entrada de AGENTS.md §12 con los
-  números medidos, esta nota en DONE y veredicto por `S#`.
+## Evidencia medida
 
+Worktree `<ruta-local>`, rama `fix/audit-u2-387-389`, HEAD de cierre el commit
+de documentación; base `56103c5d`.
+
+| Chequeo | Comando | Resultado |
+| --- | --- | --- |
+| Vitest completo | `./node_modules/.bin/vitest run` | **162 archivos, 1362 pruebas, 0 fallos** |
+| PHPUnit Unit | `php artisan test --testsuite=Unit` | **OK (1427 pruebas, 9709 aserciones; 51 saltadas por SQLite)** |
+| ESLint | `eslint . --ext .mjs,.vue,.js,.jsx,.ts,.tsx` | **0 errores, 36 avisos** (línea base) |
+| Prettier | `prettier --check .` | limpio |
+| Build | `VITE_APP_URL=http://127.0.0.1:8014 vite build` | OK, 14.16 s |
+| Deriva de AGENTS.md | `node scripts/audit/doc-drift.mjs` | **14/14** |
+| Navegador | `U2_RESILIENCE_BROWSER=1 BROWSER_PASS_BASE=http://127.0.0.1:8014 playwright test tests/e2e/u2-resilience.spec.js` | **4 filas en verde**, 11.0 s |
+
+La corrida de navegador usó una base dedicada (`odontosuite_u2_resilience_e2e`,
+`migrate --seed --force`: 15 usuarios, 100 pacientes, 106 citas), `php artisan
+serve --port=8014` en el worktree y el build con `VITE_APP_URL` apuntando a ese
+origen. Evidencia en `.atl/qa-evidence/audit/u2-resilience/` (ignorada por
+git): los dos primeros frames, el resumen caído y el error de transporte.
+Filas: `@387 dashboard first frame never publishes an empty state`, `@387
+my-day first frame is the skeleton and its counters are not zero`, `@388 a
+failed summary leaves the other blocks mounted`, `@389 my-day network failure
+explains itself in Spanish and the retry recovers it`.
+
+## Veredicto por S#
+
+- **S2 (#387) — CUMPLE.** El primer frame de `/dashboard` es el skeleton
+  (`dashboard-first-paint`, fila `@387` medida) y no publica `data-state="empty-*"`
+  con una fuente en vuelo; la caja ya no lo bloquea (la prueba la deja en vuelo y
+  las cuatro fuentes se piden igual). `/my-day` arranca en skeleton y sus
+  contadores no pintan 0 (`my-day-first-paint`, fila `@387` medida). Con 9 citas
+  reales el primer frame medido no muestra ningún vacío ni un 0: la corrida de
+  navegador se hizo sobre las 106 citas sembradas.
+- **S3 (#388) — CUMPLE.** `dashboard-section-isolation` fija que `hoy`,
+  `attention` y `upcoming` siguen montados con el resumen caído y que el
+  reintento deja los otros tres contadores de llamadas en 1; la fila `@388`
+  compara la lista de `data-dashboard-block` del resumen caído contra la de una
+  carga sana y las deja iguales.
+- **S4 (#389) — CUMPLE.** `my-day-error-message` fija el texto español ante un
+  `TypeError('Failed to fetch')`, el mensaje de servidor de un 409 y la
+  recuperación por reintento; la fila `@389` lo mide en Chromium. El mensaje del
+  sobre de dominio no se pierde (sólo se deja de preferir el `message` del
+  navegador).
+- **S5, S6, S7 — CUMPLE.** Composition API y `useApi` en los tres arreglos, sin
+  formato nuevo de dinero/fecha, y tres commits `fix(...)` con prefijo semántico
+  y sin emojis.
 ## Log
 
 - **L1** — Pedido del usuario, verbatim: «haz las issues #387 #388 #389 en un
@@ -116,3 +166,19 @@ push y el PR quedan como decisión del señor Arnold.
   `useBranchTransfers.js` y `BranchTransfersPage.vue`; quedan fuera de esta
   issue (superficies de otra sesión de auditoría) y se reportan como
   seguimiento, no se tocan.
+- **L7** — Verificación de navegador (T4): base dedicada
+  `odontosuite_u2_resilience_e2e` sembrada, `php artisan serve --port=8014` en el
+  worktree y build con `VITE_APP_URL` a ese origen. Las cuatro filas de
+  `tests/e2e/u2-resilience.spec.js` en verde (11.0 s); las capturas quedan en
+  `.atl/qa-evidence/audit/u2-resilience/`. El servidor se detuvo al terminar; la
+  base queda para una re-corrida.
+- **L8** — Tamaños de slice: T1 `577` líneas autoradas (328 pruebas nuevas, 95
+  navegador, 102 nota, 52 comportamiento), T2 `271` (171 prueba nueva) y T3 `230`
+  (187 prueba nueva). Cada commit queda por debajo de 400 salvo la unidad de
+  #387, ya declarada en L4; la estrategia de entrega es un commit por issue con
+  sus pruebas y su fila de navegador.
+- **L9** — Seguimiento observado, fuera de alcance: `useContinuity.js`,
+  `useBranchTransfers.js` y `BranchTransfersPage.vue` repiten la forma
+  `thrown?.message` en su `messageFor`; la misma clase de defecto de #389 puede
+  aparecer en esas superficies y su corrección pertenece a la sesión de
+  auditoría que las cubra.
