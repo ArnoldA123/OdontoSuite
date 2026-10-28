@@ -2,17 +2,17 @@
 
 namespace Tests\Unit\Events;
 
+use App\Authorization\BroadcastChannels;
+use App\Authorization\Permissions;
 use App\Events\MedicalRecordCreated;
 use App\Events\SpecialtyRecordCreated;
 use App\Events\SpecialtyRecordUpdated;
-use App\Http\Controllers\Api\BroadcastingAuthController;
 use App\Models\MedicalRecord;
 use App\Models\OrthodonticsRecord;
 use Illuminate\Broadcasting\PrivateChannel;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use ReflectionClass;
 use ReflectionMethod;
 use Tests\TestCase;
 
@@ -122,23 +122,18 @@ class ClinicalEventsChannelBoundaryTest extends TestCase
     #[Test]
     public function dashboard_updates_still_authorizes_the_seven_roles(): void
     {
-        $source = (string) file_get_contents(
-            (new ReflectionClass(BroadcastingAuthController::class))->getFileName()
-        );
-
-        $this->assertMatchesRegularExpression(
-            "/'dashboard-updates'\\s*=>\\s*self::ALL_ROLES/",
-            $source,
-            '`dashboard-updates` MUST keep ALL_ROLES: it is the widest channel, and that is exactly why a clinical document does not travel on it (F5 #315, D3).'
+        // #378: the controller no longer carries role lists; every channel
+        // resolves to a catalog permission, so this pins the catalog side.
+        $this->assertSame(
+            Permissions::VIEW_DASHBOARD,
+            BroadcastChannels::permissions()['dashboard-updates'] ?? null,
+            '`dashboard-updates` MUST resolve to the dashboard permission: it is the widest channel, and that is exactly why a clinical document does not travel on it (F5 #315, D3).'
         );
 
         $this->assertSame(
-            [
-                'administrador', 'recepcionista', 'odontologo', 'implantologo',
-                'tecnico_dental', 'asistente', 'finanzas',
-            ],
-            $this->constantList($source, 'ALL_ROLES'),
-            '`dashboard-updates` MUST authorize exactly the seven roles; a role joining ALL_ROLES joins the widest channel, so add it here deliberately (F5 #315, S4).'
+            Permissions::ROLES,
+            Permissions::rolesFor(Permissions::VIEW_DASHBOARD),
+            '`dashboard-updates` MUST authorize exactly the seven roles; a role joining the dashboard grant joins the widest channel, so add it here deliberately (F5 #315, S4).'
         );
     }
 
@@ -178,23 +173,5 @@ class ClinicalEventsChannelBoundaryTest extends TestCase
             $reflection->getStartLine() - 1,
             $reflection->getEndLine() - $reflection->getStartLine() + 1
         ));
-    }
-
-    /**
-     * String literals of a `private const NAME = [...]` array in the source.
-     *
-     * @return string[]
-     */
-    private function constantList(string $source, string $constant): array
-    {
-        $this->assertSame(
-            1,
-            preg_match('/private const '.$constant.' = \[(.*?)\];/s', $source, $block),
-            "BroadcastingAuthController MUST declare the {$constant} constant."
-        );
-
-        preg_match_all('/[\'"]([^\'"]+)[\'"]/', $block[1], $values);
-
-        return $values[1];
     }
 }

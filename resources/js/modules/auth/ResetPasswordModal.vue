@@ -41,8 +41,11 @@
         </template>
       </UiInput>
 
-      <!-- Recovery Code Field -->
+      <!-- Recovery Code Field (#382): the mailed link already carries the
+           token, so asking for it again was a field that could never matter.
+           It appears only when the dialog was opened without one. -->
       <UiInput
+        v-if="!hasLinkToken"
         id="reset-password-token"
         v-model="recoveryCode"
         label="Código de recuperación"
@@ -69,6 +72,10 @@
           </svg>
         </template>
       </UiInput>
+
+      <p v-else class="text-sm leading-relaxed instructions" data-reset-token-applied>
+        El código de recuperación de tu enlace se aplicará al guardar.
+      </p>
 
       <!-- Password Field -->
       <UiInput
@@ -285,7 +292,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useApi } from '@/composables/useApi'
 import UiModal from '@/components/ui/Modal.vue'
 import UiInput from '@/components/ui/Input.vue'
@@ -329,6 +336,9 @@ const errors = reactive({
 })
 
 const initialEmail = ref(props.email || '')
+// #382: the token in the URL is the code; the field only exists when the
+// dialog was opened by hand (forgot-password handoff or a bare route).
+const hasLinkToken = computed(() => String(props.token ?? '').trim().length > 0)
 
 onMounted(() => {
   if (props.email) {

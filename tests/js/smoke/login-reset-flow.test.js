@@ -35,6 +35,7 @@ vi.mock('@/composables/useWebSocketNotifications', () => ({
 
 import uiComponents from '@/plugins/ui-components'
 import LoginPage from '@/modules/auth/LoginPage.vue'
+import ForgotPasswordModal from '@/modules/auth/ForgotPasswordModal.vue'
 import ResetPasswordModal from '@/modules/auth/ResetPasswordModal.vue'
 
 function makeRouter(initialPath = '/login') {
@@ -134,7 +135,10 @@ describe('reset password payload', () => {
     const wrapper = mountResetModal({ email: 'ana@test.com', token: 'desde-el-enlace' })
     await flushPromises()
 
-    await wrapper.find('#reset-password-token').setValue('654321')
+    // #382: the link already carries the code, so the field is not rendered.
+    expect(wrapper.find('#reset-password-token').exists()).toBe(false)
+    expect(wrapper.find('[data-reset-token-applied]').exists()).toBe(true)
+
     await fillAndSubmitResetForm(wrapper)
 
     expect(postMock).toHaveBeenCalledWith(
@@ -172,6 +176,25 @@ describe('reset password deep link', () => {
     expect(reset.props('token')).toBe('desde-el-enlace')
     expect(wrapper.find('input[type="email"]').element.value).toBe('ana@test.com')
     expect(wrapper.text()).toContain('Ingresa tu nueva contraseña')
+    // #382: the link carries the code, so the form does not ask for it again.
+    expect(wrapper.find('#reset-password-token').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('explains the route when the link arrives without a token or email', async () => {
+    const { wrapper } = await mountPage('/reset-password')
+
+    const notice = wrapper.find('[data-reset-link-missing]')
+    expect(notice.exists()).toBe(true)
+    expect(notice.text()).toContain('no trae un código válido')
+    expect(wrapper.findComponent(ResetPasswordModal).props('modelValue')).toBe(false)
+
+    // The door that sends a new link is the same forgot-password dialog.
+    await wrapper.find('[data-reset-link-request]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findComponent(ForgotPasswordModal).props('modelValue')).toBe(true)
 
     wrapper.unmount()
   })
