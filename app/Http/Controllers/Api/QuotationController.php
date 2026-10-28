@@ -76,6 +76,42 @@ class QuotationController extends Controller
     }
 
     /**
+     * #414 S1: the read-only pricing context of the manual form. It resolves the
+     * same tariff the writer freezes a line at, and publishes the billing policy
+     * rate the document will apply when none is declared.
+     */
+    public function pricing(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                // #414: an estimate whose lines are all free text has no tariff
+                // to resolve, but it still needs the policy rate the writer
+                // will apply, so the list may be empty.
+                'procedure_ids' => 'sometimes|array|max:50',
+                'procedure_ids.*' => 'integer',
+                'payer_id' => 'nullable|integer|exists:payers,id',
+                'quotation_date' => 'nullable|date',
+                'treatment_plan_id' => 'nullable|integer|exists:treatment_plans,id',
+            ]);
+
+            return response()->json([
+                'data' => $this->quotationService->pricingContext($validated),
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('No se pudo resolver el contexto de precios', ['exception' => $e]);
+
+            return response()->json([
+                'message' => 'Error al obtener el contexto de precios',
+            ], 500);
+        }
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(StoreQuotationRequest $request): JsonResponse

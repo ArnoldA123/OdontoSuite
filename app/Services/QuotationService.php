@@ -563,6 +563,69 @@ class QuotationService
     }
 
     /**
+     * #414 S1 — the context the manual form needs to paint the same numbers the
+     * writer persists: the billing policy rate and the tariff each catalog line
+     * resolves on the estimate's issue date.
+     *
+     * It reuses the private rules of the writers (`issueDate`, `referenceBranch`
+     * and the tariff cascade), so the preview cannot drift from the document.
+     * Read-only: it writes nothing and emits nothing, and only ids that exist are
+     * priced. Each entry of `prices` names the unit price, the source of the
+     * cascade, the applied row and its window.
+     *
+     * @param  array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public function pricingContext(array $data): array
+    {
+        $issueDate = $this->issueDate($data['quotation_date'] ?? null);
+        $payerId = $this->identifier($data['payer_id'] ?? null);
+        $branchId = $this->referenceBranch($this->identifier($data['treatment_plan_id'] ?? null));
+
+        $procedureIds = array_values(array_unique(array_map(
+            static fn ($id): int => (int) $id,
+            (array) ($data['procedure_ids'] ?? []),
+        )));
+
+        $procedures = $procedureIds === []
+            ? []
+            : ProcedureCatalog::query()->whereKey($procedureIds)->get();
+
+        $resolved = $this->prices->resolveMany($procedures, $branchId, Carbon::parse($issueDate), $payerId);
+
+        $prices = [];
+
+        foreach ($resolved as $procedureId => $price) {
+            $prices[(string) $procedureId] = [
+                'unit_price' => (float) $price['price'],
+                'source' => $price['source'],
+                'price_id' => $price['price_id'],
+                'valid_from' => $price['valid_from'],
+                'valid_to' => $price['valid_to'],
+            ];
+        }
+
+        return [
+            'tax_percentage' => QuotationTax::defaultPercentage(),
+            'quotation_date' => $issueDate,
+            'prices' => $prices,
+        ];
+    }
+
+    /**
+     * An optional foreign key the payload may carry as an int, a numeric string
+     * or an empty value.
+     */
+    private function identifier(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (int) $value;
+    }
+
+    /**
      * The day the tariff is resolved on, as `Y-m-d`.
      */
     private function issueDate(mixed $value): string

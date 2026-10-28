@@ -441,6 +441,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:'.Permissions::VIEW_QUOTATION)->group(function () {
         Route::get('quotations', [QuotationController::class, 'index']);
         Route::get('quotations/summary', [QuotationController::class, 'summary']);
+        // #414 S1: the form reads the same tariff and tax policy the writer
+        // applies. Registered before `quotations/{id}`, or the parameter route
+        // would swallow the fixed segment.
+        Route::get('quotations/pricing', [QuotationController::class, 'pricing']);
         Route::get('quotations/patient/{patientId}', [QuotationController::class, 'byPatient']);
         Route::get('quotations/{id}/pdf', [QuotationController::class, 'downloadPDF']);
         Route::get('quotations/{id}', [QuotationController::class, 'show']);
