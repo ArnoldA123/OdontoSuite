@@ -22,6 +22,15 @@ class PatientController extends Controller
     use AuthorizesRequests;
 
     /**
+     * #403: `before:today` substitutes the literal `today` into `:date`, so
+     * the catalog alone would answer «anterior a today». The one rule that
+     * cannot be fully translated by the shared catalog states its reason here.
+     */
+    private const BIRTH_DATE_MESSAGES = [
+        'birth_date.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
+    ];
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request): JsonResponse
@@ -184,7 +193,7 @@ class PatientController extends Controller
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
             'branch_id' => 'nullable|integer|exists:branches,id',
-        ]);
+        ], self::BIRTH_DATE_MESSAGES);
 
         // Asegurar que is_active sea true por defecto si no se proporciona
         $validated['is_active'] = $validated['is_active'] ?? true;
@@ -284,7 +293,7 @@ class PatientController extends Controller
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
             'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')],
-        ]);
+        ], self::BIRTH_DATE_MESSAGES);
 
         // Capture old values for audit (only relevant fields)
         $oldValues = [

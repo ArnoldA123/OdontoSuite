@@ -70,7 +70,8 @@ const patient = {
   medical_history: 'Asma leve',
   allergies: 'Penicilina',
   notes: 'Control semestral',
-  is_active: true
+  is_active: true,
+  can_export: true
 }
 
 const URLS = {
@@ -767,11 +768,196 @@ describe('patient detail laboratory tab (F5 #316)', () => {
     const wrapper = await mountPage()
 
     expect(wrapper.find('#tab-laboratorio').exists()).toBe(false)
-    // Finanzas holds neither `view.lab_case` nor `manage.specialty_record`, so
-    // the drawer keeps the five clinical/data tabs; #320 adds the patient
-    // ledger because the desk does hold `view.patient_statement`.
-    expect(wrapper.findAll('[role="tab"]')).toHaveLength(6)
+    // #399: the drawer only keeps the reads this desk can perform. Finance
+    // holds `view.quotation` and `view.patient_statement`; it holds neither
+    // `manage.treatment_plan`, `manage.medical_record`, `manage.specialty_record`
+    // nor `view.audit_log`, so those tabs are gone instead of answering 403.
+    expect(wrapper.findAll('[role="tab"]')).toHaveLength(3)
     expect(wrapper.find('#tab-cuenta').exists()).toBe(true)
+
+    const requested = harness.apiGet.mock.calls.map(([url]) => url)
+    expect(requested).not.toContain(URLS.treatment)
+    expect(requested).not.toContain(URLS.medical)
+    expect(requested).not.toContain(URLS.audit)
+
+    wrapper.unmount()
+  })
+})
+
+// #399 — the drawer only offers the reads the authenticated desk can perform
+// (S1) and a failed audit read is an error with retry, never a false «no
+// history» (S2). Both sides are pinned here: the hidden tab does not call its
+// endpoint, and the visible one paints a failure as a failure.
+describe('patient detail drawer gates (#399)', () => {
+  beforeEach(() => {
+    harness.apiGet.mockReset()
+    harness.privateChannel.mockClear()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.body.innerHTML = ''
+  })
+
+  it('paints the audit failure as an error with retry instead of an empty history', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 33, role: 'administrador' }))
+    installGet(async url => {
+      if (url === URLS.audit) {
+        const error = new Error('403')
+        error.response = {
+          status: 403,
+          data: { message: 'No tienes permisos para acceder a este recurso.' }
+        }
+        throw error
+      }
+      return happyGet(url)
+    })
+
+    const wrapper = await mountPage()
+    await wrapper.find('#tab-audit').trigger('click')
+    await flushPromises()
+
+    const panel = wrapper.find('[data-patient-tab-panel="audit"]')
+    expect(panel.find('[data-state="error-audit"]').exists()).toBe(true)
+    expect(panel.find('[data-state="empty-audit"]').exists()).toBe(false)
+    expect(panel.text()).not.toContain('No hay historial de auditoría')
+    expect(panel.find('[data-tab-retry]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+})
+
+// #400 — the aggregate endpoint answers one group per specialty, not a list.
+// The drawer flattens it, so an empty patient shows the tab's empty state (not
+// five ghost cards) and a real record shows its id, its group and a navigation
+// the router can match.
+describe('patient detail specialty records (#400)', () => {
+  const emptyGroups = {
+    implantologia: [],
+    ortodoncia: [],
+    endodoncia: [],
+    rehabilitacion: [],
+    cirugia_oral: []
+  }
+
+  beforeEach(() => {
+    localStorage.setItem('user', JSON.stringify({ id: 34, role: 'administrador' }))
+    harness.apiGet.mockReset()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.body.innerHTML = ''
+  })
+
+  it('shows its empty state instead of five ghost cards when every group is empty', async () => {
+    installGet(async url => (url === URLS.specialty ? { data: emptyGroups } : happyGet(url)))
+
+    const wrapper = await mountPage()
+
+    expect(
+      wrapper
+        .find('[data-patient-tab-panel="specialties"] [data-state="empty-specialties"]')
+        .exists()
+    ).toBe(true)
+    expect(wrapper.findAll('[data-specialty-record-id]')).toHaveLength(0)
+
+    wrapper.unmount()
+  })
+
+  it('renders one card per record with its id and group, and both actions reach a real route', async () => {
+    const record = {
+      id: 42,
+      patient_id: 7,
+      treatment_type: 'Alineadores',
+      treatment_start_date: '2026-02-01',
+      created_at: '2026-02-01T09:00:00.000000Z'
+    }
+    installGet(async url =>
+      url === URLS.specialty
+        ? { data: { ...emptyGroups, ortodoncia: [record] }, meta: { total: 1 } }
+        : happyGet(url)
+    )
+
+    const wrapper = await mountPage()
+
+    const cards = wrapper.findAll('[data-specialty-record-id]')
+    expect(cards).toHaveLength(1)
+    expect(cards[0].attributes('data-specialty-record-id')).toBe('42')
+    expect(cards[0].text()).toContain('Ortodoncia')
+    expect(cards[0].text()).toContain('Registro #42')
+
+    await cards[0]
+      .findAll('button')
+      .find(button => button.text() === 'Ver')
+      .trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.fullPath).toBe(
+      '/specialty-records?patient_id=7&specialty=ortodoncia&record_id=42'
+    )
+
+    await cards[0]
+      .findAll('button')
+      .find(button => button.text() === 'Editar')
+      .trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.fullPath).toBe(
+      '/specialty-records?patient_id=7&specialty=ortodoncia&record_id=42&edit=true'
+    )
+
+    wrapper.unmount()
+  })
+})
+
+// #404 — `export.patient` is granted to finanzas on purpose and the policy is
+// the effective door. The hero follows the capability the API publishes, so the
+// button never promises a 403 and the grant stays untouched.
+describe('patient detail export capability (#404)', () => {
+  beforeEach(() => {
+    harness.apiGet.mockReset()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.body.innerHTML = ''
+  })
+
+  it('hides Exportar from a role the policy refuses, even with the grant', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 3, role: 'finanzas' }))
+    const stored = JSON.parse(localStorage.getItem('user'))
+    expect(stored.permissions).toContain('export.patient')
+
+    installGet(async url =>
+      url === URLS.patient ? { data: { ...patient, can_export: false } } : happyGet(url)
+    )
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-export-button]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('offers Exportar when the policy allows it', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+    installGet(happyGet)
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-export-button]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('hides Exportar when the payload does not publish the capability', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+    const legacyPatient = { ...patient }
+    delete legacyPatient.can_export
+    installGet(async url => (url === URLS.patient ? { data: legacyPatient } : happyGet(url)))
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-export-button]').exists()).toBe(false)
 
     wrapper.unmount()
   })
@@ -805,17 +991,49 @@ describe('patient detail specialty tab boundary (#313)', () => {
     expect(wrapper.find('[data-patient-tab-panel="specialties"]').exists()).toBe(false)
     expect(
       wrapper.findAll('[data-patient-tab-panel]').map(panel => panel.attributes('data-tab'))
-    ).toEqual(['data', 'treatment-plans', 'quotations', 'medical-records', 'laboratorio', 'audit'])
+    ).toEqual(['data', 'treatment-plans', 'laboratorio'])
 
     // The absence is a gate, not a failed mount: the other reads still run.
     const requested = harness.apiGet.mock.calls.map(([url]) => url)
     expect(requested).toContain(URLS.treatment)
     expect(requested).not.toContain(URLS.specialty)
+    // #399: the laboratory desk does not hold `view.quotation`,
+    // `manage.medical_record` or `view.audit_log`, so none of those reads run.
+    expect(requested).not.toContain(URLS.quotations)
+    expect(requested).not.toContain(URLS.medical)
+    expect(requested).not.toContain(URLS.audit)
 
     // Same for the realtime pipe: the channel is never opened, the others are.
     const channels = harness.privateChannel.mock.calls.map(([name]) => name)
     expect(channels).toContain('patients')
+    expect(channels).toContain('treatment-plans')
+    expect(channels).not.toContain('quotations')
+    expect(channels).not.toContain('medical-records')
     expect(channels).not.toContain('specialty-records')
+
+    wrapper.unmount()
+  })
+
+  it('keeps every read and channel for the administrator', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 32, role: 'administrador' }))
+
+    const wrapper = await mountPage()
+
+    const requested = harness.apiGet.mock.calls.map(([url]) => url)
+    expect(requested).toContain(URLS.treatment)
+    expect(requested).toContain(URLS.quotations)
+    expect(requested).toContain(URLS.medical)
+    expect(requested).toContain(URLS.specialty)
+
+    const channels = harness.privateChannel.mock.calls.map(([name]) => name)
+    expect(channels).toEqual(
+      expect.arrayContaining([
+        'treatment-plans',
+        'quotations',
+        'medical-records',
+        'specialty-records'
+      ])
+    )
 
     wrapper.unmount()
   })

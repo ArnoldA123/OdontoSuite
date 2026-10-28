@@ -585,6 +585,57 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (auditoría U4 de pacientes: la ficha ofrece lo que el rol puede
+  leer, Especialidades respeta su contrato, la lista conserva sus filtros y el
+  alta comunica, #399/#400/#401/#403/#404)** — Cinco hallazgos de la auditoría
+  U4 (#367), un commit de unidad por issue. **#399**: la ficha pinta cada
+  pestaña sólo con el permiso que su endpoint exige (Planes
+  `manage.treatment_plan`, Historia Clínica `manage.medical_record`,
+  Presupuestos `view.quotation`, Especialidades `manage.specialty_record`,
+  Laboratorio `view.lab_case`, Cuenta `view.patient_statement`, Historial
+  `view.audit_log`), la carga inicial y los canales de difusión respetan el
+  mismo gate (cero 403 de `treatment-plans`/`medical-records` al abrir) y el
+  Historial pinta un 403/500 como error con reintento en vez de un vacío falso
+  (`useAuditLogs` acepta `{ throwOnError }`). **#400**: la tab aplana los cinco
+  grupos de `/api/specialty-records/patient/{id}/all` en una lista (cero
+  tarjetas fantasma), cada tarjeta publica su id y su tipo, y «Ver»/«Editar» van
+  a `/specialty-records?patient_id=&specialty=&record_id=[&edit=true]`, query
+  que la página del módulo resuelve seleccionando el paciente y abriendo la tab
+  y el registro. **#401**: búsqueda, estado, sucursal, orden, tamaño de página y
+  página viven también en el query; `router.replace({ query })` los escribe y la
+  ruta declara `meta.preserveOnQuery`, así que el shell la ketea por
+  `$route.path`
+  (`:key="$route.meta.preserveOnQuery ? $route.path : $route.fullPath"`) y la
+  búsqueda conserva el foco; «atrás» devuelve la misma lista y el reset gana
+  `aria-label`. Escribir la URL con `history.replaceState` no sirve con Vue
+  Router 4: su `push` reescribe la entrada actual con su `historyState.current`
+  y el query se pierde al volver (queda documentado en `docs/ux-guidelines.md`
+  §8). **#403**: `lang/es/validation.php` traduce la validación con `attributes`
+  en español y `config/app.php` deja `es` como locale por omisión;
+  `PatientController` declara el mensaje de `birth_date.before` porque el
+  catálogo no puede traducir el literal `today`; el alta usa `novalidate` y
+  pinta cada 422 en su campo con `aria-invalid` (envío vacío incluido, vía
+  `mapFieldErrors` y `pickValidationMessage`), el toast de éxito ya no imprime
+  `null` y `UiSelect` expone `aria-invalid`. **#404**: `PatientResource` publica
+  `can_export` con la decisión de `PatientPolicy::export()`, la ficha sigue esa
+  capacidad y finanzas conserva su concesión inerte (`export.patient`) sin ver
+  el botón ni producir un 403. Sin rutas, modelos, migraciones ni permisos
+  nuevos: los conteos de §4/§5 no cambian. Tests:
+  `PatientValidationMessageLocaleTest` (3), `PatientExportCapabilityTest` (6),
+  `patients-detail-redesign` (30), `specialty-records` (12),
+  `patients-list-controls` (10), `patients-form-modal` (12), los guards
+  PAC-EDIT-001/PAC-MOD-001 reanclados al contrato del campo y las sondas U4
+  (`detail-tabs` con 8 tabs del administrador y las 3 de finanzas con sus 403,
+  `detail-export` con `finanzas.buttonVisible: false`, `list-create` con
+  `inlineFieldError` en el envío vacío y en la fecha futura, `list-return` OK).
+  Vitest **1373 pruebas en 158 archivos**; suite MySQL **OK (2855 tests, 17373
+  assertions)**; Pint 909 archivos, ESLint 0 errores / 36 avisos, Prettier y
+  `vite build` en verde; `node scripts/audit/doc-drift.mjs` 14/14. Sondas U4
+  completas sobre la base sembrada `odontosuite_audit_u4` servida en `:8000`:
+  23/23 pruebas, 14 archivos de evidencia con `verdict: OK`, `api-matrix` 119
+  filas con 0 desajustes y `ui-pass` clasifica `/patients` y `/patients/:id`
+  como `renders` (0 page errors, 0 http≥400).
+
 - **2026-10-28 (el primer frame es el skeleton, el resumen no se lleva la página
   y el error de red habla español, #387/#388/#389)** — Tres hallazgos de la
   auditoría UI U2, un commit por issue. **#387**: `/dashboard` arranca con

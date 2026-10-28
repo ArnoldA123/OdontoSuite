@@ -72,7 +72,11 @@ const routes = [
     path: '/patients',
     name: 'patients',
     component: () => import('./modules/patients/PatientsPage.vue'),
-    beforeEnter: requireAuth
+    beforeEnter: requireAuth,
+    // #401: this page mirrors its filters in the query. A query change must
+    // not remount the view (the search field keeps focus); returning from the
+    // patient file mounts it again and reads the query.
+    meta: { preserveOnQuery: true }
   },
   {
     path: '/patients/:id',
@@ -320,7 +324,7 @@ router.afterEach(() => {
 // key=fullPath fuerza remonte del componente al cambiar ruta → arregla
 // botón "atrás" del browser que quedaba pegado (onMounted no se llamaba).
 const App = {
-  template: '<router-view :key="$route.fullPath" />'
+  template: '<router-view :key="$route.meta.preserveOnQuery ? $route.path : $route.fullPath" />'
 }
 
 const app = createApp(App)

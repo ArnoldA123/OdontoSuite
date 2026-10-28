@@ -361,3 +361,61 @@ describe('specialty record form smoke', () => {
     wrapper.unmount()
   })
 })
+
+// #400 — «Ver» and «Editar» in the patient drawer land on this page with the
+// patient, the specialty and the record already chosen. The query is the
+// contract: without it the router matched nothing and the actions left a blank
+// screen.
+describe('specialty-records deep link (#400)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    localStorage.setItem(
+      'user',
+      JSON.stringify({ id: 1, name: 'Admin', role: 'administrador', specialty: null })
+    )
+    harness.apiGet.mockReset()
+    harness.apiGet.mockImplementation(url => {
+      if (url === '/api/patients/7') return Promise.resolve({ data: patient })
+      if (url === '/api/specialty-records/patient/7/all') return Promise.resolve(keyedPayload)
+      return Promise.resolve({ data: [] })
+    })
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('opens the record detail from the patient file link', async () => {
+    await router.push('/specialty-records?patient_id=7&specialty=ortodoncia&record_id=42')
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.text()).toContain('Ana Torres')
+    expect(document.querySelector('[data-specialty-record-detail]')).not.toBeNull()
+    expect(document.querySelector('[data-specialty-record-form]')).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('opens the edit form when the link asks for it', async () => {
+    await router.push('/specialty-records?patient_id=7&specialty=ortodoncia&record_id=42&edit=true')
+
+    const wrapper = await mountPage()
+
+    expect(document.querySelector('[data-specialty-record-form]')).not.toBeNull()
+    expect(document.querySelector('[data-specialty-record-detail]')).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('keeps the choose-a-patient start when the link carries no patient', async () => {
+    await router.push('/specialty-records')
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-specialty-records-no-patient]').exists()).toBe(true)
+    expect(document.querySelector('[data-specialty-record-detail]')).toBeNull()
+
+    wrapper.unmount()
+  })
+})

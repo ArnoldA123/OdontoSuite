@@ -22,8 +22,10 @@
             class="flex flex-wrap w-full sm:w-auto items-center justify-end gap-2 sm:gap-3"
             data-hero-actions
           >
+            <!-- #404: the effective door is PatientPolicy::export(), published as
+                 `can_export`; `export.patient` is inert for finanzas by design. -->
             <UiButton
-              v-if="can.exportPatient?.value"
+              v-if="patient?.can_export === true"
               variant="secondary"
               size="sm"
               class="flex-none whitespace-nowrap"
@@ -515,7 +517,8 @@
               <div class="space-y-4">
                 <div
                   v-for="record in specialtyRecords"
-                  :key="record.id"
+                  :key="`${record.specialty_type}-${record.id}`"
+                  :data-specialty-record-id="record.id"
                   class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
                 >
                   <div class="flex justify-between items-start">
@@ -527,8 +530,8 @@
                         {{ record.description || 'Sin descripción' }}
                       </p>
                       <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
+                        <span>Registro #{{ record.id }}</span>
                         <span>Fecha: {{ formatDate(record.created_at) }}</span>
-                        <span>Especialidad: {{ getSpecialtyName(record.specialty_type) }}</span>
                       </div>
                     </div>
                     <div class="flex gap-2">
@@ -669,6 +672,9 @@
               state="audit"
               :loading="auditLogsLoading"
               loading-text="Cargando historial de auditoría..."
+              :error="auditLogsError"
+              error-title="No pudimos cargar el historial de auditoría"
+              error-description="Revisa tu conexión e inténtalo de nuevo."
               :empty="auditLogs.length === 0"
               empty-title="No hay historial de auditoría"
               empty-description="Este paciente no tiene registros de auditoría."
@@ -874,6 +880,7 @@ export default {
     const treatmentPlansError = ref(false)
     const quotationsError = ref(false)
     const medicalRecordsError = ref(false)
+    const auditLogsError = ref(false)
     const specialtyRecordsError = ref(false)
     const labCasesError = ref(false)
     const exporting = ref(false)
@@ -898,6 +905,9 @@ export default {
 
     // F5 (#316): las pestañas clínicas conservan su definición. La del taller y
     // la de auditoría se ordenan aparte porque la primera depende del permiso.
+    // #399: cada tab se ofrece sólo al escritorio que puede leer su endpoint;
+    // el gate vive en `visibleTabs` y la carga lo respeta, así que una tab
+    // oculta no dispara su petición ni abre su canal de difusión.
     const clinicalTabs = [
       {
         id: 'data',
@@ -965,8 +975,19 @@ export default {
         : [...list.slice(0, auditIndex), tab, ...list.slice(auditIndex)]
     }
 
+    const TAB_GATES = {
+      'treatment-plans': () => can.viewTreatmentPlan?.value,
+      quotations: () => can.viewQuotation?.value,
+      'medical-records': () => can.viewMedicalRecord?.value,
+      specialties: () => can.viewSpecialtyRecord?.value,
+      audit: () => can.viewAuditLogs?.value
+    }
+
     const visibleTabs = computed(() => {
-      let visible = tabs.filter(tab => tab.id !== 'specialties' || can.viewSpecialtyRecord?.value)
+      let visible = tabs.filter(tab => {
+        const gate = TAB_GATES[tab.id]
+        return gate ? Boolean(gate()) : true
+      })
       if (can.viewLabCase?.value) visible = insertBeforeAudit(visible, laboratorioTab)
       if (can.viewPatientStatement?.value) visible = insertBeforeAudit(visible, cuentaTab)
       return visible
@@ -1000,7 +1021,7 @@ export default {
     }
 
     const loadTreatmentPlans = async () => {
-      if (!patient.value) return
+      if (!patient.value || !can.viewTreatmentPlan?.value) return
       treatmentPlansLoading.value = true
       treatmentPlansError.value = false
       try {
@@ -1014,7 +1035,7 @@ export default {
     }
 
     const loadQuotations = async () => {
-      if (!patient.value) return
+      if (!patient.value || !can.viewQuotation?.value) return
       quotationsLoading.value = true
       quotationsError.value = false
       try {
@@ -1028,7 +1049,7 @@ export default {
     }
 
     const loadMedicalRecords = async () => {
-      if (!patient.value) return
+      if (!patient.value || !can.viewMedicalRecord?.value) return
       medicalRecordsLoading.value = true
       medicalRecordsError.value = false
       try {
@@ -1047,7 +1068,7 @@ export default {
       specialtyRecordsError.value = false
       try {
         const response = await get(`/api/specialty-records/patient/${patient.value.id}/all`)
-        specialtyRecords.value = response.data
+        specialtyRecords.value = flattenSpecialtyRecords(response.data)
       } catch (error) {
         specialtyRecordsError.value = true
       } finally {
@@ -1097,8 +1118,15 @@ export default {
     }
 
     const loadAuditLogs = async () => {
-      if (!patient.value) return
-      await getPatientAuditLogs(patient.value.id)
+      if (!patient.value || !can.viewAuditLogs?.value) return
+      auditLogsError.value = false
+      try {
+        await getPatientAuditLogs(patient.value.id, { throwOnError: true })
+      } catch (error) {
+        // #399: el 403 o el 500 se pintan como error con reintento; un vacío
+        // falso haría creer que el paciente no tiene historial.
+        auditLogsError.value = true
+      }
     }
 
     const formatDate = date => {
@@ -1128,13 +1156,35 @@ export default {
 
     const getSpecialtyName = specialty => {
       const names = {
+        implantologia: 'Implantología',
+        ortodoncia: 'Ortodoncia',
+        endodoncia: 'Endodoncia',
+        rehabilitacion: 'Rehabilitación',
+        cirugia_oral: 'Cirugía Oral',
         implantology: 'Implantología',
         orthodontics: 'Ortodoncia',
         endodontics: 'Endodoncia',
         rehabilitation: 'Rehabilitación',
         oral_surgery: 'Cirugía Oral'
       }
-      return names[specialty] || specialty
+      return names[specialty] || specialty || 'Especialidad'
+    }
+
+    /**
+     * #400: `GET /api/specialty-records/patient/{id}/all` answers one group
+     * per specialty, not a list. Flattening it here keeps the five groups from
+     * rendering as five ghost cards and gives each row the group it came from.
+     */
+    const flattenSpecialtyRecords = payload => {
+      if (Array.isArray(payload)) return payload
+      if (!payload || typeof payload !== 'object') return []
+
+      return Object.entries(payload).flatMap(([specialty, records]) =>
+        (Array.isArray(records) ? records : []).map(record => ({
+          ...record,
+          specialty_type: specialty
+        }))
+      )
     }
 
     const getAuditActionVariant = action => {
@@ -1260,11 +1310,15 @@ export default {
     }
 
     const viewSpecialtyRecord = (id, specialty) => {
-      router.push(`/specialty-records/${id}?specialty=${specialty}`)
+      router.push(
+        `/specialty-records?patient_id=${patient.value.id}&specialty=${specialty}&record_id=${id}`
+      )
     }
 
     const editSpecialtyRecord = (id, specialty) => {
-      router.push(`/specialty-records/${id}?edit=true&specialty=${specialty}`)
+      router.push(
+        `/specialty-records?patient_id=${patient.value.id}&specialty=${specialty}&record_id=${id}&edit=true`
+      )
     }
 
     // One-shot staggered entrance (60ms) per section, mirroring the
@@ -1319,7 +1373,7 @@ export default {
 
     // Watch for tab changes to load data
     watch(activeTab, newTab => {
-      if (newTab === 'audit' && patient.value) {
+      if (newTab === 'audit' && patient.value && can.viewAuditLogs?.value) {
         loadAuditLogs()
       }
       if (newTab === 'laboratorio' && patient.value) {
@@ -1334,15 +1388,15 @@ export default {
         await nextTick()
         playEntrance()
 
-        await Promise.all([
-          loadTreatmentPlans(),
-          loadQuotations(),
-          loadMedicalRecords(),
-          loadSpecialtyRecords()
-        ])
+        const loads = []
+        if (can.viewTreatmentPlan?.value) loads.push(loadTreatmentPlans())
+        if (can.viewQuotation?.value) loads.push(loadQuotations())
+        if (can.viewMedicalRecord?.value) loads.push(loadMedicalRecords())
+        if (can.viewSpecialtyRecord?.value) loads.push(loadSpecialtyRecords())
+        await Promise.all(loads)
 
         // Load audit logs if audit tab is active
-        if (activeTab.value === 'audit') {
+        if (activeTab.value === 'audit' && can.viewAuditLogs?.value) {
           loadAuditLogs()
         }
 
@@ -1361,8 +1415,10 @@ export default {
             })
           }
 
-          // Canal de planes de tratamiento
-          treatmentPlansChannel = privateChannel('treatment-plans')
+          // Canal de planes de tratamiento. #399: sin `manage.treatment_plan`
+          // el endpoint responde 403, así que el canal tampoco se abre.
+          if (can.viewTreatmentPlan?.value)
+            treatmentPlansChannel = privateChannel('treatment-plans')
           if (treatmentPlansChannel) {
             treatmentPlansChannel
               .listen('.treatment-plan.created', async e => {
@@ -1392,8 +1448,9 @@ export default {
               })
           }
 
-          // Canal de presupuestos
-          quotationsChannel = privateChannel('quotations')
+          // Canal de presupuestos. #399: el escritorio que no lee
+          // presupuestos tampoco abre su canal.
+          if (can.viewQuotation?.value) quotationsChannel = privateChannel('quotations')
           if (quotationsChannel) {
             quotationsChannel
               .listen('.quotation.created', async e => {
@@ -1442,8 +1499,10 @@ export default {
               })
           }
 
-          // Canal de historias clínicas
-          medicalRecordsChannel = privateChannel('medical-records')
+          // Canal de historias clínicas. #399: sólo lo lee el escritorio
+          // clínico que puede pedir su endpoint.
+          if (can.viewMedicalRecord?.value)
+            medicalRecordsChannel = privateChannel('medical-records')
           if (medicalRecordsChannel) {
             medicalRecordsChannel
               .listen('.medical-record.created', async e => {
@@ -1580,6 +1639,7 @@ export default {
       exportPatientFile,
       auditLogs,
       auditLogsLoading,
+      auditLogsError,
       formatAction,
       getChangesSummary,
       createTreatmentPlan,

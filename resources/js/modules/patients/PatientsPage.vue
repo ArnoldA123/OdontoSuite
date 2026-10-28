@@ -284,7 +284,14 @@
                 class="min-w-[120px]"
                 @update:model-value="loadPatients(1)"
               />
-              <UiButton variant="secondary" class="px-3" @click="resetFilters">
+              <UiButton
+                variant="secondary"
+                class="px-3"
+                aria-label="Limpiar filtros"
+                title="Limpiar filtros"
+                data-reset-filters
+                @click="resetFilters"
+              >
                 <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
               </UiButton>
             </div>
@@ -420,7 +427,7 @@
 
 <script>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeftIcon,
   ArrowPathIcon,
@@ -466,6 +473,7 @@ export default {
   },
   setup() {
     const router = useRouter()
+    const route = useRoute()
     const { get, delete: del } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
@@ -484,23 +492,50 @@ export default {
       per_page: 15,
       total: 0
     })
-    const searchQuery = ref('')
-    const statusFilter = ref('')
+
+    // #401: the filters live in the URL too, so the browser's back button
+    // restores the same query, order and page the user left.
+    const SORT_FILTERS = ['last_name-asc', 'last_name-desc', 'first_name-asc', 'created_at-desc']
+    const PER_PAGE_OPTIONS = [15, 30, 50]
+
+    const readQuery = key => {
+      const raw = route.query[key]
+      return Array.isArray(raw) ? raw[0] : raw
+    }
+
+    const initialFilters = (() => {
+      const active = readQuery('active')
+      const sort = `${readQuery('sort') ?? ''}-${readQuery('direction') ?? ''}`
+      const perPage = Number(readQuery('per_page'))
+      const page = Number(readQuery('page'))
+
+      return {
+        search: readQuery('search') ?? '',
+        status: active === 'true' ? 'active' : active === 'false' ? 'inactive' : '',
+        branch: readQuery('branch_id') ?? '',
+        sort: SORT_FILTERS.includes(sort) ? sort : 'last_name-asc',
+        perPage: PER_PAGE_OPTIONS.includes(perPage) ? perPage : 15,
+        page: Number.isInteger(page) && page > 0 ? page : 1
+      }
+    })()
+
+    const searchQuery = ref(initialFilters.search)
+    const statusFilter = ref(initialFilters.status)
     const statusFilterOptions = [
       { value: '', label: 'Todos' },
       { value: 'active', label: 'Activos' },
       { value: 'inactive', label: 'Inactivos' }
     ]
-    const branchFilter = ref('')
+    const branchFilter = ref(initialFilters.branch)
     const branchOptions = ref([])
-    const sortFilter = ref('last_name-asc')
+    const sortFilter = ref(initialFilters.sort)
     const sortFilterOptions = [
       { value: 'last_name-asc', label: 'Apellidos A-Z' },
       { value: 'last_name-desc', label: 'Apellidos Z-A' },
       { value: 'first_name-asc', label: 'Nombre A-Z' },
       { value: 'created_at-desc', label: 'Más recientes' }
     ]
-    const perPageFilter = ref(15)
+    const perPageFilter = ref(initialFilters.perPage)
     const perPageOptions = [
       { value: 15, label: '15 por página' },
       { value: 30, label: '30 por página' },
@@ -566,6 +601,7 @@ export default {
     const loadPatients = async (page = 1) => {
       loading.value = true
       loadError.value = false
+      syncFilterQuery(page)
       try {
         // Construir parámetros de query
         const params = new URLSearchParams()
@@ -643,6 +679,45 @@ export default {
     }
 
     let searchDebounceTimer = null
+
+    /**
+     * #401: the filters live in the URL too, so the browser's back button
+     * returns to the same query, order, page size and page. The `/patients`
+     * route opts out of the full-path key (`meta.preserveOnQuery`), so a query
+     * replace does not remount the view and the search field keeps its focus.
+     */
+    const querySignature = query =>
+      JSON.stringify(
+        Object.entries(query ?? {})
+          .filter(([, value]) => value !== null && value !== undefined && value !== '')
+          .sort(([a], [b]) => a.localeCompare(b))
+      )
+
+    const syncFilterQuery = page => {
+      const next = { ...route.query }
+      const set = (key, value) => {
+        if (value === null || value === undefined || value === '') delete next[key]
+        else next[key] = String(value)
+      }
+
+      const [sort, direction] = sortFilter.value.split('-')
+      const isDefaultSort = sort === 'last_name' && direction === 'asc'
+
+      set('search', searchQuery.value)
+      set(
+        'active',
+        statusFilter.value === 'active' ? 'true' : statusFilter.value === 'inactive' ? 'false' : ''
+      )
+      set('branch_id', branchFilter.value)
+      set('sort', isDefaultSort ? '' : sort)
+      set('direction', isDefaultSort ? '' : direction)
+      set('per_page', perPageFilter.value === 15 ? '' : perPageFilter.value)
+      set('page', page <= 1 ? '' : page)
+
+      if (querySignature(next) !== querySignature(route.query)) {
+        router.replace({ query: next })
+      }
+    }
 
     const searchPatients = () => {
       if (searchDebounceTimer) {
@@ -758,10 +833,15 @@ export default {
       addPatientToList(patient)
       updateKpiCounts(patient, 1)
 
+      // #403: the confirmation names only the contact data the record has; a
+      // missing optional field used to print `null` under its label.
+      const details = [
+        patient.email ? `Email: ${patient.email}` : null,
+        patient.phone ? `Teléfono: ${patient.phone}` : null
+      ].filter(Boolean)
+
       toast.success(
-        `Paciente registrado: ${patient.first_name} ${patient.last_name}\n` +
-          `Email: ${patient.email}\n` +
-          `Teléfono: ${patient.phone}`,
+        [`Paciente registrado: ${patient.first_name} ${patient.last_name}`, ...details].join('\n'),
         {
           duration: 5000,
           title: '✓ Paciente Creado'
@@ -867,7 +947,7 @@ export default {
     let patientsChannel = null
 
     onMounted(() => {
-      loadPatients()
+      loadPatients(initialFilters.page)
       loadBranches()
 
       // Suscribirse a canales WebSocket para actualizaciones en tiempo real

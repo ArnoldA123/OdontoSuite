@@ -7,6 +7,7 @@
       :disabled="disabled"
       :aria-expanded="isOpen"
       :aria-haspopup="true"
+      :aria-invalid="Boolean(error)"
       @click="toggleDropdown"
       @keydown.escape="closeDropdown"
       @keydown.enter.prevent="toggleDropdown"
