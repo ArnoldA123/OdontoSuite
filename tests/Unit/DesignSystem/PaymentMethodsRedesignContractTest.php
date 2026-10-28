@@ -73,9 +73,21 @@ class PaymentMethodsRedesignContractTest extends TestCase
         }
 
         $this->assertMatchesRegularExpression(
-            '/kpisUnavailable\s*=\s*computed\(\(\)\s*=>\s*loading\.value\s*\|\|\s*loadError\.value\)/',
+            '/kpisUnavailable\s*=\s*computed\(\s*\(\)\s*=>[^;]*loading\.value[^;]*loadError\.value/s',
             $page,
             'KPI values MUST read N/D while loading or after a load error instead of a fabricated 0.'
+        );
+        // #445: the strip describes the directory, not the filtered page, so
+        // the four counters read the unfiltered population read.
+        $this->assertStringContainsString(
+            'populationMethods.value.length',
+            $page,
+            'The KPI total MUST count the unfiltered population instead of the filtered rows.'
+        );
+        $this->assertSame(
+            3,
+            substr_count($page, 'populationMethods.value.filter'),
+            'The active/inactive/system counters MUST read the unfiltered population.'
         );
         $this->assertSame(
             4,
@@ -116,15 +128,28 @@ class PaymentMethodsRedesignContractTest extends TestCase
         $this->assertStringContainsString('data-row-action="toggle"', $page);
 
         $toggleTag = self::openingTagContaining($page, 'data-row-action="toggle"');
+        // #439: the only condition allowed on the toggle is the session gate;
+        // it MUST stay available for every method the session may write,
+        // system methods included.
+        $this->assertStringContainsString(
+            'v-if="can.managePaymentMethods?.value"',
+            $toggleTag,
+            'Activar/Desactivar MUST follow the session permission gate.'
+        );
         $this->assertStringNotContainsString(
-            'v-if',
+            'canDelete',
             $toggleTag,
             'Activar/Desactivar MUST be available for every method, system methods included.'
         );
+        $this->assertStringNotContainsString(
+            'v-if="row',
+            $toggleTag,
+            'Activar/Desactivar MUST NOT be restricted per row state; the label already switches.'
+        );
 
         $this->assertMatchesRegularExpression(
-            '/<UiButton\b[^>]*v-if="canDelete\(row\)"[^>]*data-row-action="delete"|'
-                .'<UiButton\b[^>]*data-row-action="delete"[^>]*v-if="canDelete\(row\)"/s',
+            '/<UiButton\b[^>]*v-if="[^"]*canDelete\(row\)[^"]*"[^>]*data-row-action="delete"|'
+                .'<UiButton\b[^>]*data-row-action="delete"[^>]*v-if="[^"]*canDelete\(row\)[^"]*"/s',
             $page,
             'Eliminar MUST only render when canDelete(row) allows it (PAGOS/F7 contract).'
         );

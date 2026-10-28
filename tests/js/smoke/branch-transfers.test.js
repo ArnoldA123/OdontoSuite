@@ -268,6 +268,22 @@ describe('branch transfers surface', () => {
     wrapper.unmount()
   })
 
+  it('explains why the submit is disabled while the request is incomplete', async () => {
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-transfer-submit]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('[data-transfer-submit-hint]').text()).toContain('Elige la sede de destino')
+
+    await chooseBranch(wrapper, 'Sucursal Arequipa')
+    expect(wrapper.find('[data-transfer-submit-hint]').text()).toContain('Escribe el motivo')
+
+    await wrapper.find('[data-transfer-reason]').setValue('Vivo más cerca de Arequipa.')
+    expect(wrapper.find('[data-transfer-submit-hint]').exists()).toBe(false)
+    expect(wrapper.find('[data-transfer-submit]').attributes('disabled')).toBeUndefined()
+
+    wrapper.unmount()
+  })
+
   it('reports group scope when the actor has no sede of its own', async () => {
     asGerencia()
     const wrapper = await mountPage()

@@ -25,6 +25,13 @@ export const STATUS_FILTER_OPTIONS = Object.freeze([
   { value: 'false', label: 'Inactivos' }
 ])
 
+// #445: the family filter reuses the four families the API publishes, so the
+// option list never drifts from the read contract.
+export const TYPE_FILTER_OPTIONS = Object.freeze([
+  { value: '', label: 'Todas las familias' },
+  ...TYPE_OPTIONS
+])
+
 export const STATUS_FORM_OPTIONS = Object.freeze([
   { value: 'active', label: 'Activo' },
   { value: 'inactive', label: 'Inactivo' }
