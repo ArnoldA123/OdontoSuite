@@ -121,7 +121,18 @@ const openWizard = async (page, appointmentId) => {
   }
 
   if (!(await chip.isVisible().catch(() => false))) {
-    return { opened: false, reason: 'the appointment chip is not visible in the agenda' }
+    // The grid renders 06:00–21:00 and the fixture books «now + 75 minutes»: an
+    // evening session leaves the appointment outside the grid even though it is
+    // today's act. The professional desk lists it under «Atendiendo» and opens
+    // the same component through its own door, so the contract is measured on
+    // the real surface instead of skipping the session.
+    const fallback = await openWizardFromMyDay(page)
+    if (fallback.opened) return fallback
+
+    return {
+      opened: false,
+      reason: `the appointment chip is not visible in the agenda (${fallback.reason})`
+    }
   }
 
   await chip.click({ timeout: 5000 }).catch(() => {})
@@ -150,6 +161,34 @@ const openWizard = async (page, appointmentId) => {
 
   return {
     opened,
+    overlay: overlayLocator(page),
+    panel: panelLocator(page),
+    reason: opened ? null : 'the wizard overlay did not open'
+  }
+}
+
+// Same component, same close/edit paths: the desk door only changes the trigger.
+const openWizardFromMyDay = async page => {
+  await page.goto('/my-day')
+  const action = page.locator('[data-my-day-action="continue"]').first()
+  await action.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {})
+
+  if (!(await action.isVisible().catch(() => false))) {
+    return { opened: false, reason: 'the professional desk does not list the appointment' }
+  }
+
+  await action.click({ timeout: 5000 }).catch(() => {})
+  await overlayLocator(page)
+    .waitFor({ state: 'visible', timeout: 10000 })
+    .catch(() => {})
+
+  const opened = await overlayLocator(page)
+    .isVisible()
+    .catch(() => false)
+
+  return {
+    opened,
+    door: 'my-day',
     overlay: overlayLocator(page),
     panel: panelLocator(page),
     reason: opened ? null : 'the wizard overlay did not open'
@@ -281,6 +320,7 @@ test('@U3 wizard · contrato de primitiva', async ({ page, request }) => {
 
     evidence.shots.push(await shot(page, 'shots/u3-wizard-contract.png'))
 
+    evidence.door = opened.door ?? 'calendar'
     evidence.overlay = await opened.overlay.evaluate(node => {
       const panel = node.firstElementChild
       const box = panel?.getBoundingClientRect()
@@ -341,10 +381,18 @@ test('@U3 wizard · contrato de primitiva', async ({ page, request }) => {
       }
     ]
 
+    // #391: el chequeo de Escape del contrato cierra el asistente cuando la
+    // superficie lo respeta, así que la sonda del fondo necesita un diálogo que
+    // siga abierto: se reabre antes de medir. Medir primero el fondo y después
+    // Escape acoplaba dos filas y declaraba un defecto falso.
     const wizardSurvivedEscape = await overlayLocator(page)
       .isVisible()
       .catch(() => false)
-    const backdropClosed = wizardSurvivedEscape ? await closeByBackdrop(page) : false
+    if (!wizardSurvivedEscape) {
+      const reopened = await openWizard(page, fixtureAppointment.id)
+      evidence.backdropReopened = Boolean(reopened.opened)
+    }
+    const backdropClosed = await closeByBackdrop(page)
 
     evidence.checks.push({
       id: 'backdrop-closes',
@@ -356,7 +404,9 @@ test('@U3 wizard · contrato de primitiva', async ({ page, request }) => {
     evidence.failures = evidence.checks.filter(check => check.ok === false).map(check => check.id)
     evidence.verdict = evidence.failures.length === 0 ? 'OK' : 'DEFECTO'
     evidence.reason =
-      'el asistente es un overlay propio: no declara role=dialog, no tiene aria-modal, no atrapa el foco, no bloquea el scroll y Escape no lo cierra'
+      evidence.failures.length === 0
+        ? null
+        : `la superficie no cumple el contrato de primitiva: ${evidence.failures.join(', ')}`
 
     dialogRow = {
       trigger: {
@@ -507,7 +557,13 @@ test('@U3 wizard · pila con un modal encima', async ({ page, request }) => {
     evidence.shots.push(await shot(page, 'shots/u3-wizard-stack-before.png'))
 
     await page.locator('[data-wizard-lab-case-new]').click({ timeout: 5000 })
-    const top = page.locator(DIALOG_SELECTOR).last()
+    // Pin the stacked dialog by its accessible name: `.last()` re-resolves to
+    // whatever dialog is last in the DOM, so once the lab modal unmounts it
+    // starts pointing at the wizard panel and reports the close as a failure.
+    const top = page
+      .locator(DIALOG_SELECTOR)
+      .filter({ hasText: 'Nuevo caso de laboratorio' })
+      .first()
     await top.waitFor({ state: 'visible', timeout: 8000 }).catch(() => {})
 
     evidence.steps.topOpened = {
