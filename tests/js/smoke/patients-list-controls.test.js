@@ -229,3 +229,99 @@ describe('patients list controls', () => {
     wrapper.unmount()
   })
 })
+
+// #401 — the filters live in the URL too: the browser's back button returns to
+// the same query, order, page size and page, and the reset control is named.
+const mountAt = async path => {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
+  })
+  await router.push(path)
+  const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+  await flushPromises()
+  return wrapper
+}
+
+const currentQuery = () => new URLSearchParams(window.location.search)
+
+describe('patients list filter state (#401)', () => {
+  beforeEach(() => {
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+    harness.apiGet.mockReset()
+    harness.apiGet.mockImplementation(async url => {
+      if (url.includes('/api/branches/active')) {
+        return { data: branches }
+      }
+      return { data: [patient], meta: defaultMeta }
+    })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    localStorage.clear()
+    window.history.replaceState(null, '', '/')
+  })
+
+  it('restores search, status, order, page size and page from the URL', async () => {
+    const wrapper = await mountAt(
+      '/patients?search=ANA&active=true&sort=created_at&direction=desc&per_page=30&page=2'
+    )
+
+    const params = listParams(listCalls().at(-1))
+    expect(params.get('search')).toBe('ANA')
+    expect(params.get('active')).toBe('true')
+    expect(params.get('sort')).toBe('created_at')
+    expect(params.get('direction')).toBe('desc')
+    expect(params.get('per_page')).toBe('30')
+    expect(params.get('page')).toBe('2')
+
+    expect(searchInput(wrapper).element.value).toBe('ANA')
+
+    wrapper.unmount()
+  })
+
+  it('writes the applied filters into the URL without a router navigation', async () => {
+    const wrapper = await mountAt('/patients')
+    const router = wrapper.vm.$router
+    const before = router.currentRoute.value.fullPath
+
+    vi.useFakeTimers()
+    await searchInput(wrapper).setValue('AUDIT-U4')
+    vi.advanceTimersByTime(300)
+    vi.useRealTimers()
+    await flushPromises()
+    await chooseOption(wrapper, 'active', 'Activos')
+    await flushPromises()
+
+    expect(currentQuery().get('search')).toBe('AUDIT-U4')
+    expect(currentQuery().get('active')).toBe('true')
+    // The shell keys the view by fullPath; the URL is written without touching
+    // the route, so the search field keeps its focus and its instance.
+    expect(router.currentRoute.value.fullPath).toBe(before)
+
+    wrapper.unmount()
+  })
+
+  it('clears the URL when the reset control runs', async () => {
+    const wrapper = await mountAt('/patients?search=ANA&active=true&page=3')
+    await wrapper.get('[data-reset-filters]').trigger('click')
+    await flushPromises()
+
+    expect(currentQuery().get('search')).toBeNull()
+    expect(currentQuery().get('active')).toBeNull()
+    expect(currentQuery().get('page')).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('names the reset control for assistive technology', async () => {
+    const wrapper = await mountAt('/patients')
+
+    const reset = wrapper.get('[data-reset-filters]')
+    expect(reset.attributes('aria-label')).toBe('Limpiar filtros')
+    expect(reset.attributes('title')).toBe('Limpiar filtros')
+
+    wrapper.unmount()
+  })
+})

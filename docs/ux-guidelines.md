@@ -306,6 +306,14 @@ con la lista explicita de componentes que vale la pena cachear. No usar
 `keep-alive` global: reintroduce el bug original de listeners colgados en
 modulos con WebSocket.
 
+Alternativa ya en uso: espejar el estado en el query de la URL. `/patients`
+escribe busqueda, estado, sucursal, orden, tamano de pagina y pagina con
+`history.replaceState`, y los lee al montar, asi que «atras» devuelve la misma
+lista. El `replaceState` (y no `router.replace`) es deliberado: con
+`:key="$route.fullPath"`, una navegacion del router por cada tecla remontaria la
+vista y el campo de busqueda perderia el foco. La misma tecnica sirve cuando una
+vista debe sobrevivir el viaje lista → detalle → lista sin `keep-alive`.
+
 ## 9. Componentes UI disponibles
 
 `resources/js/components/ui/` contiene 33 componentes. Antes de crear un
