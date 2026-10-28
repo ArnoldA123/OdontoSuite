@@ -70,7 +70,8 @@ const patient = {
   medical_history: 'Asma leve',
   allergies: 'Penicilina',
   notes: 'Control semestral',
-  is_active: true
+  is_active: true,
+  can_export: true
 }
 
 const URLS = {
@@ -903,6 +904,59 @@ describe('patient detail specialty records (#400)', () => {
     expect(wrapper.vm.$router.currentRoute.value.fullPath).toBe(
       '/specialty-records?patient_id=7&specialty=ortodoncia&record_id=42&edit=true'
     )
+
+    wrapper.unmount()
+  })
+})
+
+// #404 — `export.patient` is granted to finanzas on purpose and the policy is
+// the effective door. The hero follows the capability the API publishes, so the
+// button never promises a 403 and the grant stays untouched.
+describe('patient detail export capability (#404)', () => {
+  beforeEach(() => {
+    harness.apiGet.mockReset()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.body.innerHTML = ''
+  })
+
+  it('hides Exportar from a role the policy refuses, even with the grant', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 3, role: 'finanzas' }))
+    const stored = JSON.parse(localStorage.getItem('user'))
+    expect(stored.permissions).toContain('export.patient')
+
+    installGet(async url =>
+      url === URLS.patient ? { data: { ...patient, can_export: false } } : happyGet(url)
+    )
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-export-button]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('offers Exportar when the policy allows it', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+    installGet(happyGet)
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-export-button]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('hides Exportar when the payload does not publish the capability', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+    const { can_export: _canExport, ...legacyPatient } = patient
+    installGet(async url => (url === URLS.patient ? { data: legacyPatient } : happyGet(url)))
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-export-button]').exists()).toBe(false)
 
     wrapper.unmount()
   })

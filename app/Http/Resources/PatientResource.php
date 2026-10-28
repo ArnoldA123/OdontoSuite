@@ -33,6 +33,10 @@ class PatientResource extends JsonResource
             'notes' => $this->notes,
             'is_active' => $this->is_active,
             'branch_id' => $this->branch_id,
+            // #404: the export grant is inert for `finanzas`; the policy is the
+            // effective door, so the surface reads its decision instead of the
+            // permission list.
+            'can_export' => $request->user()?->can('export', $this->resource) ?? false,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
 

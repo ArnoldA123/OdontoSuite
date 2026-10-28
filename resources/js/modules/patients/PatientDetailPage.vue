@@ -22,8 +22,10 @@
             class="flex flex-wrap w-full sm:w-auto items-center justify-end gap-2 sm:gap-3"
             data-hero-actions
           >
+            <!-- #404: the effective door is PatientPolicy::export(), published as
+                 `can_export`; `export.patient` is inert for finanzas by design. -->
             <UiButton
-              v-if="can.exportPatient?.value"
+              v-if="patient?.can_export === true"
               variant="secondary"
               size="sm"
               class="flex-none whitespace-nowrap"
