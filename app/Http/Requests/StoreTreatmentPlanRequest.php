@@ -77,7 +77,10 @@ class StoreTreatmentPlanRequest extends FormRequest
             'requires_anesthesia' => 'boolean',
             'is_urgent' => 'boolean',
             'items' => 'sometimes|nullable|array|max:50',
-            'items.*.description' => 'required_with:items|string|max:200',
+            // #418: the label calls it optional and the update door already
+            // accepts a line without it; the procedure name is the required
+            // identity of the line.
+            'items.*.description' => 'sometimes|nullable|string|max:200',
             'items.*.procedure_name' => 'required_with:items|string|max:200',
             'items.*.quantity' => 'required_with:items|numeric|min:0.01|max:999.99',
             'items.*.unit_cost' => 'required_with:items|numeric|min:0|max:99999.99',
@@ -118,7 +121,6 @@ class StoreTreatmentPlanRequest extends FormRequest
             'start_date.after_or_equal' => 'La fecha de inicio no puede ser anterior a hoy',
             'end_date.after' => 'La fecha de fin debe ser posterior a la fecha de inicio',
             'items.max' => 'No se pueden agregar más de 50 procedimientos',
-            'items.*.description.required_with' => 'La descripción del procedimiento es obligatoria',
             'items.*.procedure_name.required_with' => 'El nombre del procedimiento es obligatorio',
             'items.*.quantity.required_with' => 'La cantidad es obligatoria',
             'items.*.quantity.min' => 'La cantidad mínima es 0.01',
