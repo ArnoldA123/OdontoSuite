@@ -13,9 +13,12 @@ const procedure = {
   is_active: true
 }
 
+const requestedUrls = []
+
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
     get: async url => {
+      requestedUrls.push(url)
       if (url.includes('/api/procedure-catalog?')) {
         return {
           data: [procedure],
@@ -69,6 +72,25 @@ describe('reception-procedures smoke', () => {
     expect(wrapper.find('[data-procedure-card]').exists()).toBe(true)
     expect(wrapper.text()).toContain('Endodoncia unirradicular')
     expect(wrapper.text()).toContain('Endodoncia')
+
+    wrapper.unmount()
+  })
+
+  it('sends the term as q, the parameter the index reads', async () => {
+    requestedUrls.length = 0
+    const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+    await flushPromises()
+
+    await wrapper.find('[data-reception-search] input').setValue('REST-COMP-1S')
+    await new Promise(resolve => setTimeout(resolve, 400))
+    await flushPromises()
+
+    const catalogCalls = requestedUrls.filter(url => url.includes('/api/procedure-catalog?'))
+    const lastCall = catalogCalls[catalogCalls.length - 1]
+
+    expect(lastCall).toBeDefined()
+    expect(lastCall).toContain('q=REST-COMP-1S')
+    expect(lastCall).not.toContain('search=')
 
     wrapper.unmount()
   })
