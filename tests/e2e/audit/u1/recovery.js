@@ -380,8 +380,14 @@ test('@U1 recovery · the mailed link opens the reset form with the email filled
       emailValue: await emailInput.inputValue().catch(() => null),
       emailDisabled: await emailInput.isDisabled().catch(() => null),
       emailPrefilled: (await emailInput.inputValue().catch(() => null)) === email,
+      // #382: the link already carries the code, so the form must not ask for it.
       tokenFieldPresent: (await tokenInput.count().catch(() => 0)) > 0,
       tokenValueLength: (await tokenInput.inputValue().catch(() => '')).length,
+      tokenApplied:
+        (await dialog
+          .locator('[data-reset-token-applied]')
+          .count()
+          .catch(() => 0)) > 0,
       submitLabel: (
         await dialog
           .getByRole('button', { name: 'Restablecer contraseña' })
@@ -406,7 +412,8 @@ test('@U1 recovery · the mailed link opens the reset form with the email filled
     evidence.verdict =
       evidence.httpStatus === 200 &&
       evidence.form?.emailPrefilled === true &&
-      evidence.form?.tokenFieldPresent === true
+      evidence.form?.tokenFieldPresent === false &&
+      evidence.form?.tokenApplied === true
         ? 'ok'
         : 'defect'
 

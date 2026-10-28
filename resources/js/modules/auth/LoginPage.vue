@@ -63,6 +63,28 @@
 
           <p class="sr-only" role="status" aria-live="polite">{{ validationAnnouncement }}</p>
 
+          <!-- #382: /reset-password without token or email used to fall back to
+               this same card with no explanation. The route now says what the
+               link is missing and offers the door that sends a new one. -->
+          <div
+            v-if="resetLinkMissing && state !== 'success'"
+            class="reset-link-notice"
+            data-reset-link-missing
+          >
+            <p class="reset-link-notice-text">
+              Este enlace para restablecer la contraseña no trae un código válido. Solicita uno
+              nuevo para continuar.
+            </p>
+            <button
+              type="button"
+              class="forgot-password-link"
+              data-reset-link-request
+              @click="showForgotPasswordModal = true"
+            >
+              Solicitar un enlace nuevo
+            </button>
+          </div>
+
           <!-- Phase 2.5 · form → mini-summary polymorphism. No Card
                wrapper: the fields are the card's own content. -->
           <TransitionGroup name="form-card-morph" tag="div" class="login-form-morph">
@@ -421,6 +443,16 @@ function openResetFromRoute() {
   resetToken.value = token
   showResetPasswordModal.value = true
 }
+
+// #382: the mailed link is the only door that opens the dialog. Without token
+// and email the route is still the reset surface, so it names the missing piece
+// instead of looking like a plain /login.
+const resetLinkMissing = computed(() => {
+  if (route.path !== '/reset-password') return false
+  const email = typeof route.query.email === 'string' ? route.query.email : ''
+  const token = typeof route.query.token === 'string' ? route.query.token : ''
+  return !email && !token
+})
 
 onMounted(openResetFromRoute)
 
@@ -961,6 +993,21 @@ watch(
   transition:
     color 200ms ease-out,
     text-decoration-color 200ms ease-out;
+}
+
+/* #382: the reset route without a usable link, naming what is missing
+   instead of rendering a mute login form. */
+.reset-link-notice {
+  @apply mb-5 flex flex-col items-start gap-2;
+  padding: 12px 14px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-control);
+  background: var(--color-canvas);
+}
+
+.reset-link-notice-text {
+  @apply text-sm leading-relaxed;
+  color: var(--color-label-label);
 }
 
 .forgot-password-link:hover {
