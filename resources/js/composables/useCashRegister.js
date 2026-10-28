@@ -34,6 +34,10 @@ export function useCashRegister() {
   const currentSession = ref(null)
   const loading = ref(false)
   const error = ref(null)
+  // #411 — the drawer reading owns its own flags: the lists that load after it
+  // used to clear the same `error`, so the hero panel never painted.
+  const sessionLoading = ref(false)
+  const sessionError = ref(null)
   const summary = ref(null)
   // #407: the closure counts of a closed session; "mi caja" answers the
   // session payload plus its closing block, never a summary.
@@ -46,8 +50,8 @@ export function useCashRegister() {
 
   // Cargar sesión actual
   const loadCurrentSession = async () => {
-    loading.value = true
-    error.value = null
+    sessionLoading.value = true
+    sessionError.value = null
 
     try {
       const response = await get('/api/cash-register/current')
@@ -56,12 +60,12 @@ export function useCashRegister() {
       summary.value = response.data?.summary ? normalizeSummary(response.data.summary) : null
       closing.value = response.data?.closing || null
     } catch (err) {
-      error.value = err.message || 'Error al cargar la sesión de caja'
+      sessionError.value = err.message || 'Error al cargar la sesión de caja'
       currentSession.value = null
       summary.value = null
       closing.value = null
     } finally {
-      loading.value = false
+      sessionLoading.value = false
     }
   }
 
@@ -151,12 +155,14 @@ export function useCashRegister() {
 
   // Validar si se puede abrir caja
   const canOpen = computed(() => {
-    return !isOpen.value && !loading.value
+    // #411 — a failed reading leaves the drawer state unknown, so the hero does
+    // not offer a door built on a state it could not confirm.
+    return !sessionError.value && !isOpen.value && !sessionLoading.value && !loading.value
   })
 
   // Validar si se puede cerrar caja
   const canClose = computed(() => {
-    return isOpen.value && !loading.value
+    return isOpen.value && !sessionLoading.value && !loading.value
   })
 
   // Calcular totales en tiempo real
@@ -380,6 +386,7 @@ export function useCashRegister() {
     summary.value = null
     closing.value = null
     error.value = null
+    sessionError.value = null
     cleanupWebSocketSubscriptions()
   }
 
@@ -389,6 +396,8 @@ export function useCashRegister() {
     data: currentSession, // alias for { data } consumers (T-08.10)
     loading,
     error,
+    sessionLoading,
+    sessionError,
     summary,
     closing,
 
