@@ -1,8 +1,8 @@
 # U11 — Matriz de consistencia transversal (36 rutas × 12 ejes)
 
-- **Revisión**: `5b1cc028c7e0fd66b25546ccf688910cf0679cd8`
-- **Base**: http://localhost:8000
-- **Fecha**: 2026-10-27T19:22:05.070Z
+- **Revisión**: `8bed6da309dbb026063f4f2d47b6373530c13ab1`
+- **Base declarada al generar**: http://localhost:8000 (las filas de evidencia no guardan la URL de origen)
+- **Fecha**: 2026-10-28T00:33:50.253Z
 - **Generado por**: `tests/e2e/audit/u11/report.js` sobre `manifest.json`, `static.json`, `render/*.json` y `primitives/*.json`
 - **Alcance del gate**: `AUDIT_SCOPE=all` (36 superficie(s) esperada(s))
 - **Códigos**: `OK` canon · `DIV` divergencia · `N/A` no aplica · `ACE` aceptación declarada · `NO PROBADO` sin fila de render
@@ -13,40 +13,42 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `/login` | anonymous | OK | OK | OK | OK | ACE | OK | N/A | OK | N/A | OK | N/A | OK |
 | `/reset-password` | anonymous | OK | OK | OK | OK | ACE | OK | N/A | OK | N/A | OK | N/A | OK |
-| `/dashboard` | recepcionista | OK | OK | OK | OK | OK | DIV | N/A | OK | DIV | OK | N/A | OK |
-| `/calendar` | recepcionista | DIV | OK | OK | DIV | OK | OK | N/A | OK | OK | OK | N/A | OK |
-| `/my-day` | odontologo | DIV | OK | OK | DIV | OK | OK | N/A | OK | OK | OK | N/A | OK |
-| `/patients` | recepcionista | OK | DIV | OK | OK | OK | DIV | N/A | OK | DIV | OK | N/A | OK |
-| `/patients/:id` | recepcionista | OK | OK | OK | DIV | OK | OK | DIV | OK | DIV | OK | N/A | DIV |
+| `/dashboard` | recepcionista | OK | OK | OK | OK | OK | DIV | N/A | OK | OK | OK | N/A | OK |
+| `/calendar` | recepcionista | DIV | OK | OK | DIV | OK | OK | N/A | OK | N/A | OK | N/A | OK |
+| `/my-day` | odontologo | DIV | OK | OK | DIV | OK | OK | N/A | OK | N/A | OK | N/A | OK |
+| `/patients` | recepcionista | OK | DIV | OK | OK | OK | DIV | N/A | OK | OK | OK | N/A | OK |
+| `/patients/:id` | recepcionista | OK | OK | OK | DIV | OK | OK | DIV | OK | OK | OK | N/A | DIV |
 | `/professionals` | administrador | OK | DIV | OK | DIV | DIV | OK | DIV | OK | N/A | OK | N/A | OK |
-| `/professionals/:id` | administrador | N/A | OK | OK | OK | DIV | N/A | N/A | OK | OK | OK | N/A | OK |
+| `/professionals/:id` | administrador | N/A | OK | OK | OK | DIV | N/A | N/A | OK | N/A | OK | N/A | OK |
 | `/environments` | administrador | OK | OK | OK | DIV | OK | DIV | DIV | OK | N/A | OK | N/A | OK |
-| `/environments/:id` | administrador | N/A | OK | OK | OK | OK | N/A | N/A | OK | OK | OK | N/A | DIV |
+| `/environments/:id` | administrador | N/A | OK | OK | OK | OK | N/A | N/A | OK | N/A | OK | N/A | DIV |
 | `/appointment-types` | administrador | OK | DIV | OK | DIV | OK | DIV | N/A | OK | OK | OK | OK | OK |
 | `/appointment-types/:id` | administrador | N/A | OK | OK | OK | DIV | DIV | N/A | OK | OK | OK | N/A | OK |
 | `/specialties` | administrador | OK | OK | OK | OK | OK | OK | DIV | OK | N/A | OK | OK | OK |
-| `/procedure-catalog` | administrador | OK | DIV | OK | DIV | OK | OK | N/A | OK | DIV | OK | OK | OK |
+| `/procedure-catalog` | administrador | OK | DIV | OK | DIV | OK | OK | N/A | OK | OK | OK | OK | OK |
 | `/procedure-catalog/:id` | administrador | OK | OK | OK | OK | DIV | OK | N/A | OK | OK | OK | N/A | OK |
-| `/procedure-stats` | finanzas | N/A | OK | OK | OK | OK | OK | DIV | OK | DIV | OK | OK | OK |
+| `/procedure-stats` | finanzas | N/A | OK | OK | OK | OK | OK | DIV | OK | OK | OK | OK | OK |
 | `/my-procedures` | odontologo | N/A | OK | OK | OK | OK | DIV | N/A | OK | OK | OK | OK | OK |
-| `/reception-procedures` | recepcionista | N/A | OK | OK | OK | OK | N/A | DIV | OK | DIV | OK | OK | OK |
-| `/business-intelligence` | finanzas | N/A | OK | OK | OK | OK | OK | DIV | OK | DIV | OK | OK | DIV |
-| `/cash-register` | finanzas | OK | OK | OK | DIV | DIV | OK | OK | OK | DIV | OK | OK | OK |
-| `/cash-register/ready-to-bill` | finanzas | OK | OK | OK | OK | DIV | DIV | OK | OK | OK | OK | OK | OK |
+| `/reception-procedures` | recepcionista | N/A | OK | OK | OK | OK | N/A | DIV | OK | OK | OK | OK | OK |
+| `/business-intelligence` | finanzas | N/A | OK | OK | OK | OK | OK | DIV | OK | OK | OK | OK | DIV |
+| `/cash-register` | finanzas | OK | OK | OK | DIV | DIV | OK | OK | OK | OK | OK | OK | OK |
+| `/cash-register/ready-to-bill` | finanzas | OK | OK | OK | OK | DIV | DIV | OK | OK | N/A | OK | OK | OK |
 | `/treatment-plans` | odontologo | OK | OK | OK | DIV | OK | OK | DIV | OK | OK | OK | OK | OK |
 | `/quotations` | finanzas | OK | OK | OK | DIV | OK | OK | DIV | OK | OK | OK | OK | OK |
-| `/medical-records` | odontologo | OK | OK | OK | DIV | OK | OK | N/A | OK | DIV | OK | N/A | OK |
-| `/medical-records/:id` | odontologo | OK | OK | OK | DIV | OK | OK | N/A | OK | DIV | OK | N/A | DIV |
+| `/medical-records` | odontologo | OK | OK | OK | DIV | OK | OK | N/A | OK | OK | OK | N/A | OK |
+| `/medical-records/:id` | odontologo | OK | OK | OK | DIV | OK | OK | N/A | OK | OK | OK | N/A | DIV |
 | `/specialty-records` | odontologo | OK | OK | OK | OK | DIV | OK | N/A | OK | N/A | OK | OK | OK |
-| `/ai-analysis` | odontologo | ACE | OK | OK | OK | OK | OK | DIV | DIV | OK | OK | OK | OK |
-| `/continuity` | recepcionista | OK | OK | OK | OK | OK | OK | N/A | OK | OK | OK | N/A | OK |
+| `/ai-analysis` | odontologo | ACE | OK | OK | OK | OK | OK | DIV | DIV | N/A | OK | OK | OK |
+| `/continuity` | recepcionista | OK | OK | OK | OK | OK | OK | N/A | OK | N/A | OK | N/A | OK |
 | `/lab-cases` | recepcionista | OK | OK | OK | OK | OK | N/A | OK | OK | N/A | OK | N/A | OK |
-| `/settings/branches` | administrador | OK | OK | OK | OK | OK | OK | DIV | OK | OK | OK | OK | OK |
-| `/settings/branches/:id` | administrador | N/A | OK | OK | OK | OK | N/A | N/A | OK | OK | OK | OK | DIV |
-| `/branch-transfers` | recepcionista | N/A | OK | OK | OK | OK | OK | N/A | DIV | OK | OK | N/A | OK |
+| `/settings/branches` | administrador | OK | OK | OK | OK | OK | OK | DIV | OK | N/A | OK | OK | OK |
+| `/settings/branches/:id` | administrador | N/A | OK | OK | OK | OK | N/A | N/A | OK | N/A | OK | OK | DIV |
+| `/branch-transfers` | recepcionista | N/A | OK | OK | OK | OK | OK | N/A | DIV | N/A | OK | N/A | OK |
 | `/settings/payment-methods` | administrador | OK | OK | OK | OK | OK | OK | DIV | OK | N/A | OK | OK | OK |
 | `/settings/accounting-locks` | administrador | OK | OK | OK | OK | OK | OK | N/A | OK | N/A | OK | OK | OK |
 | `/:pathMatch(.*)*` | recepcionista | N/A | OK | DIV | OK | ACE | N/A | N/A | OK | N/A | OK | N/A | OK |
+
+La tabla nombra la fila que la matriz usa para cada ruta —`render/<slug>-<rol>.json`, el rol dueño del escritorio—; el artefacto conserva además las filas de los otros roles medidos, y el informe las busca por ruta y rol en vez de quedarse con la última leída.
 
 ## Reglas de veredicto por eje
 
@@ -142,7 +144,7 @@
 
 **Rutas divergentes**: `/professionals` (carga ausente, vacío declarado) · `/professionals/:id` (carga ausente, vacío no aplica) · `/appointment-types/:id` (carga ausente, vacío no aplica) · `/procedure-catalog/:id` (carga ausente, vacío declarado) · `/cash-register` (carga ausente, vacío declarado) · `/cash-register/ready-to-bill` (carga ausente, vacío declarado) · `/specialty-records` (carga ausente, vacío no aplica)
 
-**Aceptaciones declaradas**: `/login` (resources/js/modules/auth/LoginPage.vue#states; render/login-anonymous.json#loadingProbe={"skeleton":false,"spinner":false,"visibleText":233}; aceptación: La p…) · `/reset-password` (resources/js/modules/auth/LoginPage.vue#states; render/reset-password-anonymous.json#loadingProbe={"skeleton":false,"spinner":false,"visibleText":233}; aceptac…) · `/:pathMatch(.*)*` (resources/js/modules/errors/NotFoundPage.vue#states; render/pathmatch-recepcionista.json#loadingProbe={"skeleton":false,"spinner":false,"visibleText":143}; ace…)
+**Aceptaciones declaradas**: `/login` (resources/js/modules/auth/LoginPage.vue#states; render/login-anonymous.json#loadingProbe={"skeleton":false,"spinner":false,"visibleText":233}; aceptación: no c…) · `/reset-password` (resources/js/modules/auth/LoginPage.vue#states; render/reset-password-anonymous.json#loadingProbe={"skeleton":false,"spinner":false,"visibleText":233}; aceptac…) · `/:pathMatch(.*)*` (resources/js/modules/errors/NotFoundPage.vue#states; render/pathmatch-recepcionista.json#loadingProbe={"skeleton":false,"spinner":false,"visibleText":143}; ace…)
 
 **Medido**: 36/36 ruta(s); OK 26, DIV 7, ACE 3, N/A 0, NO PROBADO 0.
 
@@ -206,13 +208,13 @@
 
 **Por qué**: Hoy la moneda tiene helper compartido y la fecha larga no: cada página usa toLocale*/Intl, y conviven es-ES y es-PE con dos relojes.
 
-**Rutas divergentes**: `/dashboard` (moneda ["S/ #.#"], fechas ["# de octubre de #"], toLocale/Intl=true, módulo legacy=false) · `/patients` (moneda [], fechas ["#/#/#"], toLocale/Intl=true, módulo legacy=false) · `/patients/:id` (moneda [], fechas ["#/#/#"], toLocale/Intl=true, módulo legacy=false) · `/procedure-catalog` (moneda ["S/ #.#","S/ #,#.#"], fechas [], toLocale/Intl=false, módulo legacy=false) · `/procedure-stats` (moneda ["S/ #.#"], fechas ["#/#/#"], toLocale/Intl=true, módulo legacy=false) · `/reception-procedures` (moneda ["S/ #,#.#","S/ #.#"], fechas [], toLocale/Intl=false, módulo legacy=false) · `/business-intelligence` (moneda ["S/ #,#.#","S/ #.#"], fechas ["#/#/#"], toLocale/Intl=true, módulo legacy=false) · `/cash-register` (moneda ["S/ #.#","S/ #,#.#"], fechas [], toLocale/Intl=false, módulo legacy=false) · `/medical-records` (moneda [], fechas ["#/#/#"], toLocale/Intl=true, módulo legacy=false) · `/medical-records/:id` (moneda [], fechas ["#/#/#"], toLocale/Intl=true, módulo legacy=false)
+**Rutas divergentes**: ninguna
 
-**Medido**: 26/36 ruta(s); OK 16, DIV 10, ACE 0, N/A 10, NO PROBADO 0.
+**Medido**: 16/36 ruta(s); OK 16, DIV 0, ACE 0, N/A 20, NO PROBADO 0.
 
-**Veredicto del eje**: DIV
+**Veredicto del eje**: OK
 
-**Dueño**: #451 (el issue por clase agrupa los casos de este eje; la sesión no cierra sus propios issues)
+**Dueño**: aceptación/no aplica (sin divergencia pendiente)
 
 ### 10. Responsive (`responsive`)
 
@@ -254,7 +256,7 @@
 
 **Por qué**: El mismo dato no se publica dos veces en la misma vista sin una función distinta.
 
-**Rutas divergentes**: `/patients/:id` (5 grupo(s) repetido(s)) · `/environments/:id` (1 grupo(s) repetido(s)) · `/business-intelligence` (1 grupo(s) repetido(s)) · `/medical-records/:id` (1 grupo(s) repetido(s)) · `/settings/branches/:id` (1 grupo(s) repetido(s))
+**Rutas divergentes**: `/patients/:id` (3 grupo(s) repetido(s)) · `/environments/:id` (1 grupo(s) repetido(s)) · `/business-intelligence` (1 grupo(s) repetido(s)) · `/medical-records/:id` (1 grupo(s) repetido(s)) · `/settings/branches/:id` (1 grupo(s) repetido(s))
 
 **Medido**: 36/36 ruta(s); OK 31, DIV 5, ACE 0, N/A 0, NO PROBADO 0.
 
@@ -302,8 +304,6 @@
 | `/settings/payment-methods` | resources/js/modules/settings/payment-methods/PaymentMethodsPage.vue | render/settings-payment-methods-administrador.json | `shots/settings-payment-methods-administrador-desktop.png` · `shots/settings-payment-methods-administrador-mobile.png` |
 | `/settings/accounting-locks` | resources/js/modules/accounting-locks/AccountingLocksPage.vue | render/settings-accounting-locks-administrador.json | `shots/settings-accounting-locks-administrador-desktop.png` · `shots/settings-accounting-locks-administrador-mobile.png` |
 | `/:pathMatch(.*)*` | resources/js/modules/errors/NotFoundPage.vue | render/pathmatch-recepcionista.json | `shots/pathmatch-recepcionista-desktop.png` · `shots/pathmatch-recepcionista-mobile.png` |
-
-La tabla nombra la fila que la matriz usa para cada ruta —`render/<slug>-<rol>.json`, el rol dueño del escritorio—; el artefacto conserva además las filas de los otros roles medidos, y el informe las busca por ruta y rol en vez de quedarse con la última leída.
 
 ## Canon propuesto
 
