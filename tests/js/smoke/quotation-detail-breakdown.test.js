@@ -1,8 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 
+import rolePermissions from '../support/role-permissions.json'
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import QuotationDetail from '../../../resources/js/modules/quotations/components/QuotationDetail.vue'
+
+// #420: the detail gates its footer on `usePermissions().can.*`, and those
+// flags are a membership check on the permission list the API publishes, so a
+// session is seeded with that list and never with a role lookup.
+const seedSession = role => {
+  localStorage.setItem('auth_token', 'test-token')
+  localStorage.setItem('user', JSON.stringify({ id: 1, role, permissions: rolePermissions[role] }))
+}
 
 // #289, S1 (finding D2): `subtotal` is the base imponible, so the panel starts
 // from the list price and shows the base plus IGV as the breakdown of the total.
@@ -53,8 +62,7 @@ const amount = selector => {
 }
 
 beforeEach(() => {
-  localStorage.setItem('auth_token', 'test-token')
-  localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+  seedSession('administrador')
 })
 
 afterEach(() => {
@@ -96,5 +104,49 @@ describe('quotations detail breakdown', () => {
     expect(amount('[data-detail-taxable-base]')).toBe('S/ 100.00')
     expect(costsText()).not.toContain('Descuento')
     expect(costsText()).toContain('S/ 118.00')
+  })
+
+  it('offers the footer actions the session can execute', async () => {
+    const action = name => document.querySelector(`[data-detail-action="${name}"]`)
+
+    // Reading is a separate grant: recepcionista has view.quotation and no
+    // manage.quotation, so the PDF stays and the three write actions go.
+    seedSession('recepcionista')
+    await mountDetail()
+
+    expect(action('pdf')).not.toBeNull()
+    expect(action('send')).toBeNull()
+    expect(action('edit')).toBeNull()
+    expect(action('approve')).toBeNull()
+    expect(action('reject')).toBeNull()
+
+    wrapper.unmount()
+    wrapper = null
+    document.body.innerHTML = ''
+
+    // manage.quotation only releases the actions the status allows: a `sent`
+    // quotation can be approved or rejected, a `draft` can be edited. The
+    // permission is no longer the limiting factor for either.
+    seedSession('administrador')
+    await mountDetail()
+
+    expect(action('pdf')).not.toBeNull()
+    expect(action('approve')).not.toBeNull()
+    expect(action('reject')).not.toBeNull()
+    expect(action('edit')).toBeNull()
+    // #422 S4: a `sent` quotation is past the sending door.
+    expect(action('send')).toBeNull()
+
+    wrapper.unmount()
+    wrapper = null
+    document.body.innerHTML = ''
+
+    await mountDetail({ status: 'draft' })
+
+    expect(action('pdf')).not.toBeNull()
+    expect(action('edit')).not.toBeNull()
+    expect(action('send')).not.toBeNull()
+    expect(action('approve')).toBeNull()
+    expect(action('reject')).toBeNull()
   })
 })

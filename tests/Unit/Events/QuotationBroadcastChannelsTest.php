@@ -5,6 +5,7 @@ namespace Tests\Unit\Events;
 use App\Events\QuotationApproved;
 use App\Events\QuotationCreated;
 use App\Events\QuotationRejected;
+use App\Events\QuotationSent;
 use App\Events\QuotationUpdated;
 use App\Models\Quotation;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -34,6 +35,7 @@ class QuotationBroadcastChannelsTest extends TestCase
             'QuotationUpdated' => [QuotationUpdated::class, []],
             'QuotationApproved' => [QuotationApproved::class, []],
             'QuotationRejected' => [QuotationRejected::class, ['reason' => 'Precio alto']],
+            'QuotationSent' => [QuotationSent::class, []],
         ];
     }
 

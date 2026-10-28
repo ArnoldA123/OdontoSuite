@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Authorization\BranchAccess;
 use App\Events\TransactionCreated;
 use App\Events\TransactionUpdated;
+use App\Exceptions\AccountingLockBlockedException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Models\Transaction;
@@ -94,6 +95,10 @@ class TransactionController extends Controller
         } catch (ValidationException $e) {
             // #291, S4: the rule of the payment method is a field error, so it
             // answers the standard 422 envelope instead of the generic one.
+            throw $e;
+        } catch (AccountingLockBlockedException $e) {
+            // #410 (S9): the lock answers its own 403 with the machine code the
+            // modal keys on, never the generic 422 of this door.
             throw $e;
         } catch (\Exception $e) {
             return response()->json([

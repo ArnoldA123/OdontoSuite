@@ -8,6 +8,7 @@ use App\Models\ClinicalEncounter;
 use App\Models\Quotation;
 use App\Models\Transaction;
 use App\Models\TreatmentPlanItem;
+use App\Support\AppointmentBalance;
 use App\Support\QuotationTax;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -29,8 +30,16 @@ class BillingService
      */
     public function readyToBill(array $filters = []): LengthAwarePaginator
     {
+        // #393 — the payments come with the page, so publishing the balance does
+        // not run one query per row.
         $query = Appointment::query()
-            ->with(['patient', 'user', 'appointmentType', 'treatmentPlan'])
+            ->with([
+                'patient',
+                'user',
+                'appointmentType',
+                'treatmentPlan',
+                'transactions' => fn ($q) => $q->where('type', 'payment')->where('status', 'completed'),
+            ])
             ->where('status', 'completed')
             ->whereNotNull('final_amount')
             ->where('final_amount', '>', 0)
@@ -103,9 +112,8 @@ class BillingService
             ->all();
 
         $subtotal = collect($items)->sum(fn ($i) => $i['total_cost']);
-        $paid = collect($payments)->sum(fn ($p) => $p['amount']);
-        $total = (float) ($appointment->final_amount ?? $subtotal);
-        $balance = max(0, round($total - $paid, 2));
+        // #393 — the same balance the billable list publishes.
+        $summary = AppointmentBalance::summary($appointment);
 
         $quotations = $appointment->quotations
             ->map(fn (Quotation $q) => [
@@ -125,10 +133,10 @@ class BillingService
             ],
             'items' => $items,
             'subtotal' => round($subtotal, 2),
-            'final_amount' => $total,
-            'paid_amount' => round($paid, 2),
-            'balance' => $balance,
-            'is_fully_paid' => $balance <= 0.01,
+            'final_amount' => $summary['total'],
+            'paid_amount' => $summary['paid'],
+            'balance' => $summary['balance'],
+            'is_fully_paid' => $summary['balance'] <= 0.01,
             'payments' => $payments,
             'quotations' => $quotations,
         ];

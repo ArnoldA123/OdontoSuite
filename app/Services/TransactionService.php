@@ -64,6 +64,28 @@ class TransactionService
             }
         }
 
+        // #410 (S8) — money created today is money inside the freeze too. The
+        // guard runs before this service opens its transaction, so a blocked
+        // charge leaves neither the row nor the drawer movement, and its attempt
+        // survives in `audit_logs`. A caller that already holds a transaction
+        // around the create (the pending-payment door, #393) rolls that audit
+        // back with the refusal; the 403 still answers the attempt. A ledger
+        // entry has no drawer, so the patient it belongs to is the record the
+        // trail names; a missing patient is already a validation error and
+        // never reaches this point.
+        $lockAuditable = $cashSession ?? Patient::query()->find($data['patient_id']);
+
+        if ($lockAuditable !== null) {
+            $this->accountingLocks->guard(
+                AccountingLockService::CASH_TRANSACTIONS,
+                now(),
+                $cashSession?->branch_id ?? Auth::user()?->branch_id,
+                $lockAuditable,
+                'create',
+                $data['lock_override_reason'] ?? null,
+            );
+        }
+
         DB::beginTransaction();
 
         try {

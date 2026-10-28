@@ -136,10 +136,16 @@ class QuotationsRedesignContractTest extends TestCase
             );
         }
 
-        $this->assertStringNotContainsString(
-            'usePermissions',
+        $this->assertMatchesRegularExpression(
+            '/import\s*\{\s*usePermissions\s*\}\s*from\s*[\'"`]@\/composables\/usePermissions[\'"`]/',
             $page,
-            'The page MUST NOT call the object-shaped usePermissions helper; the vocabulary owns the matrix.'
+            'The page MUST import usePermissions: the SPA derives its gates from the permission list the API publishes, so the matrix lives in the backend and never in the page.'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/const\s*\{\s*can\s*\}\s*=\s*usePermissions\s*\(\s*\)/s',
+            $page,
+            'The page MUST gate its actions with `const { can } = usePermissions()` (#280/#420): the permission list the API publishes is the single source of the SPA gates, and the authorization matrix lives in the backend and never in the page.'
         );
     }
 

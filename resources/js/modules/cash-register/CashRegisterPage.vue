@@ -158,6 +158,54 @@
         </UiCard>
       </section>
 
+      <UiCard
+        v-if="isClosed"
+        data-caja-closing
+        variant="glass"
+        padding="md"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div class="min-w-0">
+            <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+              Cierre de caja
+            </p>
+            <p class="mt-1 text-sm text-theme-secondary" data-caja-closing-closed-at>
+              Cerrada el {{ kpiClosedAt }}
+            </p>
+          </div>
+          <dl class="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-8">
+            <div>
+              <dt class="text-xs font-medium uppercase text-theme-secondary">Contado</dt>
+              <dd
+                class="mt-1 text-xl font-semibold leading-none text-label tabular-nums"
+                data-caja-closing-amount
+              >
+                {{ kpiClosingAmount }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-xs font-medium uppercase text-theme-secondary">Esperado</dt>
+              <dd
+                class="mt-1 text-xl font-semibold leading-none text-label tabular-nums"
+                data-caja-closing-expected
+              >
+                {{ kpiClosingExpected }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-xs font-medium uppercase text-theme-secondary">Diferencia</dt>
+              <dd
+                class="mt-1 text-xl font-semibold leading-none text-label tabular-nums"
+                data-caja-closing-difference
+              >
+                {{ kpiClosingDifference }}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </UiCard>
+
       <UiTabs v-model="activeTab" :tabs="tabs" data-caja-tabs />
 
       <div v-if="activeTab === 'payments'">
@@ -189,7 +237,7 @@
               v-if="canCreateTransaction"
               variant="primary"
               data-section-action="transaction"
-              :disabled="!hasActiveSession"
+              :disabled="!isOpen"
               @click="showTransactionModal = true"
             >
               <template #icon-left>
@@ -221,7 +269,7 @@
               v-if="canCreateMovement"
               variant="primary"
               data-section-action="movement"
-              :disabled="!hasActiveSession"
+              :disabled="!isOpen"
               @click="showMovementModal = true"
             >
               <template #icon-left>
@@ -322,7 +370,7 @@ import { usePermissions } from '@/composables/usePermissions'
 import { useToast } from '@/composables/useToast'
 import { useApi } from '@/composables/useApi'
 import { useConfirm } from '@/composables/useConfirm'
-import { formatCurrency } from '@/composables/useFormatters'
+import { formatCurrency, formatDateTime } from '@/composables/useFormatters'
 
 import UiButton from '@/components/ui/Button.vue'
 import UiCard from '@/components/ui/Card.vue'
@@ -346,9 +394,9 @@ import { PlusIcon, LockClosedIcon, BanknotesIcon, ArrowPathIcon } from '@heroico
 const {
   currentSession,
   summary,
+  closing,
   loading: sessionLoading,
   error: loadError,
-  hasActiveSession,
   isOpen,
   isClosed,
   loadCurrentSession,
@@ -419,11 +467,12 @@ const sessionStatusText = computed(() => {
   return 'Sin sesión'
 })
 
-const canOpen = computed(() => !hasActiveSession.value && !sessionLoading.value)
+const canOpen = computed(() => !isOpen.value && !sessionLoading.value)
 const canClose = computed(() => isOpen.value && !sessionLoading.value)
-// #320 (S6): registering a deposit is counter work, so the permission decides
-// alone — no clinical desk reaches this button.
-const canDeposit = computed(() => hasActiveSession.value && can.manageCashDeposit.value)
+// #320 (S6): registering a deposit is counter work, so the permission is what
+// keeps clinical desks out of this button. #407 adds the other half: only an
+// open drawer takes deposits, because a closed session is history.
+const canDeposit = computed(() => isOpen.value && can.manageCashDeposit.value)
 
 const roundMoney = value => Math.round((Number(value) || 0) * 100) / 100
 
@@ -450,6 +499,16 @@ const kpiExpected = computed(() =>
   summary.value ? formatCurrency(summary.value.expected_amount) : 'N/D'
 )
 
+// #407: the closing block is the only read of a closed drawer on this screen.
+const closingMoney = value =>
+  value === null || value === undefined ? 'N/D' : formatCurrency(value)
+const kpiClosingAmount = computed(() => closingMoney(closing.value?.closing_amount))
+const kpiClosingExpected = computed(() => closingMoney(closing.value?.expected_amount))
+const kpiClosingDifference = computed(() => closingMoney(closing.value?.difference_amount))
+const kpiClosedAt = computed(() =>
+  closing.value?.closed_at ? formatDateTime(closing.value.closed_at) : 'N/D'
+)
+
 const pendingPatientsForModal = computed(() => {
   const uniquePatients = new Map()
   pendingPaymentsList.value.forEach(payment => {
@@ -462,7 +521,7 @@ const pendingPatientsForModal = computed(() => {
 
 const reloadSession = async () => {
   await loadCurrentSession()
-  if (hasActiveSession.value) {
+  if (isOpen.value) {
     await Promise.all([loadTransactions(), loadMovements(), loadDeposits()])
   } else {
     deposits.value = []
@@ -470,7 +529,7 @@ const reloadSession = async () => {
 }
 
 const loadTransactions = async (filters = {}) => {
-  if (!hasActiveSession.value) {
+  if (!isOpen.value) {
     return
   }
 
@@ -490,7 +549,7 @@ const loadTransactions = async (filters = {}) => {
 }
 
 const loadMovements = async (filters = {}) => {
-  if (!hasActiveSession.value) {
+  if (!isOpen.value) {
     return
   }
 
@@ -509,7 +568,7 @@ const loadMovements = async (filters = {}) => {
 }
 
 const loadDeposits = async () => {
-  if (!hasActiveSession.value) {
+  if (!isOpen.value) {
     deposits.value = []
     return
   }
@@ -668,7 +727,7 @@ const downloadReceipt = async transaction => {
 
 onMounted(async () => {
   await loadCurrentSession()
-  if (hasActiveSession.value) {
+  if (isOpen.value) {
     await Promise.all([loadTransactions(), loadMovements(), loadDeposits()])
   }
   await loadSessions()

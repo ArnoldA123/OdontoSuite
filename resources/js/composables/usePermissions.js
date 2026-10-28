@@ -106,6 +106,8 @@ const PERMISSION_BY_KEY = {
   deleteQuotation: 'manage.quotation',
   approveQuotation: 'manage.quotation',
   rejectQuotation: 'manage.quotation',
+  // #422 S4: sending is the door that starts the patient decision.
+  sendQuotation: 'manage.quotation',
   downloadQuotationPDF: 'view.quotation',
 
   // Medical records

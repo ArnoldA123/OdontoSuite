@@ -29,7 +29,12 @@
             </template>
             Volver
           </UiButton>
-          <UiButton variant="primary" data-hero-action="create" @click="openCreate">
+          <UiButton
+            v-if="can.createQuotation?.value"
+            variant="primary"
+            data-hero-action="create"
+            @click="openCreate"
+          >
             <template #icon-left>
               <PlusIcon class="h-4 w-4" aria-hidden="true" />
             </template>
@@ -212,7 +217,9 @@
               <UiButton v-if="hasActiveFilters" variant="secondary" @click="clearFilters">
                 Limpiar filtros
               </UiButton>
-              <UiButton v-else @click="openCreate">Nuevo presupuesto</UiButton>
+              <UiButton v-else-if="can.createQuotation?.value" @click="openCreate">
+                Nuevo presupuesto
+              </UiButton>
             </template>
           </UiEmptyState>
         </div>
@@ -289,7 +296,7 @@
               Ver
             </UiButton>
             <UiButton
-              v-if="canEditQuotation(row, role)"
+              v-if="canEditQuotation(row, can.editQuotation?.value)"
               variant="ghost"
               size="sm"
               class="text-systemBlue-600 hover:text-systemBlue-700"
@@ -299,7 +306,17 @@
               Editar
             </UiButton>
             <UiButton
-              v-if="canApproveQuotation(row, role)"
+              v-if="canSendQuotation(row, can.sendQuotation?.value)"
+              variant="ghost"
+              size="sm"
+              class="text-systemBlue-600 hover:text-systemBlue-700"
+              data-row-action="send"
+              @click="sendToPatient(row)"
+            >
+              Enviar
+            </UiButton>
+            <UiButton
+              v-if="canApproveQuotation(row, can.approveQuotation?.value)"
               variant="ghost"
               size="sm"
               class="text-systemGreen-700"
@@ -309,7 +326,7 @@
               Aprobar
             </UiButton>
             <UiButton
-              v-if="canRejectQuotation(row, role)"
+              v-if="canRejectQuotation(row, can.rejectQuotation?.value)"
               variant="ghost"
               size="sm"
               class="text-systemRed-700"
@@ -319,7 +336,7 @@
               Rechazar
             </UiButton>
             <UiButton
-              v-if="canDownloadQuotation(role)"
+              v-if="canDownloadQuotation(can.downloadQuotationPDF?.value)"
               variant="ghost"
               size="sm"
               :disabled="downloading"
@@ -329,7 +346,7 @@
               PDF
             </UiButton>
             <UiButton
-              v-if="canDeleteQuotation(row, role)"
+              v-if="canDeleteQuotation(row, can.deleteQuotation?.value)"
               variant="ghost"
               size="sm"
               class="text-systemRed-700"
@@ -367,6 +384,7 @@
     @edit="startEditFromDetail"
     @approve="startApprovalFromDetail"
     @reject="startRejectFromDetail"
+    @send="sendFromDetail"
     @download="downloadQuotation"
   />
 
@@ -397,11 +415,12 @@ import {
 } from '@heroicons/vue/24/outline'
 import { formatCurrency } from '@/composables/useFormatters'
 import { useApi } from '@/composables/useApi'
-import { useAuth } from '@/composables/useAuth'
 import { useConfirm } from '@/composables/useConfirm'
 import { useEcho } from '@/composables/useEcho'
 import { useQuotations } from '@/composables/useQuotations'
+import { usePermissions } from '@/composables/usePermissions'
 import { useToast } from '@/composables/useToast'
+import { pickValidationMessage } from '@/composables/validationErrors'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Pagination from '@/components/ui/Pagination.vue'
 import UiButton from '@/components/ui/Button.vue'
@@ -423,6 +442,7 @@ import {
   canDownloadQuotation,
   canEditQuotation,
   canRejectQuotation,
+  canSendQuotation,
   expiryBadge,
   formatQuotationDate,
   getStatusMeta
@@ -433,7 +453,7 @@ const router = useRouter()
 const api = useApi()
 const toast = useToast()
 const { confirm } = useConfirm()
-const { user } = useAuth()
+const { can } = usePermissions()
 const { privateChannel, echo } = useEcho()
 const {
   quotations,
@@ -443,10 +463,9 @@ const {
   currentPage,
   getQuotations,
   deleteQuotation,
+  sendQuotation,
   downloadPDF
 } = useQuotations()
-
-const role = computed(() => user.value?.role)
 
 const columns = [
   { key: 'number', label: 'Presupuesto' },
@@ -693,6 +712,31 @@ const handleRejected = async () => {
   actionQuotation.value = null
   await refresh()
   toast.success('Presupuesto rechazado')
+}
+
+/**
+ * #422 S4: the screen creates `draft` quotations and only `sent` ones reach the
+ * patient decision, so this door is what makes approve/reject —and the
+ * «Pendientes» counters— reachable. The row action and the detail footer are
+ * the same handler; this one has no dialog, so the toast is its surface and it
+ * carries the reason the API published.
+ */
+const sendToPatient = async quotation => {
+  try {
+    await sendQuotation(quotation.id)
+    await refresh()
+    toast.success('Presupuesto enviado')
+
+    return true
+  } catch (err) {
+    toast.error(pickValidationMessage(err.response?.data, 'No pudimos enviar el presupuesto.'))
+
+    return false
+  }
+}
+
+const sendFromDetail = async quotation => {
+  if (await sendToPatient(quotation)) closeDetail()
 }
 
 const downloadQuotation = async quotation => {

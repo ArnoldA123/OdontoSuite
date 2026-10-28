@@ -39,7 +39,7 @@ const PLAN = {
   }
 }
 
-const apiState = vi.hoisted(() => ({ postReject: null }))
+const apiState = vi.hoisted(() => ({ postReject: null, plans: [] }))
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
@@ -47,7 +47,7 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
       requests.push({ method: 'get', url })
       if (url.includes('/summary')) return { data: SUMMARY }
       return {
-        data: [{ ...PLAN }],
+        data: apiState.plans,
         meta: { current_page: 1, last_page: 3, per_page: 15, total: 31 }
       }
     },
@@ -95,10 +95,20 @@ vi.mock('../../../resources/js/composables/useConfirm', async () => {
   }
 })
 
+import rolePermissions from '../support/role-permissions.json'
 import { globalToasts } from '../../../resources/js/composables/useToast'
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/treatment-plans/TreatmentPlansPage.vue'
 import TreatmentPlanCard from '../../../resources/js/modules/treatment-plans/components/TreatmentPlanCard.vue'
+
+// #420: the page gates the create affordances on `usePermissions().can.*`,
+// and those flags are a membership check on the permission list the API
+// publishes, so a session is seeded with that list and never with a role
+// lookup.
+const seedSession = role => {
+  localStorage.setItem('auth_token', 'test-token')
+  localStorage.setItem('user', JSON.stringify({ id: 1, role, permissions: rolePermissions[role] }))
+}
 
 const router = createRouter({
   history: createMemoryHistory(),
@@ -119,9 +129,11 @@ describe('treatment-plans page', () => {
   beforeEach(() => {
     requests.length = 0
     apiState.postReject = null
+    apiState.plans = [{ ...PLAN }]
     globalToasts.value = []
     confirmMock.mockReset()
     confirmMock.mockResolvedValue(true)
+    seedSession('administrador')
   })
 
   it('mounts TreatmentPlansPage.vue and renders content', async () => {
@@ -265,6 +277,58 @@ describe('treatment-plans page', () => {
     wrapper.unmount()
   })
 
+  it('hides the create affordances from a session without manage.treatment_plan', async () => {
+    seedSession('finanzas')
+    const finance = await mountPage()
+
+    expect(finance.find('[data-create-plan]').exists()).toBe(false)
+
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', bubbles: true }))
+    await flushPromises()
+    expect(document.querySelector('[data-plan-modal]')).toBeNull()
+
+    finance.unmount()
+
+    seedSession('recepcionista')
+    const reception = await mountPage()
+
+    expect(reception.find('[data-create-plan]').exists()).toBe(false)
+
+    reception.unmount()
+
+    seedSession('administrador')
+    const admin = await mountPage()
+
+    expect(admin.find('[data-create-plan]').exists()).toBe(true)
+
+    // Positive control: the shortcut is gated by the permission, not broken.
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', bubbles: true }))
+    await flushPromises()
+    expect(document.querySelector('[data-plan-modal]')).not.toBeNull()
+
+    admin.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('hides the empty-state create action without manage.treatment_plan', async () => {
+    apiState.plans = []
+
+    seedSession('finanzas')
+    const finance = await mountPage()
+
+    expect(finance.find('[data-state="empty"]').exists()).toBe(true)
+    expect(finance.find('[data-empty-create]').exists()).toBe(false)
+
+    finance.unmount()
+
+    seedSession('administrador')
+    const admin = await mountPage()
+
+    expect(admin.find('[data-empty-create]').exists()).toBe(true)
+
+    admin.unmount()
+  })
+
   it('reports the API reason when a status change is rejected with a generic 422', async () => {
     apiState.postReject = {
       response: {
@@ -278,9 +342,6 @@ describe('treatment-plans page', () => {
       }
     }
 
-    localStorage.setItem('auth_token', 'test-token')
-    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
-
     const wrapper = await mountPage()
 
     const card = wrapper.findComponent(TreatmentPlanCard)
@@ -293,7 +354,5 @@ describe('treatment-plans page', () => {
     )
 
     wrapper.unmount()
-    localStorage.removeItem('user')
-    localStorage.removeItem('auth_token')
   })
 })

@@ -35,6 +35,9 @@ export function useCashRegister() {
   const loading = ref(false)
   const error = ref(null)
   const summary = ref(null)
+  // #407: the closure counts of a closed session; "mi caja" answers the
+  // session payload plus its closing block, never a summary.
+  const closing = ref(null)
 
   // Computed properties
   const isOpen = computed(() => currentSession.value?.status === 'open')
@@ -51,10 +54,12 @@ export function useCashRegister() {
 
       currentSession.value = response.data?.session || null
       summary.value = response.data?.summary ? normalizeSummary(response.data.summary) : null
+      closing.value = response.data?.closing || null
     } catch (err) {
       error.value = err.message || 'Error al cargar la sesión de caja'
       currentSession.value = null
       summary.value = null
+      closing.value = null
     } finally {
       loading.value = false
     }
@@ -146,7 +151,7 @@ export function useCashRegister() {
 
   // Validar si se puede abrir caja
   const canOpen = computed(() => {
-    return !hasActiveSession.value && !loading.value
+    return !isOpen.value && !loading.value
   })
 
   // Validar si se puede cerrar caja
@@ -373,6 +378,7 @@ export function useCashRegister() {
   const clearState = () => {
     currentSession.value = null
     summary.value = null
+    closing.value = null
     error.value = null
     cleanupWebSocketSubscriptions()
   }
@@ -384,6 +390,7 @@ export function useCashRegister() {
     loading,
     error,
     summary,
+    closing,
 
     // Computed
     isOpen,
