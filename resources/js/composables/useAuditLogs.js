@@ -11,8 +11,12 @@ export function useAuditLogs() {
 
   /**
    * Get audit logs for a patient
+   *
+   * #399: a reader that paints its own error state needs the failure, not a
+   * silent empty list. `throwOnError` opts into that; every other caller keeps
+   * the previous contract (toast + empty list).
    */
-  const getPatientAuditLogs = async patientId => {
+  const getPatientAuditLogs = async (patientId, options = {}) => {
     try {
       loading.value = true
       const response = await get(`/api/audit-logs/patient/${patientId}`)
@@ -20,6 +24,7 @@ export function useAuditLogs() {
       auditLogs.value = response.data || []
       return auditLogs.value
     } catch (error) {
+      if (options.throwOnError) throw error
       toast.error('Error al cargar historial de auditoría')
       return []
     } finally {

@@ -767,11 +767,60 @@ describe('patient detail laboratory tab (F5 #316)', () => {
     const wrapper = await mountPage()
 
     expect(wrapper.find('#tab-laboratorio').exists()).toBe(false)
-    // Finanzas holds neither `view.lab_case` nor `manage.specialty_record`, so
-    // the drawer keeps the five clinical/data tabs; #320 adds the patient
-    // ledger because the desk does hold `view.patient_statement`.
-    expect(wrapper.findAll('[role="tab"]')).toHaveLength(6)
+    // #399: the drawer only keeps the reads this desk can perform. Finance
+    // holds `view.quotation` and `view.patient_statement`; it holds neither
+    // `manage.treatment_plan`, `manage.medical_record`, `manage.specialty_record`
+    // nor `view.audit_log`, so those tabs are gone instead of answering 403.
+    expect(wrapper.findAll('[role="tab"]')).toHaveLength(3)
     expect(wrapper.find('#tab-cuenta').exists()).toBe(true)
+
+    const requested = harness.apiGet.mock.calls.map(([url]) => url)
+    expect(requested).not.toContain(URLS.treatment)
+    expect(requested).not.toContain(URLS.medical)
+    expect(requested).not.toContain(URLS.audit)
+
+    wrapper.unmount()
+  })
+})
+
+// #399 — the drawer only offers the reads the authenticated desk can perform
+// (S1) and a failed audit read is an error with retry, never a false «no
+// history» (S2). Both sides are pinned here: the hidden tab does not call its
+// endpoint, and the visible one paints a failure as a failure.
+describe('patient detail drawer gates (#399)', () => {
+  beforeEach(() => {
+    harness.apiGet.mockReset()
+    harness.privateChannel.mockClear()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.body.innerHTML = ''
+  })
+
+  it('paints the audit failure as an error with retry instead of an empty history', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 33, role: 'administrador' }))
+    installGet(async url => {
+      if (url === URLS.audit) {
+        const error = new Error('403')
+        error.response = {
+          status: 403,
+          data: { message: 'No tienes permisos para acceder a este recurso.' }
+        }
+        throw error
+      }
+      return happyGet(url)
+    })
+
+    const wrapper = await mountPage()
+    await wrapper.find('#tab-audit').trigger('click')
+    await flushPromises()
+
+    const panel = wrapper.find('[data-patient-tab-panel="audit"]')
+    expect(panel.find('[data-state="error-audit"]').exists()).toBe(true)
+    expect(panel.find('[data-state="empty-audit"]').exists()).toBe(false)
+    expect(panel.text()).not.toContain('No hay historial de auditoría')
+    expect(panel.find('[data-tab-retry]').exists()).toBe(true)
 
     wrapper.unmount()
   })
@@ -805,17 +854,49 @@ describe('patient detail specialty tab boundary (#313)', () => {
     expect(wrapper.find('[data-patient-tab-panel="specialties"]').exists()).toBe(false)
     expect(
       wrapper.findAll('[data-patient-tab-panel]').map(panel => panel.attributes('data-tab'))
-    ).toEqual(['data', 'treatment-plans', 'quotations', 'medical-records', 'laboratorio', 'audit'])
+    ).toEqual(['data', 'treatment-plans', 'laboratorio'])
 
     // The absence is a gate, not a failed mount: the other reads still run.
     const requested = harness.apiGet.mock.calls.map(([url]) => url)
     expect(requested).toContain(URLS.treatment)
     expect(requested).not.toContain(URLS.specialty)
+    // #399: the laboratory desk does not hold `view.quotation`,
+    // `manage.medical_record` or `view.audit_log`, so none of those reads run.
+    expect(requested).not.toContain(URLS.quotations)
+    expect(requested).not.toContain(URLS.medical)
+    expect(requested).not.toContain(URLS.audit)
 
     // Same for the realtime pipe: the channel is never opened, the others are.
     const channels = harness.privateChannel.mock.calls.map(([name]) => name)
     expect(channels).toContain('patients')
+    expect(channels).toContain('treatment-plans')
+    expect(channels).not.toContain('quotations')
+    expect(channels).not.toContain('medical-records')
     expect(channels).not.toContain('specialty-records')
+
+    wrapper.unmount()
+  })
+
+  it('keeps every read and channel for the administrator', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 32, role: 'administrador' }))
+
+    const wrapper = await mountPage()
+
+    const requested = harness.apiGet.mock.calls.map(([url]) => url)
+    expect(requested).toContain(URLS.treatment)
+    expect(requested).toContain(URLS.quotations)
+    expect(requested).toContain(URLS.medical)
+    expect(requested).toContain(URLS.specialty)
+
+    const channels = harness.privateChannel.mock.calls.map(([name]) => name)
+    expect(channels).toEqual(
+      expect.arrayContaining([
+        'treatment-plans',
+        'quotations',
+        'medical-records',
+        'specialty-records'
+      ])
+    )
 
     wrapper.unmount()
   })
