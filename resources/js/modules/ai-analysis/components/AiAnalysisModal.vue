@@ -21,14 +21,9 @@
             >
               {{ categoryLabel }}
             </span>
-            <UiStatusPill
-              :status="analysis.status"
-              :variant="statusVariant"
-              size="sm"
-              data-ai-detail-status
-            >
+            <UiStatusBadge :variant="statusVariant" size="sm" data-ai-detail-status>
               {{ statusLabel }}
-            </UiStatusPill>
+            </UiStatusBadge>
           </div>
         </div>
         <UiButton
@@ -362,7 +357,7 @@ import { usePermissions } from '../../../composables/usePermissions'
 import UiButton from '../../../components/ui/Button.vue'
 import UiModal from '../../../components/ui/Modal.vue'
 import UiSelect from '../../../components/ui/Select.vue'
-import UiStatusPill from '../../../components/ui/StatusPill.vue'
+import UiStatusBadge from '../../../components/ui/StatusBadge.vue'
 import UiTextarea from '../../../components/ui/UiTextarea.vue'
 
 const props = defineProps({

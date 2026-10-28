@@ -192,9 +192,9 @@
               <span class="text-sm text-theme-secondary">{{ row.reason }}</span>
             </template>
             <template #cell-status="{ row }">
-              <UiStatusPill :status="row.status" :variant="statusVariant(row.status)" size="sm">
+              <UiStatusBadge :variant="statusVariant(row.status)" size="sm">
                 {{ statusLabel(row.status) }}
-              </UiStatusPill>
+              </UiStatusBadge>
             </template>
             <template #cell-requested_at="{ row }">
               <span class="text-sm text-theme-secondary tabular-nums">
@@ -336,7 +336,7 @@ import UiInput from '../../components/ui/Input.vue'
 import UiPagination from '../../components/ui/Pagination.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'
-import UiStatusPill from '../../components/ui/StatusPill.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
 import UiTextarea from '../../components/ui/UiTextarea.vue'
 import { formatDate } from '../../composables/useFormatters'

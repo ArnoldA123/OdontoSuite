@@ -12,7 +12,6 @@ import LoadingSpinner from '../components/ui/LoadingSpinner.vue'
 import EmptyState from '../components/ui/EmptyState.vue'
 import Skeleton from '../components/ui/Skeleton.vue'
 import Breadcrumbs from '../components/ui/Breadcrumbs.vue'
-import StatusPill from '../components/ui/StatusPill.vue'
 import ProgressBar from '../components/ui/ProgressBar.vue'
 import ConfirmDialog from '../components/ui/ConfirmDialog.vue'
 import FilterBar from '../components/ui/FilterBar.vue'
@@ -38,7 +37,6 @@ export default {
     app.component('EmptyState', EmptyState)
     app.component('UiSkeleton', Skeleton)
     app.component('UiBreadcrumbs', Breadcrumbs)
-    app.component('UiStatusPill', StatusPill)
     app.component('UiProgressBar', ProgressBar)
     app.component('UiConfirmDialog', ConfirmDialog)
     app.component('UiFilterBar', FilterBar)

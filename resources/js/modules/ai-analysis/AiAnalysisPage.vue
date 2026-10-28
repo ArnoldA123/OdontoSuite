@@ -278,9 +278,9 @@
               <span class="text-theme-secondary">{{ categoryLabel(row) }}</span>
             </template>
             <template #cell-status="{ row }">
-              <UiStatusPill :status="row.status" :variant="statusVariant(row.status)" size="sm">
+              <UiStatusBadge :variant="statusVariant(row.status)" size="sm">
                 {{ getStatusLabel(row.status) }}
-              </UiStatusPill>
+              </UiStatusBadge>
             </template>
             <template #cell-reviewed="{ row }">
               <span :class="row.reviewed ? 'text-systemGreen-700' : 'text-theme-secondary'">
@@ -388,7 +388,7 @@ import UiInput from '../../components/ui/Input.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'
-import UiStatusPill from '../../components/ui/StatusPill.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import Pagination from '../../components/ui/Pagination.vue'
 import AiAnalysisModal from './components/AiAnalysisModal.vue'
 import AiAnalysisSheet from './components/AiAnalysisSheet.vue'

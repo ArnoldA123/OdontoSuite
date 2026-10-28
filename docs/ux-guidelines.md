@@ -373,13 +373,12 @@ componente nuevo o un spinner/spinner/empty-state ad-hoc, busca aqui:
 Estos se crean en este sprint (no existian antes) y se documentan en la guia
 para que cualquier dev los encuentre:
 
-| Componente      | Cuando usarlo                                                                 | Ubicacion                          |
-| --------------- | ----------------------------------------------------------------------------- | ---------------------------------- |
-| `PageHeader`    | Cabecera de pagina (titulo + subtitulo + acciones + breadcrumbs)              | `components/layout/PageHeader.vue` |
-| `StatusPill`    | Badge con color semantico mapeado por string (`scheduled`, `completed`, etc.) | `components/ui/StatusPill.vue`     |
-| `ProgressBar`   | Barra de progreso con threshold de color (rojo < 30, ambar 30-60, verde 60+)  | `components/ui/ProgressBar.vue`    |
-| `ConfirmDialog` | Modal de confirmacion (reemplaza `window.confirm()`)                          | `components/ui/ConfirmDialog.vue`  |
-| `FilterBar`     | Filtros siempre visibles tipo iCloud (grid con N columnas)                    | `components/ui/FilterBar.vue`      |
+| Componente      | Cuando usarlo                                                                | Ubicacion                          |
+| --------------- | ---------------------------------------------------------------------------- | ---------------------------------- |
+| `PageHeader`    | Cabecera de pagina (titulo + subtitulo + acciones + breadcrumbs)             | `components/layout/PageHeader.vue` |
+| `ProgressBar`   | Barra de progreso con threshold de color (rojo < 30, ambar 30-60, verde 60+) | `components/ui/ProgressBar.vue`    |
+| `ConfirmDialog` | Modal de confirmacion (reemplaza `window.confirm()`)                         | `components/ui/ConfirmDialog.vue`  |
+| `FilterBar`     | Filtros siempre visibles tipo iCloud (grid con N columnas)                   | `components/ui/FilterBar.vue`      |
 
 ## 10. Anti-patrones comunes
 
