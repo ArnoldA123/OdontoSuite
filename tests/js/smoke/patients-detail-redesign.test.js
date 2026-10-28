@@ -951,7 +951,8 @@ describe('patient detail export capability (#404)', () => {
 
   it('hides Exportar when the payload does not publish the capability', async () => {
     localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
-    const { can_export: _canExport, ...legacyPatient } = patient
+    const legacyPatient = { ...patient }
+    delete legacyPatient.can_export
     installGet(async url => (url === URLS.patient ? { data: legacyPatient } : happyGet(url)))
 
     const wrapper = await mountPage()

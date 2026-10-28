@@ -517,7 +517,7 @@
               <div class="space-y-4">
                 <div
                   v-for="record in specialtyRecords"
-                  :key="record.id"
+                  :key="`${record.specialty_type}-${record.id}`"
                   :data-specialty-record-id="record.id"
                   class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
                 >

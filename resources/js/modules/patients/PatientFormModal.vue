@@ -292,13 +292,33 @@ const FORM_FIELDS = [
   'branch_id'
 ]
 
+const errorValue = field => String(form.value[field] ?? '')
+const errorSnapshot = ref({})
+
+const setErrors = next => {
+  errors.value = next
+  errorSnapshot.value = Object.fromEntries(
+    Object.keys(next).map(field => [field, errorValue(field)])
+  )
+}
+
+watch(
+  form,
+  value => {
+    for (const field of Object.keys(errors.value)) {
+      if (String(value[field] ?? '') !== errorSnapshot.value[field]) delete errors.value[field]
+    }
+  },
+  { deep: true }
+)
+
 const validateRequired = () => {
   const next = {}
 
   if (!String(form.value.first_name ?? '').trim()) next.first_name = 'El nombre es obligatorio.'
   if (!String(form.value.last_name ?? '').trim()) next.last_name = 'El apellido es obligatorio.'
 
-  errors.value = next
+  setErrors(next)
   return Object.keys(next).length === 0
 }
 
@@ -309,6 +329,7 @@ watch(
   patient => {
     form.value = patient ? patientToForm(patient) : emptyForm()
     errors.value = {}
+    errorSnapshot.value = {}
   },
   { immediate: true }
 )
@@ -329,13 +350,13 @@ const submitPatient = async () => {
         ? await put(`/api/patients/${props.patient.id}`, payload)
         : await post('/api/patients', payload)
 
-    errors.value = {}
+    setErrors({})
     emit('saved', { mode: props.mode, patient: response?.data || payload })
     emit('close')
   } catch (error) {
     const body = error.response?.data
     const fieldErrors = mapFieldErrors(body?.errors, FORM_FIELDS)
-    errors.value = fieldErrors
+    setErrors(fieldErrors)
 
     const errorMsg = pickValidationMessage(
       body,
