@@ -40,6 +40,13 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/settings/branches/BranchesPage.vue'
 import Select from '../../../resources/js/components/ui/Select.vue'
+import rolePermissions from '../support/role-permissions.json'
+
+// #439: the page gates its write affordances on `usePermissions().can.*`.
+const seedSession = role => {
+  localStorage.setItem('auth_token', 'test-token')
+  localStorage.setItem('user', JSON.stringify({ id: 1, role, permissions: rolePermissions[role] }))
+}
 
 const BRANCHES = [
   {
@@ -154,6 +161,7 @@ describe('branches list smoke', () => {
     getMock.mockReset()
     postMock.mockReset()
     putMock.mockReset()
+    seedSession('administrador')
   })
 
   it('renders the hero band with eyebrow, headline, caption and the primary action', async () => {
@@ -370,6 +378,21 @@ describe('branches list smoke', () => {
     expect(payload.is_active).toBe(false)
     expect(rowFor(wrapper, 'Sede Central Lima').text()).toContain('Inactiva')
     expect(wrapper.find('[data-kpi-value="active"]').text()).toBe('1')
+
+    wrapper.unmount()
+  })
+
+  it('offers no write affordance to a session without manage.branch', async () => {
+    seedSession('recepcionista')
+    const { wrapper } = await mountPage()
+
+    expect(wrapper.find('[data-hero-action]').exists()).toBe(false)
+    expect(rowFor(wrapper, 'Sede Central Lima').find('[data-row-action="detail"]').exists()).toBe(
+      true
+    )
+    expect(wrapper.find('[data-row-action="edit"]').exists()).toBe(false)
+    expect(wrapper.find('[data-row-action="toggle"]').exists()).toBe(false)
+    expect(wrapper.find('[data-kpi-value="total"]').text()).toBe('3')
 
     wrapper.unmount()
   })
