@@ -830,10 +830,15 @@ export default {
       addPatientToList(patient)
       updateKpiCounts(patient, 1)
 
+      // #403: the confirmation names only the contact data the record has; a
+      // missing optional field used to print `null` under its label.
+      const details = [
+        patient.email ? `Email: ${patient.email}` : null,
+        patient.phone ? `Teléfono: ${patient.phone}` : null
+      ].filter(Boolean)
+
       toast.success(
-        `Paciente registrado: ${patient.first_name} ${patient.last_name}\n` +
-          `Email: ${patient.email}\n` +
-          `Teléfono: ${patient.phone}`,
+        [`Paciente registrado: ${patient.first_name} ${patient.last_name}`, ...details].join('\n'),
         {
           duration: 5000,
           title: '✓ Paciente Creado'

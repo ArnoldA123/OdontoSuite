@@ -41,6 +41,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 }))
 
 import uiComponents from '../../../resources/js/plugins/ui-components'
+import { useToast } from '../../../resources/js/composables/useToast'
 import Page from '../../../resources/js/modules/patients/PatientsPage.vue'
 import pageSource from '../../../resources/js/modules/patients/PatientsPage.vue?raw'
 
@@ -319,5 +320,150 @@ describe('patient form long-text fields', () => {
 
     expect(formSource).not.toContain('type="textarea"')
     expect(formSource.match(/<UiTextarea\b/g) || []).toHaveLength(3)
+  })
+})
+
+// #403 — a rejected create paints its reason on the field and in the
+// application's language; the empty submit uses the same channel instead of the
+// browser's English bubble; the success toast does not print `null`.
+const setFieldValue = (name, value) => {
+  const input = field(name).querySelector('input')
+  input.value = value
+  input.dispatchEvent(new Event('input'))
+}
+
+const submitForm = async () => {
+  const submit = formButtons().find(button => button.getAttribute('type') === 'submit')
+  expect(submit).toBeTruthy()
+  submit.click()
+  await flushPromises()
+}
+
+describe('patient create feedback (#403)', () => {
+  const { toasts } = useToast()
+
+  beforeEach(() => {
+    toasts.value = []
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+    harness.apiGet.mockReset()
+    harness.apiPost.mockReset()
+    harness.apiPost.mockResolvedValue({ data: { id: 99 } })
+    harness.apiGet.mockImplementation(async url => {
+      if (url.includes('/api/branches/active')) return { data: [] }
+      return { data: [patient], meta: defaultMeta }
+    })
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.body.innerHTML = ''
+  })
+
+  it('paints the required fields inline instead of letting the browser block the submit', async () => {
+    const wrapper = await mountPage()
+    await openCreate(wrapper)
+
+    expect(formRoot().hasAttribute('novalidate')).toBe(true)
+
+    await submitForm()
+
+    expect(harness.apiPost).not.toHaveBeenCalled()
+    expect(field('first_name').querySelector('[aria-invalid="true"]')).toBeTruthy()
+    expect(field('last_name').querySelector('[aria-invalid="true"]')).toBeTruthy()
+    expect(field('first_name').textContent).toContain('El nombre es obligatorio.')
+    expect(field('last_name').textContent).toContain('El apellido es obligatorio.')
+
+    wrapper.unmount()
+  })
+
+  it('paints the duplicate document 422 on its field, in Spanish', async () => {
+    harness.apiPost.mockRejectedValue({
+      response: {
+        status: 422,
+        data: {
+          message: 'Los datos proporcionados no son válidos.',
+          errors: {
+            document_number: ['El campo número de documento ya ha sido tomado.']
+          }
+        }
+      }
+    })
+
+    const wrapper = await mountPage()
+    await openCreate(wrapper)
+    setFieldValue('first_name', 'Luis')
+    setFieldValue('last_name', 'Ramos')
+    setFieldValue('document_number', '45678912')
+    await flushPromises()
+
+    await submitForm()
+
+    expect(harness.apiPost).toHaveBeenCalledTimes(1)
+    expect(field('document_number').querySelector('[aria-invalid="true"]')).toBeTruthy()
+    expect(field('document_number').textContent).toContain(
+      'El campo número de documento ya ha sido tomado.'
+    )
+    expect(formRoot()).not.toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('paints the future birth date 422 on its field, in Spanish', async () => {
+    harness.apiPost.mockRejectedValue({
+      response: {
+        status: 422,
+        data: {
+          message: 'Los datos proporcionados no son válidos.',
+          errors: {
+            birth_date: ['La fecha de nacimiento debe ser anterior a hoy.']
+          }
+        }
+      }
+    })
+
+    const wrapper = await mountPage()
+    await openCreate(wrapper)
+    setFieldValue('first_name', 'Luis')
+    setFieldValue('last_name', 'Ramos')
+    setFieldValue('birth_date', '2099-01-01')
+    await flushPromises()
+
+    await submitForm()
+
+    expect(harness.apiPost).toHaveBeenCalledTimes(1)
+    expect(field('birth_date').querySelector('[aria-invalid="true"]')).toBeTruthy()
+    expect(field('birth_date').textContent).toContain(
+      'La fecha de nacimiento debe ser anterior a hoy.'
+    )
+
+    wrapper.unmount()
+  })
+
+  it('confirms the create with the data the record actually has', async () => {
+    harness.apiPost.mockResolvedValue({
+      data: {
+        id: 99,
+        first_name: 'Ana',
+        last_name: 'Luz',
+        email: null,
+        phone: null,
+        is_active: true
+      }
+    })
+
+    const wrapper = await mountPage()
+    await openCreate(wrapper)
+    setFieldValue('first_name', 'Ana')
+    setFieldValue('last_name', 'Luz')
+    await flushPromises()
+
+    await submitForm()
+
+    const message = toasts.value.map(toast => toast.message).join('\n')
+    expect(message).toContain('Paciente registrado: Ana Luz')
+    expect(message).not.toContain('null')
+    expect(message).not.toContain('Email: null')
+
+    wrapper.unmount()
   })
 })
