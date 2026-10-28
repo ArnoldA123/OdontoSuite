@@ -251,12 +251,20 @@ class ReportController extends Controller
         try {
             $data = $service->getReportData($filters);
 
+            $meta = [
+                'message' => ucfirst($type).' report retrieved successfully',
+            ];
+
+            // Only the reports that publish period activity carry a summary;
+            // the tabular appointments report keeps its payload unchanged.
+            if (array_key_exists('summary', $data)) {
+                $meta['summary'] = $data['summary'];
+            }
+
             return response()->json([
                 'data' => $data['data'],
                 'columns' => $data['columns'],
-                'meta' => [
-                    'message' => ucfirst($type).' report retrieved successfully',
-                ],
+                'meta' => $meta,
             ]);
         } catch (Throwable $e) {
             return $this->serverError($e, $type);
