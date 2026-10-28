@@ -28,7 +28,7 @@
       </div>
       <div class="max-h-72 overflow-y-auto border border-theme rounded-lg divide-y divide-theme">
         <button
-          v-for="proc in filteredProcedures"
+          v-for="proc in procedures"
           :key="proc.id"
           type="button"
           class="w-full px-3 py-2 text-left hover:bg-theme-surface transition-colors flex items-start justify-between gap-2"
@@ -48,10 +48,7 @@
             </div>
           </div>
         </button>
-        <div
-          v-if="!filteredProcedures.length"
-          class="px-3 py-4 text-center text-sm text-theme-secondary"
-        >
+        <div v-if="!procedures.length" class="px-3 py-4 text-center text-sm text-theme-secondary">
           Sin resultados
         </div>
       </div>
@@ -70,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useProcedureCatalog } from '../../composables/useProcedureCatalog'
 import { formatCurrency } from '../../composables/useFormatters'
 import UiPagination from '../ui/Pagination.vue'
@@ -88,40 +85,40 @@ const { procedures, loading, pagination, currentPage, totalPages, getProcedures 
 
 const search = ref('')
 
-const filteredProcedures = computed(() => {
-  if (!search.value) return procedures.value
-  const term = search.value.toLowerCase()
-  return procedures.value.filter(
-    p => p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term)
-  )
-})
+/**
+ * #416: the term travels to the index, which is the only door that can reach a
+ * procedure outside the loaded page. `q` is the parameter the endpoint reads.
+ */
+const fetchPage = page => {
+  const term = search.value.trim()
+
+  return getProcedures({
+    page,
+    per_page: 12,
+    is_active: true,
+    specialty: props.specialty || '',
+    ...(term !== '' ? { q: term } : {})
+  })
+}
 
 const select = proc => {
   emit('update:modelValue', proc.id)
   emit('select', proc)
 }
 
-const onPageChange = page => {
-  getProcedures({ page, per_page: 12, is_active: true, specialty: props.specialty || '' })
-}
+const onPageChange = page => fetchPage(page)
 
 let searchTimer = null
 const onSearchInput = () => {
   clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => {
-    getProcedures({ page: 1, per_page: 12, is_active: true, specialty: props.specialty || '' })
-  }, 350)
+  searchTimer = setTimeout(() => fetchPage(1), 350)
 }
 
 watch(() => search.value, onSearchInput)
 watch(
   () => props.specialty,
-  () => {
-    getProcedures({ page: 1, per_page: 12, is_active: true, specialty: props.specialty || '' })
-  }
+  () => fetchPage(1)
 )
 
-onMounted(() => {
-  getProcedures({ page: 1, per_page: 12, is_active: true, specialty: props.specialty || '' })
-})
+onMounted(() => fetchPage(1))
 </script>
