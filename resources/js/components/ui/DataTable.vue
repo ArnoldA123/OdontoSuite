@@ -58,7 +58,7 @@
           data-table-scroll-viewport
           @scroll.passive="readScrollState"
         >
-          <table class="data-table">
+          <table class="data-table" :class="tableClass">
             <!-- Header -->
             <thead class="data-table-header">
               <tr>
@@ -135,6 +135,7 @@
                 v-else
                 :key="getRowKey(row, index)"
                 :class="getRowClasses(row, index)"
+                v-bind="rowAttributes ? rowAttributes(row, index) : {}"
                 @click="handleRowClick(row, index)"
               >
                 <!-- Selection checkbox -->
@@ -301,6 +302,16 @@ const props = defineProps({
   rowKey: {
     type: String,
     default: 'id'
+  },
+  // #436: a caller may pin the table width (the catalog is wider than a
+  // phone) and keep its own row hooks without forking the primitive.
+  tableClass: {
+    type: String,
+    default: ''
+  },
+  rowAttributes: {
+    type: Function,
+    default: null
   },
   clickable: {
     type: Boolean,

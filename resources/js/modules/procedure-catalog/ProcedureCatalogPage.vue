@@ -153,156 +153,122 @@
           </template>
         </UiEmptyState>
 
-        <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[880px] table-fixed divide-y divide-hairline">
-            <thead class="bg-theme-surface">
-              <tr>
-                <th
-                  class="w-[13%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
-                >
-                  Código
-                </th>
-                <th
-                  class="w-[29%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
-                >
-                  Procedimiento
-                </th>
-                <th
-                  class="w-[15%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
-                >
-                  Especialidad
-                </th>
-                <th
-                  class="w-[10%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
-                >
-                  Duración
-                </th>
-                <th
-                  class="w-[11%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
-                >
-                  Costo
-                </th>
-                <th
-                  class="w-[10%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
-                >
-                  Estado
-                </th>
-                <th
-                  class="w-[20%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
-                >
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
-              <tr
-                v-for="procedure in procedures"
-                :key="procedure.id"
-                data-procedure-row
-                class="hover:bg-theme-surface"
+        <UiDataTable
+          v-else
+          :data="procedures"
+          :columns="tableColumns"
+          :searchable="false"
+          :show-header="false"
+          :pagination="false"
+          row-key="id"
+          table-class="min-w-[880px]"
+          :row-attributes="procedureRowAttributes"
+          data-procedure-table
+        >
+          <template #cell-code="{ row }">
+            <span class="font-mono text-xs text-theme-secondary">{{ row.code }}</span>
+          </template>
+          <template #cell-name="{ row }">
+            <button
+              type="button"
+              class="block max-w-full truncate text-left text-sm font-medium text-label hover:text-systemBlue-700"
+              :title="row.name"
+              data-row-action="detail"
+              @click="goDetail(row.id)"
+            >
+              {{ row.name }}
+            </button>
+            <p
+              class="mt-0.5 w-full truncate text-sm text-theme-secondary"
+              :title="row.description || 'Sin descripción'"
+            >
+              {{ row.description || 'Sin descripción' }}
+            </p>
+          </template>
+          <template #cell-specialty_name="{ row }">
+            <UiStatusBadge
+              v-if="row.specialty_name"
+              variant="info"
+              :label="row.specialty_name"
+              size="sm"
+            />
+            <span v-else class="text-sm text-theme-secondary">—</span>
+          </template>
+          <template #cell-duration="{ row }">
+            <span class="text-sm tabular-nums text-theme-primary">
+              {{ row.default_duration_minutes }} min
+            </span>
+          </template>
+          <template #cell-cost="{ row }">
+            <span class="text-sm tabular-nums text-theme-primary">
+              {{ formatCurrency(row.default_cost) }}
+            </span>
+          </template>
+          <template #cell-status="{ row }">
+            <UiStatusBadge
+              :variant="row.is_active ? 'success' : 'neutral'"
+              :label="row.is_active ? 'Activo' : 'Inactivo'"
+              size="sm"
+            />
+          </template>
+          <template #actions="{ row }">
+            <div class="flex items-center gap-1">
+              <UiButton
+                variant="ghost"
+                size="sm"
+                class="text-systemBlue-600 hover:text-systemBlue-700"
+                data-row-action="edit"
+                title="Editar procedimiento"
+                aria-label="Editar procedimiento"
+                @click="openEdit(row)"
               >
-                <td class="px-4 py-4 whitespace-nowrap">
-                  <span class="font-mono text-xs text-theme-secondary">{{ procedure.code }}</span>
-                </td>
-                <td class="px-4 py-4">
-                  <button
-                    type="button"
-                    class="block max-w-full truncate text-left text-sm font-medium text-label hover:text-systemBlue-700"
-                    :title="procedure.name"
-                    data-row-action="detail"
-                    @click="goDetail(procedure.id)"
-                  >
-                    {{ procedure.name }}
-                  </button>
-                  <p
-                    class="mt-0.5 w-full truncate text-sm text-theme-secondary"
-                    :title="procedure.description || 'Sin descripción'"
-                  >
-                    {{ procedure.description || 'Sin descripción' }}
-                  </p>
-                </td>
-                <td class="px-4 py-4 whitespace-nowrap">
-                  <UiStatusBadge
-                    v-if="procedure.specialty_name"
-                    variant="info"
-                    :label="procedure.specialty_name"
-                    size="sm"
-                  />
-                  <span v-else class="text-sm text-theme-secondary">—</span>
-                </td>
-                <td class="px-4 py-4 whitespace-nowrap text-sm tabular-nums text-theme-primary">
-                  {{ procedure.default_duration_minutes }} min
-                </td>
-                <td class="px-4 py-4 whitespace-nowrap text-sm tabular-nums text-theme-primary">
-                  {{ formatCurrency(procedure.default_cost) }}
-                </td>
-                <td class="px-4 py-4 whitespace-nowrap">
-                  <UiStatusBadge
-                    :variant="procedure.is_active ? 'success' : 'neutral'"
-                    :label="procedure.is_active ? 'Activo' : 'Inactivo'"
-                    size="sm"
-                  />
-                </td>
-                <td class="px-4 py-4 whitespace-nowrap">
-                  <div class="flex items-center gap-1">
-                    <UiButton
-                      variant="ghost"
-                      size="sm"
-                      class="text-systemBlue-600 hover:text-systemBlue-700"
-                      data-row-action="edit"
-                      title="Editar procedimiento"
-                      aria-label="Editar procedimiento"
-                      @click="openEdit(procedure)"
-                    >
-                      <PencilIcon class="h-4 w-4" aria-hidden="true" />
-                    </UiButton>
-                    <UiButton
-                      variant="ghost"
-                      size="sm"
-                      class="text-systemBlue-600 hover:text-systemBlue-700"
-                      data-row-action="duplicate"
-                      title="Duplicar procedimiento"
-                      aria-label="Duplicar procedimiento"
-                      @click="openDuplicate(procedure)"
-                    >
-                      <DocumentDuplicateIcon class="h-4 w-4" aria-hidden="true" />
-                    </UiButton>
-                    <UiButton
-                      v-if="procedure.is_active"
-                      variant="ghost"
-                      size="sm"
-                      class="text-systemRed-600 hover:text-systemRed-700"
-                      data-row-action="deactivate"
-                      title="Desactivar procedimiento"
-                      aria-label="Desactivar procedimiento"
-                      @click="confirmDeactivate(procedure)"
-                    >
-                      <TrashIcon class="h-4 w-4" aria-hidden="true" />
-                    </UiButton>
-                    <UiButton
-                      v-else
-                      variant="ghost"
-                      size="sm"
-                      class="text-systemGreen-600 hover:text-systemGreen-700"
-                      data-row-action="reactivate"
-                      title="Reactivar procedimiento"
-                      aria-label="Reactivar procedimiento"
-                      @click="confirmReactivate(procedure)"
-                    >
-                      <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
-                    </UiButton>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                <PencilIcon class="h-4 w-4" aria-hidden="true" />
+              </UiButton>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                class="text-systemBlue-600 hover:text-systemBlue-700"
+                data-row-action="duplicate"
+                title="Duplicar procedimiento"
+                aria-label="Duplicar procedimiento"
+                @click="openDuplicate(row)"
+              >
+                <DocumentDuplicateIcon class="h-4 w-4" aria-hidden="true" />
+              </UiButton>
+              <UiButton
+                v-if="row.is_active"
+                variant="ghost"
+                size="sm"
+                class="text-systemRed-600 hover:text-systemRed-700"
+                data-row-action="deactivate"
+                title="Desactivar procedimiento"
+                aria-label="Desactivar procedimiento"
+                @click="confirmDeactivate(row)"
+              >
+                <TrashIcon class="h-4 w-4" aria-hidden="true" />
+              </UiButton>
+              <UiButton
+                v-else
+                variant="ghost"
+                size="sm"
+                class="text-systemGreen-600 hover:text-systemGreen-700"
+                data-row-action="reactivate"
+                title="Reactivar procedimiento"
+                aria-label="Reactivar procedimiento"
+                @click="confirmReactivate(row)"
+              >
+                <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
+              </UiButton>
+            </div>
+          </template>
+        </UiDataTable>
 
         <div v-if="!loading && !loadError && totalPages > 1" class="p-4 border-t border-hairline">
           <Pagination
             :current-page="currentPage"
             :total-pages="totalPages"
             :total="pagination.total"
+            :per-page="pagination.per_page || 20"
             @page-change="onPageChange"
           />
         </div>
@@ -384,6 +350,7 @@ import { formatCurrency } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
+import UiDataTable from '../../components/ui/DataTable.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiModal from '../../components/ui/Modal.vue'
@@ -431,6 +398,20 @@ const duplicating = ref(false)
 const summary = ref(null)
 const summaryLoading = ref(false)
 const summaryError = ref(false)
+
+// #436: the list rides the module's table contract (`UiDataTable`) instead of
+// its own `<table>`; the primitive owns the scroll affordance and the row
+// hooks stay available through `rowAttributes`.
+const tableColumns = [
+  { key: 'code', label: 'Código' },
+  { key: 'name', label: 'Procedimiento' },
+  { key: 'specialty_name', label: 'Especialidad' },
+  { key: 'duration', label: 'Duración' },
+  { key: 'cost', label: 'Costo' },
+  { key: 'status', label: 'Estado' }
+]
+
+const procedureRowAttributes = row => ({ 'data-procedure-row': String(row.id) })
 
 const canViewStats = computed(() => hasAnyRole(['administrador', 'finanzas']))
 
