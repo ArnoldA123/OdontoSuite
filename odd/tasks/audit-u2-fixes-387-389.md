@@ -100,3 +100,13 @@ push y el PR quedan como decisión del señor Arnold.
   `v-if="!statsError"`; `useMyDay.js` arranca `loading = false` y
   `messageFor()` prefiere `thrown.message`, que en un fallo de transporte es el
   `TypeError` del navegador.
+- **L4** — Límite de slice declarado (T1, commit `731e98c1`): la unidad reporta
+  577 líneas autoradas, de las que 328 son los dos archivos de prueba nuevos,
+  95 la primera fila de navegador y 102 esta nota; el comportamiento son 52
+  líneas entre `DashboardPage.vue`, `useMyDay.js` y `MyDayPage.vue`. Se entrega
+  entera porque el primer frame y las pruebas que lo fijan son una sola regla, y
+  partirla dejaría la medición sin su comportamiento.
+- **L5** — T2 (#388): el comentario de `DashboardAppShellTest` decía que el
+  bloque de error del resumen «replaces the whole page»; se corrigió la prosa
+  (la aserción de unicidad no cambia) para que el guard no describa el contrato
+  anterior.

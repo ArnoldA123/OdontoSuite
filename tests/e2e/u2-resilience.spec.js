@@ -93,3 +93,47 @@ test('@387 my-day first frame is the skeleton and its counters are not zero', as
   await expect(page.locator('[data-my-day-count="waiting"] dd')).toHaveText(/^\d+$/)
   await expect(page.locator('[data-my-day-count="attending"] dd')).toHaveText(/^\d+$/)
 })
+
+// #388 (S3) - the summary is one source among four. The row measures the
+// healthy block list on a first pass and then compares it against the broken
+// pass, so a summary failure can only pass if it keeps hoy, attention and
+// upcoming exactly as they were.
+const dashboardBlocks = page =>
+  page
+    .locator('[data-dashboard-block]')
+    .evaluateAll(nodes => nodes.map(node => node.getAttribute('data-dashboard-block')))
+
+test('@388 a failed summary leaves the other blocks mounted', async ({ page, request }) => {
+  mkdirSync(EVIDENCE, { recursive: true })
+
+  const session = await freshLogin(request, 'administrador')
+  await primeSession(page, session)
+
+  // Healthy reference. The list is measured instead of hard-coded because the
+  // pending block only renders when the seeded role has pending groups.
+  await page.goto(`${BASE}/dashboard`)
+  await expect(page.locator('[data-dashboard-content]')).toBeVisible()
+  await expect(page.locator('[data-appointment-row]').first()).toBeVisible()
+
+  const healthyBlocks = await dashboardBlocks(page)
+  expect(healthyBlocks).toContain('hoy')
+  expect(healthyBlocks).toContain('upcoming')
+
+  // Cut only the summary: the agenda, the pending rows and the week preview
+  // must keep rendering from their own answers.
+  await page.route('**/api/dashboard/stats', route => route.abort())
+  await page.reload()
+
+  await expect(page.locator('[data-state="error-stats"]')).toBeVisible()
+  await expect(page.locator('[data-appointment-row]').first()).toBeVisible()
+  await expect.poll(() => dashboardBlocks(page)).toEqual(healthyBlocks)
+  await page.screenshot({ path: `${EVIDENCE}/03-dashboard-resumen-caido.png`, fullPage: true })
+
+  // The retry recovers the summary alone: nothing else is re-fetched nor
+  // unmounted, so the block list survives it unchanged.
+  await page.unroute('**/api/dashboard/stats')
+  await page.locator('[data-retry-stats]').click()
+
+  await expect(page.locator('[data-state="error-stats"]')).toBeHidden()
+  await expect.poll(() => dashboardBlocks(page)).toEqual(healthyBlocks)
+})

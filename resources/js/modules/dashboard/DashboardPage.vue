@@ -157,10 +157,12 @@
       </header>
 
       <!--
-        Stats error state (T3). A non-401 failure of dashboard/stats renders
-        this block INSTEAD of the data sections so the page never presents
-        empty/stale stats as real data. Reintentar re-runs the full load path;
-        the 401 case still redirects to /login inside loadDashboardData.
+        Stats error state (T3). A non-401 failure of dashboard/stats reports
+        HERE, in its own space under the hero band, and nowhere else: the data
+        sections below render from their own sources (#388), so a failed
+        summary never unmounts the agenda, the pending rows or the week
+        preview. Reintentar re-fetches ONLY the summary through retryStats();
+        the 401 case still redirects to /login.
       -->
       <div
         v-if="statsError"
@@ -179,7 +181,7 @@
           unos minutos.
         </p>
         <div class="mt-6">
-          <UiButton variant="primary" size="md" data-retry-stats @click="loadDashboardData">
+          <UiButton variant="primary" size="md" data-retry-stats @click="retryStats">
             Reintentar
           </UiButton>
         </div>
@@ -191,7 +193,7 @@
         the agenda renders) and the agenda follows it. The retired
         "Resumen del día" footer section is gone: its content lives here.
       -->
-      <section v-if="!statsError" aria-label="Hoy" data-dashboard-block="hoy" class="space-y-6">
+      <section aria-label="Hoy" data-dashboard-block="hoy" class="space-y-6">
         <div class="flex items-baseline gap-3">
           <h2 class="text-2xl font-semibold text-label">Hoy</h2>
           <p class="text-sm text-theme-secondary">Lo que ocurre hoy en la clínica</p>
@@ -531,7 +533,7 @@
         of the page.
       -->
       <section
-        v-if="!statsError && (hasPendingGroups || pendingError)"
+        v-if="hasPendingGroups || pendingError"
         aria-label="Requiere tu atención"
         data-dashboard-block="attention"
         class="space-y-4"
@@ -621,7 +623,7 @@
         stays usable.
       -->
       <section
-        v-if="!statsError && can.viewAppointment?.value"
+        v-if="can.viewAppointment?.value"
         aria-label="Próximos días"
         data-dashboard-block="upcoming"
         class="space-y-4"
@@ -1323,7 +1325,9 @@ const loadDashboardData = async () => {
 
     // WU1 - the KPI count-ups start once the day counts can read their
     // final source values; starting earlier would animate to a stale zero.
-    if (statsResult.ok && appointmentsResult.ok) {
+    // #388 - the agenda is their only source: a failed summary no longer
+    // gates the day numbers.
+    if (appointmentsResult.ok) {
       startKpiCountUps()
     }
 
@@ -1357,11 +1361,27 @@ const loadDashboardData = async () => {
   }
 
   // T4 - the section reveals play only on the first successful content
-  // render. A failed load keeps the entrance armed for the retry.
-  if (!entrancePlayed && !statsError.value) {
+  // render. #388: the content no longer depends on the summary, so the
+  // entrance is armed by the render itself, not by the summary's outcome.
+  if (!entrancePlayed) {
     await nextTick()
     playEntrance()
   }
+}
+
+/**
+ * #388 - summary-only retry. Re-fetches just /api/dashboard/stats so a failed
+ * summary recovers its own block without re-fetching or unmounting the
+ * agenda, the pending rows or the week preview. 401 keeps the standard
+ * /login redirect.
+ */
+const retryStats = async () => {
+  const result = await fetchStats()
+  if (result.unauthorized) {
+    router.push('/login')
+    return
+  }
+  statsError.value = !result.ok
 }
 
 /**
