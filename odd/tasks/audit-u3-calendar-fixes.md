@@ -86,6 +86,10 @@ señor Arnold.
   cambio real es de ~170 líneas (`git diff -w`). El asistente es una sola
   superficie de diálogo y partirla dejaría el componente a medio migrar, mismo
   criterio que el instrumento de U3 en `audit-ui-u3.md`.
+- **Límite de slice declarado (T1, commit `c09e5503`)**: la unidad de #392 suma
+  843 líneas autoradas, de las que 410 son la migración + su prueba de siete
+  casos; el comportamiento es una sola regla y separar prueba y esquema dejaría
+  la mitad de la unidad sin verificar. Se entrega entera, como en U3.
 - Las migraciones nuevas suben el conteo de `AGENTS.md` §4 y el guard
   `scripts/audit/doc-drift.mjs` debe quedar verde en cada commit.
 - Suite con base de datos real (MySQL/MariaDB de XAMPP por socket, base
