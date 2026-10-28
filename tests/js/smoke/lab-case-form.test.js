@@ -301,4 +301,26 @@ describe('lab case form modal (#316)', () => {
       'Error al registrar el caso de laboratorio'
     )
   })
+
+  it('prints the sentence of a field it cannot paint in the notice', async () => {
+    harness.put.mockRejectedValue({
+      response: {
+        data: {
+          message: 'Los datos proporcionados no son válidos.',
+          errors: { status: ['El caso ya está colocado; no se puede editar.'] }
+        }
+      },
+      status: 422
+    })
+
+    wrapper = await mountForm({ labCase: EXISTING })
+
+    await submit()
+
+    expect(harness.put).toHaveBeenCalledTimes(1)
+    expect(node('[data-lab-case-form-error="message"]').textContent).toContain(
+      'El caso ya está colocado; no se puede editar.'
+    )
+    expect(node('[data-lab-case-form]')).toBeTruthy()
+  })
 })

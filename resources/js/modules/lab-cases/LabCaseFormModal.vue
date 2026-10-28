@@ -235,6 +235,10 @@ import UiTextarea from '../../components/ui/UiTextarea.vue'
 import PatientSelector from '../../components/ui/PatientSelector.vue'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
+import {
+  normalizeValidationErrors,
+  pickValidationMessage
+} from '../../composables/validationErrors'
 import { patientFullName } from './labCaseMeta'
 
 const props = defineProps({
@@ -265,7 +269,9 @@ const title = computed(() =>
 
 const submitLabel = computed(() => (isEdit.value ? 'Guardar cambios' : 'Registrar caso'))
 
-const fixedPatient = computed(() => Boolean(props.patientId || props.labCase?.patient_id))
+const fixedPatient = computed(() =>
+  Boolean(props.patientId || props.labCase?.patient_id || props.labCase?.patient?.id)
+)
 
 const fixedPatientName = computed(() => {
   if (props.patientName) return props.patientName
@@ -408,21 +414,35 @@ const buildPayload = () => ({
 })
 
 // The 422 carries one Spanish sentence per field; the form prints each in its
-// own place and keeps the modal open so the work order is not lost.
+// own place. A key the form does not paint (the refusal of an already placed
+// case, for example) and any other rejection land in the notice so the server's
+// reason is never swallowed.
+const FORM_FIELDS = [
+  'patient_id',
+  'professional_id',
+  'technician_id',
+  'dental_piece_id',
+  'work',
+  'material',
+  'sent_at',
+  'promised_at',
+  'notes'
+]
+
 const applyErrors = thrown => {
   const data = thrown?.response?.data
-  const fieldErrors = data?.errors
+  const normalized = normalizeValidationErrors(data?.errors)
   const next = {}
+  const unpainted = []
 
-  if (fieldErrors && typeof fieldErrors === 'object') {
-    Object.entries(fieldErrors).forEach(([field, messages]) => {
-      const sentence = Array.isArray(messages) ? messages[0] : messages
-      if (sentence) next[field] = String(sentence)
-    })
-  }
+  Object.entries(normalized).forEach(([field, sentence]) => {
+    if (FORM_FIELDS.includes(field)) next[field] = sentence
+    else unpainted.push(sentence)
+  })
 
-  if (Object.keys(next).length === 0) {
-    next.message = data?.message || 'No se pudo guardar el caso de laboratorio.'
+  if (unpainted.length > 0 || Object.keys(next).length === 0) {
+    next.message =
+      unpainted[0] || pickValidationMessage(data, 'No se pudo guardar el caso de laboratorio.')
   }
 
   errors.value = next
