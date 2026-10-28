@@ -6,6 +6,7 @@ use App\Models\ProcedureCatalog;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ProcedureCatalogService
@@ -57,7 +58,35 @@ class ProcedureCatalogService
         $perPage = (int) ($filters['per_page'] ?? 20);
         $perPage = max(1, min($perPage, 100));
 
-        return $query->orderBy('name')->paginate($perPage);
+        $page = $query->orderBy('name')->paginate($perPage);
+
+        $this->publishResolvedPrices($page->getCollection());
+
+        return $page;
+    }
+
+    /**
+     * #431: el índice publica el precio que la sede cobra, igual que `search()`
+     * y `activeList()`. La página completa se resuelve en una sola consulta y
+     * `list_cost` conserva el precio de lista.
+     *
+     * @param Collection<int, ProcedureCatalog> $procedures
+     */
+    private function publishResolvedPrices(Collection $procedures): void
+    {
+        if ($procedures->isEmpty()) {
+            return;
+        }
+
+        $prices = $this->prices->resolveMany($procedures, $this->prices->currentBranchId());
+
+        foreach ($procedures as $procedure) {
+            $resolved = $prices[$procedure->id] ?? null;
+
+            $procedure->setAttribute('list_cost', (float) $procedure->default_cost);
+            $procedure->setAttribute('resolved_cost', $resolved['price'] ?? (float) $procedure->default_cost);
+            $procedure->setAttribute('price_source', $resolved['source'] ?? ProcedurePriceResolver::SOURCE_CATALOG);
+        }
     }
 
     /**
