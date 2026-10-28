@@ -144,7 +144,12 @@
             <UiInput v-model="form.valid_from" type="date" label="Vigente desde" />
           </div>
           <div data-field="valid_to">
-            <UiInput v-model="form.valid_to" type="date" label="Vigente hasta" />
+            <UiInput
+              v-model="form.valid_to"
+              type="date"
+              label="Vigente hasta"
+              :error="formErrors.valid_to"
+            />
           </div>
         </div>
         <p class="text-xs text-theme-secondary">

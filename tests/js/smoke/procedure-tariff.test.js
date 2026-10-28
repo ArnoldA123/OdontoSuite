@@ -190,6 +190,26 @@ describe('branch tariff panel (#304 S2)', () => {
     wrapper.unmount()
   })
 
+  it('reports an inverted validity window in its own field without sending the price', async () => {
+    const wrapper = await mountPanel()
+
+    await clickButton('[data-tariff-add]')
+    await setField('price', '120')
+    await setField('valid_from', '2026-11-01')
+    await setField('valid_to', '2026-10-01')
+    await clickButton('[data-tariff-submit]')
+
+    expect(putMock).not.toHaveBeenCalled()
+
+    const field = document.querySelector('[data-field="valid_to"]')
+    expect(field.textContent).toContain('La vigencia final no puede ser anterior al inicio.')
+    const input = field.querySelector('input')
+    expect(input.getAttribute('aria-invalid')).toBe('true')
+    expect(input.value).toBe('2026-10-01')
+
+    wrapper.unmount()
+  })
+
   it('retires a price through the shared confirmation dialog', async () => {
     const wrapper = await mountPanel()
 
