@@ -78,6 +78,7 @@
 import { computed, ref } from 'vue'
 import { CheckIcon } from '@heroicons/vue/24/outline'
 import { useQuotations } from '@/composables/useQuotations'
+import { pickValidationMessage } from '@/composables/validationErrors'
 import { formatCurrency } from '../../../composables/useFormatters'
 import { getStatusMeta } from '../quotationMeta.js'
 import UiButton from '@/components/ui/Button.vue'
@@ -130,7 +131,7 @@ const onApprove = async () => {
     emit('approved', updated)
     emit('close')
   } catch (err) {
-    error.value = err.response?.data?.message || 'No pudimos aprobar el presupuesto.'
+    error.value = pickValidationMessage(err.response?.data, 'No pudimos aprobar el presupuesto.')
   } finally {
     saving.value = false
   }

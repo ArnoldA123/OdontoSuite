@@ -72,18 +72,7 @@ const absoluteEvidencePath = (relPath, baseDir) =>
 
 const round = value => Math.round(value * 10) / 10
 
-// `/patients/:id` -> `patients-id`, `/` -> `root`,
-// `/:pathMatch(.*)*` -> `pathmatch`, `/settings/branches/:id` -> `settings-branches-id`
-export const slugFor = route => {
-  const slug = route
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/:/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-
-  return slug || 'root'
-}
+export { slugFor } from './slug.js'
 
 // AUDIT_MANIFEST may be a written manifest path (the CLI form) or JSON text, so
 // the wrapper can hand the same artefact to the spec and to the summarizer.

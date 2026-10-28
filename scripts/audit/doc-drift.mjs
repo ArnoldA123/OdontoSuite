@@ -54,7 +54,7 @@ function apiRouteCount() {
 
 const allOccurrences = re => {
   const out = []
-  const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g')
+  const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : `${re.flags}g`)
   let m
   while ((m = g.exec(docs)) !== null) out.push(Number(m[1] ?? m[2]))
   return out

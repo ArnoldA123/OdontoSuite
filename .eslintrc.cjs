@@ -19,7 +19,9 @@ module.exports = {
     '@vue/eslint-config-prettier'
   ],
   parserOptions: {
-    ecmaVersion: 2021,
+    // 2022 is the first ecmaVersion that accepts top-level await, which the
+    // `scripts/*.mjs` entry points use (#386).
+    ecmaVersion: 2022,
     sourceType: 'module'
   },
   plugins: ['vue'],

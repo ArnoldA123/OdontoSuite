@@ -167,4 +167,29 @@ describe('quotations edit form', () => {
     expect(emitted).toBeTruthy()
     expect(emitted[0][0]).toMatchObject({ id: 42 })
   })
+
+  it('shows the API reason when the edit is rejected with a generic 422', async () => {
+    updateQuotation.mockRejectedValue({
+      response: {
+        status: 422,
+        data: {
+          message: 'Error de validación',
+          errors: {
+            status: [
+              'Solo se puede modificar un presupuesto en borrador, enviado o visto. Estado actual: approved.'
+            ]
+          }
+        }
+      }
+    })
+
+    await mountForm()
+
+    document.querySelector('[data-form-action="submit"]').click()
+    await flushPromises()
+
+    expect(document.querySelector('[data-submit-error]').textContent).toContain(
+      'Solo se puede modificar un presupuesto en borrador, enviado o visto.'
+    )
+  })
 })

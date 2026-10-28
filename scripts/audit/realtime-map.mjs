@@ -58,7 +58,6 @@ if (args.h || args.help) {
   process.exit(0)
 }
 const OUT = resolve(ROOT, String(args.out ?? '.atl/qa-evidence/audit/realtime'))
-const read = p => readFileSync(resolve(ROOT, p), 'utf8')
 
 // --- 1. Events: broadcastOn channels, broadcastAs ---------------------------
 
@@ -80,7 +79,7 @@ function channelName(expr) {
   return lit
     .replace(/\$\{[^}]*\}/g, '')
     .replace(/\{[^}]*\}/g, '')
-    .replace(/[.\-]+$/, '')
+    .replace(/[.-]+$/, '')
     .trim()
 }
 

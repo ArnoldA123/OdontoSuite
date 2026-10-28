@@ -268,8 +268,8 @@ for (const target of targets) {
     let status
     let note = ''
     try {
-      const res = await request(`/${row.path}`, { token: role.token })
-      status = res.status
+      const { status: responseStatus } = await request(`/${row.path}`, { token: role.token })
+      status = responseStatus
     } catch (err) {
       if (err instanceof ConnectionError) {
         console.error(reachError())

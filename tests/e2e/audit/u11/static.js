@@ -14,6 +14,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { slugFor } from '../slug.js'
 
 export const SESSION = 'U11'
 
@@ -29,6 +30,18 @@ const EXCLUDED_PREFIXES = [
   `${SOURCE_ROOT}/components/layout/`,
   `${SOURCE_ROOT}/composables/`
 ]
+
+// The axes this pass can read without a browser, in the matrix order.
+export const STATIC_AXES = Object.freeze([
+  'dialog',
+  'list',
+  'buttons',
+  'states',
+  'feedback',
+  'filters',
+  'badges',
+  'format'
+])
 
 // Axis keys, in the matrix order the session declares.
 export const AXES = Object.freeze([
@@ -47,16 +60,6 @@ export const AXES = Object.freeze([
 ])
 
 const toPosix = path => path.split(sep).join('/')
-
-// Same normalisation as the harness `slugFor`, so static rows and browser rows
-// name the same evidence file.
-const slugFor = route =>
-  route
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/:/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'root'
 
 const unique = values => [...new Set(values.filter(value => value !== null && value !== ''))]
 
@@ -173,7 +176,7 @@ const buildAxes = (surface, files, imports) => {
   const grouped = { create: [], submit: [], cancel: [], delete: [] }
 
   for (const action of actions) {
-    if (!(action.kind in grouped)) continue
+    if (!Object.hasOwn(grouped, action.kind)) continue
     if (action.labelSource === 'binding') continue
 
     const label = String(action.label ?? '').trim()
@@ -332,6 +335,16 @@ export const buildStaticAxes = manifest => {
       axes: buildAxes(surface, files, imports)
     }
   })
+
+  // The static pass reads eight of the twelve axes; title, responsive, density
+  // and repetition are browser readings. A row that loses one of the eight
+  // would publish `undefined` as a measurement, so the build fails instead.
+  for (const row of rows) {
+    const missing = STATIC_AXES.filter(axis => !(axis in row.axes))
+    if (missing.length > 0) {
+      throw new Error(`static row ${row.route} is missing axes: ${missing.join(', ')}`)
+    }
+  }
 
   return {
     session: SESSION,

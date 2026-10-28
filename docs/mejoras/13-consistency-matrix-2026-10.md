@@ -303,6 +303,8 @@
 | `/settings/accounting-locks` | resources/js/modules/accounting-locks/AccountingLocksPage.vue | render/settings-accounting-locks-administrador.json | `shots/settings-accounting-locks-administrador-desktop.png` · `shots/settings-accounting-locks-administrador-mobile.png` |
 | `/:pathMatch(.*)*` | resources/js/modules/errors/NotFoundPage.vue | render/pathmatch-recepcionista.json | `shots/pathmatch-recepcionista-desktop.png` · `shots/pathmatch-recepcionista-mobile.png` |
 
+La tabla nombra la fila que la matriz usa para cada ruta —`render/<slug>-<rol>.json`, el rol dueño del escritorio—; el artefacto conserva además las filas de los otros roles medidos, y el informe las busca por ruta y rol en vez de quedarse con la última leída.
+
 ## Canon propuesto
 
 | Eje | Primitiva/helper que gana | Módulo de referencia | Por qué |

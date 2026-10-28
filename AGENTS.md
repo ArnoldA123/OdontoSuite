@@ -108,7 +108,7 @@ app/
 
 resources/js/
   app.js                   # entry + router (guards en router/auth.js)
-  composables/             # 45 composables singleton
+  composables/             # 46 composables singleton
   components/
     ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
@@ -654,6 +654,47 @@ documentada y no bloquea producción.
   con `intl=0`, `locale=0` y `legacyModule=0` en las 36 superficies, y capa 2
   con el eje `format` en **OK (0 DIV)** y 36/36 superficies medidas; el único
   motivo restante del gate son los 403 clínicos de la ficha, en #399.
+- **2026-10-26 (lote de auditoría: selects vacíos, filtros fantasma, scripts sin
+  lint, notas del instrumento y helper de 422)** — Cinco entregas del programa
+  de auditoría (#402, #408, #386, #458) más el canon del eje «Feedback».
+  **#402**: `UiSelect` declaraba `Boolean` antes que `String` en la unión de
+  `modelValue`, así que Vue convertía `''` en `true` (`shouldCastTrue` de
+  `resolvePropValue`); el orden pasa a `[String, Number, Boolean, Array]` y un
+  select cuyo valor legítimo es `''` —la opción «Todos» de `/patients`— muestra
+  esa etiqueta en el disparador y `aria-selected="true"` en su opción, sin
+  perder el soporte booleano de F11. **#408**:
+  `new URLSearchParams({ search: undefined })` serializaba las cadenas
+  `undefined`/`null`, el servidor filtraba por ellas y la pestaña Cobros quedaba
+  vacía; `resources/js/utils/query.js` (`buildQueryString`) las omite y conserva
+  `''`, `0` y `false`, y `useApi` lo usa en `get` y en `download`. **422**:
+  `resources/js/composables/validationErrors.js` normaliza el cuerpo del rechazo
+  (arrays → primer mensaje, claves anidadas colapsadas al campo declarado) y
+  prefiere el motivo que la API publica en `errors` sobre el `message` genérico;
+  `useFieldValidation` gana `applyServerErrors` y las tres superficies medidas
+  de #415 pintan la razón: editar presupuesto (`QuotationModal`), aprobarlo
+  (`QuotationApprovalModal`) y cambiar el estado de un plan
+  (`TreatmentPlansPage`). **#386**: `lint`/`lint:check` recorren `.mjs` y
+  `ecmaVersion` pasa a 2022 (el `await` de nivel superior de los entry points no
+  se podía parsear); se corrigen los 9 hallazgos publicados y los 6 que la
+  extensión dejaba a la vista detrás del error de parseo, sin cambiar la lógica
+  de los scripts. **#458**: mantenimiento del instrumento de U11 —evidencia de
+  repetición con `truncated`, informe que exige `manifest.json` y busca la fila
+  por ruta y rol, `tests/e2e/audit/slug.js` como única implementación del slug,
+  filas estáticas validadas contra sus ocho ejes, `renderRows` sin colisión de
+  roles y workflow con el alcance resuelto una vez, `paths` en el push y
+  artefacto vacío como fallo—. §4 sincronizado: 46 composables. Sin rutas,
+  modelos, migraciones ni primitivas UI nuevas. Tests: `select-empty-value` (3),
+  `useApi-params` (4), `validationErrors` (6),
+  `useFieldValidation-server-errors` (2), `quotations-form` (5),
+  `quotations-list` (6) y `treatment-plans` (10), más
+  `./node_modules/.bin/eslint --ext .mjs scripts` y `pnpm lint:check` en verde
+  (`eslint . --ext .mjs,.vue,.js,.jsx,.ts,.tsx` sale 0; el wrapper de pnpm no
+  corre en el worktree porque `node_modules` es un enlace al repo principal). La
+  re-medición de U11 se ejecutó sobre una base local sembrada: **62 passed** con
+  `AUDIT_SCOPE=all`, 36/36 filas medidas, y el `report.js` de esta rama produce
+  la misma matriz, `gate.json` y JSON que el de `origin/main` sobre el mismo
+  árbol de evidencia; contra la matriz publicada, 35 de 36 filas coinciden (la
+  restante es dato del sembrado).
 
 - **2026-10-23 (las notas ODD se versionan)** — Las 47 notas de tarea que
   quedaban sin seguimiento en `odd/tasks/` entran al repositorio junto a las 43

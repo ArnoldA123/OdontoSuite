@@ -275,12 +275,11 @@ class PusherClient {
     const existing = this.messages.find(m => m.channel === channel && m.event === event)
     if (existing) return Promise.resolve({ delivered: true, message: existing })
     return new Promise(resolve => {
-      let waiter
       const timer = setTimeout(() => {
         this.waiters = this.waiters.filter(w => w !== waiter)
         resolve({ delivered: false })
       }, timeoutMs)
-      waiter = {
+      const waiter = {
         predicate: m => m.channel === channel && m.event === event,
         resolve: m => {
           clearTimeout(timer)

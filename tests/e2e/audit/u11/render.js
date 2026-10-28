@@ -53,21 +53,38 @@ const labelFor = surface => navLabels.get(surface.route) ?? surface.name
 
 const isCatchAll = surface => surface.route.includes(CATCH_ALL_SEGMENT)
 
+// The sample row is addressed by replacing the last dynamic segment of the
+// route (`/patients/:id` -> `/patients/7`); a route without one keeps its path.
+const withSampleId = (route, id) => {
+  const segments = route.split('/')
+
+  for (let index = segments.length - 1; index >= 0; index -= 1) {
+    if (segments[index].startsWith(':')) {
+      segments[index] = String(id)
+      break
+    }
+  }
+
+  return segments.join('/')
+}
+
+// One administration login per worker. The sample lookup used to log in again
+// for every surface, so a 36-route pass paid 36 extra logins against the login
+// throttle and a 429 surfaced as a false "no-sample-record" skip.
+let sampleToken = null
+const sampleSessionToken = async request => {
+  if (!sampleToken) {
+    const session = await loginAs(request, 'administrador')
+    sampleToken = session.token
+  }
+
+  return sampleToken
+}
+
 const hrefFor = (surface, id) => {
   if (surface.href) return surface.href
 
-  if (surface.sample && id != null) {
-    const segments = surface.route.split('/')
-
-    for (let index = segments.length - 1; index >= 0; index -= 1) {
-      if (segments[index].startsWith(':')) {
-        segments[index] = String(id)
-        break
-      }
-    }
-
-    return segments.join('/')
-  }
+  if (surface.sample && id != null) return withSampleId(surface.route, id)
 
   // `/:pathMatch(.*)*` is a matcher, not a URL: the probe path renders the same
   // not-found surface the catch-all owns.
@@ -80,10 +97,10 @@ const hrefFor = (surface, id) => {
 // already has, read with the administration token.
 const resolveSample = async (request, surface) => {
   const { endpoint, idField } = surface.sample
-  const session = await loginAs(request, 'administrador')
+  const token = await sampleSessionToken(request)
 
   const response = await request.get(`${BASE_URL}${endpoint}`, {
-    headers: { Authorization: `Bearer ${session.token}`, Accept: 'application/json' }
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
   })
 
   if (!response.ok()) return null
@@ -105,7 +122,15 @@ const API_DELAY_MS = 1500
 const delayApiCalls = page => {
   page.route('**/api/**', async route => {
     await new Promise(resolveDelay => setTimeout(resolveDelay, API_DELAY_MS))
-    await route.continue().catch(() => {})
+
+    try {
+      await route.continue()
+    } catch (error) {
+      // A continue that fails means the held request never reached the app, so
+      // the row would blame the product for a probe condition. Say it out loud
+      // in the job log instead of discarding it.
+      console.warn(`[audit] delayed request could not continue: ${String(error)}`)
+    }
   })
 }
 
@@ -292,7 +317,17 @@ for (const surface of surfaces) {
       evidence.pageErrors = diagnostics.pageErrors.map(error => String(error))
       evidence.consoleErrors = diagnostics.consoleErrors
       evidence.failedRequests = classifyFailures(diagnostics.failedRequests, owner.expectation)
-      writeEvidence(`render/${slug}-${owner.role}.json`, evidence, { dir: OUT })
+
+      // `finally` runs while an assertion failure may already be in flight: a
+      // write error here would replace it and hide what the probe found. The
+      // missing file is still visible — the report marks the row NO PROBADO.
+      try {
+        writeEvidence(`render/${slug}-${owner.role}.json`, evidence, { dir: OUT })
+      } catch (error) {
+        console.error(
+          `[audit] could not write render evidence for ${surface.route}: ${String(error)}`
+        )
+      }
     }
 
     if (evidence.measured) {

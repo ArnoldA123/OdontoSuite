@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { buildQueryString } from '@/utils/query'
 
 const baseURL = import.meta.env.VITE_APP_URL || window.location.origin
 const token = ref(localStorage.getItem('auth_token'))
@@ -83,8 +84,10 @@ export function useApi() {
 
     // Handle query parameters
     if (options.params) {
-      const params = new URLSearchParams(options.params)
-      fullUrl += `?${params}`
+      const query = buildQueryString(options.params)
+      if (query) {
+        fullUrl += `?${query}`
+      }
     }
 
     const response = await fetch(fullUrl, {
@@ -197,7 +200,7 @@ export function useApi() {
     let fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`
 
     if (options.params) {
-      const params = new URLSearchParams(options.params).toString()
+      const params = buildQueryString(options.params)
       if (params) {
         fullUrl += `${fullUrl.includes('?') ? '&' : '?'}${params}`
       }

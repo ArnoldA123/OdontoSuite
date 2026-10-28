@@ -39,6 +39,8 @@ const PLAN = {
   }
 }
 
+const apiState = vi.hoisted(() => ({ postReject: null }))
+
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
     get: async url => {
@@ -51,6 +53,7 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
     },
     post: async (url, body) => {
       requests.push({ method: 'post', url, body })
+      if (apiState.postReject) throw apiState.postReject
       return { data: { ...PLAN, id: 8 } }
     },
     put: async () => ({ data: {} }),
@@ -92,6 +95,7 @@ vi.mock('../../../resources/js/composables/useConfirm', async () => {
   }
 })
 
+import { globalToasts } from '../../../resources/js/composables/useToast'
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/treatment-plans/TreatmentPlansPage.vue'
 import TreatmentPlanCard from '../../../resources/js/modules/treatment-plans/components/TreatmentPlanCard.vue'
@@ -114,6 +118,8 @@ const lastSummaryRequest = () => [...requests].reverse().find(r => r.url.include
 describe('treatment-plans page', () => {
   beforeEach(() => {
     requests.length = 0
+    apiState.postReject = null
+    globalToasts.value = []
     confirmMock.mockReset()
     confirmMock.mockResolvedValue(true)
   })
@@ -257,5 +263,37 @@ describe('treatment-plans page', () => {
     expect(document.querySelector('[data-plan-modal]')).toBeTruthy()
 
     wrapper.unmount()
+  })
+
+  it('reports the API reason when a status change is rejected with a generic 422', async () => {
+    apiState.postReject = {
+      response: {
+        status: 422,
+        data: {
+          message: 'Error de validación',
+          errors: {
+            status: ['No se puede completar el plan: 2 procedimiento(s) siguen sin ejecutar.']
+          }
+        }
+      }
+    }
+
+    localStorage.setItem('auth_token', 'test-token')
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+
+    const wrapper = await mountPage()
+
+    const card = wrapper.findComponent(TreatmentPlanCard)
+    expect(card.exists()).toBe(true)
+    card.vm.$emit('changeStatus', PLAN.id, 'approved')
+    await flushPromises()
+
+    expect(globalToasts.value.map(toast => toast.message)).toContain(
+      'No se puede completar el plan: 2 procedimiento(s) siguen sin ejecutar.'
+    )
+
+    wrapper.unmount()
+    localStorage.removeItem('user')
+    localStorage.removeItem('auth_token')
   })
 })

@@ -224,7 +224,11 @@ import UiButton from './Button.vue'
 
 const props = defineProps({
   modelValue: {
-    type: [Boolean, String, Number, Array],
+    // Order matters: Vue casts `''` to `true` when Boolean precedes String in
+    // the union (componentProps `shouldCastTrue`). With String first, a select
+    // whose legitimate value is `''` — the "Todos" filter option — keeps its
+    // value and selects that option (#402), while Boolean values still work.
+    type: [String, Number, Boolean, Array],
     default: () => null
   },
   options: {

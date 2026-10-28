@@ -408,6 +408,7 @@ import { useEcho } from '@/composables/useEcho'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
 import { formatCurrency } from '@/composables/useFormatters'
+import { pickValidationMessage } from '@/composables/validationErrors'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TreatmentPlanCard from './components/TreatmentPlanCard.vue'
 import TreatmentPlanModal from './components/TreatmentPlanModal.vue'
@@ -632,7 +633,7 @@ const onCardStatusChange = async (planId, status) => {
     toast.success('Estado actualizado')
     loadSummary()
   } catch (err) {
-    toast.error('No se pudo cambiar el estado')
+    toast.error(pickValidationMessage(err.response?.data, 'No se pudo cambiar el estado'))
     loadPlans()
   }
 }

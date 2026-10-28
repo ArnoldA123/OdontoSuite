@@ -9,6 +9,9 @@
 // The container is `<main>` (the shell) or `#app` (the auth screens, which have
 // no shell). Dialogs are not measured in this pass: `primitives.js` opens them.
 
+// Caps on how much of a reading the evidence file keeps. They bound the
+// artifact, not the measurement: the axis counts the whole page and clips the
+// examples it cites, so a longer page never becomes a different verdict.
 export const MEASURE_LIMITS = Object.freeze({
   currency: 8,
   dates: 8,
@@ -35,7 +38,10 @@ export const measureAxes = page =>
     }
     const visible = selector => Array.from(root.querySelectorAll(selector)).filter(isVisible)
     const texts = selector => visible(selector).map(node => normalize(node.innerText))
-    const unique = values => [...new Set(values.filter(Boolean))]
+    // Only null/undefined/'' are dropped: `0` and `false` are readings.
+    const unique = values => [
+      ...new Set(values.filter(value => value !== null && value !== undefined && value !== ''))
+    ]
     const words = value => normalize(value).split(' ').filter(Boolean).length
     const clip = (values, limit) => values.slice(0, limit)
 
@@ -81,11 +87,19 @@ export const measureAxes = page =>
     const kpiInTable = kpiValues.filter(value => cellValues.has(value))
 
     const repeated = new Map()
+    // A DOM scan of every leaf is unbounded on a dense page, so it stops at a
+    // fixed budget and the axis publishes `truncated` when it hit the cap: an
+    // incomplete scan must be visible in the evidence, never a quiet zero.
+    const SCANNED_NODE_LIMIT = 8000
     let inspected = 0
+    let truncated = false
 
     for (const node of root.querySelectorAll('*')) {
       inspected += 1
-      if (inspected > 8000) break
+      if (inspected > SCANNED_NODE_LIMIT) {
+        truncated = true
+        break
+      }
 
       if (node.children.length > 0) continue
       if (node.closest('aside, nav, header, thead, td, th, button, [role="status"]')) continue
@@ -175,7 +189,8 @@ export const measureAxes = page =>
       },
       repetition: {
         count: kpiInTable.length + groups.length,
-        examples
+        examples,
+        truncated
       }
     }
   })

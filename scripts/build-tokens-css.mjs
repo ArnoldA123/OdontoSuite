@@ -46,18 +46,8 @@ const projectRoot = resolve(__dirname, '..')
 const tokensModulePath = resolve(projectRoot, 'resources/js/design-system/tokens.js')
 const outputCssPath = resolve(projectRoot, 'resources/css/tokens.generated.css')
 
-const {
-  default: tokens,
-  colors,
-  spacing,
-  radius,
-  shadow,
-  motion,
-  focusRing,
-  fontFeatures,
-  elevation,
-  topbar
-} = await import(pathToFileURL(tokensModulePath).href)
+const { colors, spacing, radius, shadow, motion, focusRing, fontFeatures, elevation, topbar } =
+  await import(pathToFileURL(tokensModulePath).href)
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                            */
@@ -433,7 +423,7 @@ push('}')
 /* ------------------------------------------------------------------ */
 
 mkdirSync(dirname(outputCssPath), { recursive: true })
-const out = lines.join('\n') + '\n'
+const out = `${lines.join('\n')}\n`
 writeFileSync(outputCssPath, out, 'utf8')
 
 console.log(`[build-tokens-css] wrote ${outputCssPath} (${out.length} bytes)`)
