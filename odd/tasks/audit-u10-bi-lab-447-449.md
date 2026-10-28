@@ -62,14 +62,25 @@ de auditoría que midan un contrato cambiado se alinean con el contrato nuevo.
   `summary.appointments === 0 && summary.revenue === 0`; tabular sin
   `meta.summary` (payload viejo) → `reportRows.length === 0`; consolidado → su
   regla actual. La tarjeta de vacío es la misma para los siete reportes.
+  `revenue` es neto, así que un período con sólo una devolución de dinero
+  cobrado antes compara contra `!== 0`, no contra `> 0`: neto negativo es dinero
+  que se movió y no puede llamarse período en silencio.
+- El `summary` tabular es metadato de la pantalla, no una línea del reporte:
+  `ReportController@exportRows()` sólo añade su fila de cierre cuando alguna
+  clave del resumen responde a una columna, así que el export de pacientes,
+  profesionales y utilización sigue teniendo exactamente las filas del reporte
+  (el de ingresos conserva la suya).
 
 ## Contrato fijado para #448/#449
 
 - `App\Policies\LabCasePolicy::update(User, LabCase)` es la única regla de
   propiedad: `administrador`, `odontologo` e `implantologo` escriben cualquier
-  caso de su alcance; `tecnico_dental` sólo el caso cuyo `technician_id` es el
-  suyo. El controlador la aplica con `$this->authorize('update', $labCase)`
-  (403 con el sobre estándar de la API).
+  caso de su alcance; `tecnico_dental`, el caso cuyo `technician_id` es el suyo
+  o uno todavía sin asignar, que es el banco compartido del taller. El
+  controlador la aplica a **las dos** puertas de escritura del caso —`update` y
+  `transition`— con `Gate::authorize('update', $labCase)` (403 con el sobre
+  estándar de la API): no se puede corregir un caso ajeno y sí avanzarlo sería
+  la misma escritura por otra puerta.
 - Un caso en fase `placed` deja de ser editable: `LabCaseService::update()`
   responde 422 con una frase que lo explica, antes de escribir nada, y
   `can_edit` sale `false`.
@@ -99,6 +110,9 @@ de auditoría que midan un contrato cambiado se alinean con el contrato nuevo.
 - T5 — verificación: `pnpm test:js`, suite MySQL de los archivos tocados, Pint,
   ESLint, Prettier, `doc-drift` y la entrada de changelog en `AGENTS.md`.
   Commit: el de cierre.
+- T6 — S6, S7 — los tres hallazgos de la verificación independiente: la
+  política en `transition`, el export tabular sin fila de resumen inventada y
+  el neto negativo como actividad. Commit: `Correcciones de verificación`.
 
 ## Slices de entrega
 
@@ -123,6 +137,13 @@ límite declarado, no como deuda silenciosa.
 - L2: `#448` deja la decisión en su propuesta: la página gana el alta y la
   edición; el changelog de `AGENTS.md` ya lo afirmaba, así que la entrega alinea
   el código con el documento en vez de retirar la afirmación.
-- L3: `#449` nombra sólo `PUT /api/lab-cases/{id}`. La puerta de fase no entra en
-  esta unidad: el issue no la incluye y su regla es la de avance, no la de
-  propiedad.
+- L3: `#449` nombra sólo `PUT /api/lab-cases/{id}`. La verificación independiente
+  demostró que dejar `transition` sin la política contradice la regla que el
+  mismo issue pide —un técnico avanzaba el caso ajeno hasta `placed`, la
+  escritura que el `PUT` ya le negaba—, así que la política se aplica a las dos
+  puertas: la fase es una escritura del mismo caso.
+- L4: la misma verificación encontró dos defectos de honestidad que se
+  corrigieron antes de entregar: `exportRows()` añadía una fila «Resumen del
+  período» vacía al export de los tres tabulares (#447), y la regla del vacío
+  leía `revenue > 0`, que declaraba en silencio un período con sólo devoluciones
+  porque su neto es negativo (#447).

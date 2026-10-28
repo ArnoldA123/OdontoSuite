@@ -179,4 +179,47 @@ class LabCaseOwnershipTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.can_edit', false);
     }
+
+    #[Test]
+    public function another_technician_cannot_move_the_phase_of_a_foreign_case(): void
+    {
+        $owner = $this->staff('tecnico_dental');
+        $intruder = $this->staff('tecnico_dental');
+        $case = $this->caseOf($owner, ['status' => LabCase::PHASE_IN_PREPARATION]);
+
+        $this->actingAs($intruder, 'sanctum')
+            ->postJson("/api/lab-cases/{$case->id}/phase", ['phase' => LabCase::PHASE_PLACED])
+            ->assertForbidden();
+
+        $stored = $case->fresh();
+
+        $this->assertSame(LabCase::PHASE_IN_PREPARATION, $stored->status);
+        $this->assertNull($stored->placed_at);
+    }
+
+    #[Test]
+    public function the_assigned_technician_moves_the_phase_of_its_own_case(): void
+    {
+        $technician = $this->staff('tecnico_dental');
+        $case = $this->caseOf($technician);
+
+        $this->actingAs($technician, 'sanctum')
+            ->postJson("/api/lab-cases/{$case->id}/phase", ['phase' => LabCase::PHASE_IN_LABORATORY])
+            ->assertOk()
+            ->assertJsonPath('data.status', LabCase::PHASE_IN_LABORATORY);
+    }
+
+    #[Test]
+    public function an_unassigned_case_is_the_shared_bench_for_the_laboratory_desk(): void
+    {
+        $technician = $this->staff('tecnico_dental');
+        $case = $this->caseOf($technician, ['technician_id' => null]);
+
+        $this->actingAs($technician, 'sanctum')
+            ->putJson("/api/lab-cases/{$case->id}", ['work' => 'Trabajo sin asignar'])
+            ->assertOk()
+            ->assertJsonPath('data.can_edit', true);
+
+        $this->assertSame('Trabajo sin asignar', $case->fresh()->work);
+    }
 }

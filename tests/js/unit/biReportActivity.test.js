@@ -13,6 +13,28 @@ const rows = [{ id: 1, name: 'Lucía Ramos' }]
 const idleSummary = { appointments: 0, revenue: 0 }
 const activeSummary = { appointments: 4, revenue: 1200 }
 
+describe('a negative net is money that moved (#447)', () => {
+  // The published `revenue` is net: payments minus refunds. A period with only
+  // a refund of money collected earlier has 0 appointments and a NEGATIVE net,
+  // and calling it a quiet period would hide a report that has a row.
+  const refundOnly = { appointments: 0, revenue: -100 }
+
+  it('counts a negative net as activity in a tabular summary', () => {
+    expect(summaryShowsActivity(refundOnly)).toBe(true)
+    expect(isReportPeriodEmpty({ report: 'patients', rows, summary: refundOnly })).toBe(false)
+  })
+
+  it('counts a negative net as activity in the dashboard too', () => {
+    expect(
+      isReportPeriodEmpty({
+        report: 'dashboard',
+        rows: [],
+        dashboard: { totalAppointments: 0, totalRevenue: -100 }
+      })
+    ).toBe(false)
+  })
+})
+
 describe('business intelligence period activity (#447 S1)', () => {
   it('reads the activity a summary reports, or null when it cannot tell', () => {
     expect(summaryShowsActivity(idleSummary)).toBe(false)

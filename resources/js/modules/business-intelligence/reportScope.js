@@ -73,10 +73,10 @@ const readSummaryAmount = (summary, keys) => {
 /**
  * Reads the activity a report summary publishes.
  *
- * Returns `true` when the period reports any appointment or any money, `false`
- * when both are zero and `null` when the summary is missing or does not carry
- * both counters: `null` is "cannot tell", never "empty", so the caller falls
- * back to what it always used.
+ * Returns `true` when the period reports any appointment or any movement of
+ * money, `false` when both are zero and `null` when the summary is missing or
+ * does not carry both counters: `null` is "cannot tell", never "empty", so the
+ * caller falls back to what it always used.
  *
  * @param {object|null|undefined} summary
  * @returns {boolean|null}
@@ -93,7 +93,10 @@ export function summaryShowsActivity(summary) {
     return null
   }
 
-  return appointments > 0 || revenue > 0
+  // `revenue` is net: payments minus refunds. A period with only a refund of
+  // money collected earlier reports 0 appointments and a NEGATIVE net, and that
+  // is money that moved: it must not be called a quiet period.
+  return appointments !== 0 || revenue !== 0
 }
 
 /**

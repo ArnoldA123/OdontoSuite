@@ -15,6 +15,10 @@ use App\Models\User;
  * who corrects it; the desks that prescribe and administer the workshop may
  * correct any case of their branch, because they answer for it.
  *
+ * A case with no assigned technician is nobody's case yet: it is the shared
+ * bench, so any writer of the desk may take it — that is how work gets claimed
+ * before it is handed out.
+ *
  * The role list is not repeated here: `Permissions` stays the single source of
  * the grant, and this policy only adds the ownership rule on top of it.
  */
@@ -37,8 +41,8 @@ class LabCasePolicy
             return true;
         }
 
-        // The assigned technician, and nobody else outside the overseeing desks.
-        return $case->technician_id !== null
-            && (int) $case->technician_id === (int) $user->id;
+        // The unassigned bench, or the technician the case is assigned to.
+        return $case->technician_id === null
+            || (int) $case->technician_id === (int) $user->id;
     }
 }

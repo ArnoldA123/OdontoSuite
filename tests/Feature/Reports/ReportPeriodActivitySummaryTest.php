@@ -318,4 +318,45 @@ class ReportPeriodActivitySummaryTest extends ReportContractTestCase
         $this->assertEqualsWithDelta(250.00, (float) $summary['average_per_appointment'], 0.001);
         $this->assertMatchesRegularExpression('#^\d{2}/\d{2}/\d{4} - \d{2}/\d{2}/\d{4}$#', $summary['period']);
     }
+
+    /**
+     * The export must not gain a closing row that answers no column: the
+     * activity summary is metadata for the screen, not a line of the report.
+     */
+    public function test_the_export_of_a_tabular_report_does_not_gain_a_summary_row(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2024-03-15 09:00:00'));
+
+        $admin = $this->admin();
+        $doctor = $this->user('odontologo');
+        $patient = $this->patient();
+        $type = $this->appointmentType(25000.00);
+        $chair = $this->chair();
+
+        $appointment = $this->appointment($doctor, $patient, $type, $chair, '2024-03-05 10:00:00');
+        $this->payment($admin, $patient, 300.00, '2024-03-05 10:30:00', $appointment);
+
+        foreach (['patients', 'professionals', 'utilization'] as $report) {
+            $response = $this->actingAs($admin, 'sanctum')
+                ->get("/api/reports/{$report}/export?format=csv&start_date=".self::START.'&end_date='.self::END);
+
+            $response->assertOk();
+
+            $content = (string) $response->streamedContent();
+
+            $this->assertStringNotContainsString(
+                'Resumen del período',
+                $content,
+                "The {$report} export must not close with a summary row that maps onto no column."
+            );
+        }
+
+        // The revenue export keeps its own closing row: that summary does map
+        // onto its columns, and it is the contract the export had before #447.
+        $revenue = $this->actingAs($admin, 'sanctum')
+            ->get('/api/reports/revenue/export?format=csv&start_date='.self::START.'&end_date='.self::END);
+
+        $revenue->assertOk();
+        $this->assertStringContainsString('Resumen del período', (string) $revenue->streamedContent());
+    }
 }

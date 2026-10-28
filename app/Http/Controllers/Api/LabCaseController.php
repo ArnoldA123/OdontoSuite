@@ -140,6 +140,11 @@ class LabCaseController extends Controller
 
     public function transition(TransitionLabCaseRequest $request, LabCase $labCase): JsonResponse
     {
+        // #449: the same work order answers to the same owner on both doors.
+        // Moving the phase is a write to the case, so the technician who cannot
+        // correct it cannot advance it either.
+        Gate::authorize('update', $labCase);
+
         try {
             $case = $this->cases->transition($labCase, (string) $request->validated()['phase']);
 
