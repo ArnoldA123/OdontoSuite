@@ -642,7 +642,7 @@ const loadAudit = async () => {
   auditError.value = false
   try {
     const logs = await getAllAuditLogs({
-      model_type: 'App\\\\Models\\\\ProcedureCatalog',
+      model_type: 'App\\Models\\ProcedureCatalog',
       auditable_id: procedure.value.id,
       per_page: 50
     })

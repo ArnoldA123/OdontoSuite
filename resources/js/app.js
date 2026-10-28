@@ -132,6 +132,10 @@ const routes = [
     path: '/procedure-catalog',
     name: 'procedure-catalog',
     component: () => import('./modules/procedure-catalog/ProcedureCatalogPage.vue'),
+    // #435: the detail's «Editar» lands on `?edit=<id>`. Removing that
+    // parameter must not remount the page that just opened the form (the
+    // shell keys the view by fullPath).
+    meta: { preserveOnQuery: true },
     beforeEnter: requireAuth
   },
   {
