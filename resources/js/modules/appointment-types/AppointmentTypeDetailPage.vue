@@ -61,7 +61,9 @@
           />
         </div>
         <div class="flex flex-shrink-0 items-center gap-3" data-detail-actions>
-          <UiButton data-detail-action="edit" @click="goEdit">
+          <!-- #439: «Editar» es la puerta de `manage.appointment_type`; quien
+               sólo lee el catálogo conserva la ficha y su historial. -->
+          <UiButton v-if="canManageAppointmentTypes" data-detail-action="edit" @click="goEdit">
             <template #icon-left>
               <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
             </template>
@@ -225,6 +227,14 @@
                   >
                     {{ appointmentType?.requires_materials ? 'Sí' : 'No' }}
                   </dd>
+                  <!-- #444: el valor lo deriva la API de la receta del
+                       procedimiento por defecto (#295); la ficha lo declara. -->
+                  <p
+                    class="mt-1 text-xs text-theme-secondary"
+                    data-detail-derived="requires-materials"
+                  >
+                    Derivado de la receta del procedimiento por defecto.
+                  </p>
                 </div>
                 <div>
                   <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
@@ -359,7 +369,7 @@
 </template>
 
 <script>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeftIcon,
@@ -371,6 +381,7 @@ import {
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import { useAuditLogs } from '../../composables/useAuditLogs'
+import { usePermissions } from '../../composables/usePermissions'
 import { formatCurrency, formatDate } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
@@ -397,6 +408,10 @@ export default {
     const router = useRouter()
     const { get } = useApi()
     const toast = useToast()
+    // #439: «Editar» sólo se pinta con el permiso que exige la ruta de
+    // escritura del catálogo (`manage.appointment_type`).
+    const { can } = usePermissions()
+    const canManageAppointmentTypes = computed(() => can.manageAppointmentTypes.value)
     const {
       loading: auditLogsLoading,
       auditLogs,
@@ -516,7 +531,8 @@ export default {
       getChangesSummary,
       getAuditActionVariant,
       goBack,
-      goEdit
+      goEdit,
+      canManageAppointmentTypes
     }
   }
 }

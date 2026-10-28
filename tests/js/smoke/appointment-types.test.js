@@ -9,6 +9,12 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 // inline error surface with retry, the delete confirmation gate (composable
 // dialog: cancel aborts without calling the API, confirm deletes), and a
 // coherent color pair in both modals.
+//
+// #439: the write affordances follow `usePermissions()`; a receptionist session
+// reads the whole surface with no write door.
+// #443: `?edit=<id>` opens the shared form and the query replace that clears
+// the parameter does not remount the page (the route opts out of the
+// full-path key).
 const { getMock, deleteMock, makeType } = vi.hoisted(() => {
   const makeType = (id, overrides = {}) => ({
     id,
@@ -53,6 +59,14 @@ import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/appointment-types/AppointmentTypesPage.vue'
 import Modal from '../../../resources/js/components/ui/Modal.vue'
 import Select from '../../../resources/js/components/ui/Select.vue'
+import rolePermissions from '../support/role-permissions.json'
+
+// #439: `usePermissions()` is a membership check on the permission list the API
+// publishes, so the suite seeds the session it works as.
+const seedSession = role => {
+  localStorage.setItem('auth_token', 'test-token')
+  localStorage.setItem('user', JSON.stringify({ id: 1, role, permissions: rolePermissions[role] }))
+}
 
 const router = createRouter({
   history: createMemoryHistory(),
@@ -119,8 +133,53 @@ const chooseStatusOption = async (wrapper, label) => {
   await flushPromises()
 }
 
+// #443: the real route declares `meta.preserveOnQuery` (app.js) and the shell
+// keys its router-view by `$route.path`, exactly like `App` does.
+const mountShellAt = async (path, catalog = CATALOG) => {
+  getMock.mockImplementation(async url => {
+    if (String(url).startsWith('/api/appointment-types')) return { data: catalog }
+    return { data: [] }
+  })
+
+  const shellRouter = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      {
+        path: '/appointment-types',
+        name: 'appointment-types',
+        component: Page,
+        meta: { preserveOnQuery: true }
+      },
+      { path: '/:pathMatch(.*)*', component: { template: '<div />' } }
+    ]
+  })
+  await shellRouter.push(path)
+  await shellRouter.isReady()
+
+  const Shell = {
+    template: '<router-view :key="$route.meta.preserveOnQuery ? $route.path : $route.fullPath" />'
+  }
+  const wrapper = mount(Shell, { global: { plugins: [shellRouter, uiComponents] } })
+  await flushPromises()
+
+  return { wrapper, shellRouter }
+}
+
+const openModalNameInput = name =>
+  [...document.body.querySelectorAll('input')].find(input => input.value === name)
+
+const closeOpenEditModal = async () => {
+  const cancel = [...document.body.querySelectorAll('button')].find(
+    b => b.textContent.trim() === 'Cancelar'
+  )
+  expect(cancel).toBeTruthy()
+  cancel.click()
+  await flushPromises()
+}
+
 describe('appointment-types smoke', () => {
   beforeEach(() => {
+    seedSession('administrador')
     getMock.mockReset()
     getMock.mockImplementation(async () => ({ data: [] }))
     deleteMock.mockReset()
@@ -322,6 +381,70 @@ describe('appointment-types smoke', () => {
 
     expect(deleteMock).not.toHaveBeenCalled()
     expect(rows(wrapper).some(r => r.text().includes('Limpieza dental'))).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('offers the write affordances to a session holding manage.appointment_type', async () => {
+    const wrapper = await mountPage(CATALOG)
+
+    expect(wrapper.find('[data-hero-action]').exists()).toBe(true)
+    const row = rows(wrapper).find(r => r.text().includes('Limpieza dental'))
+    expect(row.find('[data-row-action="edit"]').exists()).toBe(true)
+    expect(row.find('[data-row-action="delete"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('offers no write affordance to a session without manage.appointment_type', async () => {
+    seedSession('recepcionista')
+    const wrapper = await mountPage(CATALOG)
+
+    expect(wrapper.find('[data-hero-action]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-row-action="edit"]')).toHaveLength(0)
+    expect(wrapper.findAll('[data-row-action="delete"]')).toHaveLength(0)
+
+    // The read surface stays whole: rows, detail action, KPIs and filters.
+    expect(rows(wrapper)).toHaveLength(3)
+    expect(wrapper.findAll('[data-row-action="detail"]')).toHaveLength(3)
+    expect(wrapper.find('[data-kpi-value="total"]').text()).toBe('3')
+    expect(wrapper.find('[data-status-filter]').exists()).toBe(true)
+    expect(wrapper.find('[data-type-search]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('opens the prefilled form from ?edit=<id> and keeps it open after the query replace', async () => {
+    const { wrapper, shellRouter } = await mountShellAt('/appointment-types?edit=2')
+
+    expect(document.body.textContent).toContain('Editar Tipo de Cita')
+    expect(openModalNameInput('Ortodoncia')).toBeTruthy()
+    expect(editDurationInput().value).toBe('60')
+
+    // `openEditFromQuery` clears the parameter with `router.replace`: with the
+    // route opt-out the key (`$route.path`) is unchanged, so the page that
+    // just opened the form is not remounted and the form stays filled.
+    expect(shellRouter.currentRoute.value.query.edit).toBeUndefined()
+    expect(document.body.textContent).toContain('Editar Tipo de Cita')
+    expect(openModalNameInput('Ortodoncia')).toBeTruthy()
+
+    wrapper.unmount()
+  })
+
+  it('opens the form again on a later visit with ?edit=<id>', async () => {
+    const { wrapper, shellRouter } = await mountShellAt('/appointment-types?edit=1')
+    expect(openModalNameInput('Limpieza dental')).toBeTruthy()
+
+    await closeOpenEditModal()
+    expect(document.body.textContent).not.toContain('Editar Tipo de Cita')
+
+    // List -> detail -> «Editar» mounts the page again and reads the query.
+    await shellRouter.push('/appointment-types/3')
+    await flushPromises()
+    await shellRouter.push({ path: '/appointment-types', query: { edit: '3' } })
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Editar Tipo de Cita')
+    expect(openModalNameInput('Blanqueamiento')).toBeTruthy()
+    expect(shellRouter.currentRoute.value.query.edit).toBeUndefined()
+
     wrapper.unmount()
   })
 

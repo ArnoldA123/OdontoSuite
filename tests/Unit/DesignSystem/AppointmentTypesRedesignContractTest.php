@@ -195,6 +195,11 @@ class AppointmentTypesRedesignContractTest extends TestCase
         $stripped = str_replace('default_duration_minutes', '', $src);
         $stripped = preg_replace('#(?:newType|editingType)\.duration_minutes\b#', '', $stripped);
         $stripped = preg_replace('#\bduration_minutes\s*:#', '', $stripped);
+        // #440: the validation reads the same write field and paints the 422
+        // under `duration_minutes`; both are the same contract field, not a
+        // second source of the duration.
+        $stripped = preg_replace('#\bsource\?\.duration_minutes\b#', '', $stripped);
+        $stripped = preg_replace('#\b(?:createErrors|editErrors|errors)\.duration_minutes\b#', '', $stripped);
 
         $this->assertIsString($stripped);
         $this->assertStringNotContainsString(
@@ -331,9 +336,13 @@ class AppointmentTypesRedesignContractTest extends TestCase
             $src = self::read($rel);
             $this->assertNotSame('', $src, sprintf('%s must exist', $rel));
 
+            // The ban is about colour values, so comments are stripped first:
+            // an issue reference such as `#439` is not a hex literal.
+            $code = preg_replace(['#<!--.*?-->#s', '#//[^\n]*#'], '', $src);
+
             $this->assertSame(
                 0,
-                preg_match_all('~#[0-9a-fA-F]{3,8}~', $src),
+                preg_match_all('~#[0-9a-fA-F]{3,8}~', (string) $code),
                 sprintf(
                     '%s must contain zero hand-written hex color literals `#[0-9a-fA-F]{3,8}`; '
                     .'design tokens own every colour value.',

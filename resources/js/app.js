@@ -112,6 +112,10 @@ const routes = [
     path: '/appointment-types',
     name: 'appointment-types',
     component: () => import('./modules/appointment-types/AppointmentTypesPage.vue'),
+    // #443: the detail's «Editar» lands on `?edit=<id>`. Dropping that
+    // parameter must not remount the page that just opened the form (same
+    // per-route opt-out as /patients #401 and /procedure-catalog #435).
+    meta: { preserveOnQuery: true },
     beforeEnter: requireAuth
   },
   {
