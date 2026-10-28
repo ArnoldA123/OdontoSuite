@@ -144,4 +144,29 @@ describe('FileUpload rejection channel (issue #426)', () => {
     expect(wrapper.emitted('fileCleared')).toHaveLength(1)
     expect(preview()).toBeNull()
   })
+
+  // #426 residual: the sheet adopts the file (its own primitive runs with
+  // `maxSize = Infinity`) and only then applies its 20 MB rule, calling
+  // clear(). The preview read is async, so without invalidation it lands after
+  // the reset and repaints the rejected file as if it were ready.
+  it('does not repaint the preview of a file dropped before its read settled', async () => {
+    const wrapper = mountUpload()
+
+    await selectFile(wrapper, imageFile())
+
+    // The consumer refuses it in the same tick `fileSelected` arrives, before
+    // the FileReader finished.
+    wrapper.vm.clear()
+    await flushPromises()
+
+    expect(await waitForPreview()).toBeNull()
+    expect(fileInfo()).toBeNull()
+    expect(uploadPrompt()).not.toBeNull()
+
+    // A later adoption still paints its own preview: invalidation is scoped to
+    // the dropped file, not a permanent mute.
+    await selectFile(wrapper, imageFile())
+
+    expect(await waitForPreview()).not.toBeNull()
+  })
 })

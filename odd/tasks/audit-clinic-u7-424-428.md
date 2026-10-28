@@ -129,3 +129,21 @@ L11. (verificación) Vitest **1416 pruebas en 166 archivos**; suite MySQL **OK
 (2873 tests, 17454 assertions)**; Pint 914 archivos; ESLint 0 errores / 36
 avisos (los dos avisos nuevos del stub se cerraron declarando sus defaults);
 Prettier en verde; `node scripts/audit/doc-drift.mjs` 14/14.
+
+L12. (verificación independiente) Ocho de nueve specs `holds`. Hallazgo real en
+S5: el sheet adopta la imagen con `maxSize = Infinity` en el primitivo y sólo
+después aplica su regla de 20 MB, así que `clear()` limpiaba el estado mientras
+el `FileReader` seguía en vuelo y su `onload` **repintaba la vista previa del
+archivo rechazado** — exactamente el estado que S5 prohíbe. Corregido en el
+primitivo con un `readToken` que cada reset incrementa: una lectura que termina
+tarde no repinta lo que ya se soltó, y una adopción posterior vuelve a pintar su
+propia vista previa (la invalidación es de archivo, no un silencio permanente).
+RED medido con el primitivo anterior (`expected <img …> to be null`) y GREEN
+7/7, 50/50 en los cuatro smokes de IA y **1417 pruebas en 166 archivos** en la
+suite completa. El nit de atribución del motivo de fallo (un error local recibe
+la frase del proveedor) queda declarado como seguimiento: la frase es legible y
+no filtra nada, pero nombra una causa externa para un fallo interno.
+
+L13. (pendiente declarado) La corrida de navegador del instrumento U7
+(`walk-ai.js`, `walk-records.js`, `api-matrix.js`) no se ejecutó: requiere base
+sembrada y Chromium. Su alineación con el producto está verificada por lectura.

@@ -75,6 +75,10 @@ const previewUrl = ref('')
 const isDragging = ref(false)
 const fileInput = ref(null)
 
+// Guards the async preview read: a reset invalidates the read in flight so it
+// cannot repaint what was just dropped. See `handleFile`.
+let readToken = 0
+
 const handleDrop = event => {
   isDragging.value = false
   const { files } = event.dataTransfer
@@ -117,8 +121,14 @@ const handleFile = selectedFile => {
 
   // Crear preview si está habilitado
   if (props.preview && selectedFile.type.startsWith('image/')) {
+    // #426: the read is async and a consumer may refuse the file right after
+    // `fileSelected`. Every reset bumps `readToken`, so a read that finishes
+    // later cannot repaint the preview of a file that is no longer adopted.
+    const token = ++readToken
     const reader = new FileReader()
     reader.onload = e => {
+      if (token !== readToken) return
+
       previewUrl.value = e.target.result
     }
     reader.readAsDataURL(selectedFile)
@@ -128,6 +138,8 @@ const handleFile = selectedFile => {
 }
 
 const resetFile = () => {
+  // Invalidate any FileReader still in flight before dropping the state.
+  readToken += 1
   file.value = null
   previewUrl.value = ''
   if (fileInput.value) {
