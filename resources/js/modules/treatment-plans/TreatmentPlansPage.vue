@@ -79,7 +79,13 @@
               </template>
               Actualizar
             </UiButton>
-            <UiButton variant="primary" size="md" data-create-plan @click="openCreateModal">
+            <UiButton
+              v-if="can.createTreatmentPlan?.value"
+              variant="primary"
+              size="md"
+              data-create-plan
+              @click="openCreateModal"
+            >
               <template #icon-left>
                 <PlusIcon class="w-4 h-4" aria-hidden="true" />
               </template>
@@ -326,7 +332,7 @@
                 Limpiar filtros
               </UiButton>
               <UiButton
-                v-else
+                v-else-if="can.createTreatmentPlan?.value"
                 variant="primary"
                 size="md"
                 data-empty-create
@@ -408,6 +414,7 @@ import { useEcho } from '@/composables/useEcho'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
 import { formatCurrency } from '@/composables/useFormatters'
+import { usePermissions } from '@/composables/usePermissions'
 import { pickValidationMessage } from '@/composables/validationErrors'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TreatmentPlanCard from './components/TreatmentPlanCard.vue'
@@ -429,6 +436,7 @@ const OPEN_STATUSES = ['draft', 'proposed', 'approved', 'in_progress']
 const { privateChannel, echo } = useEcho()
 const toast = useToast()
 const { user } = useAuth()
+const { can } = usePermissions()
 const {
   plans,
   loading,
@@ -556,7 +564,16 @@ const loadSummary = async () => {
 
 const loadAll = () => Promise.allSettled([loadPlans(), loadSummary()])
 
+/**
+ * #420: the create door belongs to `manage.treatment_plan`. The guard lives
+ * here and not only on the buttons so no other caller — today the keyboard
+ * shortcut — can open the form without the permission.
+ */
+const canCreatePlan = () => can.createTreatmentPlan?.value === true
+
 const openCreateModal = () => {
+  if (!canCreatePlan()) return
+
   selectedPlan.value = null
   isEdit.value = false
   showModal.value = true
@@ -691,7 +708,7 @@ watch(
 const onKeydown = e => {
   if (e.target.matches('input, select, textarea')) return
   if (showModal.value || showDetailModal.value) return
-  if (e.key === 'n' || e.key === 'N') {
+  if ((e.key === 'n' || e.key === 'N') && canCreatePlan()) {
     e.preventDefault()
     openCreateModal()
   }
