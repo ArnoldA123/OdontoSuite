@@ -64,6 +64,7 @@ vi.mock('../../../resources/js/composables/useToast', () => ({
 
 import { useWebSocketNotifications } from '../../../resources/js/composables/useWebSocketNotifications'
 import { useCashRegister } from '../../../resources/js/composables/useCashRegister'
+import rolePermissions from '../support/role-permissions.json'
 
 const router = createRouter({
   history: createMemoryHistory(),
@@ -99,6 +100,12 @@ describe('domain channels are private (#249)', () => {
     echoMock.privateChannel.mockClear()
     echoMock.echo.leave.mockClear()
     api.current = null
+    // #378: the fan-out gates each subscription by permission, so the probe
+    // needs a session that holds them all to exercise the whole handshake.
+    localStorage.setItem(
+      'user',
+      JSON.stringify({ id: 1, role: 'administrador', permissions: rolePermissions.administrador })
+    )
   })
 
   it('subscribes the shared fan-out through privateChannel for every domain channel', async () => {
@@ -225,14 +232,28 @@ describe('domain channel consumers (#249)', () => {
     expect(offenders).toEqual([])
   })
 
-  it('subscribes every consumed domain channel through privateChannel', () => {
+  it('subscribes every consumed domain channel through the permission-gated helper', () => {
     const contents = fileContents()
 
+    // #378: the shell fan-out calls `privateChannel` only inside `subscribe()`,
+    // which first checks the catalog permission of the channel. Pages keep
+    // calling it directly; only the shared fan-out owns a gated list.
     for (const name of CONSUMED_CHANNELS) {
-      const subscribes = contents.some(({ source }) => source.includes(`privateChannel('${name}')`))
+      const gated = contents.some(
+        ({ file, source }) =>
+          file.endsWith('useWebSocketNotifications.js') && source.includes(`subscribe('${name}'`)
+      )
+      const direct = contents.some(({ source }) => source.includes(`privateChannel('${name}')`))
 
-      expect(subscribes, `No consumer subscribes to \`${name}\` through privateChannel.`).toBe(true)
+      expect(
+        gated || direct,
+        `No consumer subscribes to \`${name}\` through privateChannel or the gated helper.`
+      ).toBe(true)
     }
+
+    const fanOut = contents.find(({ file }) => file.endsWith('useWebSocketNotifications.js'))
+    expect(fanOut, 'the shell fan-out must exist').toBeTruthy()
+    expect(fanOut.source.match(/privateChannel\(/g) ?? []).toHaveLength(1)
   })
 
   it('destructures privateChannel from useEcho wherever it subscribes', () => {

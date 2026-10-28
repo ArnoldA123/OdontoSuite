@@ -2,7 +2,9 @@ import { onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useEcho } from './useEcho'
 import { useNotifications } from './useNotifications'
+import { usePermissions } from './usePermissions'
 import { useToast } from './useToast'
+import { CHANNEL_PERMISSIONS } from '@/utils/broadcastChannels'
 import { NotificationService } from '@/services/NotificationService'
 
 /**
@@ -11,6 +13,7 @@ import { NotificationService } from '@/services/NotificationService'
 export function useWebSocketNotifications() {
   const route = useRoute()
   const { privateChannel, echo } = useEcho()
+  const { has } = usePermissions()
   const { addNotification } = useNotifications()
   const { error: showErrorToast } = useToast()
 
@@ -88,99 +91,91 @@ export function useWebSocketNotifications() {
   }
 
   /**
+   * #378/#384: subscribe one domain channel only when the session holds the
+   * permission the server uses to authorize it. The wire name keeps the
+   * `private-` prefix because Echo's `leave()` does not add it.
+   */
+  const subscribe = (channelName, bind) => {
+    if (!has(CHANNEL_PERMISSIONS[channelName])) {
+      return
+    }
+
+    const channel = privateChannel(channelName)
+    if (!channel) {
+      return
+    }
+
+    bind(channel)
+    channels[`private-${channelName}`] = channel
+  }
+
+  /**
    * Configurar suscripciones a canales WebSocket
    */
   const setupSubscriptions = () => {
     try {
-      // Canal de citas
-      const appointmentsChannel = privateChannel('appointments')
-      if (appointmentsChannel) {
-        appointmentsChannel
+      subscribe('appointments', channel =>
+        channel
           .listen('.appointment.created', e => handleEvent('appointment.created', e))
           .listen('.appointment.updated', e => handleEvent('appointment.updated', e))
           .listen('.appointment.deleted', e => handleEvent('appointment.deleted', e))
-        channels['private-appointments'] = appointmentsChannel
-      }
+      )
 
-      // Canal de pacientes
-      const patientsChannel = privateChannel('patients')
-      if (patientsChannel) {
-        patientsChannel
+      subscribe('patients', channel =>
+        channel
           .listen('.patient.created', e => handleEvent('patient.created', e))
           .listen('.patient.updated', e => handleEvent('patient.updated', e))
           .listen('.patient.deleted', e => handleEvent('patient.deleted', e))
-        channels['private-patients'] = patientsChannel
-      }
+      )
 
-      // Canal de planes de tratamiento
-      const treatmentPlansChannel = privateChannel('treatment-plans')
-      if (treatmentPlansChannel) {
-        treatmentPlansChannel
+      subscribe('treatment-plans', channel =>
+        channel
           .listen('.treatment-plan.created', e => handleEvent('treatment-plan.created', e))
           .listen('.treatment-plan.updated', e => handleEvent('treatment-plan.updated', e))
           .listen('.treatment-plan.deleted', e => handleEvent('treatment-plan.deleted', e))
-        channels['private-treatment-plans'] = treatmentPlansChannel
-      }
+      )
 
-      // Canal de presupuestos
-      const quotationsChannel = privateChannel('quotations')
-      if (quotationsChannel) {
-        quotationsChannel
+      subscribe('quotations', channel =>
+        channel
           .listen('.quotation.created', e => handleEvent('quotation.created', e))
           .listen('.quotation.updated', e => handleEvent('quotation.updated', e))
           .listen('.quotation.sent', e => handleEvent('quotation.sent', e))
           .listen('.quotation.approved', e => handleEvent('quotation.approved', e))
           .listen('.quotation.rejected', e => handleEvent('quotation.rejected', e))
-        channels['private-quotations'] = quotationsChannel
-      }
+      )
 
-      // Canal de historias clínicas
-      const medicalRecordsChannel = privateChannel('medical-records')
-      if (medicalRecordsChannel) {
-        medicalRecordsChannel
+      subscribe('medical-records', channel =>
+        channel
           .listen('.medical-record.created', e => handleEvent('medical-record.created', e))
           .listen('.clinical-evolution.created', e => handleEvent('clinical-evolution.created', e))
           .listen('.clinical-addendum.created', e => handleEvent('clinical-addendum.created', e))
           .listen('.clinical-attachment.created', e =>
             handleEvent('clinical-attachment.created', e)
           )
-        channels['private-medical-records'] = medicalRecordsChannel
-      }
+      )
 
-      // Canal de registros de especialidades
-      const specialtyRecordsChannel = privateChannel('specialty-records')
-      if (specialtyRecordsChannel) {
-        specialtyRecordsChannel
+      subscribe('specialty-records', channel =>
+        channel
           .listen('.specialty-record.created', e => handleEvent('specialty-record.created', e))
           .listen('.specialty-record.updated', e => handleEvent('specialty-record.updated', e))
-        channels['private-specialty-records'] = specialtyRecordsChannel
-      }
+      )
 
-      // Canal de caja
-      const cashRegisterChannel = privateChannel('cash-register')
-      if (cashRegisterChannel) {
-        cashRegisterChannel
+      subscribe('cash-register', channel =>
+        channel
           .listen('.payment.registered', e => handleEvent('payment.registered', e))
           .listen('.cash-session.opened', e => handleEvent('cash-session.opened', e))
           .listen('.cash-session.closed', e => handleEvent('cash-session.closed', e))
-        channels['private-cash-register'] = cashRegisterChannel
-      }
+      )
 
-      // Canal de recordatorios
-      const remindersChannel = privateChannel('reminders')
-      if (remindersChannel) {
-        remindersChannel.listen('.reminder.sent', e => handleEvent('reminder.sent', e))
-        channels['private-reminders'] = remindersChannel
-      }
+      subscribe('reminders', channel =>
+        channel.listen('.reminder.sent', e => handleEvent('reminder.sent', e))
+      )
 
-      // Canal de catalogo de procedimientos (Sprint 3 fix IM-4)
-      const procedureCatalogChannel = privateChannel('procedure-catalog')
-      if (procedureCatalogChannel) {
-        procedureCatalogChannel.listen('.procedure.catalog.deactivated', e =>
+      subscribe('procedure-catalog', channel =>
+        channel.listen('.procedure.catalog.deactivated', e =>
           handleEvent('procedure.catalog.deactivated', e)
         )
-        channels['private-procedure-catalog'] = procedureCatalogChannel
-      }
+      )
     } catch (error) {
       console.error('[WebSocket] setupSubscriptions failed', error)
       showErrorToast('No se pudieron activar las notificaciones en vivo.')

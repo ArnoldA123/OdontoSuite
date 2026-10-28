@@ -43,6 +43,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/dashboard/DashboardPage.vue'
+import rolePermissions from '../support/role-permissions.json'
 
 const router = createRouter({
   history: createMemoryHistory(),
@@ -51,6 +52,7 @@ const router = createRouter({
 
 describe('dashboard private channel (#183)', () => {
   beforeEach(() => {
+    localStorage.clear()
     echoMock.channel.mockClear()
     echoMock.privateChannel.mockClear()
     echoMock.echo.leave.mockClear()
@@ -66,5 +68,43 @@ describe('dashboard private channel (#183)', () => {
     wrapper.unmount()
 
     expect(echoMock.echo.leave).toHaveBeenCalledWith('private-dashboard-updates')
+  })
+
+  // #378: finance lands on the dashboard but cannot read the agenda, so asking
+  // for the appointments channel only bought a 403 on every load.
+  it('does not ask for the appointments channel when the role cannot read it', async () => {
+    localStorage.setItem(
+      'user',
+      JSON.stringify({ id: 1, role: 'finanzas', permissions: rolePermissions.finanzas })
+    )
+
+    const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+    await flushPromises()
+
+    const requested = echoMock.privateChannel.mock.calls.map(([name]) => name)
+
+    expect(requested).toContain('dashboard-updates')
+    expect(requested).toContain('patients')
+    expect(requested).not.toContain('appointments')
+
+    wrapper.unmount()
+  })
+
+  it('keeps the appointment and cash channels for the roles that hold them', async () => {
+    localStorage.setItem(
+      'user',
+      JSON.stringify({ id: 1, role: 'administrador', permissions: rolePermissions.administrador })
+    )
+
+    const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+    await flushPromises()
+
+    const requested = echoMock.privateChannel.mock.calls.map(([name]) => name)
+
+    expect(requested).toEqual(
+      expect.arrayContaining(['dashboard-updates', 'patients', 'appointments', 'cash-register'])
+    )
+
+    wrapper.unmount()
   })
 })

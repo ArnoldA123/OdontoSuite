@@ -764,6 +764,9 @@ const { privateChannel, echo } = useEcho()
 // design), so the dashboard must not ask for it. The same flag gates the
 // card, the load and the channel subscription that refreshes it.
 const canViewCashRegister = computed(() => can.viewCashRegister?.value === true)
+// #378: every role reaches the dashboard, but the appointments channel only
+// authorizes the desks that read the agenda, so finance must not ask for it.
+const canViewAppointments = computed(() => can.viewAppointment?.value === true)
 
 // State
 // #387 - the first frame is the skeleton. Starting `false` painted the
@@ -1507,7 +1510,7 @@ onMounted(async () => {
         .listen('.patient.deleted', () => debouncedLoadDashboardData())
     }
 
-    appointmentsChannel = privateChannel('appointments')
+    appointmentsChannel = canViewAppointments.value ? privateChannel('appointments') : null
     if (appointmentsChannel) {
       appointmentsChannel
         .listen('.appointment.created', e => {

@@ -166,6 +166,9 @@ export function usePermissions() {
 
   return {
     can,
+    // Raw membership check for callers that gate on a permission name instead
+    // of a `can.*` flag (#378: the WebSocket channel map).
+    has,
     isAdministrador,
     isRecepcionista,
     isClinical,
