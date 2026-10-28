@@ -319,6 +319,40 @@ describe('ready-to-bill: list', () => {
 })
 
 describe('ready-to-bill: preview', () => {
+  it('names the origin of the amount and never publishes a subtotal the total contradicts', async () => {
+    // #459 — an attention billed by its appointment type arrives with no plan
+    // items and the total from the closure. The card used to publish
+    // Subtotal 0.00 beside Total 90.00, with nothing in between.
+    const fixedAmountPreview = {
+      ...preview,
+      items: [],
+      subtotal: 90,
+      final_amount: 90,
+      paid_amount: 0,
+      balance: 90,
+      amount_source: 'fixed_amount'
+    }
+    harness.apiGet.mockImplementation(async url => {
+      if (url === '/api/appointments/41/payment-preview') {
+        return { data: fixedAmountPreview }
+      }
+      return { data: rows, meta }
+    })
+    await mountPage({ global: { stubs: { teleport: true } } })
+
+    await wrapper.find('[data-preview-action="41"]').trigger('click')
+    await flushPromises()
+
+    const totals = wrapper.find('[data-preview-totals]')
+    expect(wrapper.text()).toContain('Sin items (monto fijo por tipo de cita)')
+    expect(totals.find('[data-preview-subtotal]').text()).toContain(formatCurrency(90))
+    expect(totals.find('[data-preview-total]').text()).toContain(formatCurrency(90))
+
+    const source = totals.find('[data-preview-source]')
+    expect(source.exists()).toBe(true)
+    expect(source.text()).toContain('Monto fijo por tipo de cita')
+  })
+
   it('renders the payment-preview error inside the modal with a retry', async () => {
     harness.apiGet.mockImplementation(async url => {
       if (url === '/api/appointments/41/payment-preview') {

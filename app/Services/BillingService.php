@@ -111,9 +111,15 @@ class BillingService
             ])
             ->all();
 
-        $subtotal = collect($items)->sum(fn ($i) => $i['total_cost']);
+        $itemsSubtotal = collect($items)->sum(fn ($i) => $i['total_cost']);
         // #393 — the same balance the billable list publishes.
         $summary = AppointmentBalance::summary($appointment);
+        // #459 — an attention billed by its appointment type has no plan items,
+        // so summing them published `Subtotal 0.00` beside the amount to
+        // collect. The preview names the origin and, without items, the
+        // subtotal is that same total.
+        $amountSource = $items === [] ? 'fixed_amount' : 'plan_items';
+        $subtotal = $amountSource === 'fixed_amount' ? $summary['total'] : $itemsSubtotal;
 
         $quotations = $appointment->quotations
             ->map(fn (Quotation $q) => [
@@ -133,6 +139,7 @@ class BillingService
             ],
             'items' => $items,
             'subtotal' => round($subtotal, 2),
+            'amount_source' => $amountSource,
             'final_amount' => $summary['total'],
             'paid_amount' => $summary['paid'],
             'balance' => $summary['balance'],

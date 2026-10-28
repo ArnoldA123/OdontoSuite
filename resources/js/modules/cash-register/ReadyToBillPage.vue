@@ -491,12 +491,21 @@ onBeforeUnmount(() => {
         </ul>
       </div>
 
-      <div class="space-y-1 border-t border-hairline pt-3 text-sm">
-        <div class="flex justify-between">
+      <div class="space-y-1 border-t border-hairline pt-3 text-sm" data-preview-totals>
+        <div class="flex justify-between" data-preview-subtotal>
           <span>Subtotal</span>
           <span class="tabular-nums">{{ formatCurrency(previewData.subtotal) }}</span>
         </div>
-        <div class="flex justify-between font-semibold">
+        <!-- #459 — the figure comes from the closure, not from the items: name
+             the origin instead of publishing a subtraction that explains nothing. -->
+        <p
+          v-if="previewData.amount_source === 'fixed_amount'"
+          class="text-xs text-theme-secondary"
+          data-preview-source
+        >
+          Monto fijo por tipo de cita
+        </p>
+        <div class="flex justify-between font-semibold" data-preview-total>
           <span>Total a cobrar</span>
           <span class="tabular-nums">{{ formatCurrency(previewData.final_amount) }}</span>
         </div>
