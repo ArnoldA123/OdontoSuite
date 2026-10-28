@@ -12,7 +12,12 @@ const emptyCounts = () => ({ waiting: 0, attending: 0, upcoming: 0, ready_lab_ca
 
 const queue = ref(emptyQueue())
 const counts = ref(emptyCounts())
-const loading = ref(false)
+// #387 - the desk's first frame is the skeleton. Starting `false` painted the
+// three sections with empty buckets before the queue resolved.
+const loading = ref(true)
+// #387 - separates "not answered yet" from "answered with empties": the
+// counters read `—` until the first response lands, then the real counts.
+const hasLoaded = ref(false)
 const error = ref(null)
 const acting = ref(null)
 
@@ -22,15 +27,14 @@ let subscribedUserId = null
 const asList = value => (Array.isArray(value) ? value : [])
 
 /**
- * Same precedence the custody actions already use: the API's `error.message`
- * envelope first (409 `arrival_not_allowed` / `attention_not_allowed`), then
- * the generic message, then the caller's fallback.
+ * #389 - only the API envelope may be echoed: the domain `error.message`
+ * first (409 `arrival_not_allowed` / `attention_not_allowed`), then the
+ * generic message, then the caller's fallback. A transport failure
+ * (`TypeError('Failed to fetch')`) carries no `response` and its `message` is
+ * the browser's English text, so it always falls back to the Spanish copy.
  */
 const messageFor = (thrown, fallback) =>
-  thrown?.response?.data?.error?.message ||
-  thrown?.response?.data?.message ||
-  thrown?.message ||
-  fallback
+  thrown?.response?.data?.error?.message || thrown?.response?.data?.message || fallback
 
 export function useMyDay() {
   /**
@@ -57,8 +61,11 @@ export function useMyDay() {
         upcoming: meta.upcoming ?? next.upcoming.length,
         ready_lab_cases: meta.ready_lab_cases ?? next.ready_lab_cases.length
       }
+      hasLoaded.value = true
       error.value = null
     } catch (thrown) {
+      // A failed first load leaves the counters as "unknown" (`—`) instead of
+      // painting a zero over a queue the desk never received.
       error.value = messageFor(thrown, 'No se pudo cargar tu día')
     } finally {
       loading.value = false
@@ -160,6 +167,7 @@ export function useMyDay() {
     queue,
     counts,
     loading,
+    hasLoaded,
     error,
     acting,
     load,

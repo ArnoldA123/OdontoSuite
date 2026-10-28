@@ -49,7 +49,7 @@
                 class="mt-1 text-2xl font-semibold text-label tabular-nums"
                 style="font-feature-settings: var(--font-features-tabular-nums)"
               >
-                {{ counts[stat.key] ?? 0 }}
+                {{ countValue(stat.key) }}
               </dd>
             </div>
           </dl>
@@ -264,6 +264,7 @@ const {
   queue,
   counts,
   loading,
+  hasLoaded,
   error,
   acting,
   load,
@@ -297,6 +298,11 @@ const statCards = [
   { key: 'upcoming', label: 'Próximos' },
   { key: 'ready_lab_cases', label: 'Laboratorio' }
 ]
+
+// #387 - the counters summarize the queue, so before the first response there
+// is no count to show: a `0` here would read as an empty day. `—` says
+// "unknown", and the real value (including a real 0) lands with the payload.
+const countValue = key => (hasLoaded.value ? (counts.value[key] ?? 0) : '—')
 
 const sections = computed(() => [
   {

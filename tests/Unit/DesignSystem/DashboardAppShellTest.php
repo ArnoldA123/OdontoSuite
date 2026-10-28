@@ -789,8 +789,9 @@ class DashboardAppShellTest extends TestCase
             );
         }
 
-        // The page-level stats error is a different role (it replaces the
-        // whole page) and stays as its own block.
+        // The page-level stats error reports only the summary in its own
+        // space (#388): a failure there no longer unmounts the data sections,
+        // so the block stays as its own distinct role.
         $this->assertSame(
             1,
             substr_count($src, 'data-state="error-stats"'),
