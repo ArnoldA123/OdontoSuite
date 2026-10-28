@@ -104,6 +104,9 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
 import uiComponents from '../../../resources/js/plugins/ui-components'
+import { nextTick } from 'vue'
+import { readFileSync } from 'node:fs'
+import UiDataTable from '../../../resources/js/components/ui/DataTable.vue'
 import { useToast } from '../../../resources/js/composables/useToast'
 import { SPECIALTY_OPTIONS } from '../../../resources/js/modules/professionals/professionals.constants'
 import Page from '../../../resources/js/modules/professionals/ProfessionalsPage.vue'
@@ -817,6 +820,85 @@ describe('professionals smoke', () => {
     expect(wrapper.findAll('[data-team-row]')).toHaveLength(3)
 
     getMock.mockImplementation(originalImplementation)
+    wrapper.unmount()
+  })
+})
+
+// #453 (U11, list): the team list inherits the module's table contract. The
+// endpoint answers the whole clinical team in one read, so the primitive never
+// paginates: the page keeps its own filters and counter, and the primitive owns
+// the internal scroll, its affordance and the row hooks.
+describe('professionals list inherits UiDataTable (#453)', () => {
+  const pageSource = () =>
+    readFileSync('resources/js/modules/professionals/ProfessionalsPage.vue', 'utf8')
+
+  beforeEach(() => {
+    getMock.mockClear()
+    installTeam(TEAM)
+    seedSession('administrador')
+    useToast().clearAll()
+  })
+
+  // jsdom performs no layout: the overflow the primitive advertises is declared
+  // by the test through the viewport geometry the primitive reads.
+  const declareTableOverflow = async (wrapper, { scrollWidth = 960, clientWidth = 640 } = {}) => {
+    const viewport = wrapper.get('[data-team-table] [data-table-scroll-viewport]').element
+    Object.defineProperty(viewport, 'scrollWidth', { configurable: true, value: scrollWidth })
+    Object.defineProperty(viewport, 'clientWidth', { configurable: true, value: clientWidth })
+    viewport.scrollLeft = 0
+    window.dispatchEvent(new Event('resize'))
+    await nextTick()
+    await nextTick()
+  }
+
+  it('renders the team through UiDataTable instead of a hand-rolled table', async () => {
+    const wrapper = await mountPage()
+
+    expect(wrapper.findComponent(UiDataTable).exists()).toBe(true)
+    expect(wrapper.find('[data-team-table] table').exists()).toBe(true)
+    expect(wrapper.find('[data-team-table] [data-table-scroll]').exists()).toBe(true)
+
+    // The page no longer renders its own table markup, and the primitive is
+    // fed the whole collection with pagination disabled.
+    expect(pageSource()).not.toMatch(/<table\b/)
+    expect(wrapper.findComponent(UiDataTable).props('pagination')).toBe(false)
+
+    // The primitive renders the same columns the page owned before.
+    const header = wrapper.get('[data-team-table] thead').text()
+    for (const label of ['Profesional', 'Especialidad', 'Rol', 'Matrícula', 'Sucursal']) {
+      expect(header).toContain(label)
+    }
+    expect(header).toContain('Estado')
+    expect(header).toContain('Acciones')
+
+    wrapper.unmount()
+  })
+
+  it('keeps the row hook, its cells and its actions inside the table', async () => {
+    const wrapper = await mountPage()
+
+    const row = wrapper.get('[data-team-table] [data-team-row]')
+    expect(row.element.tagName).toBe('TR')
+    expect(row.text()).toContain('Ana Torres')
+    expect(row.text()).toContain('Ortodoncia')
+    expect(row.text()).toContain('Odontólogo')
+
+    const labels = row.findAll('button').map(button => button.text().trim())
+    expect(labels).toEqual(['Ver Detalle', 'Editar', 'Eliminar'])
+
+    wrapper.unmount()
+  })
+
+  it('publishes the primitive scroll affordance when the columns overflow', async () => {
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-table-scroll-affordance]').exists()).toBe(false)
+
+    await declareTableOverflow(wrapper)
+
+    expect(wrapper.get('[data-table-scroll]').attributes('data-table-scroll')).toBe('right')
+    expect(wrapper.get('[data-table-scroll-affordance]').text()).toMatch(/columnas/i)
+
     wrapper.unmount()
   })
 })

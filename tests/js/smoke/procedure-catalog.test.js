@@ -1,6 +1,7 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { nextTick } from 'vue'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
@@ -78,6 +79,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/procedure-catalog/ProcedureCatalogPage.vue'
+import DataTable from '../../../resources/js/components/ui/DataTable.vue'
 
 const flat = value => String(value).replace(/\s+/g, ' ')
 
@@ -103,6 +105,18 @@ const duplicateButton = () =>
   [...document.body.querySelectorAll('button')].find(
     button => button.textContent.trim() === 'Duplicar'
   )
+
+// jsdom performs no layout: the overflow the primitive advertises is declared by
+// the test through the viewport geometry the primitive reads.
+const declareTableOverflow = async (wrapper, { scrollWidth = 960, clientWidth = 640 } = {}) => {
+  const viewport = wrapper.get('[data-procedure-table] [data-table-scroll-viewport]').element
+  Object.defineProperty(viewport, 'scrollWidth', { configurable: true, value: scrollWidth })
+  Object.defineProperty(viewport, 'clientWidth', { configurable: true, value: clientWidth })
+  viewport.scrollLeft = 0
+  window.dispatchEvent(new Event('resize'))
+  await nextTick()
+  await nextTick()
+}
 
 describe('procedure-catalog smoke', () => {
   beforeEach(() => {
@@ -157,6 +171,30 @@ describe('procedure-catalog smoke', () => {
     // #436: the list rides the module's table primitive, so the overflow
     // affordance and the scroll hook arrive with it.
     expect(wrapper.find('[data-procedure-table] [data-table-scroll]').exists()).toBe(true)
+
+    // #453: the primitive renders the same columns the page declared.
+    const header = wrapper.get('[data-procedure-table] thead').text()
+    for (const label of ['Código', 'Procedimiento', 'Especialidad', 'Duración', 'Costo']) {
+      expect(header).toContain(label)
+    }
+    expect(header).toContain('Estado')
+    expect(header).toContain('Acciones')
+
+    wrapper.unmount()
+  })
+
+  it('publishes the primitive scroll affordance when the columns overflow', async () => {
+    const { wrapper } = await mountPage()
+
+    expect(wrapper.findComponent(DataTable).exists()).toBe(true)
+    expect(wrapper.find('[data-table-scroll-affordance]').exists()).toBe(false)
+
+    await declareTableOverflow(wrapper)
+
+    expect(wrapper.get('[data-table-scroll]').attributes('data-table-scroll')).toBe('right')
+    const hint = wrapper.get('[data-table-scroll-affordance]')
+    expect(hint.text()).toMatch(/desliza/i)
+    expect(hint.text()).toMatch(/columnas/i)
 
     wrapper.unmount()
   })

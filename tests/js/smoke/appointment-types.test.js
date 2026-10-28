@@ -56,9 +56,12 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
 import uiComponents from '../../../resources/js/plugins/ui-components'
+import { readFileSync } from 'node:fs'
+import { nextTick } from 'vue'
 import Page from '../../../resources/js/modules/appointment-types/AppointmentTypesPage.vue'
 import Modal from '../../../resources/js/components/ui/Modal.vue'
 import Select from '../../../resources/js/components/ui/Select.vue'
+import DataTable from '../../../resources/js/components/ui/DataTable.vue'
 import rolePermissions from '../support/role-permissions.json'
 
 // #439: `usePermissions()` is a membership check on the permission list the API
@@ -463,6 +466,91 @@ describe('appointment-types smoke', () => {
 
     expect(deleteMock).toHaveBeenCalledTimes(1)
     expect(String(deleteMock.mock.calls[0][0])).toContain('/api/appointment-types/1')
+    wrapper.unmount()
+  })
+})
+
+// #453 (U11, list): the catalog list inherits the module's table contract. The
+// endpoint answers the whole catalog in one `status=all` read, so the primitive
+// never paginates: the page keeps its client-side filters and its `N de M`
+// counter, and the primitive owns the internal scroll, its affordance and the
+// row hooks.
+describe('appointment-types list inherits UiDataTable (#453)', () => {
+  const pageSource = () =>
+    readFileSync('resources/js/modules/appointment-types/AppointmentTypesPage.vue', 'utf8')
+
+  beforeEach(() => {
+    seedSession('administrador')
+    getMock.mockReset()
+    deleteMock.mockReset()
+    deleteMock.mockImplementation(async () => ({ data: {} }))
+  })
+
+  // jsdom performs no layout: the overflow the primitive advertises is declared
+  // by the test through the viewport geometry the primitive reads.
+  const declareTableOverflow = async (wrapper, { scrollWidth = 960, clientWidth = 640 } = {}) => {
+    const viewport = wrapper.get('[data-types-table] [data-table-scroll-viewport]').element
+    Object.defineProperty(viewport, 'scrollWidth', { configurable: true, value: scrollWidth })
+    Object.defineProperty(viewport, 'clientWidth', { configurable: true, value: clientWidth })
+    viewport.scrollLeft = 0
+    window.dispatchEvent(new Event('resize'))
+    await nextTick()
+    await nextTick()
+  }
+
+  it('renders the catalog through UiDataTable instead of a hand-rolled table', async () => {
+    const wrapper = await mountPage(CATALOG)
+
+    expect(wrapper.findComponent(DataTable).exists()).toBe(true)
+    expect(wrapper.find('[data-types-table] table').exists()).toBe(true)
+    expect(wrapper.find('[data-types-table] [data-table-scroll]').exists()).toBe(true)
+
+    // The page no longer renders its own table markup, and the primitive is
+    // fed the whole catalog with pagination disabled (the endpoint does not
+    // paginate, so inventing a client page would hide rows).
+    expect(pageSource()).not.toMatch(/<table\b/)
+    expect(wrapper.findComponent(DataTable).props('pagination')).toBe(false)
+
+    // The primitive renders the same columns the page owned before.
+    const header = wrapper.get('[data-types-table] thead').text()
+    for (const label of ['Nombre', 'Descripción', 'Duración', 'Precio', 'Estado']) {
+      expect(header).toContain(label)
+    }
+    expect(header).toContain('Acciones')
+
+    wrapper.unmount()
+  })
+
+  it('keeps the row hook, its cells and its actions inside the table', async () => {
+    const wrapper = await mountPage(CATALOG)
+
+    const row = wrapper.get('[data-types-table] [data-type-row]')
+    expect(row.element.tagName).toBe('TR')
+    expect(row.text()).toContain('Limpieza dental')
+    expect(row.text()).toContain('Profilaxis dental completa')
+    expect(row.text()).toContain('30 min')
+    expect(row.text()).toContain('Activo')
+    expect(row.find('[data-type-swatch]').exists()).toBe(true)
+    expect(row.get('[aria-label^="Precio"]').text().length).toBeGreaterThan(0)
+
+    const actions = row
+      .findAll('[data-row-action]')
+      .map(action => action.attributes('data-row-action'))
+    expect(actions).toEqual(['detail', 'edit', 'delete'])
+
+    wrapper.unmount()
+  })
+
+  it('publishes the primitive scroll affordance when the columns overflow', async () => {
+    const wrapper = await mountPage(CATALOG)
+
+    expect(wrapper.find('[data-table-scroll-affordance]').exists()).toBe(false)
+
+    await declareTableOverflow(wrapper)
+
+    expect(wrapper.get('[data-table-scroll]').attributes('data-table-scroll')).toBe('right')
+    expect(wrapper.get('[data-table-scroll-affordance]').text()).toMatch(/columnas/i)
+
     wrapper.unmount()
   })
 })
