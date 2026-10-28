@@ -96,6 +96,14 @@ class AppointmentController extends Controller
             $query->where('user_id', $request->get('user_id'));
         }
 
+        // #395: la agenda acota por sillón como ya acota por profesional. Un
+        // valor vacío no filtra: el cliente manda el parámetro incluso cuando
+        // el filtro está limpio, y "sin filtro" no es "ningún sillón". El
+        // alcance por sede de abajo sigue gobernando la población.
+        if ($request->filled('dental_chair_id')) {
+            $query->where('dental_chair_id', (int) $request->get('dental_chair_id'));
+        }
+
         // Filter by status
         if ($request->has('status')) {
             $query->where('status', $request->get('status'));
