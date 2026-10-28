@@ -285,6 +285,10 @@ class AppointmentService
 
     /**
      * Cancel an appointment and notify waiting list.
+     *
+     * #394: the motive lives in the appointment's own column, like every other
+     * cancellation door. It is not appended to `notes`, which any later edit
+     * overwrites.
      */
     public function cancelAppointment(Appointment $appointment, ?string $reason = null): Appointment
     {
@@ -293,9 +297,9 @@ class AppointmentService
         DB::beginTransaction();
 
         try {
+            $appointment->cancellation_reason = $reason;
             $appointment->update([
                 'status' => 'cancelled',
-                'notes' => $reason ? ($appointment->notes."\n\nCancelación: ".$reason) : $appointment->notes,
                 'updated_by' => Auth::id(),
             ]);
 
