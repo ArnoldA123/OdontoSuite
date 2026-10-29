@@ -11,6 +11,7 @@ use App\Services\RecallService;
 use App\Support\PerPage;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -127,6 +128,20 @@ class PatientRecallController extends Controller
             ]);
         } catch (ValidationException $e) {
             throw $e;
+        } catch (QueryException $e) {
+            // #501 — a soft-deleted appointment still owns its generated
+            // `slot_reservation` in the unique index, so the insert can collide
+            // after the pre-check passed. The agenda contract names that answer
+            // 422 `slot_taken`, never a 500.
+            if (str_contains($e->getMessage(), 'slot_reservation') || $e->getCode() === '23000') {
+                throw ValidationException::withMessages([
+                    'scheduled_at' => ['Ese horario ya está ocupado por otra cita activa. Actualiza la agenda y vuelve a intentarlo.'],
+                ]);
+            }
+
+            Log::error('PatientRecallController@schedule: '.$e->getMessage(), ['exception' => $e]);
+
+            return response()->json(['message' => 'Error al agendar la cita de control'], 500);
         } catch (\Throwable $e) {
             Log::error('PatientRecallController@schedule: '.$e->getMessage(), ['exception' => $e]);
 
