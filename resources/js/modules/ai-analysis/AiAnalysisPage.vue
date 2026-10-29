@@ -278,7 +278,10 @@
               <span class="text-theme-secondary">{{ categoryLabel(row) }}</span>
             </template>
             <template #cell-status="{ row }">
-              <UiStatusBadge :variant="statusVariant(row.status)" size="sm">
+              <UiStatusBadge v-if="row.voided_at" variant="neutral" size="sm" data-ai-voided-badge>
+                Anulado
+              </UiStatusBadge>
+              <UiStatusBadge v-else :variant="statusVariant(row.status)" size="sm">
                 {{ getStatusLabel(row.status) }}
               </UiStatusBadge>
             </template>
@@ -422,16 +425,20 @@ const paginationMeta = ref({
 const filters = ref({
   status: '',
   reviewed: '',
+  voided: false,
   date_from: '',
   date_to: ''
 })
 const searchQuery = ref('')
 
+// #501 — the API keeps the voided trail and only `?voided=1` lists it (#296); the
+// surface offers that read as its own preset instead of hiding the trace.
 const presets = [
-  { id: 'all', label: 'Todas', status: '', reviewed: '' },
-  { id: 'pending', label: 'Pendientes', status: 'completed', reviewed: false },
-  { id: 'completed', label: 'Completados', status: 'completed', reviewed: '' },
-  { id: 'failed', label: 'Fallidos', status: 'failed', reviewed: '' }
+  { id: 'all', label: 'Todas', status: '', reviewed: '', voided: false },
+  { id: 'pending', label: 'Pendientes', status: 'completed', reviewed: false, voided: false },
+  { id: 'completed', label: 'Completados', status: 'completed', reviewed: '', voided: false },
+  { id: 'failed', label: 'Fallidos', status: 'failed', reviewed: '', voided: false },
+  { id: 'voided', label: 'Anulados', status: '', reviewed: '', voided: true }
 ]
 
 const reviewedOptions = [
@@ -511,6 +518,7 @@ const nonEmptyFilters = () => {
   if (filters.value.reviewed !== '') result.reviewed = filters.value.reviewed
   if (filters.value.date_from) result.date_from = filters.value.date_from
   if (filters.value.date_to) result.date_to = filters.value.date_to
+  if (filters.value.voided) result.voided = 1
 
   return result
 }
@@ -520,7 +528,11 @@ const hasActiveFilters = computed(() => Object.keys(nonEmptyFilters()).length > 
 const isPresetActive = presetId => {
   const preset = presets.find(item => item.id === presetId)
   if (!preset) return false
-  return filters.value.status === preset.status && filters.value.reviewed === preset.reviewed
+  return (
+    filters.value.status === preset.status &&
+    filters.value.reviewed === preset.reviewed &&
+    Boolean(filters.value.voided) === Boolean(preset.voided)
+  )
 }
 
 const patientName = row => {
@@ -657,7 +669,12 @@ const applyPreset = presetId => {
   const preset = presets.find(item => item.id === presetId)
   if (!preset) return
 
-  filters.value = { ...filters.value, status: preset.status, reviewed: preset.reviewed }
+  filters.value = {
+    ...filters.value,
+    status: preset.status,
+    reviewed: preset.reviewed,
+    voided: Boolean(preset.voided)
+  }
   loadData(1)
 }
 
@@ -695,7 +712,7 @@ const clearFilters = () => {
   }
 
   searchQuery.value = ''
-  filters.value = { status: '', reviewed: '', date_from: '', date_to: '' }
+  filters.value = { status: '', reviewed: '', voided: false, date_from: '', date_to: '' }
   loadData(1)
 }
 
