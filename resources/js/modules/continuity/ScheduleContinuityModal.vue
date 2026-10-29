@@ -2,13 +2,16 @@
   <UiModal
     :model-value="modelValue"
     size="lg"
+    :labelledby="titleId"
     data-schedule-modal
     @update:model-value="value => emit('update:modelValue', value)"
     @close="emit('update:modelValue', false)"
   >
     <template #header>
       <div class="min-w-0">
-        <h2 class="text-lg font-semibold text-theme-primary" data-schedule-title>{{ title }}</h2>
+        <h2 :id="titleId" class="text-lg font-semibold text-theme-primary" data-schedule-title>
+          {{ title }}
+        </h2>
         <p class="mt-1 text-sm text-theme-secondary" data-schedule-patient>
           {{ patientFullName(row?.patient) }}
         </p>
@@ -220,6 +223,9 @@ const isRecall = computed(() => props.kind === 'recall')
 const title = computed(() =>
   isRecall.value ? 'Agendar cita de control' : 'Agendar cita de continuidad'
 )
+// #501 — the custom header replaces the modal's own, so it names the dialog
+// itself; without it the schedule dialog announced no accessible name.
+const titleId = `schedule-title-${Math.random().toString(36).slice(2, 8)}`
 const formId = computed(() => `continuity-${props.kind}-schedule-form`)
 
 const professionals = ref([])
