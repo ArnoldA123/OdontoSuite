@@ -200,11 +200,10 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   pruebas en 173 archivos**, ESLint 0 errores / 36 avisos, Prettier y
   `vite build` en verde, Pint **928 archivos**, `doc-drift` 14/14 y
   `ui-pass --all` 36/36 superficies con gate OK (la corrida de sesión deja 10
-  fallos del arnés, corregidos en #501: la corrida completa medida después queda
-  en 425 passed / 4 failed / 2 skipped y, con la lectura del vacío ya re-medida
-  en verde, quedan tres sondas de U5/U6 como deuda propia, ver
-  `docs/mejoras/13-informe-correccion-2026-10.md` §6). El cierre no cambia
-  producto.
+  fallos del arnés, que #501 corrige: la corrida completa medida después queda
+  en **429 passed / 0 failed / 2 skipped** en 32.7 min y el gate sigue 36/36 con
+  40 diálogos; ver `docs/mejoras/13-informe-correccion-2026-10.md` §6). El
+  cierre no cambia producto.
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
 - 71 modelos, 48 controllers API, 37 eventos (10 listener classes / 13 cableos
@@ -624,17 +623,27 @@ documentada y no bloquea producción.
   21 caracteres → 422 (#434), `q` filtra y `search` no, `is_active=false`
   devuelve sólo inactivos (#433)— y la corrida exige cero desviaciones. «Listos
   para facturar» lee el vacío declarado por la página (`[data-rtb-empty]`, #452)
-  en vez de desreferenciar una tabla ausente. Medido sobre una base
-  `odontosuite_audit` sembrada y la app en `:8000` con
+  en vez de desreferenciar una tabla ausente. Con eso en verde, la corrida
+  completa destapó la deuda propia de dos sondas, corregida en la misma rama sin
+  tocar producto: el walkthrough de caja asumía un actor sin gaveta, y el seeder
+  abre gavetas a usuarios al azar, así que el héroe de tres estados (#407), la
+  apertura y los cierres se adaptan al estado que la base da (una gaveta del
+  seeder se reusa y no se cierra), el cobro con Yape envía una sola vez y
+  declara por qué no puede enviar, la aritmética del bloqueo contable incluye el
+  reintento autorizado y la conciliación del período deriva sus deltas del
+  propio walkthrough en vez de literales caducados; un paso que mide algo
+  distinto de lo esperado cita su medición en vez de tumbar la fila. En el walk
+  de planes, un select que no abría pulsaba Escape y cerraba el modal que lo
+  contenía, y los rellenos sin timeout esperaban hasta el presupuesto de 900 s:
+  ahora el select no cierra un diálogo y cada relleno tiene su tope. Medido
+  sobre una base `odontosuite_audit` sembrada y la app en `:8000` con
   `PHP_CLI_SERVER_WORKERS=6`: rojo reproducido para cada causa y verde para cada
   corrección, `vitest` 175 archivos / 1574 pruebas, y la corrida completa
-  `--all` de **361 passed / 10 failed / 60 skipped** a **425 passed / 4 failed /
-  2 skipped** (48.6 min). De esos cuatro, la lectura del vacío quedó re-medida
-  en verde; quedan tres sondas fuera de las seis causas —los dos walkthroughs de
-  caja (U5) y el walk de planes (U6)—, que arrastran expectativas anteriores a
-  #407/#410/#466 y agotan los 900 s del walk de planes: su veredicto exige una
-  decisión de producto. Sin rutas, modelos, migraciones ni permisos nuevos: los
-  conteos de §4/§5 no cambian.
+  `--all` de **361 passed / 10 failed / 60 skipped** a **429 passed / 0 failed /
+  2 skipped** (32.7 min), con gate **36/36**, 0 page errors y 40 diálogos
+  medidos. Los hallazgos de producto que las sondas siguen midiendo quedan en su
+  evidencia con veredicto, como manda el instrumento. Sin rutas, modelos,
+  migraciones ni permisos nuevos: los conteos de §4/§5 no cambian.
 - **2026-10-28 (cierre de la auditoría UI 2026-10: 71/71 issues y acta de la
   ola 7)** — Las olas 1-6 estaban mergeadas (`main` = `origin/main` =
   `a3a7db29`) y la etiqueta `auditoria-2026-10` ya no tenía issues abiertos. El

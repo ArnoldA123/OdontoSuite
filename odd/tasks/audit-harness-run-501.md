@@ -45,12 +45,15 @@ Sólo arnés (`tests/e2e/audit/**`): ninguna ruta, payload, permiso ni pantalla 
 | T7  | S5    | inline | U8: contrato corregido y cero desviaciones                            | `f5284a8f` |
 | T8  | S7    | inline | Corrida de reproducción y corrida de verificación medida              | ver §Log   |
 | T9  | —     | inline | `listos para facturar` lee el vacío declarado (#452)                   | `3f3230c0` |
-| T10 | —     | inline | Docs: estado, informe de cierre y esta nota                           | `5e2c9682` |
+| T10 | S6    | inline | La caja mide el estado que la base le da (héroe, reuso, aritmética) | `b9055e47` |
+| T11 | —     | inline | U6: el select de un diálogo no cierra el formulario que lo contiene   | `41d67c84` |
+| T12 | —     | inline | Docs: estado, informe de cierre y esta nota                           | pendiente  |
 
-**Entrega**: la rama acumula 9 commits de unidad y ~664 líneas propias (incluida la documentación),
-por encima del corte de revisión de ~400. La entrega se parte en dos PRs encadenados: **A** = T1-T4
-(`6b028dac`…`b726d9fb`) y **B** = T5-T8 + docs (`c3cd1c17`…`5e2c9682`) sobre A. El push y la apertura
-de los PRs son decisión del usuario.
+**Entrega**: la rama acumula las seis causas del issue más la deuda que destapó la primera corrida
+completa. Se entrega en tres PRs encadenados: **A** = las seis causas (`6b028dac`…`f5284a8f`),
+**B** = residuo de U9, vacío de «listos para facturar» y matriz corregida (`41deb080`…`3f3230c0`),
+**C** = sondas de caja y de planes + docs (`b9055e47`…docs) sobre B. El push y la apertura de los
+PRs son decisión del usuario.
 
 ## Log
 
@@ -99,7 +102,12 @@ de los PRs son decisión del usuario.
   #407/#410/#466 y dependen del estado de dinero de la base, y `@U6 · planes` agota sus 900 s tras
   fallar el paso que espera `[data-plan-submit]`. Se reportan al usuario; no se reescriben aquí
   porque el veredicto correcto de esas filas exige una decisión de producto.
-- **L8** (evidencia): `RED501/` (u1 timeout, u3 `dayColumnWidth` null, u5 TypeError, u7 TypeError,
+- **L8** (corrida de cierre, `VERIFY501C`, base recién sembrada, app :8000): **429 passed / 0
+  failed / 2 skipped en 32.7 min** (Playwright exit 0) y gate `ui-pass` **36/36**, 0 page errors, 40
+  diálogos, 0 filas de contrato fallidas. Las sondas siguen registrando sus hallazgos de producto con
+  veredicto (caja: la fila de cobro publica el precio del tipo de cita y no el saldo; planes: el alta
+  no encuentra el submit tras la segunda línea) sin tumbar la fila, que es el contrato del instrumento.
+- **L9** (evidencia): `RED501/` (u1 timeout, u3 `dayColumnWidth` null, u5 TypeError, u7 TypeError,
   u8 `deviations >= 1`), `GREEN501/` (u1, u3, u5 estado viejo, u8, u5 walk con fila `AUDIT-*`, u9
   unitario), `DIAG501/` (u5 rtb + walks, u6 aislado) y `VERIFY501B/` (corrida completa) bajo
   `.atl/qa-evidence/audit/ui/` (ignorado por git).
