@@ -77,9 +77,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
  *     `clickable` with no handler at all).
  *   - `test_list_dni_age_columns_have_tabular_nums` →
  *     `test_kpi_values_and_row_cells_keep_tabular_nums` (KPI values ride
- *     the dashboard literal `'tnum' 1, 'lnum' 1`; the row cells moved to
- *     `PatientListRow.vue`, the shared row component both responsive
- *     surfaces render).
+ *     the dashboard literal `'tnum' 1, 'lnum' 1`; the document + age
+ *     cells keep the tokenized form in the page's `UiDataTable` cells and
+ *     in the `PatientListRow.vue` mobile card, #499).
  *   - `test_patients_blocks_render_in_reading_order` heading-tier
  *     assertions → importance mapping (architect decision): heading tiers
  *     map by IMPORTANCE, not by source order. The directory is the
@@ -96,7 +96,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      *  + the single-file rules. Keeps a single source of truth. */
     private const PATIENTS_LIST_PATH = '/resources/js/modules/patients/PatientsPage.vue';
 
-    /** Shared row component rendered by both responsive row surfaces. */
+    /** Mobile card component — the only surface it renders since #499. */
     private const PATIENT_ROW_PATH = '/resources/js/modules/patients/PatientListRow.vue';
 
     /** @return array<int, string> */
@@ -349,18 +349,21 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * DLR-R-007 (re-anchored) — tabular numerals survive the redesign in
-     * the vocabulary each contract mandates: the 4 KPI values ride the
+     * DLR-R-007 (re-anchored, #499) — tabular numerals survive the redesign
+     * in the vocabulary each contract mandates: the 4 KPI values ride the
      * dashboard literal `font-feature-settings: 'tnum' 1, 'lnum' 1`
-     * (DashboardPage KPI anatomy), and the row document/age cells keep the
-     * tokenized `var(--font-features-tabular-nums)` form inside
-     * `PatientListRow.vue`, the shared row component both responsive
-     * surfaces render.
+     * (DashboardPage KPI anatomy), the desktop table's document/age cells
+     * keep the tokenized `var(--font-features-tabular-nums)` form inside the
+     * `UiDataTable` markup of `PatientsPage.vue`, and the mobile card keeps
+     * it inside `PatientListRow.vue`.
      *
      * RE-ANCHOR of the retired
      * `test_list_dni_age_columns_have_tabular_nums` pin: it scanned the
      * pre-redesign inlined row markup that lived directly in the list
-     * section of `PatientsPage.vue`.
+     * section of `PatientsPage.vue`. #453 moved the desktop table to
+     * `UiDataTable` (cells in the page) and #499 retired the component's
+     * dead table branch, so the rule now pins ONE owner per surface: the
+     * page owns the table cells, the component owns the card.
      */
     public function test_kpi_values_and_row_cells_keep_tabular_nums(): void
     {
@@ -389,23 +392,52 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             )
         );
 
-        // 2) The shared row component carries the tokenized form on its
-        // document/age cells in BOTH variants (table row + mobile card).
+        $tabularNums = '/style\s*=\s*["\']font-feature-settings:\s*var\(--font-features-tabular-nums\)["\']/';
+
+        // 2) The desktop table lives in the page (#453), so its document and
+        // age cells carry the tokenized form here. The scan starts at the
+        // primitive's hook so it cannot be satisfied by unrelated markup.
+        $tableOffset = strpos($listSection, 'data-patient-table');
+        $this->assertNotFalse(
+            $tableOffset,
+            sprintf('%s MUST render the desktop table through `<UiDataTable>` (PAC-LIST-001).', $path)
+        );
+
+        $tableCount = preg_match_all($tabularNums, substr($listSection, $tableOffset));
+        $this->assertGreaterThanOrEqual(
+            2,
+            $tableCount,
+            sprintf(
+                '%s MUST carry `font-feature-settings: var(--font-features-tabular-nums)` on the document and age cells of the desktop table (DLR-R-007). Found %d.',
+                $path,
+                $tableCount
+            )
+        );
+
+        // 3) The mobile card keeps the same form on its document and age
+        // values, and no longer duplicates the table row (#499).
         $rowPath = dirname(__DIR__, 3).self::PATIENT_ROW_PATH;
         $rowSrc = self::readSource($rowPath);
         $this->assertNotNull($rowSrc, sprintf('%s must be readable.', $rowPath));
 
-        $rowCount = preg_match_all(
-            '/style\s*=\s*["\']font-feature-settings:\s*var\(--font-features-tabular-nums\)["\']/',
-            $rowSrc
-        );
-        $this->assertGreaterThanOrEqual(
-            4,
-            $rowCount,
+        $this->assertStringNotContainsString(
+            '<tr',
+            $rowSrc,
             sprintf(
-                '%s MUST carry `font-feature-settings: var(--font-features-tabular-nums)` on the document + age cells of both row variants (DLR-R-007). Found %d.',
+                '%s MUST render only the mobile card: the desktop table row belongs to `%s` (DLR-R-007 / #499).',
                 $rowPath,
-                $rowCount
+                self::PATIENTS_LIST_PATH
+            )
+        );
+
+        $cardCount = preg_match_all($tabularNums, $rowSrc);
+        $this->assertGreaterThanOrEqual(
+            2,
+            $cardCount,
+            sprintf(
+                '%s MUST carry `font-feature-settings: var(--font-features-tabular-nums)` on the document and age values of the mobile card (DLR-R-007). Found %d.',
+                $rowPath,
+                $cardCount
             )
         );
     }

@@ -7,8 +7,10 @@ import { nextTick } from 'vue'
 // structural contract at the DOM level: hero band with the page's single
 // primary CTA, the ordered data-patients-block hierarchy, the dashboard
 // KPI anatomy (eyebrow + number + one data-kpi-caption, non-interactive),
-// the shared PatientListRow feeding both responsive surfaces, and the
-// unified UiSectionEmpty states (empty without CTA, error with retry).
+// the page-owned UiDataTable feeding the desktop table, the PatientListRow
+// mobile card, and the unified UiSectionEmpty states (empty without CTA, error
+// with retry). #499: the card component renders no table row — the desktop row
+// belongs to the page and its primitive.
 const harness = vi.hoisted(() => ({ apiGet: vi.fn() }))
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
@@ -43,6 +45,7 @@ import UiDataTable from '../../../resources/js/components/ui/DataTable.vue'
 import UiSectionEmpty from '../../../resources/js/components/ui/UiSectionEmpty.vue'
 import Page from '../../../resources/js/modules/patients/PatientsPage.vue'
 import pageSource from '../../../resources/js/modules/patients/PatientsPage.vue?raw'
+import rowSource from '../../../resources/js/modules/patients/PatientListRow.vue?raw'
 
 const patient = {
   id: 7,
@@ -314,7 +317,7 @@ describe('patients KPI strip (dashboard anatomy)', () => {
   })
 })
 
-describe('patients row surfaces (DataTable on desktop, shared row on mobile)', () => {
+describe('patients row surfaces (DataTable on desktop, card on mobile)', () => {
   beforeEach(() => {
     localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
     harness.apiGet.mockReset()
@@ -325,7 +328,7 @@ describe('patients row surfaces (DataTable on desktop, shared row on mobile)', (
     localStorage.clear()
   })
 
-  it('renders the desktop table through UiDataTable and the mobile cards from the shared row', async () => {
+  it('renders the desktop table through UiDataTable and the mobile cards from the row card', async () => {
     const wrapper = await mountPage()
 
     // #453 (U11, list): the desktop list inherits the primitive, so the
@@ -340,11 +343,19 @@ describe('patients row surfaces (DataTable on desktop, shared row on mobile)', (
     expect(wrapper.findAll('[data-patient-surface="table"] [data-patient-row]')).toHaveLength(1)
     expect(wrapper.findAll('[data-patient-surface="cards"] [data-patient-row]')).toHaveLength(1)
 
-    // The mobile surface still renders the shared PatientListRow card; the
-    // table no longer hand-rolls its markup (the primitive renders it).
+    // The mobile surface renders the PatientListRow card; the desktop table is
+    // the page's and the primitive renders it.
     expect(pageSource).toContain("import PatientListRow from './PatientListRow.vue'")
     expect(pageSource.match(/<PatientListRow\b/g) || []).toHaveLength(1)
+    expect(pageSource).toContain('<UiDataTable')
     expect(pageSource).not.toMatch(/<table\b/)
+
+    // #499: the component is the mobile card only. Its dead `variant === 'table'`
+    // branch (and the prop that selected it) retired with the #453 migration.
+    expect(rowSource).not.toContain('<tr')
+    expect(rowSource).not.toContain("variant === 'table'")
+    expect(rowSource).not.toContain('variant: {')
+    expect(pageSource).not.toContain('variant="card"')
 
     // The primitive renders the same six columns the page owned before.
     const header = wrapper.get('[data-patient-table] thead').text()
@@ -352,6 +363,24 @@ describe('patients row surfaces (DataTable on desktop, shared row on mobile)', (
       expect(header).toContain(label)
     }
     expect(header).toContain('Acciones')
+
+    wrapper.unmount()
+  })
+
+  it('renders the mobile card alone: row hook, values and its three actions', async () => {
+    const wrapper = await mountPage()
+
+    const card = wrapper.get('[data-patient-surface="cards"] [data-patient-row]')
+    expect(card.element.tagName).toBe('DIV')
+    expect(card.text()).toContain('Ana Torres')
+    expect(card.text()).toContain('999888777')
+    expect(card.text()).toContain('ana@test.com')
+    expect(card.text()).toContain('12/04/1990')
+    expect(card.text()).toContain('36 años')
+    expect(card.text()).toContain('Activo')
+
+    const labels = card.findAll('button').map(button => button.text().trim())
+    expect(labels).toEqual(['Ver', 'Editar', 'Eliminar'])
 
     wrapper.unmount()
   })
@@ -505,9 +534,6 @@ describe('patients motion + icon budget', () => {
   })
 
   it('consumes heroicons and keeps only the brand tooth glyph inline', async () => {
-    const { readFileSync } = await import('node:fs')
-    const rowSource = readFileSync('resources/js/modules/patients/PatientListRow.vue', 'utf8')
-
     expect(pageSource).toContain("'@heroicons/vue/24/outline'")
     expect(pageSource.match(/<svg/g) || []).toHaveLength(1)
 

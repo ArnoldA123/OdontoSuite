@@ -430,7 +430,6 @@
             <PatientListRow
               v-for="patient in filteredPatients"
               :key="patient.id"
-              variant="card"
               :patient="patient"
               :can-edit="can.editPatient?.value"
               :can-delete="can.deletePatient?.value"
@@ -945,10 +944,11 @@ export default {
 
     const formatDate = date => formatCanonicalDate(date) || 'N/A'
 
-    // #453 (U11, list): the desktop table renders through `UiDataTable`, so its
-    // columns and cell values belong to the page; the mobile surface keeps the
-    // shared `PatientListRow` card. The list paginates on the server, so the
-    // primitive never paginates and `Pagination` stays outside it.
+    // #453 (U11, list): the desktop table is the page's — `UiDataTable` renders
+    // its columns and cell values below, and the primitive never paginates
+    // because the list paginates on the server, so `Pagination` stays outside
+    // it. #499: `PatientListRow` is only the mobile card; the table row markup
+    // lives here and nowhere else.
     const patientColumns = [
       { key: 'patient', label: 'Paciente' },
       { key: 'contact', label: 'Contacto' },
