@@ -192,12 +192,30 @@ Dos notas de entorno, para que la corrida sea reproducible:
 
 ## 6. Follow-ups abiertos
 
-- **#501 — el arnés de auditoría no soporta la corrida `--all` sobre una sola
-  base**: reutiliza fixtures y evidencias de `.atl/` de una corrida anterior,
-  mide datos en un rol negativo, exige una desviación declarada que las
-  correcciones ya eliminaron y llama `inputValue()` sobre un campo que no
-  existe. Los diez fallos de la corrida están enumerados en el issue; el gate
-  de las 36 superficies es independiente y queda OK.
+- **#501 — cerrado: el arnés de auditoría soporta la corrida `--all` sobre una
+  sola base** (`fix/audit-harness-run-501`). Las seis causas medidas se
+  corrigieron sin tocar producto: U1 lee el token aplicado con `count()` antes
+  de `inputValue()`; U3 declara y no afirma el contrato de la rejilla semanal
+  donde el rol negativo no recibe datos; U5 adopta su `fixtures-state.json`
+  sólo cuando su forma, su día y su base son los de esta corrida, cae en
+  `{ ok: false, reason }` en vez de rechazar, y no ofrece en su catálogo de
+  métodos de pago las filas `AUDIT-*` de otra sesión; el cierre de U9 declara
+  el 409 del libro inmutable con su motivo; U7/U8 regeneran la cobertura de
+  matriz sobre evidencia anterior; y la matriz de U8 sigue el contrato
+  corregido del catálogo (código de 21 caracteres → 422, `q` filtra, `is_active`
+  filtra) exigiendo cero desviaciones. En la misma pasada, «listos para
+  facturar» lee el vacío declarado por la página (`[data-rtb-empty]`, #452) en
+  vez de desreferenciar una tabla ausente.
+  Medido sobre una base `odontosuite_audit` sembrada y la app en `:8000`: rojo
+  reproducido para cada causa y verde para cada corrección, `vitest` en 175
+  archivos / 1574 pruebas, y la corrida completa `--all` de **361 passed / 10
+  failed / 60 skipped** a **425 passed / 4 failed / 2 skipped** (48.6 min). De
+  esos cuatro, la lectura del vacío quedó re-medida en verde; **quedan tres
+  sondas** fuera de las seis causas —los dos walkthroughs de caja de U5 y el
+  walk de planes de U6—, que arrastran expectativas anteriores a #407/#410/#466
+  (héroe de tres estados, bloqueo contable, cobro sin gaveta) y agotan los
+  900 s del walk de planes. Su veredicto exige una decisión de producto y no se
+  tocó aquí.
 - **Ningún defecto de producto nuevo.** La verificación no encontró una
   regresión de producto que exigiera issue.
 - Se mantienen las **cinco aceptaciones escritas** del informe final (§7.4:
@@ -213,5 +231,9 @@ Dos notas de entorno, para que la corrida sea reproducible:
 El programa de auditoría UI/funcional 2026-10 queda cerrado con **71/71
 issues resueltas o declaradas duplicadas**, **0 pendientes** y la verificación
 global en verde: suite MySQL, cliente, estáticos y gate de las 36 superficies.
-La única deuda es del arnés de sesión (#501), no del producto. Las olas 1-6 dejaron sus correcciones en `main`; esta ola deja
-el acta, los conteos re-medidos y la trazabilidad issue → commit → prueba.
+La deuda del arnés de sesión quedó corregida en #501 (§6): las seis causas del
+follow-up están cerradas y la corrida completa bajó de diez fallos a cuatro, de
+los cuales uno ya está re-medido en verde; los tres restantes son sondas de
+dinero y planes que necesitan una decisión de producto. Las olas 1-6 dejaron sus
+correcciones en `main`; esta ola deja el acta, los conteos re-medidos y la
+trazabilidad issue → commit → prueba.

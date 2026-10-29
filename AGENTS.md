@@ -200,7 +200,11 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   pruebas en 173 archivos**, ESLint 0 errores / 36 avisos, Prettier y
   `vite build` en verde, Pint **928 archivos**, `doc-drift` 14/14 y
   `ui-pass --all` 36/36 superficies con gate OK (la corrida de sesión deja 10
-  fallos del arnés, follow-up #501). El cierre no cambia producto.
+  fallos del arnés, corregidos en #501: la corrida completa medida después queda
+  en 425 passed / 4 failed / 2 skipped y, con la lectura del vacío ya re-medida
+  en verde, quedan tres sondas de U5/U6 como deuda propia, ver
+  `docs/mejoras/13-informe-correccion-2026-10.md` §6). El cierre no cambia
+  producto.
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
 - 71 modelos, 48 controllers API, 37 eventos (10 listener classes / 13 cableos
@@ -600,6 +604,37 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-29 (arnés de auditoría: estado entre sesiones y expectativas viejas,
+  #501)** — Las seis causas del follow-up del cierre quedan corregidas en
+  `tests/e2e/audit/`, sin tocar código de producto. U1 lee el token del enlace
+  con `count()` antes de `inputValue()`, así que el campo que #382 esconde ya no
+  agota 30 s de espera. U3 publica `mobileWeekContract` y sólo afirma el
+  contrato de la rejilla semanal de #397 donde la rejilla existe: el rol
+  negativo (403) se mide y se declara, no se falla. U5 reutiliza su
+  `fixtures-state.json` sólo si forma, día y base son los de esta corrida
+  (predicado puro `u5/fixtures-state.js`, 7 pruebas) y cualquier problema de
+  fixtures cae como `{ ok: false, reason }` en vez de rechazar `ensureFixtures`;
+  su catálogo de métodos de pago deja de ofrecer filas `AUDIT-*` de otra sesión
+  y publica las excluidas con su motivo, que era lo que hacía imposible borrar
+  un método prestado (409, libro inmutable, ADR-0015). El cierre de U9 declara
+  ese 409 con su motivo (`u9/refusals.js`, 3 pruebas) en lugar de contarlo como
+  residuo no declarado. Los informes de U7 y U8 regeneran su cobertura de matriz
+  sobre evidencia anterior: publican `null` donde no hay lista, nunca un cero
+  inventado. La matriz de U8 sigue el contrato corregido del catálogo —código de
+  21 caracteres → 422 (#434), `q` filtra y `search` no, `is_active=false`
+  devuelve sólo inactivos (#433)— y la corrida exige cero desviaciones. «Listos
+  para facturar» lee el vacío declarado por la página (`[data-rtb-empty]`, #452)
+  en vez de desreferenciar una tabla ausente. Medido sobre una base
+  `odontosuite_audit` sembrada y la app en `:8000` con
+  `PHP_CLI_SERVER_WORKERS=6`: rojo reproducido para cada causa y verde para cada
+  corrección, `vitest` 175 archivos / 1574 pruebas, y la corrida completa
+  `--all` de **361 passed / 10 failed / 60 skipped** a **425 passed / 4 failed /
+  2 skipped** (48.6 min). De esos cuatro, la lectura del vacío quedó re-medida
+  en verde; quedan tres sondas fuera de las seis causas —los dos walkthroughs de
+  caja (U5) y el walk de planes (U6)—, que arrastran expectativas anteriores a
+  #407/#410/#466 y agotan los 900 s del walk de planes: su veredicto exige una
+  decisión de producto. Sin rutas, modelos, migraciones ni permisos nuevos: los
+  conteos de §4/§5 no cambian.
 - **2026-10-28 (cierre de la auditoría UI 2026-10: 71/71 issues y acta de la
   ola 7)** — Las olas 1-6 estaban mergeadas (`main` = `origin/main` =
   `a3a7db29`) y la etiqueta `auditoria-2026-10` ya no tenía issues abiertos. El
