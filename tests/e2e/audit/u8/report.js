@@ -526,10 +526,17 @@ test('@U8 · informe: hallazgos, recorrido, rúbrica y galería', async () => {
     },
     matrix: evidence.matrix?.summary
       ? {
-          rows: evidence.matrix.summary.rows,
-          endpoints: evidence.matrix.summary.endpoints,
-          mismatches: evidence.matrix.summary.mismatches.length,
-          deviations: evidence.matrix.summary.deviations.length,
+          rows: evidence.matrix.summary.rows ?? null,
+          endpoints: evidence.matrix.summary.endpoints ?? null,
+          // Evidence written before the matrix published these lists cannot be
+          // counted (#501 S4): the gate says `null` instead of a zero it never
+          // observed.
+          mismatches: Array.isArray(evidence.matrix.summary.mismatches)
+            ? evidence.matrix.summary.mismatches.length
+            : null,
+          deviations: Array.isArray(evidence.matrix.summary.deviations)
+            ? evidence.matrix.summary.deviations.length
+            : null,
           contentFacts: (evidence.matrix.summary.contentFacts ?? []).filter(row => !row.ok).length
         }
       : null,
@@ -575,10 +582,14 @@ test('@U8 · informe: hallazgos, recorrido, rúbrica y galería', async () => {
       renderRows: evidence.render?.totals ?? null,
       matrix: evidence.matrix?.summary
         ? {
-            rows: evidence.matrix.summary.rows,
-            endpoints: evidence.matrix.summary.endpoints,
-            mismatches: evidence.matrix.summary.mismatches.length,
-            deviations: evidence.matrix.summary.deviations.length
+            rows: evidence.matrix.summary.rows ?? null,
+            endpoints: evidence.matrix.summary.endpoints ?? null,
+            mismatches: Array.isArray(evidence.matrix.summary.mismatches)
+              ? evidence.matrix.summary.mismatches.length
+              : null,
+            deviations: Array.isArray(evidence.matrix.summary.deviations)
+              ? evidence.matrix.summary.deviations.length
+              : null
           }
         : null
     },

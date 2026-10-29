@@ -50,6 +50,17 @@ describe('query string without empty filters (#408)', () => {
   it('keeps falsy but meaningful values', () => {
     expect(buildQueryString({ page: 0, active: false, q: '' })).toBe('page=0&active=false&q=')
   })
+
+  // #501 — an array of one element arrived as a scalar and Laravel's `array`
+  // rule answered 422, so `/api/quotations/pricing` never resolved the tariff of
+  // a single catalog line and the form saved a total the server changed.
+  it('serializes arrays with brackets so a one-element list stays a list', () => {
+    expect(buildQueryString({ procedure_ids: [7] })).toBe('procedure_ids%5B%5D=7')
+    expect(buildQueryString({ procedure_ids: [7, 9] })).toBe(
+      'procedure_ids%5B%5D=7&procedure_ids%5B%5D=9'
+    )
+    expect(buildQueryString({ procedure_ids: [] })).toBe('')
+  })
 })
 
 describe('useApi request URL (#408)', () => {

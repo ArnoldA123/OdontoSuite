@@ -267,6 +267,7 @@ for (const role of ROLES) {
       chipsPerView: {},
       horizontalOverflow: null,
       viewports: { desktop: { ...DESKTOP } },
+      mobileWeekContract: null,
       shots: [],
       consoleErrors: diagnostics.consoleErrors,
       pageErrors: diagnostics.pageErrors,
@@ -393,6 +394,23 @@ for (const role of ROLES) {
         evidence.mobileWeekLayout = await measureMobileLayout()
       }
 
+      // #397 is a contract of the week grid. The negative row (finanzas) expects
+      // a 403 and receives no data, so there is no grid to measure: the row is
+      // still measured and the evidence says why the contract was not asserted.
+      evidence.mobileWeekContract =
+        expectation === 'negative'
+          ? {
+              asserted: false,
+              reason: `${role} expects a 403, so the week grid never renders (no column, chip or scroll to measure)`
+            }
+          : evidence.mobileWeekLayout
+            ? {
+                asserted: true,
+                reason:
+                  'the week grid rendered at 390px and its column, chip and scroll were measured'
+              }
+            : { asserted: false, reason: 'the page offered no week view at 390px' }
+
       evidence.shots.push(await shot(page, `shots/u3-calendar-${role}-mobile.png`))
       evidence.failedRequests = classifyFailures(diagnostics.failedRequests, expectation)
     } finally {
@@ -408,8 +426,9 @@ for (const role of ROLES) {
     expect(evidence.horizontalOverflow, `document overflows at 390px for ${role}`).toBe(false)
 
     // #397 acceptance: at 390px the week grid keeps a readable column and the
-    // chip text is not reduced to a single character. Measured, not assumed.
-    if (evidence.mobileWeekLayout) {
+    // chip text is not reduced to a single character. Measured, not assumed, and
+    // asserted only where the grid exists (`expectation !== 'negative'`).
+    if (evidence.mobileWeekContract?.asserted) {
       expect(
         evidence.mobileWeekLayout.dayColumnWidth,
         `week column width at 390px for ${role}`
@@ -886,28 +905,65 @@ test('@U3 calendar · crear cita desde la interfaz', async ({ page, request }) =
 
     await chooseSelect(page, dialog, 3, chair.name, chair.name)
 
-    const postResponse = page
-      .waitForResponse(
-        response =>
-          response.request().method() === 'POST' &&
-          new URL(response.url()).pathname === APPOINTMENTS_PATH,
-        { timeout: ACTION_TIMEOUT }
-      )
-      .catch(() => null)
-    const reload = listResponse(page, ACTION_TIMEOUT)
+    // The seed paints its own appointments, so the fixture's slot can already be
+    // taken when the form submits. A schedule conflict moves the form to the next
+    // free half hour instead of failing the row (#501); any other refusal stops.
+    const candidates = [slot]
+    for (let index = 1; index <= 3; index += 1) {
+      candidates.push(new Date(slot.getTime() + index * 30 * 60 * 1000))
+    }
 
-    await submit().click({ timeout: 5000 })
-    const created = await postResponse
-    const createdBody = await created?.json().catch(() => null)
-    const appointmentId = createdBody?.data?.id ?? null
-    const createdToast = await waitForToast(page, 'Cita creada exitosamente', 6000)
+    let created = null
+    let createdBody = null
+    let appointmentId = null
+    let usedSlot = slot
+    const conflicts = []
+
+    for (const candidate of candidates) {
+      if (candidate !== usedSlot && appointmentId === null) {
+        usedSlot = candidate
+        await dialog
+          .locator('input[type="datetime-local"]')
+          .first()
+          .fill(localDateTime(candidate))
+          .catch(() => {})
+        await page.waitForTimeout(250)
+      }
+
+      const postResponse = page
+        .waitForResponse(
+          response =>
+            response.request().method() === 'POST' &&
+            new URL(response.url()).pathname === APPOINTMENTS_PATH,
+          { timeout: ACTION_TIMEOUT }
+        )
+        .catch(() => null)
+
+      await submit().click({ timeout: 5000 })
+      created = await postResponse
+      createdBody = await created?.json().catch(() => null)
+      appointmentId = createdBody?.data?.id ?? null
+
+      if (appointmentId) break
+
+      const refusal = JSON.stringify(createdBody ?? {})
+      const conflict = /conflicto de horario|ya existe una cita/i.test(refusal)
+      conflicts.push({ at: localDateTime(candidate), status: created?.status() ?? null, conflict })
+
+      if (!conflict) break
+      await page.waitForTimeout(400)
+    }
+
+    const createdToast = appointmentId
+      ? await waitForToast(page, 'Cita creada exitosamente', 6000)
+      : null
     const closed = await dialog
       .waitFor({ state: 'hidden', timeout: 8000 })
       .then(() => true)
       .catch(() => false)
 
-    await reload
-
+    // The list refetches on its own after the 201; the chip poll below is the
+    // real wait, so no second range request is forced here (#501).
     let chipVisible = await page
       .waitForFunction(
         id => Boolean(document.querySelector(`[data-calendar-appointment="${id}"]`)),
@@ -935,7 +991,8 @@ test('@U3 calendar · crear cita desde la interfaz', async ({ page, request }) =
       professional: professional.name,
       type: type.name,
       chair: chair.name,
-      scheduledAt: localDateTime(slot),
+      scheduledAt: localDateTime(usedSlot),
+      slotConflicts: conflicts,
       postStatus: created?.status() ?? null,
       responseStatus: createdBody?.data?.status ?? null,
       toast: createdToast,
@@ -953,7 +1010,7 @@ test('@U3 calendar · crear cita desde la interfaz', async ({ page, request }) =
           patientId: patient.id,
           professionalId: professional.id,
           chairId: chair.id,
-          scheduledAt: localDateTime(slot),
+          scheduledAt: localDateTime(usedSlot),
           status: createdBody?.data?.status ?? 'scheduled'
         }
       )

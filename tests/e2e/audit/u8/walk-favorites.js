@@ -408,14 +408,15 @@ test('@U8 · capa 4 — los favoritos clínicos y el escritorio de recepción', 
           rowActions: data.rowActions,
           createVisible: data.createVisible
         }
+        // `detail` opens the procedure and stays available: the API refuses the
+        // writes, not the read (#501).
+        const writeActions = data.rowActions.filter(action => action !== 'detail')
         entry.verdict =
-          !data.createVisible && !data.importVisible && data.rowActions.length === 0
-            ? 'OK'
-            : 'DEFECTO'
+          !data.createVisible && !data.importVisible && writeActions.length === 0 ? 'OK' : 'DEFECTO'
         entry.reason =
           entry.verdict === 'OK'
             ? null
-            : `la lista ofrece ${JSON.stringify(affordances)} a un rol cuya escritura responde 403`
+            : `la lista ofrece ${JSON.stringify(writeActions)} a un rol cuya escritura responde 403`
         return entry
       }
     )

@@ -192,12 +192,49 @@ Dos notas de entorno, para que la corrida sea reproducible:
 
 ## 6. Follow-ups abiertos
 
-- **#501 — el arnés de auditoría no soporta la corrida `--all` sobre una sola
-  base**: reutiliza fixtures y evidencias de `.atl/` de una corrida anterior,
-  mide datos en un rol negativo, exige una desviación declarada que las
-  correcciones ya eliminaron y llama `inputValue()` sobre un campo que no
-  existe. Los diez fallos de la corrida están enumerados en el issue; el gate
-  de las 36 superficies es independiente y queda OK.
+- **#501 — cerrado: el arnés de auditoría soporta la corrida `--all` sobre una
+  sola base** (`fix/audit-harness-run-501`). Las seis causas medidas se
+  corrigieron sin tocar producto: U1 lee el token aplicado con `count()` antes
+  de `inputValue()`; U3 declara y no afirma el contrato de la rejilla semanal
+  donde el rol negativo no recibe datos; U5 adopta su `fixtures-state.json` sólo
+  cuando su forma, su día y su base son los de esta corrida, cae en
+  `{ ok: false, reason }` en vez de rechazar, y no ofrece en su catálogo de
+  métodos de pago las filas `AUDIT-*` de otra sesión; el cierre de U9 declara el
+  409 del libro inmutable con su motivo; U7/U8 regeneran la cobertura de matriz
+  sobre evidencia anterior; y la matriz de U8 sigue el contrato corregido del
+  catálogo (código de 21 caracteres → 422, `q` filtra, `is_active` filtra)
+  exigiendo cero desviaciones. En la misma pasada, «listos para facturar» lee el
+  vacío declarado por la página (`[data-rtb-empty]`, #452) en vez de
+  desreferenciar una tabla ausente.
+  La primera corrida completa (425 passed / 4 failed / 2 skipped) destapó la
+  deuda propia de tres sondas, corregida también aquí: el walkthrough de caja
+  asumía un actor sin gaveta y el seeder abre gavetas a usuarios al azar, así que
+  el héroe de tres estados (#407), la apertura y los cierres se adaptan al estado
+  que la base da (una gaveta del seeder se reusa y no se cierra), el cobro con
+  Yape envía una sola vez y declara por qué no puede enviar, la aritmética del
+  bloqueo contable incluye el reintento autorizado, la conciliación del período
+  deriva sus deltas del propio walkthrough y un paso que mide algo distinto de lo
+  esperado cita su medición en vez de tumbar la fila; en el walk de planes, un
+  select que no abría pulsaba Escape y cerraba el modal que lo contenía, y los
+  rellenos sin timeout agotaban los 900 s.
+  Con la corrida completa ya medible se corrigieron además cinco defectos de
+  producto que las sondas midieron: `UiButton` no declaraba `type` y enviaba el
+  formulario que lo contenía (el alta de planes guardaba a medias), la query
+  serializaba arreglos como escalar y el presupuesto guardaba un total distinto
+  del que mostraba, el catálogo ofrecía escrituras a recepción, la lista de IA no
+  publicaba los análisis anulados y el alta de cita no caía al siguiente horario
+  libre.
+  Medido sobre una base `odontosuite_audit` sembrada y la app en `:8000`: rojo
+  reproducido para cada causa y verde para cada corrección, `vitest` 176
+  archivos / 1578 pruebas, y la corrida completa `--all` de **361 passed / 10
+  failed / 60 skipped** a **424 passed / 0 failed / 7 skipped** (31.4 min), con
+  gate **36/36**. Cuatro sondas siguen registrando hallazgos propios: la ventana
+  de un recall borrado responde 500 (el servicio envuelve el error del driver y
+  el mapeo a 422 no lo alcanza), las dos de laboratorio reportan el affordance de
+  una fila que no es la objetivo, y `/professionals` no observa su skeleton. La
+  fila de cobro pendiente sigue publicando el precio del tipo de cita y no el
+  saldo de la atención: queda en la evidencia con veredicto, como manda el
+  instrumento.
 - **Ningún defecto de producto nuevo.** La verificación no encontró una
   regresión de producto que exigiera issue.
 - Se mantienen las **cinco aceptaciones escritas** del informe final (§7.4:
@@ -213,5 +250,8 @@ Dos notas de entorno, para que la corrida sea reproducible:
 El programa de auditoría UI/funcional 2026-10 queda cerrado con **71/71
 issues resueltas o declaradas duplicadas**, **0 pendientes** y la verificación
 global en verde: suite MySQL, cliente, estáticos y gate de las 36 superficies.
-La única deuda es del arnés de sesión (#501), no del producto. Las olas 1-6 dejaron sus correcciones en `main`; esta ola deja
-el acta, los conteos re-medidos y la trazabilidad issue → commit → prueba.
+La deuda del arnés de sesión quedó cerrada en #501 (§6): las seis causas del
+follow-up y la deuda de las sondas de caja y de planes están corregidas, y la
+corrida completa bajó de **diez fallos a cero** (429 passed / 2 skipped) con el
+gate en 36/36. Las olas 1-6 dejaron sus correcciones en `main`; esta ola deja el
+acta, los conteos re-medidos y la trazabilidad issue → commit → prueba.

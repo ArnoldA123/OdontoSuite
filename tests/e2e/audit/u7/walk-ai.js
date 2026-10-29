@@ -891,10 +891,33 @@ test('@U7 · U7b IA: lista, filtros, sheet, revisión, anulación y traza', asyn
               : null
           }
         })
-        const blocked = hitTest.hit ? hitTest.hit.insideConfirm !== true : true
-        // The click never lands, so no request is produced: the 422 the API
-        // would answer is measured in `api-matrix.json`.
-        const status = null
+        // The confirmation sits on top of the detail (#423), so the click lands
+        // and the door answers: the step measures the refusal it used to skip.
+        let status = null
+        let responseBody = null
+
+        if (!hitTest.hit || hitTest.hit.insideConfirm === true) {
+          const pending = page
+            .waitForResponse(
+              response =>
+                response.request().method() === 'POST' &&
+                /\/api\/ai-analysis\/\d+\/void$/.test(new URL(response.url()).pathname),
+              { timeout: LOAD_TIMEOUT }
+            )
+            .catch(() => null)
+
+          await confirm
+            .locator('button')
+            .filter({ hasText: 'Anular' })
+            .last()
+            .click({ timeout: 8000 })
+            .catch(() => {})
+
+          const settled = await pending
+          status = settled?.status() ?? null
+          responseBody = settled ? await settled.json().catch(() => null) : null
+        }
+
         await page.waitForTimeout(600)
 
         const visible = await page.evaluate(() => {
@@ -910,20 +933,33 @@ test('@U7 · U7b IA: lista, filtros, sheet, revisión, anulación y traza', asyn
           }
         })
         const shown = `${visible.toasts.join(' | ')} ${visible.inline ?? ''}`.trim()
+        const apiReason =
+          responseBody?.errors?.void?.[0] ??
+          responseBody?.errors?.reason?.[0] ??
+          responseBody?.message ??
+          null
+        const speaks = /citad|evoluci|plan/i.test(shown)
+        const ok = status === 422 && speaks
 
         return {
           requestStatus: status,
           request: lastWrite(requests),
-          obtained: `la confirmación abrió=${confirmOpen}; el clic aterriza en ${JSON.stringify(hitTest.hit)}; el motivo API se mide en api-matrix.json`,
-          verdict: 'DEFECTO',
-          detail:
-            'La anulación de un análisis citado tampoco puede intentarse desde la interfaz: el mismo apilado de overlays deja la confirmación debajo del detalle, así que el rechazo (422 con su motivo) nunca llega a producirse en la pantalla. El contrato de la API se mide en `api-matrix.json`.',
+          obtained:
+            `la confirmación abrió=${confirmOpen}; el clic aterriza en ${JSON.stringify(hitTest.hit)}; ` +
+            `POST void → ${status ?? 'sin respuesta'}; el aviso visible dice «${shown.slice(0, 160)}»`,
+          verdict: ok ? 'OK' : status === null ? 'NO PROBADO' : 'DEFECTO',
+          reason: status === null ? 'el clic no produjo la petición de anulación' : null,
+          detail: ok
+            ? null
+            : status !== 422
+              ? `la anulación de un análisis citado respondió ${status}: la interfaz debía recibir el 422 con su motivo`
+              : `el 422 llegó y el aviso visible no nombra la causa (${apiReason ?? 'sin motivo en el cuerpo'}): «${shown.slice(0, 160)}»`,
           extra: {
             hitTest,
             detailOpen: visible.detailOpen,
             confirmOpen,
-            blocked,
             citedAnalysisId: cited?.id ?? null,
+            apiReason,
             shown
           }
         }

@@ -332,12 +332,12 @@ test('@U6 · planes: alta, pila de modales, estados y superficies ausentes', asy
         await page
           .locator('[data-plan-item-field="description"] input')
           .nth(0)
-          .fill(`AUDIT-U6 descripción de la línea de catálogo ${fixtures.token}`)
+          .fill(`AUDIT-U6 descripción de la línea de catálogo ${fixtures.token}`, { timeout: 5000 })
           .catch(() => {})
         await page
           .locator('[data-plan-item-field="description"] input')
           .nth(1)
-          .fill(`AUDIT-U6 descripción de la línea libre ${fixtures.token}`)
+          .fill(`AUDIT-U6 descripción de la línea libre ${fixtures.token}`, { timeout: 5000 })
           .catch(() => {})
 
         const footerTotal = (

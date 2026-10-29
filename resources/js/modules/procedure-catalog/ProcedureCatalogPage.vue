@@ -27,7 +27,12 @@
             </template>
             Volver
           </UiButton>
-          <UiButton variant="secondary" data-hero-import @click="showImportModal = true">
+          <UiButton
+            v-if="canManage"
+            variant="secondary"
+            data-hero-import
+            @click="showImportModal = true"
+          >
             <template #icon-left>
               <ArrowUpTrayIcon class="w-4 h-4" aria-hidden="true" />
             </template>
@@ -39,7 +44,7 @@
             </template>
             Estadísticas
           </UiButton>
-          <UiButton data-hero-action @click="openCreate">
+          <UiButton v-if="canManage" data-hero-action @click="openCreate">
             <template #icon-left>
               <PlusIcon class="w-4 h-4" aria-hidden="true" />
             </template>
@@ -149,7 +154,9 @@
           :description="emptyStateDescription"
         >
           <template #action>
-            <UiButton v-if="!hasActiveFilters" @click="openCreate">Nuevo procedimiento</UiButton>
+            <UiButton v-if="!hasActiveFilters && canManage" @click="openCreate">
+              Nuevo procedimiento
+            </UiButton>
           </template>
         </UiEmptyState>
 
@@ -213,7 +220,11 @@
           </template>
           <template #actions="{ row }">
             <div class="flex items-center gap-1">
+              <!-- #501 — the API refuses the writes of this desk to a role
+                   without `manage.procedure_catalog`; the row stops offering
+                   what the server answers 403. -->
               <UiButton
+                v-if="canManage"
                 variant="ghost"
                 size="sm"
                 class="text-systemBlue-600 hover:text-systemBlue-700"
@@ -225,6 +236,7 @@
                 <PencilIcon class="h-4 w-4" aria-hidden="true" />
               </UiButton>
               <UiButton
+                v-if="canManage"
                 variant="ghost"
                 size="sm"
                 class="text-systemBlue-600 hover:text-systemBlue-700"
@@ -236,7 +248,7 @@
                 <DocumentDuplicateIcon class="h-4 w-4" aria-hidden="true" />
               </UiButton>
               <UiButton
-                v-if="row.is_active"
+                v-if="row.is_active && canManage"
                 variant="ghost"
                 size="sm"
                 class="text-systemRed-600 hover:text-systemRed-700"
@@ -248,7 +260,7 @@
                 <TrashIcon class="h-4 w-4" aria-hidden="true" />
               </UiButton>
               <UiButton
-                v-else
+                v-else-if="canManage"
                 variant="ghost"
                 size="sm"
                 class="text-systemGreen-600 hover:text-systemGreen-700"
@@ -342,6 +354,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
 import { useAuth } from '../../composables/useAuth'
+import { usePermissions } from '../../composables/usePermissions'
 import { useConfirm } from '../../composables/useConfirm'
 import { useProcedureCatalog } from '../../composables/useProcedureCatalog'
 import { useSpecialties } from '../../composables/useSpecialties'
@@ -368,6 +381,10 @@ const { get } = useApi()
 const toast = useToast()
 const { confirm } = useConfirm()
 const { hasAnyRole } = useAuth()
+const { can } = usePermissions()
+// #501 — the write doors of the catalogue follow the permission its routes
+// declare (`manage.procedure_catalog`), not the role.
+const canManage = can.manageProcedureCatalog
 const {
   procedures,
   loading,

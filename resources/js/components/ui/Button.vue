@@ -1,5 +1,6 @@
 <template>
   <button
+    :type="type"
     :class="buttonClasses"
     :data-variant="variant"
     :disabled="disabled || loading"
@@ -40,6 +41,10 @@ const props = defineProps({
     default: 'md',
     validator: value => ['xs', 'sm', 'md', 'lg', 'xl'].includes(value)
   },
+  // #501 — the platform default for a <button> is `submit`, so an untyped
+  // primitive sent the form it lived in. A UI button is `button` unless the
+  // caller asks for the submit the form needs.
+  type: { type: String, default: 'button' },
   disabled: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
   fullWidth: { type: Boolean, default: false },

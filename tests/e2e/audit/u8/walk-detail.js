@@ -228,25 +228,33 @@ test('@U8 · capa 4 — el detalle del procedimiento (Datos, Historial, Versione
       'Buscar la receta de insumos del procedimiento en el detalle',
       'La receta que la API crea y publica tiene una superficie donde se lee y se edita',
       async entry => {
+        // #501 — the block rides the detail's default tab, so the step waits for
+        // the group and reads its own text: reading `main` on first paint measured
+        // a page that had not finished painting the card.
+        await page
+          .locator('[data-detail-group="material-recipe"]')
+          .waitFor({ state: 'visible', timeout: 10000 })
+          .catch(() => {})
         const data = await readDetail(page)
-        const body = await page.evaluate(() => document.querySelector('main')?.innerText ?? '')
+        const block = await page.evaluate(() => {
+          const node = document.querySelector('[data-detail-group="material-recipe"]')
+          return node ? (node.innerText ?? '').replace(/\s+/g, ' ').trim() : null
+        })
         const api = await call(request, session, 'GET', `/api/procedure-catalog/${surface.id}`)
-        entry.obtained = `la página menciona «receta/insumo» ${/receta|insumo/i.test(body)} · bloques ${JSON.stringify(data.groups)} · la API publica material_recipe ${JSON.stringify(api.body?.data?.material_recipe ?? null)}`
+        const apiRecipe = api.body?.data?.material_recipe ?? null
+        const rendered = Boolean(block && /receta|insumo/i.test(block))
+        entry.obtained = `bloque de receta ${rendered ? 'visible' : 'ausente'} · bloques ${JSON.stringify(data.groups)} · la API publica material_recipe ${JSON.stringify(apiRecipe)}`
         entry.requestStatus = api.status
         entry.detail = {
-          rendered: /receta|insumo/i.test(body),
+          rendered,
+          block,
           groups: data.groups,
-          apiField: api.body?.data?.material_recipe ?? null,
-          origin: 'INFERIDO',
-          cause:
-            'App\\Http\\Requests\\StoreProcedureCatalogRequest acepta `material_recipe` y ProcedureCatalogService lo sincroniza, pero ningún consumidor de resources/js lo lee ni lo escribe (grep de `material_recipe` en resources/js: 0 coincidencias)',
+          apiField: apiRecipe,
+          origin: 'MEDIDO',
           products: fixtures.products ?? []
         }
-        entry.verdict = /receta|insumo/i.test(body) ? 'OK' : 'DEFECTO'
-        entry.reason =
-          entry.verdict === 'OK'
-            ? null
-            : 'material_recipe se escribe por API y no tiene superficie: ni el formulario ni el detalle lo leen'
+        entry.verdict = rendered ? 'OK' : 'DEFECTO'
+        entry.reason = rendered ? null : 'el detalle no publica el bloque de receta de insumos'
         return entry
       }
     )

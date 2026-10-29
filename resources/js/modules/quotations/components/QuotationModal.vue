@@ -358,8 +358,21 @@
       >
         Cancelar
       </UiButton>
-      <UiButton type="button" :loading="saving" data-form-action="submit" @click="onSubmit">
-        {{ isEdit ? 'Guardar cambios' : 'Guardar presupuesto' }}
+      <UiButton
+        type="button"
+        :loading="saving"
+        :disabled="pricingPending"
+        data-form-action="submit"
+        data-pricing-pending
+        @click="onSubmit"
+      >
+        {{
+          pricingPending
+            ? 'Resolviendo tarifario…'
+            : isEdit
+              ? 'Guardar cambios'
+              : 'Guardar presupuesto'
+        }}
       </UiButton>
     </template>
   </UiModal>
@@ -531,6 +544,11 @@ const applyResolvedPrices = context => {
 }
 
 let pricingRequest = 0
+// #501 — the resolved tariff is the server's, and until it answers the form shows
+// the catalogue price. Saving inside that window froze a total the user never
+// saw, so the submit waits for the read (a failed read still lets the form save
+// with the numbers on screen).
+const pricingPending = ref(false)
 
 // #414 S1: the summary is the server's arithmetic, so the form asks the API for
 // the tariff of every catalog line on this estimate's issue date. When the
@@ -541,6 +559,7 @@ const refreshPricing = async () => {
   // policy rate the server will apply: the form never invents that number.
   const procedureIds = catalogProcedureIds()
   const request = ++pricingRequest
+  pricingPending.value = true
 
   try {
     const response = await get('/api/quotations/pricing', {
@@ -559,6 +578,8 @@ const refreshPricing = async () => {
     applyResolvedPrices(pricingContext.value)
   } catch {
     // Keeps the numbers already on screen and the policy fallback.
+  } finally {
+    if (request === pricingRequest) pricingPending.value = false
   }
 }
 

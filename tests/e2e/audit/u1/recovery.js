@@ -368,6 +368,14 @@ test('@U1 recovery · the mailed link opens the reset form with the email filled
       .allInnerTexts()
       .catch(() => [])
 
+    // #382: the link already carries the code, so the form must not ask for it.
+    // `count()` answers immediately; `inputValue()` auto-waits 30 s for a field
+    // that is deliberately absent, so it runs only when the field exists.
+    const tokenFieldPresent = (await tokenInput.count().catch(() => 0)) > 0
+    const tokenValueLength = tokenFieldPresent
+      ? (await tokenInput.inputValue().catch(() => '')).length
+      : 0
+
     evidence.form = {
       title: (
         await dialog
@@ -380,9 +388,8 @@ test('@U1 recovery · the mailed link opens the reset form with the email filled
       emailValue: await emailInput.inputValue().catch(() => null),
       emailDisabled: await emailInput.isDisabled().catch(() => null),
       emailPrefilled: (await emailInput.inputValue().catch(() => null)) === email,
-      // #382: the link already carries the code, so the form must not ask for it.
-      tokenFieldPresent: (await tokenInput.count().catch(() => 0)) > 0,
-      tokenValueLength: (await tokenInput.inputValue().catch(() => '')).length,
+      tokenFieldPresent,
+      tokenValueLength,
       tokenApplied:
         (await dialog
           .locator('[data-reset-token-applied]')

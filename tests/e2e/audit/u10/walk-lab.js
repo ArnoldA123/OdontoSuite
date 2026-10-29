@@ -1068,6 +1068,11 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
         const actor = technician.user?.id ?? null
         const unchanged = (after.body?.data?.work ?? null) === beforeWork
 
+        // The row has to be on screen before the affordance is read: the list
+        // paginates, and reading another page reported `true`/`false` from a row
+        // that was not the target (#501).
+        await ensureVisible(page, target)
+
         // The surface must not offer the edit either: the row publishes `can_edit`.
         const offered = await page.evaluate(
           id =>

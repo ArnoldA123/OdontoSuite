@@ -15,9 +15,12 @@ export function buildQueryString(params = {}) {
     if (value === undefined || value === null) continue
 
     if (Array.isArray(value)) {
+      // #501 — Laravel reads `key[]=a` as an array for one element too; the
+      // repeated `key=a` form arrived as a scalar and an `array` rule answered
+      // 422 (`/api/quotations/pricing` never resolved a single catalog line).
       for (const item of value) {
         if (item === undefined || item === null) continue
-        search.append(key, item)
+        search.append(`${key}[]`, item)
       }
       continue
     }

@@ -112,7 +112,8 @@ describe('ai-analysis page shell', () => {
     expect(wrapper.find('[data-kpi-caption="completed_analyses"]').text()).toContain('4 revisados')
 
     expect(wrapper.find('[data-ai-filters]').exists()).toBe(true)
-    expect(wrapper.findAll('[data-preset]')).toHaveLength(4)
+    // #501 — the surface publishes the voided preset too: five states, not four.
+    expect(wrapper.findAll('[data-preset]')).toHaveLength(5)
     expect(wrapper.find('[data-filters-search]').exists()).toBe(true)
 
     wrapper.unmount()
@@ -247,7 +248,7 @@ describe('ai-analysis filters', () => {
     expect(bar.find('[data-filters-search]').exists()).toBe(true)
     expect(bar.find('[data-filters-from]').exists()).toBe(true)
     expect(bar.find('[data-filters-to]').exists()).toBe(true)
-    expect(bar.findAll('[data-preset]')).toHaveLength(4)
+    expect(bar.findAll('[data-preset]')).toHaveLength(5)
 
     wrapper.unmount()
   })

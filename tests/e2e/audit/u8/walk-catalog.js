@@ -372,8 +372,8 @@ test('@U8 · capa 4 — el catálogo de procedimientos, acción por acción', as
         const allActive = activeBadges.every(label => /^Activo/.test(label ?? ''))
         const activeQuery = lastListCall(requests)?.query ?? {}
 
-        // The same filter, measured at the door: `(bool) 'false'` is true in
-        // PHP, so `is_active=false` answers the active population.
+        // The same filter, measured at the door: #433 normalizes the value with
+        // `filter_var`, so `is_active=false` answers only the inactive rows.
         const apiInactive = await call(
           request,
           session,
@@ -397,18 +397,21 @@ test('@U8 · capa 4 — el catálogo de procedimientos, acción por acción', as
             status: apiInactive.status,
             total: apiInactive.body?.meta?.total ?? null,
             inactiveRows: apiInactiveCount,
-            note: 'ProcedureCatalogService::paginate aplica (bool) al valor del filtro: la cadena "false" es true en PHP'
+            returned: apiInactiveRows.length
           }
         }
         const inactiveOk =
           inactive.rowCount === 0
             ? inactiveBody.includes('No hay procedimientos inactivos')
             : allInactive
-        entry.verdict = inactiveOk && apiInactiveCount === 0 ? 'OK' : 'DEFECTO'
+        // The corrected contract: the door returns only inactive rows, whatever
+        // the population size (#433).
+        const apiOk = apiInactiveCount === apiInactiveRows.length
+        entry.verdict = inactiveOk && apiOk ? 'OK' : 'DEFECTO'
         entry.reason =
           entry.verdict === 'OK'
             ? null
-            : `el filtro «Inactivos» pinta ${inactive.rowCount} filas con estado ${JSON.stringify(inactiveBadges.slice(0, 3))} y la API responde ${apiInactiveCount} filas inactivas de ${apiInactiveRows.length}: is_active=false se casta a true`
+            : `el filtro «Inactivos» pinta ${inactive.rowCount} filas con estado ${JSON.stringify(inactiveBadges.slice(0, 3))} y la API devuelve ${apiInactiveRows.length - apiInactiveCount} fila(s) activa(s) con is_active=false`
         return entry
       }
     )
@@ -860,34 +863,43 @@ test('@U8 · capa 4 — el catálogo de procedimientos, acción por acción', as
         const defaultBody = defaultResponse ? await defaultResponse.json().catch(() => null) : null
         const defaultToast = await toastText(page)
 
-        // Second: a code that fits the column, so the field comparison below has
-        // a copy to read.
+        // The proposed code now fits the column (#434), so the first attempt is
+        // the copy the comparison reads. Only a refusal opens the second intent
+        // with a shorter code; assuming the failure made the step measure a copy
+        // that never existed (#501).
         const shortCode = `A8-${fixtures.token.slice(-4)}-C`
-        const codeField = page.locator('[role="dialog"] input').nth(0)
-        const stillOpen = await codeField.isVisible().catch(() => false)
-        if (stillOpen) {
-          await codeField.fill(shortCode, { timeout: 8000 }).catch(() => {})
+        let status = defaultStatus
+        let body = defaultBody
+        let copyId = body?.data?.id ?? null
+
+        if (!copyId) {
+          const codeField = page.locator('[role="dialog"] input').nth(0)
+          const stillOpen = await codeField.isVisible().catch(() => false)
+          if (stillOpen) {
+            await codeField.fill(shortCode, { timeout: 8000 }).catch(() => {})
+          }
+
+          const pendingCreate = page
+            .waitForResponse(
+              response =>
+                response.request().method() === 'POST' &&
+                new URL(response.url()).pathname === '/api/procedure-catalog',
+              { timeout: LOAD_TIMEOUT }
+            )
+            .catch(() => null)
+
+          await page
+            .locator('[role="dialog"] button')
+            .filter({ hasText: 'Duplicar' })
+            .last()
+            .click({ timeout: 8000 })
+            .catch(() => {})
+          const created = await pendingCreate
+          status = created?.status() ?? null
+          body = created ? await created.json().catch(() => null) : null
+          copyId = body?.data?.id ?? null
         }
 
-        const pendingCreate = page
-          .waitForResponse(
-            response =>
-              response.request().method() === 'POST' &&
-              new URL(response.url()).pathname === '/api/procedure-catalog',
-            { timeout: LOAD_TIMEOUT }
-          )
-          .catch(() => null)
-
-        await page
-          .locator('[role="dialog"] button')
-          .filter({ hasText: 'Duplicar' })
-          .last()
-          .click({ timeout: 8000 })
-          .catch(() => {})
-        const created = await pendingCreate
-        const status = created?.status() ?? null
-        const body = created ? await created.json().catch(() => null) : null
-        const copyId = body?.data?.id ?? null
         if (copyId) {
           registerCreated('procedure', {
             id: copyId,
@@ -939,27 +951,23 @@ test('@U8 · capa 4 — el catálogo de procedimientos, acción por acción', as
         entry.requestStatus = status ?? defaultStatus
         entry.request = { method: 'POST', path: '/api/procedure-catalog', copyId }
         entry.detail = {
-          default: {
+          proposed: {
             code: defaultCode,
             codeLength: String(defaultCode ?? '').length,
             status: defaultStatus,
             message: defaultBody?.message ?? null,
-            toast: defaultToast,
-            cause:
-              'procedure_catalog.code es varchar(20) (database/migrations/2025_10_24_202849_create_procedure_catalog_table.php:16) mientras StoreProcedureCatalogRequest permite max:50'
+            toast: defaultToast
           },
           copyId,
           copyCode: copyData?.code ?? null,
           comparison,
-          payloadOmits: ['site_type', 'external_codes', 'material_recipe'],
-          source:
-            'resources/js/modules/procedure-catalog/ProcedureCatalogPage.vue (submitDuplicate copia una lista fija de campos)'
+          source: 'resources/js/modules/procedure-catalog/ProcedureCatalogPage.vue submitDuplicate'
         }
-        entry.verdict = lost.length === 0 && defaultStatus !== 500 ? 'OK' : 'DEFECTO'
+        entry.verdict = lost.length === 0 && copyId !== null ? 'OK' : 'DEFECTO'
         entry.reason =
           entry.verdict === 'OK'
             ? null
-            : `${defaultStatus === 500 ? 'el código propuesto desborda la columna (500); ' : ''}la copia pierde ${lost.join(', ')}`
+            : `${copyId === null ? 'la copia no se pudo leer; ' : ''}la copia pierde ${lost.join(', ')}`
         return entry
       }
     )
@@ -1164,7 +1172,9 @@ test('@U8 · capa 4 — el catálogo de procedimientos, acción por acción', as
         await settleCatalog(page)
         await settleSurface(page, THRESHOLD, LOAD_TIMEOUT)
         const measure = await page.evaluate(() => {
-          const wrapper = document.querySelector('main .overflow-x-auto')
+          // #436 moved the list to the shared table: the frame is the primitive's
+          // own `[data-table-scroll]`, not a raw `overflow-x-auto` (#501).
+          const wrapper = document.querySelector('main [data-table-scroll]')
           return {
             documentOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
             scrollWidth: document.documentElement.scrollWidth,
