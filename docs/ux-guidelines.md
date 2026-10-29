@@ -336,7 +336,8 @@ componente nuevo o un spinner/spinner/empty-state ad-hoc, busca aqui:
 | `Card.vue`                            | Contenedor visual. 5 variants: default / glass / flat / elevated / outlined                                                                                                                        |
 | `CurrencyInput.vue`                   | Input de monto con formato moneda (PEN/USD) y validacion                                                                                                                                           |
 | `DataTable.vue`                       | Tabla con sort, paginacion, seleccion multiple. Para listas > 10 items                                                                                                                             |
-| `EmptyState.vue`                      | Estado vacio con icono + titulo + descripcion + CTA                                                                                                                                                |
+| `EmptyState.vue`                      | Vacío de página: icono + título + descripción + la acción que arranca el contenido                                                                                                                 |
+| `UiSectionEmpty.vue`                  | Vacío de sección cuyo héroe ya ofrece el CTA; acción propia sólo si el destino no tiene otra en pantalla                                                                                           |
 | `FileUpload.vue` / `FileUploader.vue` | Subida de archivos (imagenes, PDFs). Usar `FileUploader` para drag & drop                                                                                                                          |
 | `Input.vue`                           | Input de texto con floating label y validacion inline                                                                                                                                              |
 | `LazyImage.vue`                       | Imagen con lazy-loading nativo y placeholder                                                                                                                                                       |
@@ -367,6 +368,22 @@ componente nuevo o un spinner/spinner/empty-state ad-hoc, busca aqui:
 | `FloatingActionButton.vue` | FAB para accion primaria en mobile (ej. "Nueva cita")                                                         |
 | `MobileMenu.vue`           | Menu hamburguesa para resolucion mobile                                                                       |
 | `PageHeader.vue`           | Cabecera de pagina (titulo + subtitulo + acciones + breadcrumbs). Detallado en la tabla de componentes nuevos |
+
+### Estados vacíos
+
+Dos primitivas, dos trabajos. `EmptyState` es el vacío de una página cuyo
+contenido es la lista: ofrece la acción que lo arranca («Nuevo procedimiento»).
+`UiSectionEmpty` es el vacío de una sección dentro de una página que ya publica
+su CTA en el héroe: una caja compacta con título y una frase, y su acción propia
+sólo cuando el destino no tiene otro CTA en pantalla.
+
+Por qué: repetir en el vacío el botón que el héroe ya publica duplica el mismo
+destino dos veces por pantalla; omitirlo cuando nadie más lo ofrece deja al
+usuario sin salida. Las cuatro listas del lote U11 (#453) son el caso medido:
+`/patients`, `/professionals` y `/appointment-types` delegan el alta en su héroe
+(`data-new-patient-button`, «Nuevo Profesional», «Nuevo tipo»), así que su vacío
+es `UiSectionEmpty` sin acción; `/procedure-catalog` monta la suya dentro del
+vacío porque su héroe no la publica.
 
 ### Componentes nuevos del Sprint 1
 
@@ -423,6 +440,7 @@ los Sprints 3-6.
 | Spinner inline con `border-purple-200 border-t-purple-600`                    | Color crudo, animacion sin GPU, inconsistente con la paleta                      | `<LoadingSpinner>` (3 anillos, paleta correcta)                                                |
 | Spinner con texto "Cargando..." sobre fondo blanco                            | El usuario no percibe el progreso, la pagina "salta" al terminar                 | `<Skeleton type="card" :count="6" />` para listas, o `<LoadingSpinner>` con `animate-fade-in`  |
 | Empty state ad-hoc (icono + parrafo centrados a mano)                         | Cada vista lo hace diferente, sin CTA                                            | `<EmptyState icon="..." title="..." description="..." action-label="..." @action="..." />`     |
+| Vacío de sección que repite el CTA del héroe, o página sin CTA                | Duplica el destino, o deja al usuario sin salida                                 | `UiSectionEmpty` sin acción si el héroe ya la ofrece; `EmptyState` con acción (ver §9)         |
 | Loading inline sin animacion (`v-if="loading"` que aparece y desaparece seco) | Sensacion de "salto"                                                             | `<LoadingSpinner class="animate-fade-in" />` o `<Skeleton>`                                    |
 | `outline: none` o `outline: 0` sin reemplazo                                  | Quita el foco visible, rompe accesibilidad de teclado                            | `focus-visible:ring-2 focus-visible:ring-accent` o `box-shadow: 0 0 0 2px var(--color-accent)` |
 | `<router-view />` sin `:key`                                                  | El componente no remonta al cambiar de ruta, listeners WebSocket quedan colgados | `<router-view :key="$route.fullPath" />` (Sprint 0)                                            |

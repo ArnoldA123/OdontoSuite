@@ -399,9 +399,9 @@ test('@U6 primitives · los siete diálogos y la pila anidada', async ({ page, r
       await contractFor(page, {
         route: PLANS_ROUTE,
         slug: 'plan-inline-patient',
-        label: 'Nuevo paciente',
+        label: 'Crear nuevo paciente',
         kind: 'create',
-        locator: page.locator('[data-plan-modal] button', { hasText: 'Nuevo paciente' }),
+        locator: page.locator('[data-plan-modal] button', { hasText: 'Crear nuevo paciente' }),
         dialog: page.locator('[data-create-patient] [role="dialog"]').last(),
         escapeBudgetMs: 6000,
         note: 'the inline patient dialog is a second UiModal inside the plan form; the contract is measured on it'
