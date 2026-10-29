@@ -24,8 +24,12 @@ use Tests\TestCase;
  *
  *  - la base sembrada publica al menos una historia, firmada por un profesional
  *    clínico, con su número de historia;
- *  - cada historia trae la evolución que la superficie de detalle lee, para que
- *    el recorrido del instrumento no mida un panel vacío;
+ *  - la muestra es la cabecera, no narrativa clínica: el seeder no escribe
+ *    evoluciones, porque la base sembrada se asume sin ellas y ocho aserciones
+ *    de cero absoluto dependen de esa propiedad
+ *    (`AiAnalysisCitationTest`, `MedicalRecordEvolutionContentTest`,
+ *    `MedicalRecordSpecialtyValidationTest`, `TechnicianClinicalRecordScopeTest`
+ *    y `MedicalRecordClinicalMeasurementsTest`);
  *  - repetir el seeder no duplica la muestra, así `migrate --seed` es seguro.
  */
 class MedicalRecordSeederTest extends TestCase
@@ -49,8 +53,13 @@ class MedicalRecordSeederTest extends TestCase
 
         $this->assertGreaterThanOrEqual(2, $records->count(), 'the audit base must publish sample histories');
 
-        foreach ($records as $record) {
+        foreach ($records->values() as $index => $record) {
             $this->assertNotEmpty($record->record_number, 'every sample history carries its record number');
+            $this->assertSame(
+                sprintf('HC-DEMO-%03d', $index + 1),
+                $record->record_number,
+                'the sample histories keep their correlative numbering'
+            );
             $this->assertTrue($record->is_active, 'the sample history is active');
 
             $author = User::find($record->created_by);
@@ -65,17 +74,15 @@ class MedicalRecordSeederTest extends TestCase
     }
 
     #[Test]
-    public function the_history_carries_the_evolution_the_detail_surface_reads(): void
+    public function the_sample_never_writes_clinical_evolutions(): void
     {
         $this->seedSample();
 
-        foreach (MedicalRecord::all() as $record) {
-            $this->assertGreaterThanOrEqual(
-                1,
-                ClinicalEvolution::where('medical_record_id', $record->id)->count(),
-                'the detail surface reads an evolution, not an empty panel'
-            );
-        }
+        $this->assertSame(
+            0,
+            ClinicalEvolution::count(),
+            'the seeded base stays evolution-free: the clinical narrative belongs to real acts, not to the fixture'
+        );
     }
 
     #[Test]
@@ -84,11 +91,9 @@ class MedicalRecordSeederTest extends TestCase
         $this->seedSample();
 
         $records = MedicalRecord::count();
-        $evolutions = ClinicalEvolution::count();
 
         $this->seed(MedicalRecordSeeder::class);
 
         $this->assertSame($records, MedicalRecord::count(), 'a repeated seed adds no history');
-        $this->assertSame($evolutions, ClinicalEvolution::count(), 'a repeated seed adds no evolution');
     }
 }

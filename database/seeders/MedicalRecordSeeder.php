@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\ClinicalEvolution;
 use App\Models\MedicalRecord;
 use App\Models\Patient;
 use App\Models\User;
@@ -15,15 +14,20 @@ use Illuminate\Database\Seeder;
  * y de la capa 3. Sobre una base sembrada a secas no había nada que medir:
  * ningún seeder creaba una historia clínica, así que el instrumento reportaba
  * `no-sample-record`, la fila `render/medical-records-id-odontologo.json`
- * quedaba sin evidencia y el gate cerraba en rojo sin que existiera una
- * regresión. Esta muestra mínima —cabecera con su profesional y una evolución
- * SOAP— le da al manifiesto la fila que su recorrido espera.
+ * quedaba sin evidencia y su gate cerraba en rojo sin que existiera una
+ * regresión de producto.
+ *
+ * La muestra es la cabecera de la historia, no narrativa clínica: el seeder no
+ * escribe evoluciones. La base sembrada se asume sin evoluciones —
+ * `AiAnalysisCitationTest`, `MedicalRecordEvolutionContentTest` y otras seis
+ * aserciones de cero absoluto dependen de ello— y la superficie de detalle
+ * pinta su estado vacío cuando no las hay, que es el comportamiento correcto.
  *
  * FK chain (debe correr después de RoleBasedUsersSeeder y PatientSeeder):
  *   patient_id → patients
  *   created_by → users (un profesional clínico)
  *
- * Idempotente: cada fila se busca por su clave natural antes de crearse, así
+ * Idempotente: cada fila se busca por su `record_number` antes de crearse, así
  * un `migrate --seed` repetido no duplica la muestra.
  */
 class MedicalRecordSeeder extends Seeder
@@ -49,7 +53,7 @@ class MedicalRecordSeeder extends Seeder
         }
 
         foreach ($patients->values() as $index => $patient) {
-            $record = MedicalRecord::firstOrCreate(
+            MedicalRecord::firstOrCreate(
                 ['record_number' => sprintf('HC-DEMO-%03d', $index + 1)],
                 [
                     'patient_id' => $patient->id,
@@ -62,22 +66,6 @@ class MedicalRecordSeeder extends Seeder
                     'clinical_examination' => 'Mucosa oral sana; dentición completa sin lesiones cavitadas.',
                     'diagnosis' => 'Periodonto sano, sin patología pulpar activa.',
                     'is_active' => true,
-                ]
-            );
-
-            ClinicalEvolution::firstOrCreate(
-                [
-                    'medical_record_id' => $record->id,
-                    'evolution_date' => $record->first_visit_date->toDateString(),
-                ],
-                [
-                    'patient_id' => $patient->id,
-                    'created_by' => $professional->id,
-                    'specialty' => 'general',
-                    'subjective' => 'Acude a control semestral sin molestias.',
-                    'objective' => 'Índice de placa bajo; sin sangrado al sondaje.',
-                    'assessment' => 'Salud bucal estable.',
-                    'plan' => 'Refuerzo de higiene oral y control en seis meses.',
                 ]
             );
         }
