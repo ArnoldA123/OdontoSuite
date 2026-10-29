@@ -590,6 +590,19 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (patients: la fila de la lista es sólo la tarjeta, #499)** — La
+  rama de tabla de `PatientListRow.vue` había quedado sin consumidor cuando #453
+  movió la tabla de escritorio a `UiDataTable`: 72 líneas de celdas `<tr>` que
+  no se renderizaban y el mismo dato calculado dos veces. El componente queda
+  como la tarjeta móvil (conserva `data-patient-row`, las tres acciones por
+  permiso y sus computed) y `PatientsPage.vue` monta la tabla de la página. El
+  guard de `font-feature-settings: tabular-nums` se reancla a la superficie que
+  de verdad la pinta (celdas de documento y edad en la página + tarjeta) y
+  prohíbe que el componente vuelva a renderizar `<tr>`. Sin cambio de
+  comportamiento ni de payload: `tests/Unit/DesignSystem` 957 pruebas, los
+  cuatro smokes de la superficie 68 pruebas, Pint, ESLint, Prettier y
+  `doc-drift` (14/14) en verde.
+
 - **2026-10-29 (la base sembrada trae la muestra clínica del instrumento)** — La
   auditoría U11 mide `/medical-records/:id` y sobre un `migrate:fresh --seed` no
   había historia que medir: el instrumento reportaba `no-sample-record` y su
