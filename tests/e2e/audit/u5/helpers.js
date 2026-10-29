@@ -782,7 +782,34 @@ export const readSessionRows = page => readTable(page, '[data-session-table]')
 
 export const readPendingRows = page => readTable(page, '[data-pending-payments-table]')
 
-export const readRtbTable = page => readTable(page, '[data-rtb-table]')
+/**
+ * #452 made the empty population the page's own state (`UiEmptyState`), so an
+ * empty list renders no table at all and `readTable` answers `null`. The probe
+ * reads the declared state instead of dereferencing a table that is not there
+ * (#501: the row crashed with `Cannot read properties of null`).
+ */
+export const readRtbTable = async page => {
+  const table = await readTable(page, '[data-rtb-table]')
+
+  if (table) return table
+
+  const declared = await page.evaluate(() => {
+    const node = document.querySelector('[data-rtb-empty]')
+    return node ? (node.innerText ?? '').replace(/\s+/g, ' ').trim() : null
+  })
+
+  return {
+    present: false,
+    loading: false,
+    loadingText: '',
+    empty: declared !== null,
+    emptyText: declared ?? '',
+    rowCount: 0,
+    rows: [],
+    pagination: null,
+    scroll: { affordance: false, state: null }
+  }
+}
 
 export const movementTotals = page =>
   page.evaluate(() =>
