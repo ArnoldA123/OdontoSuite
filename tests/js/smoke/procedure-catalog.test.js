@@ -123,6 +123,17 @@ describe('procedure-catalog smoke', () => {
     state.rows = rows
     state.detail = detail
     document.body.innerHTML = ''
+    // #501 — the list follows the permission its routes declare, so the smoke
+    // mounts the page with the same grant the API expects for its writes.
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        id: 1,
+        name: 'Admin',
+        role: 'administrador',
+        permissions: ['manage.procedure_catalog', 'view.procedure_stats']
+      })
+    )
     getMock.mockReset()
     postMock.mockReset()
 
