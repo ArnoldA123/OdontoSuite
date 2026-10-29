@@ -564,8 +564,23 @@ export const openSelect = async (page, trigger, optionText, options = {}) => {
     .catch(() => false)
 
   if (!opened) {
-    await page.keyboard.press('Escape').catch(() => {})
-    return { ok: false, reason: 'listbox did not open' }
+    // Escape closes the top overlay of the shared stack, so pressing it on a
+    // select that lives inside a dialog destroys the form the caller is filling
+    // and the next action waits for a control that no longer exists (#501: the
+    // plans walk burned its 900 s budget this way). Only a select on the page
+    // itself is dismissed here.
+    const insideDialog = await locator
+      .evaluate(node => Boolean(node.closest('[role="dialog"]')))
+      .catch(() => false)
+
+    if (!insideDialog) await page.keyboard.press('Escape').catch(() => {})
+
+    return {
+      ok: false,
+      reason: insideDialog
+        ? 'listbox did not open inside a dialog: the form was left as the user would have it'
+        : 'listbox did not open'
+    }
   }
 
   const optionButtons = listbox.locator('button')
