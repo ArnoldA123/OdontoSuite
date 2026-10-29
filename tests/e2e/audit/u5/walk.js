@@ -415,9 +415,22 @@ const methodCatalog = async (request, session) => {
   const response = await call(request, session, 'GET', '/api/payment-methods/active')
   const rows = Array.isArray(response.body?.data) ? response.body.data : []
 
-  const byType = type => rows.find(method => method.type === type)?.name ?? null
+  // `/active` orders by name, so an `AUDIT-*` row another audit session left
+  // behind sorts before the seeded methods. Presenting it would charge this
+  // session's money against a foreign fixture, so the resolution below reads a
+  // catalogue without them and the evidence says which names were excluded.
+  const foreign = method => /^AUDIT-/i.test(String(method?.name ?? ''))
+  const catalog = rows.filter(method => !foreign(method))
+  const excluded = rows.filter(foreign).map(method => ({
+    id: method.id,
+    name: method.name,
+    type: method.type,
+    reason: 'AUDIT-* row left by another audit session, not the seeded method'
+  }))
+
+  const byType = type => catalog.find(method => method.type === type)?.name ?? null
   const card =
-    rows.find(method => method.type === 'card' && /credito/i.test(method.name))?.name ??
+    catalog.find(method => method.type === 'card' && /credito/i.test(method.name))?.name ??
     byType('card')
 
   return {
@@ -428,6 +441,7 @@ const methodCatalog = async (request, session) => {
       type: method.type,
       requiresReference: method.requires_reference === true
     })),
+    excluded,
     cash: byType('cash'),
     card,
     wallet: byType('wallet'),
