@@ -189,8 +189,18 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ## 6. Estado del proyecto (actualizado 2026-10-22)
 
-### ✅ Todo funcional (3 planes cerrados, 66 hallazgos resueltos)
+### ✅ Todo funcional (3 planes y auditoría UI 2026-10 cerrados)
 
+- Auditoría UI/funcional 2026-10 cerrada (#363-#375): las 71 issues del programa
+  quedan resueltas —64 con commit y prueba, 7 duplicadas de su issue clase— y no
+  queda ninguna abierta con la etiqueta `auditoria-2026-10`. El acta con la
+  tabla issue → commit → prueba vive en
+  `docs/mejoras/13-informe-correccion-2026-10.md`. Verificación de cierre sobre
+  `main` (`a3a7db29`): MySQL **2915 pruebas / 17853 aserciones**, Vitest **1564
+  pruebas en 173 archivos**, ESLint 0 errores / 36 avisos, Prettier y
+  `vite build` en verde, Pint **928 archivos**, `doc-drift` 14/14 y
+  `ui-pass --all` 36/36 superficies con gate OK (la corrida de sesión deja 10
+  fallos del arnés, follow-up #501). El cierre no cambia producto.
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
 - 71 modelos, 48 controllers API, 37 eventos (10 listener classes / 13 cableos
@@ -589,6 +599,24 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-28 (cierre de la auditoría UI 2026-10: 71/71 issues y acta de la
+  ola 7)** — Las olas 1-6 estaban mergeadas (`main` = `origin/main` =
+  `a3a7db29`) y la etiqueta `auditoria-2026-10` ya no tenía issues abiertos. El
+  cruce de las 71 issues del programa (67 hallazgos de sesión, #384, #386, #458
+  y #459) da **64 cerradas con commit en `main` y prueba + 7 duplicadas de su
+  issue clase** (#384→#378, #385→#379, #436→#453, #439→#420, #440 y #437→#415,
+  #381→#405), documentadas en su hilo con el commit compartido. **Pendientes:
+  0**; #375 no se reabrió. La verificación de cierre, sobre una base MySQL
+  propia (`odontosuite_cierre_test`, Docker en 3307) y una base de auditoría
+  propia (`odontosuite_cierre_audit`), midió: suite MySQL **OK (2915 pruebas,
+  17853 aserciones)**, Vitest **173 archivos / 1564 pruebas**, ESLint 0 errores
+  / 36 avisos, Prettier limpio, `vite build` en verde, Pint **928 archivos**,
+  `doc-drift` **14/14** y `ui-pass --all` **36/36 superficies, gate OK** (los 10
+  fallos de la corrida de sesión son del arnés, follow-up #501). El cierre es
+  solo de documentación: acta en `docs/mejoras/13-informe-correccion-2026-10.md`
+  y nota ODD en `odd/tasks/audit-fix-cierre.md`. Sin rutas, modelos, migraciones
+  ni permisos nuevos.
 
 - **2026-10-28 (patients: la fila de la lista es sólo la tarjeta, #499)** — La
   rama de tabla de `PatientListRow.vue` había quedado sin consumidor cuando #453
