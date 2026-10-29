@@ -23,7 +23,7 @@ import { loginAs } from '../harness.js'
 
 import { ensureFixtures, fixtureSummary } from './fixtures.js'
 
-import { audit, call, stamp } from './helpers.js'
+import { WIDE_CATALOG_CODE, audit, call, stamp } from './helpers.js'
 
 const ROLES = Object.freeze(['administrador', 'finanzas', 'odontologo', 'recepcionista'])
 
@@ -271,26 +271,22 @@ const definitionsFor = fixtures => {
       kind: 'write-gate'
     },
 
-    // --- declared deviations, measured -------------------------------------
+    // --- the code-length contract of the create door (#434) ----------------
     {
       endpoint: '/api/procedure-catalog (código de 21 caracteres)',
       method: 'POST',
       path: '/api/procedure-catalog',
       body: {
-        // 23 caracteres: la columna admite 20 y la petición admite 50.
-        code: `AUD-U8-${String(Date.now()).slice(-6)}-MATRIZ-X`,
-        name: 'AUDIT-U8 código que la columna no admite',
+        // 21 characters: `procedure_catalog.code` is varchar(20) and both write
+        // doors declare max:20, so the request is refused with 422, not 500.
+        code: `AUD-U8-${String(Date.now()).slice(-6)}-MATRIZ1`,
+        name: 'AUDIT-U8 código de 21 caracteres',
         default_cost: 10
       },
       permission: 'manage.procedure_catalog',
-      expect: { grant: [201, 422], deny: [403] },
+      expect: { grant: [422], deny: [403] },
       kind: 'write-gate',
-      deviation: {
-        status: 500,
-        cause:
-          'procedure_catalog.code es varchar(20) (database/migrations/2025_10_24_202849_create_procedure_catalog_table.php:16) mientras StoreProcedureCatalogRequest declara max:50',
-        note: 'un código de 21 caracteres responde 500 «Error al crear el procedimiento» en vez de 422'
-      }
+      note: 'un código de 21 caracteres no cabe en la columna: la petición lo rechaza con code.max (#434)'
     }
   ]
 }
@@ -363,17 +359,18 @@ test('@U8 · capa 5 — contrato por rol de los endpoints del catálogo', async 
 
   // --- two content facts the matrix records on top of the statuses ---------
   const admin = sessions.get('administrador')
+  const unfiltered = await call(request, admin, 'GET', '/api/procedure-catalog?per_page=1')
   const ignoredSearch = await call(
     request,
     admin,
     'GET',
-    '/api/procedure-catalog?search=REST-COMP-1S&per_page=100'
+    `/api/procedure-catalog?search=${WIDE_CATALOG_CODE}&per_page=100`
   )
   const workingSearch = await call(
     request,
     admin,
     'GET',
-    '/api/procedure-catalog?q=REST-COMP-1S&per_page=100'
+    `/api/procedure-catalog?q=${WIDE_CATALOG_CODE}&per_page=100`
   )
   const inactiveFilter = await call(
     request,
@@ -381,35 +378,44 @@ test('@U8 · capa 5 — contrato por rol de los endpoints del catálogo', async 
     'GET',
     '/api/procedure-catalog?is_active=false&per_page=100'
   )
-  const inactiveRows = (inactiveFilter.body?.data ?? []).filter(
-    row => row.is_active === false
-  ).length
+
+  const catalogTotal = unfiltered.body?.meta?.total ?? null
+  const searchTotal = ignoredSearch.body?.meta?.total ?? null
+  const qTotal = workingSearch.body?.meta?.total ?? null
+  const inactiveRows = Array.isArray(inactiveFilter.body?.data) ? inactiveFilter.body.data : []
+  const inactiveTotal = inactiveFilter.body?.meta?.total ?? null
+  const activeInPage = inactiveRows.filter(row => row.is_active !== false).length
 
   const contentFacts = [
     {
       endpoint: '/api/procedure-catalog?search=…',
       method: 'GET',
       role: 'administrador',
-      expected: '200 y la página filtrada',
-      observed: `200 con ${ignoredSearch.body?.meta?.total ?? '—'} filas (el índice lee q, no search)`,
-      ok: (ignoredSearch.body?.meta?.total ?? 0) === (workingSearch.body?.meta?.total ?? -1),
-      detail: {
-        searchTotal: ignoredSearch.body?.meta?.total ?? null,
-        qTotal: workingSearch.body?.meta?.total ?? null
-      }
+      expected:
+        '200 con la página completa: el índice lee `q` (#416/#432) y `search` no es un parámetro suyo',
+      observed: `200 con ${searchTotal ?? '—'} fila(s) para search, ${qTotal ?? '—'} para q y ${catalogTotal ?? '—'} sin filtro`,
+      // The two halves are measured, not assumed: `search` leaves the population
+      // untouched and `q` narrows it.
+      ok:
+        catalogTotal !== null &&
+        searchTotal === catalogTotal &&
+        qTotal !== null &&
+        qTotal < catalogTotal,
+      detail: { catalogTotal, searchTotal, qTotal }
     },
     {
       endpoint: '/api/procedure-catalog?is_active=false',
       method: 'GET',
       role: 'administrador',
       expected: '200 y sólo filas inactivas',
-      observed: `200 con ${inactiveFilter.body?.meta?.total ?? '—'} filas y ${inactiveRows} inactiva(s)`,
-      ok: inactiveRows > 0,
+      observed: `200 con ${inactiveTotal ?? '—'} fila(s) y ${activeInPage} activa(s) en la página`,
+      // #433 normalizes the string with `filter_var`; an empty population is a
+      // measured answer, so `ok` reads the returned rows, not their count.
+      ok: inactiveFilter.status === 200 && activeInPage === 0,
       detail: {
-        total: inactiveFilter.body?.meta?.total ?? null,
-        inactiveRows,
-        cause:
-          'ProcedureCatalogService::paginate aplica (bool) al valor: la cadena "false" es true en PHP'
+        total: inactiveTotal,
+        returned: inactiveRows.length,
+        activeInPage
       }
     }
   ]
@@ -446,5 +452,8 @@ test('@U8 · capa 5 — contrato por rol de los endpoints del catálogo', async 
 
   expect(summary.endpoints, 'endpoints in the matrix').toBeGreaterThanOrEqual(22)
   expect(summary.mismatches, 'rows whose observed status left its expectation').toEqual([])
-  expect(summary.deviations.length, 'declared deviations measured').toBeGreaterThanOrEqual(1)
+  expect(
+    summary.deviations,
+    'a code of 21 characters answers 422 (#434), `q` filters and `search` does not, and `is_active=false` returns only inactive rows: no deviation left to declare'
+  ).toEqual([])
 })
