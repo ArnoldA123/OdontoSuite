@@ -605,10 +605,17 @@ test('@U7 · informe: hallazgos crudos, recorrido, rúbrica y galería', async (
       renderRows: evidence.render?.totals ?? null,
       matrix: evidence.matrix?.summary
         ? {
-            rows: evidence.matrix.summary.rows,
-            endpoints: evidence.matrix.summary.endpoints,
-            mismatches: evidence.matrix.summary.mismatches.length,
-            deviations: evidence.matrix.summary.deviations.length
+            rows: evidence.matrix.summary.rows ?? null,
+            endpoints: evidence.matrix.summary.endpoints ?? null,
+            // Evidence written before the matrix published these lists cannot be
+            // counted: the report says `null` (not measured) instead of a zero it
+            // never observed.
+            mismatches: Array.isArray(evidence.matrix.summary.mismatches)
+              ? evidence.matrix.summary.mismatches.length
+              : null,
+            deviations: Array.isArray(evidence.matrix.summary.deviations)
+              ? evidence.matrix.summary.deviations.length
+              : null
           }
         : null
     },
