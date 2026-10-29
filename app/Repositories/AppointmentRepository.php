@@ -32,11 +32,7 @@ class AppointmentRepository
     ): Collection {
         $endsAt = $scheduledAt->copy()->addMinutes($duration);
 
-        // #501 — a soft-deleted appointment keeps its generated `slot_reservation`
-        // in the unique index, so the pre-check has to see it too: without it the
-        // insert hit the index and the door answered 500 instead of the 422
-        // `slot_taken` the schedule contract declares.
-        return Appointment::withTrashed()->where('status', '!=', self::SLOT_RELEASED_STATUS)
+        return Appointment::where('status', '!=', self::SLOT_RELEASED_STATUS)
             ->where(function ($query) use ($userId, $chairId, $scheduledAt, $endsAt, $excludeAppointmentId) {
                 // User conflicts
                 $query->where(function ($q) use ($userId, $scheduledAt, $endsAt, $excludeAppointmentId) {
