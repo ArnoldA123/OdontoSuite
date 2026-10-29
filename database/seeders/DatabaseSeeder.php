@@ -52,6 +52,11 @@ class DatabaseSeeder extends Seeder
 
             // 8. Registros de especialidades
             SpecialtyRecordSeeder::class,
+
+            // 9. Muestra clínica del instrumento de auditoría (#374):
+            //    `/medical-records/:id` no tenía fila que medir sobre una base
+            //    sembrada a secas. Idempotente (2 historias con su evolución).
+            MedicalRecordSeeder::class,
         ]);
     }
 }
