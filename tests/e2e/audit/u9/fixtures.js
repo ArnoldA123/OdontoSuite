@@ -25,6 +25,7 @@ import { expect, test } from 'playwright/test'
 import { PASSWORD } from '../harness.js'
 
 import { EVIDENCE, ROLES, api, audit, hasEvidence, login, readEvidence, stamp } from './helpers.js'
+import { isLedgerRetained } from './refusals.js'
 
 export const MARKER = 'AUDIT-U9'
 
@@ -666,6 +667,7 @@ const fixtureSummaryOf = fixtures => ({
   reach: fixtures.reach ?? {},
   declarations: fixtures.declarations ?? {},
   teardown: fixtures.teardown ?? [],
+  declaredResidues: fixtures.declaredResidues ?? [],
   leftovers: fixtures.leftovers ?? []
 })
 
@@ -837,7 +839,11 @@ const retire = async fixtures => {
       status: response.status,
       deleted: isSuccess(response),
       alreadyGone: isGone(response),
-      message: response.body?.message ?? null
+      declared: isLedgerRetained(response),
+      message: response.body?.message ?? null,
+      note: isLedgerRetained(response)
+        ? 'el libro de transacciones referencia la fila: se conserva (ADR-0015)'
+        : null
     })
   }
 
@@ -883,7 +889,11 @@ const retire = async fixtures => {
       status: response.status,
       deleted: isSuccess(response),
       alreadyGone: isGone(response),
-      message: response.body?.message ?? null
+      declared: isLedgerRetained(response),
+      message: response.body?.message ?? null,
+      note: isLedgerRetained(response)
+        ? 'el libro de transacciones referencia la fila: se conserva (ADR-0015)'
+        : null
     })
   }
 
