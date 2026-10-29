@@ -267,6 +267,7 @@ for (const role of ROLES) {
       chipsPerView: {},
       horizontalOverflow: null,
       viewports: { desktop: { ...DESKTOP } },
+      mobileWeekContract: null,
       shots: [],
       consoleErrors: diagnostics.consoleErrors,
       pageErrors: diagnostics.pageErrors,
@@ -393,6 +394,23 @@ for (const role of ROLES) {
         evidence.mobileWeekLayout = await measureMobileLayout()
       }
 
+      // #397 is a contract of the week grid. The negative row (finanzas) expects
+      // a 403 and receives no data, so there is no grid to measure: the row is
+      // still measured and the evidence says why the contract was not asserted.
+      evidence.mobileWeekContract =
+        expectation === 'negative'
+          ? {
+              asserted: false,
+              reason: `${role} expects a 403, so the week grid never renders (no column, chip or scroll to measure)`
+            }
+          : evidence.mobileWeekLayout
+            ? {
+                asserted: true,
+                reason:
+                  'the week grid rendered at 390px and its column, chip and scroll were measured'
+              }
+            : { asserted: false, reason: 'the page offered no week view at 390px' }
+
       evidence.shots.push(await shot(page, `shots/u3-calendar-${role}-mobile.png`))
       evidence.failedRequests = classifyFailures(diagnostics.failedRequests, expectation)
     } finally {
@@ -408,8 +426,9 @@ for (const role of ROLES) {
     expect(evidence.horizontalOverflow, `document overflows at 390px for ${role}`).toBe(false)
 
     // #397 acceptance: at 390px the week grid keeps a readable column and the
-    // chip text is not reduced to a single character. Measured, not assumed.
-    if (evidence.mobileWeekLayout) {
+    // chip text is not reduced to a single character. Measured, not assumed, and
+    // asserted only where the grid exists (`expectation !== 'negative'`).
+    if (evidence.mobileWeekContract?.asserted) {
       expect(
         evidence.mobileWeekLayout.dayColumnWidth,
         `week column width at 390px for ${role}`
