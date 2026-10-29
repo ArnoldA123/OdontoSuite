@@ -115,7 +115,7 @@ resources/js/
   app.js                   # entry + router (guards en router/auth.js)
   composables/             # 46 composables singleton
   components/
-    ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
+    ui/                    # 34 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
     procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ProcedureSiteFields,
                            #   ImportCsvModal
@@ -590,6 +590,12 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-28 (el inventario de primitivas dice lo que se mide)** — La
+  auditoría U11 (#454) retiró `StatusPill.vue`, así que
+  `resources/js/components/ui/` queda en **34** archivos. §4 y
+  `docs/ux-guidelines.md` §9 seguían declarando 35 y 33: los dos números se
+  corrigen aquí, sin cambios de código. La retirada de la primitiva ya la fija
+  `SingleStatusBadgeTest` desde el mismo lote.
 - **2026-10-28 (auditoría U11: un solo badge, la espera se representa, un
   vocabulario para las acciones y una barra de filtros,
   #452/#453/#454/#455/#456)** — Cinco hallazgos del eje transversal de la sesión
