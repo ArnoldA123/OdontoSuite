@@ -25,7 +25,9 @@
 //
 // Playwright re-evaluates the modules per test, so the fixtures travel through
 // `globalThis` (fast path) and mirror to `fixtures-state.json` (worker-restart
-// path), the same registry U3/U4 use.
+// path), the same registry U3/U4 use. A stored state is adopted only when
+// `fixtures-state.js` confirms its session, day, shape and database; anything
+// else is rebuilt, so a stale state can never reach the walks.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
@@ -37,6 +39,7 @@ import { test } from 'playwright/test'
 import { loginAs } from '../harness.js'
 
 import { U5_EVIDENCE_DIR, audit, call, localDay, round2, stamp } from './helpers.js'
+import { isReusableFixturesState } from './fixtures-state.js'
 
 export const MARKER = 'AUDIT-U5'
 
@@ -309,7 +312,7 @@ const publishFixtures = fixtures =>
     role: 'administrador',
     ...stamp(),
     ...fixtures,
-    settlement: fixtures.appointments.map(appointment => ({
+    settlement: (fixtures.appointments ?? []).map(appointment => ({
       key: appointment.key,
       id: appointment.id,
       patient: appointment.patient,
@@ -354,14 +357,14 @@ const writeState = patch => {
 }
 
 const reuseStoredFixtures = async (request, stored) => {
-  const fixtures = stored?.fixtures
+  // A state from another run, day or database is rebuilt, never adopted: its
+  // appointments may no longer exist and its shape may predate `sessions`.
+  if (!isReusableFixturesState(stored, localDay())) return null
 
-  if (!fixtures?.ok || stored.retired === true) return null
-  if (stored.day && stored.day !== localDay()) return null
-
+  const { fixtures } = stored
   const admin = await loginAs(request, 'administrador')
 
-  for (const appointment of fixtures.appointments ?? []) {
+  for (const appointment of fixtures.appointments) {
     const current = await call(request, admin, 'GET', `/api/appointments/${appointment.id}`)
     if (current.status !== 200) return null
 
@@ -378,48 +381,51 @@ const reuseStoredFixtures = async (request, stored) => {
     if ((preview?.payments ?? []).length > 0 || (preview?.quotations ?? []).length > 0) return null
   }
 
-  REGISTRY.fixtures = fixtures
   publishFixtures(fixtures)
+  REGISTRY.fixtures = fixtures
   return fixtures
 }
 
+/** The `{ ok: false, reason }` shape every consumer row can skip with. */
+const refused = thrown => ({
+  marker: MARKER,
+  token: RUN_TOKEN,
+  day: localDay(),
+  ok: false,
+  reason: `fixture build failed: ${String(thrown?.message ?? thrown).slice(0, 400)}`,
+  database: null,
+  appointments: [],
+  sessions: {},
+  reach: {},
+  residues: [],
+  teardown: [],
+  leftovers: []
+})
+
 /**
  * Builds the U5 fixtures once per worker and hands them to every row that needs
- * them. A build failure is a reason in the evidence, never an exception.
+ * them. A fixture problem is a reason in the evidence, never an exception: the
+ * whole promise is caught, so a stale state, a refused login or a failed write
+ * lands as `{ ok: false, reason }` for every consumer row.
  */
 export const ensureFixtures = request => {
-  if (!REGISTRY.promise) {
-    REGISTRY.promise = (async () => {
-      const stored = readState()
-      const reused = stored ? await reuseStoredFixtures(request, stored) : null
-      if (reused) return reused
+  REGISTRY.promise ??= (async () => {
+    const stored = readState()
+    const reused = stored ? await reuseStoredFixtures(request, stored) : null
+    if (reused) return reused
 
-      const fixtures = await buildFixtures(request).catch(thrown => ({
-        marker: MARKER,
-        token: RUN_TOKEN,
-        day: localDay(),
-        ok: false,
-        reason: `fixture build failed: ${String(thrown.message).slice(0, 400)}`,
-        database: null,
-        appointments: [],
-        sessions: {},
-        reach: {},
-        residues: [],
-        teardown: [],
-        leftovers: []
-      }))
+    const fixtures = await buildFixtures(request).catch(refused)
 
-      REGISTRY.fixtures = fixtures
-      writeState({
-        createdAt: new Date().toISOString(),
-        day: fixtures.day,
-        retired: false,
-        fixtures
-      })
-      publishFixtures(fixtures)
-      return fixtures
-    })()
-  }
+    writeState({
+      createdAt: new Date().toISOString(),
+      day: fixtures.day,
+      retired: false,
+      fixtures
+    })
+    publishFixtures(fixtures)
+    REGISTRY.fixtures = fixtures
+    return fixtures
+  })().catch(refused)
 
   return REGISTRY.promise
 }
