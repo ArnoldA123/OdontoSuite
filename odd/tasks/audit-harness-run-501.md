@@ -111,3 +111,21 @@ PRs son decisión del usuario.
   u8 `deviations >= 1`), `GREEN501/` (u1, u3, u5 estado viejo, u8, u5 walk con fila `AUDIT-*`, u9
   unitario), `DIAG501/` (u5 rtb + walks, u6 aislado) y `VERIFY501B/` (corrida completa) bajo
   `.atl/qa-evidence/audit/ui/` (ignorado por git).
+
+## Segunda ola: los hallazgos que la corrida destapó
+
+Con las seis causas cerradas, la corrida completa quedó medible y registró hallazgos de producto que
+este mismo trabajo corrige (pedido del usuario: «no quiero que quede ningún hallazgo»).
+
+| Unidad | Qué | Commit |
+| --- | --- | --- |
+| U-1 | `UiButton` no declaraba `type`: todo botón dentro de un `<form>` lo enviaba (alta de planes a medias) | `30231a27` |
+| U-2 | La query serializa arreglos con corchetes; el alta de presupuesto espera el tarifario resuelto | `0850d162`, `d767fc8a` |
+| U-3 | Catálogo: la lista no ofrece escrituras al rol que la API rechaza | `7801aa96` |
+| U-4 | Sondas del catálogo (copia, receta, tabla móvil, filtro) al contrato vigente | `5fa6276c` |
+| U-5 | IA: preset «Anulados» + sonda que mide el 422 de un análisis citado | `a9187788`, `6b622466` |
+| U-6 | Continuidad: diálogo con nombre accesible y ventana ocupada 422 (no 500) | `e1a68df3`, `6798db10` |
+| U-7 | Alta de cita: si el horario está tomado cae al siguiente libre | `81d36853` |
+| U-8 | Smokes ajustados al contrato nuevo | `b6bc8459` |
+
+Entrega: 25 commits. La revisión se ordena por tema (arnés → hallazgos de producto → docs) en el PR.

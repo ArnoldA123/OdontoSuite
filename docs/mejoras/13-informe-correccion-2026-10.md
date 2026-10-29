@@ -217,14 +217,24 @@ Dos notas de entorno, para que la corrida sea reproducible:
   esperado cita su medición en vez de tumbar la fila; en el walk de planes, un
   select que no abría pulsaba Escape y cerraba el modal que lo contenía, y los
   rellenos sin timeout agotaban los 900 s.
+  Con la corrida completa ya medible se corrigieron además cinco defectos de
+  producto que las sondas midieron: `UiButton` no declaraba `type` y enviaba el
+  formulario que lo contenía (el alta de planes guardaba a medias), la query
+  serializaba arreglos como escalar y el presupuesto guardaba un total distinto
+  del que mostraba, el catálogo ofrecía escrituras a recepción, la lista de IA no
+  publicaba los análisis anulados y el alta de cita no caía al siguiente horario
+  libre.
   Medido sobre una base `odontosuite_audit` sembrada y la app en `:8000`: rojo
-  reproducido para cada causa y verde para cada corrección, `vitest` 175
-  archivos / 1574 pruebas, y la corrida completa `--all` de **361 passed / 10
-  failed / 60 skipped** a **429 passed / 0 failed / 2 skipped** (32.7 min), con
-  gate **36/36**, 0 page errors y 40 diálogos. Los hallazgos de producto que las
-  sondas siguen midiendo (por ejemplo, la fila de cobro pendiente publica el
-  precio del tipo de cita y no el saldo de la atención) quedan en su evidencia
-  con veredicto, como manda el instrumento.
+  reproducido para cada causa y verde para cada corrección, `vitest` 176
+  archivos / 1578 pruebas, y la corrida completa `--all` de **361 passed / 10
+  failed / 60 skipped** a **424 passed / 0 failed / 7 skipped** (31.4 min), con
+  gate **36/36**. Cuatro sondas siguen registrando hallazgos propios: la ventana
+  de un recall borrado responde 500 (el servicio envuelve el error del driver y
+  el mapeo a 422 no lo alcanza), las dos de laboratorio reportan el affordance de
+  una fila que no es la objetivo, y `/professionals` no observa su skeleton. La
+  fila de cobro pendiente sigue publicando el precio del tipo de cita y no el
+  saldo de la atención: queda en la evidencia con veredicto, como manda el
+  instrumento.
 - **Ningún defecto de producto nuevo.** La verificación no encontró una
   regresión de producto que exigiera issue.
 - Se mantienen las **cinco aceptaciones escritas** del informe final (§7.4:

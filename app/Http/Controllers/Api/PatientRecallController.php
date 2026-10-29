@@ -11,7 +11,6 @@ use App\Services\RecallService;
 use App\Support\PerPage;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -114,6 +113,22 @@ class PatientRecallController extends Controller
         }
     }
 
+    /** A duplicate entry on the appointment slot indexes, however it is wrapped. */
+    private static function isSlotCollision(\Throwable $e): bool
+    {
+        for ($current = $e; $current !== null; $current = $current->getPrevious()) {
+            $message = $current->getMessage();
+            if (str_contains($message, 'unique_user_time_slot') || str_contains($message, 'unique_chair_time_slot')) {
+                return true;
+            }
+            if ($current->getCode() === '23000' && str_contains($message, 'Duplicate entry')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function schedule(SchedulePatientRecallRequest $request, PatientRecall $recall): JsonResponse
     {
         try {
@@ -128,21 +143,18 @@ class PatientRecallController extends Controller
             ]);
         } catch (ValidationException $e) {
             throw $e;
-        } catch (QueryException $e) {
+        } catch (\Throwable $e) {
             // #501 — a soft-deleted appointment still owns its generated
             // `slot_reservation` in the unique index, so the insert can collide
-            // after the pre-check passed. The agenda contract names that answer
+            // after the pre-check passed, and the service wraps that driver error
+            // before it reaches this door. The agenda contract names that answer
             // 422 `slot_taken`, never a 500.
-            if (str_contains($e->getMessage(), 'slot_reservation') || $e->getCode() === '23000') {
+            if (self::isSlotCollision($e)) {
                 throw ValidationException::withMessages([
                     'scheduled_at' => ['Ese horario ya está ocupado por otra cita activa. Actualiza la agenda y vuelve a intentarlo.'],
                 ]);
             }
 
-            Log::error('PatientRecallController@schedule: '.$e->getMessage(), ['exception' => $e]);
-
-            return response()->json(['message' => 'Error al agendar la cita de control'], 500);
-        } catch (\Throwable $e) {
             Log::error('PatientRecallController@schedule: '.$e->getMessage(), ['exception' => $e]);
 
             return response()->json(['message' => 'Error al agendar la cita de control'], 500);

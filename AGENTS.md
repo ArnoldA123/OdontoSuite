@@ -199,11 +199,16 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   `main` (`a3a7db29`): MySQL **2915 pruebas / 17853 aserciones**, Vitest **1564
   pruebas en 173 archivos**, ESLint 0 errores / 36 avisos, Prettier y
   `vite build` en verde, Pint **928 archivos**, `doc-drift` 14/14 y
-  `ui-pass --all` 36/36 superficies con gate OK (la corrida de sesión deja 10
-  fallos del arnés, que #501 corrige: la corrida completa medida después queda
-  en **429 passed / 0 failed / 2 skipped** en 32.7 min y el gate sigue 36/36 con
-  40 diálogos; ver `docs/mejoras/13-informe-correccion-2026-10.md` §6). El
-  cierre no cambia producto.
+  `ui-pass --all` 36/36 superficies con gate OK (los 10 fallos del arnés que
+  dejó esa corrida se corrigieron en #501: la corrida completa medida después
+  queda en **424 passed / 0 failed / 7 skipped** en 31.4 min, gate 36/36, y
+  cuatro sondas siguen registrando hallazgos propios de continuidad, laboratorio
+  y profesionales; ver `docs/mejoras/13-informe-correccion-2026-10.md` §6). El
+  cierre corrige además cinco defectos de producto que las sondas midieron: la
+  primitiva de botón enviaba el formulario que la contenía, la query serializaba
+  arreglos como escalar (tarifario del presupuesto), el catálogo ofrecía
+  escrituras a recepción, la lista de IA no publicaba los análisis anulados y el
+  alta de cita no caía al siguiente horario libre.
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
 - 71 modelos, 48 controllers API, 37 eventos (10 listener classes / 13 cableos
