@@ -335,8 +335,8 @@ class CitasCalendarMonthViewTest extends ModuleAppShellTestCase
         );
         $this->assertSame(
             1,
-            preg_match("#if \(day\.isToday\) return 'bg-accent-50'#", $src),
-            sprintf('%s `monthCellClasses` MUST highlight today with the accent token background (`bg-accent-50`) (T6, token set only).', self::CALENDAR_PATH)
+            preg_match("#if \(day\.isToday\) return 'bg-accent-100'#", $src),
+            sprintf('%s `monthCellClasses` MUST highlight today with the accent token background (`bg-accent-100`) (T6, token set only).', self::CALENDAR_PATH)
         );
         $this->assertSame(
             1,

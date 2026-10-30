@@ -38,25 +38,25 @@ Toda la aplicacion usa la paleta semantica definida en `tailwind.config.js` y
 `resources/css/tokens.generated.css`. Las utility classes se resuelven a
 variables CSS, lo que permite ajustar el color en un solo lugar.
 
-| Caso de uso                       | Utility CSS                           | Hex                   | Ejemplo                                       |
-| --------------------------------- | ------------------------------------- | --------------------- | --------------------------------------------- |
-| Accion primaria (boton principal) | `bg-accent`                           | `#0f7a5f`             | Boton "Guardar", "Crear cita"                 |
-| Accion en hover                   | `bg-accent-hover`                     | `#0a5f49`             | Estado hover del boton primario               |
-| Accion active / pressed           | `bg-accent-active`                    | `#084c3b`             | Estado active del boton primario              |
-| Acento fondo suave                | `bg-primary-50` / `bg-accent-light`   | `#e6f4ef`             | Fondo de un input enfocado, badge informativo |
-| Texto sobre acento                | `text-primary-700`                    | `#084c3b`             | Texto dentro de un fondo `bg-primary-50`      |
-| Texto link                        | `text-accent`                         | `#0f7a5f`             | Links inline, iconos de accion                |
-| Exito                             | `bg-success-500` / `bg-success-badge` | `#34c759` / `#d1fae5` | Badge de estado "Completado"                  |
-| Advertencia                       | `bg-warning-500` / `bg-warning-badge` | `#ffcc00` / `#fef3c7` | Badge "Pendiente", alerta de stock bajo       |
-| Error / peligro                   | `bg-error-500` / `bg-danger-badge`    | `#ff3b30` / `#ffebea` | Badge "Cancelado", mensaje de error           |
-| Informacion                       | `bg-info-500`                         | `#4a7191`             | Tooltips, banners informativos                |
-| Texto principal                   | `text-theme-primary`                  | `#1a1917`             | Parrafos, titulos                             |
-| Texto secundario                  | `text-theme-secondary`                | `#5c5a55`             | Subtitulos, captions, labels de formulario    |
-| Borde                             | `border-theme`                        | `#c9c5bd`             | Borde de inputs, separadores                  |
-| Borde sutil                       | `border-theme-light`                  | `#edebe7`             | Divisores dentro de cards                     |
-| Surface (cards)                   | `bg-theme-surface-elevated`           | `#FFFFFF`             | Fondo de cards y modales                      |
-| Background                        | `bg-theme-background`                 | `#FFFFFF`             | Fondo de pagina                               |
-| Fondo secundario                  | `bg-theme-background-secondary`       | `#f7f6f4`             | Fondo de areas inactivas, headers laterales   |
+| Caso de uso                       | Utility CSS                           | Hex                   | Ejemplo                                                              |
+| --------------------------------- | ------------------------------------- | --------------------- | -------------------------------------------------------------------- |
+| Accion primaria (boton principal) | `bg-accent`                           | `#0f7a5f`             | Boton "Guardar", "Crear cita"                                        |
+| Accion en hover                   | `bg-accent-hover`                     | `#0a5f49`             | Estado hover del boton primario                                      |
+| Accion active / pressed           | `bg-accent-active`                    | `#084c3b`             | Estado active del boton primario                                     |
+| Acento fondo suave                | `bg-accent-50` / `bg-accent-light`    | `#f2f8f5`             | Superficie tenue (login); un relleno usa `bg-accent-100` (`#c9e7dc`) |
+| Texto sobre acento                | `text-primary-700`                    | `#084c3b`             | Texto dentro de un fondo `bg-primary-50`                             |
+| Texto link                        | `text-accent`                         | `#0f7a5f`             | Links inline, iconos de accion                                       |
+| Exito                             | `bg-success-500` / `bg-success-badge` | `#34c759` / `#d1fae5` | Badge de estado "Completado"                                         |
+| Advertencia                       | `bg-warning-500` / `bg-warning-badge` | `#ffcc00` / `#fef3c7` | Badge "Pendiente", alerta de stock bajo                              |
+| Error / peligro                   | `bg-error-500` / `bg-danger-badge`    | `#ff3b30` / `#ffebea` | Badge "Cancelado", mensaje de error                                  |
+| Informacion                       | `bg-info-500`                         | `#4a7191`             | Tooltips, banners informativos                                       |
+| Texto principal                   | `text-theme-primary`                  | `#1a1917`             | Parrafos, titulos                                                    |
+| Texto secundario                  | `text-theme-secondary`                | `#5c5a55`             | Subtitulos, captions, labels de formulario                           |
+| Borde                             | `border-theme`                        | `#c9c5bd`             | Borde de inputs, separadores                                         |
+| Borde sutil                       | `border-theme-light`                  | `#edebe7`             | Divisores dentro de cards                                            |
+| Surface (cards)                   | `bg-theme-surface-elevated`           | `#FFFFFF`             | Fondo de cards y modales                                             |
+| Background                        | `bg-theme-background`                 | `#FFFFFF`             | Fondo de pagina                                                      |
+| Fondo secundario                  | `bg-theme-background-secondary`       | `#f7f6f4`             | Fondo de areas inactivas, headers laterales                          |
 
 ### Prohibido
 
