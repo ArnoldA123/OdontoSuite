@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=1440" />
-    <title>OdontoSuite · Iniciar sesión · Clínica San Isidro</title>
+    <title>OdontoSuite · Iniciar sesión</title>
     <style>
       /* ============================================================
          Tokens — valores de design/system.md. Ninguno inventado.
@@ -12,7 +12,7 @@
         --color-accent: #0f7a5f;
         --color-accent-hover: #0a5f49;
         --color-accent-700: #084c3b;
-        --color-accent-50: #e6f4ef;
+        --color-accent-50: #f2f8f5;
         --color-accent-100: #c9e7dc;
         --color-accent-200: #93cdb9;
         --color-accent-300: #5cb195;
@@ -22,28 +22,25 @@
 
         --color-text-primary: #1a1917;
         --color-text-secondary: #5c5a55;
+        --color-text-tertiary: rgba(26, 24, 20, 0.3);
 
-        --color-border: #c9c5bd;
         --color-system-gray-500: #908b82;
+        --color-system-gray-700: #3b3833;
         --color-hairline: rgba(26, 24, 20, 0.1);
 
-        --color-success: #34c759;
-        --color-success-bg: #e8f5e9;
-        --color-success-text: #1a6530;
         --color-danger: #ff3b30;
         --color-danger-bg: #ffebea;
         --color-danger-line: #ffd9d7;
         --color-danger-text: #a50e10;
 
         --radius-ios: 10px;
-        --radius-md: 8px;
-        --radius-card-lg: 16px;
         --radius-panel: 22px;
         --radius-full: 9999px;
 
         --elevation-1: 0 1px 3px rgba(92, 90, 85, 0.04);
         --elevation-2: 0 2px 8px rgba(92, 90, 85, 0.06), 0 1px 2px rgba(92, 90, 85, 0.04);
         --elevation-3: 0 8px 16px rgba(92, 90, 85, 0.08), 0 2px 6px rgba(92, 90, 85, 0.06);
+        --elevation-4: 0 16px 24px rgba(92, 90, 85, 0.12), 0 4px 8px rgba(92, 90, 85, 0.08);
         --focus-ring-default: 0 0 0 3px rgba(15, 122, 95, 0.2);
 
         --font-sans:
@@ -55,16 +52,14 @@
         --text-sm-line: 18px;
         --text-base: 15px;
         --text-base-line: 22px;
-        --text-xl: 20px;
-        --text-xl-line: 28px;
         --text-3xl: 30px;
         --text-3xl-line: 36px;
-        --text-4xl: 36px;
-        --text-4xl-line: 40px;
 
         --motion-fast: 120ms;
         --motion-normal: 200ms;
+        --motion-slow: 320ms;
         --motion-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+        --motion-easing-decel: cubic-bezier(0, 0, 0.2, 1);
         --motion-easing-ios: cubic-bezier(0.25, 0.46, 0.45, 0.94);
       }
 
@@ -77,33 +72,29 @@
         box-sizing: border-box;
       }
 
-      html {
+      html,
+      body {
         overflow: hidden;
-        background: var(--color-canvas);
+        background: var(--color-accent-50);
       }
 
       body {
         margin: 0;
         width: 1440px;
         height: 900px;
-        overflow: hidden;
         font-family: var(--font-sans);
         font-size: var(--text-base);
         line-height: var(--text-base-line);
         color: var(--color-text-primary);
-        background: var(--color-canvas);
+        font-optical-sizing: auto;
+        text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
       }
 
       h1,
-      p,
-      ul {
+      p {
         margin: 0;
         padding: 0;
-      }
-
-      ul {
-        list-style: none;
       }
 
       a {
@@ -155,224 +146,231 @@
       }
 
       /* ============================================================
-         Lienzo — 60 / 40, sin sidebar ni topbar
+         Única superficie: el campo de dientes en deriva infinita.
+         Tres planos, tres velocidades, sin intervención del puntero.
+         Cada plano repite su loseta de 900 px y sube 900 px: el bucle
+         cierra sin costura.
          ============================================================ */
       .login {
-        display: grid;
-        grid-template-columns: 60% 40%;
+        position: relative;
         height: 900px;
         overflow: hidden;
+        background: var(--color-accent-50);
+      }
+
+      .field {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      .field__drift {
+        position: absolute;
+        inset: 0;
+        will-change: transform;
+        animation: drift var(--drift, 140s) linear infinite;
+      }
+
+      .field__tile {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1440px;
+        height: 900px;
+      }
+
+      .field__tile--next {
+        top: 900px;
+      }
+
+      /* Los dos recursos del set se usan como máscara de alfa: la forma es el
+         archivo original (diente1.png y cepillo-de-dientes.png, incrustados
+         como data URI) y el color se pinta sólido, sin velo ni opacidad. */
+      .motif {
+        position: absolute;
+        display: block;
+        background-color: var(--color-accent-200);
+        -webkit-mask-image: var(--glyph);
+        mask-image: var(--glyph);
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-position: center;
+        mask-position: center;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+      }
+
+      .motif--tooth {
+        --glyph: url('data:image/png;base64,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');
+      }
+
+      .motif--brush {
+        --glyph: url('data:image/png;base64,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');
+      }
+
+      .field__layer--far .motif {
+        background-color: var(--color-accent-100);
+      }
+
+      .field__layer--near .motif {
+        background-color: var(--color-accent-200);
+      }
+
+      /* El cepillo es trazo fino: un paso más de tinta lo mantiene legible. */
+      .field__layer--mid .motif--brush,
+      .field__layer--near .motif--brush {
+        background-color: var(--color-accent-300);
+      }
+
+      @keyframes drift {
+        from {
+          transform: translate3d(0, 0, 0);
+        }
+        to {
+          transform: translate3d(0, -900px, 0);
+        }
       }
 
       /* ============================================================
-         A) Panel de marca (864 px)
+         Acceso: marca y tarjeta, una sola columna centrada.
          ============================================================ */
-      .brand-panel {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        overflow: hidden;
-        padding: 52px 64px 56px;
-        background: var(--color-accent-50);
-        border-right: 1px solid var(--color-hairline);
-      }
-
-      .brand {
+      .access {
         position: relative;
         z-index: 1;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 12px;
+        padding-top: 220px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        animation: rise var(--motion-slow) var(--motion-easing-decel) backwards;
+        animation-delay: 40ms;
       }
 
       .brand__mark {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 40px;
-        height: 40px;
+        width: 34px;
+        height: 34px;
         flex: 0 0 auto;
-        border-radius: var(--radius-ios);
-        background: var(--color-accent);
+        border-radius: 9px;
+        background: linear-gradient(180deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
         color: #ffffff;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+        box-shadow:
+          0 0 0 1px rgba(0, 0, 0, 0.04),
+          var(--elevation-2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
       }
 
       .brand__mark .icon {
-        width: 23px;
-        height: 23px;
+        width: 20px;
+        height: 20px;
+        stroke-width: 1.5;
       }
 
       .brand__name {
-        display: block;
-        font-size: var(--text-xl);
-        line-height: var(--text-xl-line);
+        font-size: 17px;
+        line-height: 22px;
         font-weight: 600;
-        letter-spacing: -0.01em;
+        letter-spacing: -0.014em;
       }
 
-      .brand__sub {
-        display: block;
-        font-size: 12px;
-        line-height: 16px;
+      .brand__dot {
+        width: 3px;
+        height: 3px;
+        border-radius: var(--radius-full);
+        background: var(--color-text-tertiary);
+      }
+
+      .brand__clinic {
+        font-size: var(--text-sm);
+        line-height: var(--text-sm-line);
         color: var(--color-text-secondary);
       }
 
-      .motif {
-        position: absolute;
-        top: 104px;
-        right: 24px;
-        z-index: 0;
-        width: 384px;
-        height: 384px;
-        pointer-events: none;
+      .card {
+        width: 404px;
+        margin-top: 28px;
+        padding: 32px 32px 30px;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow:
+          0 0 0 1px rgba(0, 0, 0, 0.04),
+          var(--elevation-1),
+          var(--elevation-3);
+        transition: box-shadow var(--motion-slow) var(--motion-easing-decel);
+        animation: materialize var(--motion-slow) var(--motion-easing-decel) backwards;
+        animation-delay: 80ms;
       }
 
-      .claim {
-        position: relative;
-        z-index: 1;
-        max-width: 500px;
+      .card:focus-within {
+        box-shadow:
+          0 0 0 1px rgba(0, 0, 0, 0.04),
+          var(--elevation-2),
+          var(--elevation-4);
       }
 
-      .claim__rule {
-        display: block;
-        width: 40px;
-        height: 2px;
-        margin-bottom: 20px;
-        border-radius: 2px;
-        background: var(--color-accent);
-      }
-
-      .claim__text {
-        font-size: var(--text-4xl);
-        line-height: var(--text-4xl-line);
+      .card__title {
+        font-size: var(--text-3xl);
+        line-height: var(--text-3xl-line);
         font-weight: 600;
         letter-spacing: -0.022em;
       }
 
-      .claim__list {
-        display: grid;
-        gap: 10px;
-        margin-top: 26px;
-      }
-
-      .claim__item {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        font-size: 13.5px;
-        line-height: 20px;
-        color: var(--color-text-secondary);
-      }
-
-      .claim__check {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 18px;
-        height: 18px;
-        flex: 0 0 auto;
-        margin-top: 1px;
-        border: 1px solid var(--color-accent-200);
-        border-radius: var(--radius-full);
-        background: var(--color-surface-elevated);
-        color: var(--color-accent-700);
-      }
-
-      .claim__check svg {
-        width: 10px;
-        height: 10px;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 2.6;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-
-      /* ============================================================
-         B) Columna de acceso (576 px)
-         ============================================================ */
-      .auth-panel {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 48px 52px 64px;
-        background: var(--color-canvas);
-      }
-
-      .auth-stack {
-        display: grid;
-        gap: 16px;
-        width: 100%;
-      }
-
-      /* ---- Tarjeta del formulario ---- */
-      .auth-card {
-        padding: 26px 28px;
-        background: var(--color-surface-elevated);
-        border: 1px solid var(--color-hairline);
-        border-radius: var(--radius-panel);
-        box-shadow: var(--elevation-2);
-      }
-
-      .auth-card__eyebrow {
-        font-size: 11px;
-        line-height: 15px;
-        font-weight: 600;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--color-accent-700);
-      }
-
-      .auth-card__title {
-        margin-top: 4px;
-        font-size: var(--text-3xl);
-        line-height: var(--text-3xl-line);
-        font-weight: 600;
-        letter-spacing: -0.02em;
-      }
-
-      .auth-card__lede {
-        margin-top: 6px;
-        font-size: var(--text-sm);
-        line-height: var(--text-sm-line);
-        color: var(--color-text-secondary);
-      }
-
       /* ---- Formulario ---- */
-      .auth-form {
-        margin-top: 20px;
+      .form {
+        margin-top: 24px;
       }
 
-      .field + .field {
-        margin-top: 14px;
+      .field-row + .field-row {
+        margin-top: 16px;
       }
 
-      .field__label {
+      .field-row__label {
         display: block;
-        margin-bottom: 6px;
+        margin-bottom: 7px;
         font-size: var(--text-sm);
         line-height: var(--text-sm-line);
         font-weight: 500;
+        letter-spacing: -0.001em;
+        transition: color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .field-row:focus-within .field-row__label {
+        color: var(--color-accent-700);
+      }
+
+      ::selection {
+        background: var(--color-accent-100);
+        color: var(--color-text-primary);
       }
 
       .input {
         display: block;
         width: 100%;
-        height: 44px;
-        padding: 0 14px;
+        height: 52px;
+        padding: 0 15px;
         appearance: none;
         -webkit-appearance: none;
         background: var(--color-surface-elevated);
         border: 1px solid var(--color-system-gray-500);
         border-radius: var(--radius-ios);
         color: var(--color-text-primary);
+        caret-color: var(--color-accent);
         font-family: var(--font-sans);
         font-size: var(--text-base);
         line-height: var(--text-base-line);
-        transition: border-color var(--motion-normal) var(--motion-easing-standard);
+        transition:
+          border-color var(--motion-normal) var(--motion-easing-standard),
+          box-shadow var(--motion-normal) var(--motion-easing-standard);
       }
 
       .input::placeholder {
@@ -380,8 +378,27 @@
         opacity: 1;
       }
 
+      .input:hover {
+        border-color: var(--color-system-gray-700);
+      }
+
       .input:focus {
         border-color: var(--color-accent);
+      }
+
+      .input[aria-invalid='true'] {
+        border-color: var(--color-danger);
+      }
+
+      .input[aria-invalid='true']:focus {
+        border-color: var(--color-danger);
+      }
+
+      .input:-webkit-autofill,
+      .input:-webkit-autofill:hover,
+      .input:-webkit-autofill:focus {
+        -webkit-text-fill-color: var(--color-text-primary);
+        -webkit-box-shadow: 0 0 0 100px var(--color-surface-elevated) inset;
       }
 
       .input-group {
@@ -389,34 +406,43 @@
       }
 
       .input--password {
-        padding-right: 108px;
+        padding-right: 54px;
       }
 
       .reveal {
         position: absolute;
-        top: 4px;
-        right: 4px;
+        top: 8px;
+        right: 8px;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        justify-content: center;
+        width: 36px;
         height: 36px;
-        padding: 0 10px;
         border: 0;
-        border-radius: var(--radius-md);
+        border-radius: var(--radius-ios);
         background: transparent;
         color: var(--color-text-secondary);
-        font-size: 12.5px;
-        line-height: 16px;
-        font-weight: 600;
         cursor: pointer;
         transition:
           background-color var(--motion-normal) var(--motion-easing-standard),
-          color var(--motion-normal) var(--motion-easing-standard);
+          color var(--motion-normal) var(--motion-easing-standard),
+          transform var(--motion-fast) var(--motion-easing-ios);
       }
 
-      .reveal .icon {
-        width: 16px;
-        height: 16px;
+      .reveal__icons {
+        position: relative;
+        width: 17px;
+        height: 17px;
+      }
+
+      .reveal__icons .icon {
+        position: absolute;
+        inset: 0;
+        width: 17px;
+        height: 17px;
+        transition:
+          opacity 160ms var(--motion-easing-standard),
+          transform 160ms var(--motion-easing-ios);
       }
 
       .reveal:hover {
@@ -424,36 +450,108 @@
         color: var(--color-text-primary);
       }
 
-      .auth-form__row {
+      .reveal:active {
+        transform: scale(0.94);
+      }
+
+      .reveal__icon--off {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+
+      .reveal[aria-pressed='true'] .reveal__icon--on {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+
+      .reveal[aria-pressed='true'] .reveal__icon--off {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .form__row {
         display: flex;
         justify-content: flex-end;
-        margin-top: 12px;
+        margin-top: 11px;
       }
 
       .link {
         font-size: 12.5px;
-        line-height: 18px;
+        line-height: 20px;
         font-weight: 600;
         color: var(--color-accent);
         text-decoration: underline;
+        text-decoration-color: var(--color-accent-200);
         text-decoration-thickness: 1px;
-        text-underline-offset: 2px;
+        text-underline-offset: 3px;
+        border-radius: 4px;
+        transition: text-decoration-color var(--motion-normal) var(--motion-easing-standard);
       }
 
+      .link:hover {
+        text-decoration-color: var(--color-accent);
+      }
+
+      /* ---- Rechazo del contrato ---- */
+      .alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        margin-bottom: 16px;
+        padding: 10px 12px;
+        background: var(--color-danger-bg);
+        border: 1px solid var(--color-danger-line);
+        border-radius: var(--radius-ios);
+        color: var(--color-danger-text);
+        animation: rise var(--motion-normal) var(--motion-easing-decel) backwards;
+      }
+
+      .alert[hidden] {
+        display: none;
+      }
+
+      .alert:focus-visible {
+        outline: 2px solid var(--color-danger);
+        outline-offset: 2px;
+      }
+
+      .alert .icon {
+        width: 15px;
+        height: 15px;
+        margin-top: 2px;
+      }
+
+      .alert p {
+        font-size: 12.5px;
+        line-height: 17px;
+        letter-spacing: -0.001em;
+      }
+
+      /* ---- Envío ---- */
       .btn {
+        position: relative;
+        overflow: hidden;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        height: 44px;
-        padding: 0 18px;
+        gap: 9px;
+        width: 100%;
+        height: 52px;
+        margin-top: 20px;
+        padding: 0 20px;
         border: 1px solid transparent;
         border-radius: var(--radius-ios);
         font-family: var(--font-sans);
-        font-size: 13.5px;
+        font-size: 14px;
         line-height: 20px;
         font-weight: 600;
-        white-space: nowrap;
+        letter-spacing: 0.002em;
+        color: #ffffff;
+        background: linear-gradient(180deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
+        box-shadow:
+          0 0 0 1px rgba(0, 0, 0, 0.04),
+          var(--elevation-3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
         cursor: pointer;
         transition:
           background-color var(--motion-normal) var(--motion-easing-standard),
@@ -461,211 +559,915 @@
           transform var(--motion-fast) var(--motion-easing-ios);
       }
 
-      .btn--primary {
-        width: 100%;
-        margin-top: 18px;
-        background: var(--color-accent);
-        color: #ffffff;
-        box-shadow:
-          var(--elevation-3),
-          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      .btn::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(
+          180deg,
+          var(--color-accent-hover) 0%,
+          var(--color-accent-700) 100%
+        );
+        opacity: 0;
+        transition: opacity 260ms var(--motion-easing-standard);
       }
 
-      .btn--primary:hover {
-        background: var(--color-accent-hover);
+      .btn > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .btn:hover {
         transform: translateY(-1px);
       }
 
-      .btn--primary:active {
-        background: var(--color-accent-700);
-        transform: translateY(1px);
+      .btn:hover::after {
+        opacity: 1;
       }
 
-      /* ---- Tarjetas de estado y recuperación ---- */
-      .spec {
-        padding: 16px 20px 18px;
-        background: var(--color-surface-elevated);
-        border: 1px solid var(--color-hairline);
-        border-radius: var(--radius-card-lg);
-        box-shadow: var(--elevation-1);
+      .btn:active {
+        transform: translateY(0) scale(0.99);
       }
 
-      .spec__head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
+      .btn:disabled {
+        cursor: default;
+        transform: none;
       }
 
-      .spec__label {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        font-size: 12px;
-        line-height: 16px;
-        font-weight: 600;
-        letter-spacing: 0.01em;
-        color: var(--color-danger-text);
-      }
-
-      .spec__dot {
-        width: 6px;
-        height: 6px;
-        flex: 0 0 auto;
-        border-radius: var(--radius-full);
-        background: var(--color-danger);
-      }
-
-      .spec__title {
-        font-size: var(--text-sm);
-        line-height: var(--text-sm-line);
-        font-weight: 600;
-      }
-
-      .spec__note {
-        margin-top: 7px;
-        font-size: 12.5px;
-        line-height: 18px;
-        color: var(--color-text-secondary);
-      }
-
-      .spec__meta {
-        margin-top: 9px;
-        font-size: 11.5px;
-        line-height: 15px;
-        color: var(--color-text-secondary);
-        font-feature-settings: var(--font-features-tabular-nums);
-      }
-
-      .alert {
-        display: flex;
-        align-items: flex-start;
-        gap: 9px;
-        margin-top: 9px;
-        padding: 10px 12px;
-        background: var(--color-danger-bg);
-        border: 1px solid var(--color-danger-line);
-        border-radius: var(--radius-ios);
-        color: var(--color-danger-text);
-      }
-
-      .alert .icon {
+      .btn__spinner {
         width: 16px;
         height: 16px;
-        margin-top: 1px;
-      }
-
-      .alert p {
-        font-size: 12.5px;
-        line-height: 18px;
-      }
-
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 3px 10px;
+        border: 2px solid rgba(255, 255, 255, 0.32);
+        border-top-color: #ffffff;
         border-radius: var(--radius-full);
-        font-size: 12px;
-        line-height: 18px;
-        font-weight: 500;
-        white-space: nowrap;
+        animation: spin 800ms linear infinite;
       }
 
-      .pill--success {
-        background: var(--color-success-bg);
-        color: var(--color-success-text);
+      .btn__spinner[hidden] {
+        display: none;
       }
 
-      .pill__dot {
-        width: 6px;
-        height: 6px;
-        flex: 0 0 auto;
-        border-radius: var(--radius-full);
-        background: var(--color-success);
-      }
-
-      .token {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-top: 10px;
-        padding: 8px 10px;
-        background: var(--color-canvas);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-ios);
-        color: var(--color-accent-700);
-        font-size: 12px;
-        line-height: 16px;
-        font-feature-settings: var(--font-features-tabular-nums);
-        transition: border-color var(--motion-normal) var(--motion-easing-standard);
-      }
-
-      .token:hover {
-        border-color: var(--color-accent);
-      }
-
-      .token .icon {
-        width: 15px;
-        height: 15px;
-      }
-
-      .token__go {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        margin-left: auto;
-        color: var(--color-accent);
-        font-weight: 600;
-      }
-
-      .token__go .icon {
-        width: 14px;
-        height: 14px;
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       /* ---- Pie del artboard ---- */
       .artboard-meta {
         position: absolute;
-        right: 52px;
-        bottom: 18px;
-        font-size: 11.5px;
-        line-height: 16px;
+        right: 18px;
+        bottom: 14px;
+        z-index: 1;
+        font-size: 11px;
+        line-height: 15px;
         text-align: right;
         color: var(--color-text-secondary);
         font-feature-settings: var(--font-features-tabular-nums);
       }
 
-      /* El anillo del token gana sobre la sombra propia del botón y del campo. */
       .btn:focus-visible,
       .input:focus-visible,
       .reveal:focus-visible,
-      .link:focus-visible,
-      .token:focus-visible {
+      .link:focus-visible {
         box-shadow: var(--focus-ring-default);
       }
 
       /* ============================================================
-         Movimiento reducido
+         Entrada — materializa, no sólo aparece
+         ============================================================ */
+      @keyframes materialize {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.985);
+          filter: blur(6px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+          filter: blur(0);
+        }
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* ============================================================
+         Preferencias del sistema
          ============================================================ */
       @media (prefers-reduced-motion: reduce) {
         *,
         *::before,
         *::after {
-          animation: none !important;
-          transition: none !important;
+          animation-duration: 1ms !important;
+          animation-delay: 0ms !important;
+          transition-duration: 1ms !important;
         }
 
-        .btn--primary:hover,
-        .btn--primary:active {
+        .field__drift,
+        .btn__spinner {
+          animation: none !important;
+        }
+
+        .btn:hover,
+        .btn:active,
+        .reveal:active {
           transform: none;
+        }
+      }
+
+      @media (prefers-contrast: more) {
+        .input {
+          border-color: var(--color-text-secondary);
+        }
+
+        .field {
+          opacity: 0.45;
         }
       }
     </style>
   </head>
   <body>
     <main class="login">
-      <section class="brand-panel" aria-labelledby="brand-name">
+      <div class="field" aria-hidden="true">
+        <div class="field__layer field__layer--far">
+          <div class="field__drift" style="--drift: 200s">
+            <div class="field__tile">
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 157.5px;
+                  top: 686.7px;
+                  width: 16px;
+                  height: 16px;
+                  transform: rotate(12.4deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 356.5px;
+                  top: 220px;
+                  width: 20.2px;
+                  height: 20.2px;
+                  transform: rotate(22.7deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 506.8px;
+                  top: 521.3px;
+                  width: 14.9px;
+                  height: 14.9px;
+                  transform: rotate(4.3deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 645.5px;
+                  top: 388.3px;
+                  width: 18.2px;
+                  height: 18.2px;
+                  transform: rotate(21.3deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1343.8px;
+                  top: 530.2px;
+                  width: 11.8px;
+                  height: 11.8px;
+                  transform: rotate(7.1deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 960.1px;
+                  top: 858.4px;
+                  width: 11.8px;
+                  height: 11.8px;
+                  transform: rotate(15.8deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1176.3px;
+                  top: 647.9px;
+                  width: 11.4px;
+                  height: 11.4px;
+                  transform: rotate(-15deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 641.9px;
+                  top: 533.4px;
+                  width: 18.2px;
+                  height: 18.2px;
+                  transform: rotate(41.7deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 358.1px;
+                  top: 774.8px;
+                  width: 13.1px;
+                  height: 13.1px;
+                  transform: rotate(1.6deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 711.2px;
+                  top: 608.7px;
+                  width: 12.3px;
+                  height: 12.3px;
+                  transform: rotate(-1.8deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 48px;
+                  top: 380.1px;
+                  width: 13.8px;
+                  height: 13.8px;
+                  transform: rotate(11.8deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1186.4px;
+                  top: 339.7px;
+                  width: 12.2px;
+                  height: 12.2px;
+                  transform: rotate(6.9deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1233.1px;
+                  top: 568.6px;
+                  width: 15.8px;
+                  height: 15.8px;
+                  transform: rotate(5.3deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 854px;
+                  top: 356.4px;
+                  width: 13.8px;
+                  height: 13.8px;
+                  transform: rotate(-11.8deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 1022.4px;
+                  top: 637.5px;
+                  width: 18.2px;
+                  height: 18.2px;
+                  transform: rotate(24deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 939.6px;
+                  top: 764.9px;
+                  width: 16.9px;
+                  height: 16.9px;
+                  transform: rotate(4.4deg);
+                "
+              ></i>
+            </div>
+            <div class="field__tile field__tile--next">
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 157.5px;
+                  top: 686.7px;
+                  width: 16px;
+                  height: 16px;
+                  transform: rotate(12.4deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 356.5px;
+                  top: 220px;
+                  width: 20.2px;
+                  height: 20.2px;
+                  transform: rotate(22.7deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 506.8px;
+                  top: 521.3px;
+                  width: 14.9px;
+                  height: 14.9px;
+                  transform: rotate(4.3deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 645.5px;
+                  top: 388.3px;
+                  width: 18.2px;
+                  height: 18.2px;
+                  transform: rotate(21.3deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1343.8px;
+                  top: 530.2px;
+                  width: 11.8px;
+                  height: 11.8px;
+                  transform: rotate(7.1deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 960.1px;
+                  top: 858.4px;
+                  width: 11.8px;
+                  height: 11.8px;
+                  transform: rotate(15.8deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1176.3px;
+                  top: 647.9px;
+                  width: 11.4px;
+                  height: 11.4px;
+                  transform: rotate(-15deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 641.9px;
+                  top: 533.4px;
+                  width: 18.2px;
+                  height: 18.2px;
+                  transform: rotate(41.7deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 358.1px;
+                  top: 774.8px;
+                  width: 13.1px;
+                  height: 13.1px;
+                  transform: rotate(1.6deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 711.2px;
+                  top: 608.7px;
+                  width: 12.3px;
+                  height: 12.3px;
+                  transform: rotate(-1.8deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 48px;
+                  top: 380.1px;
+                  width: 13.8px;
+                  height: 13.8px;
+                  transform: rotate(11.8deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1186.4px;
+                  top: 339.7px;
+                  width: 12.2px;
+                  height: 12.2px;
+                  transform: rotate(6.9deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1233.1px;
+                  top: 568.6px;
+                  width: 15.8px;
+                  height: 15.8px;
+                  transform: rotate(5.3deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 854px;
+                  top: 356.4px;
+                  width: 13.8px;
+                  height: 13.8px;
+                  transform: rotate(-11.8deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 1022.4px;
+                  top: 637.5px;
+                  width: 18.2px;
+                  height: 18.2px;
+                  transform: rotate(24deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 939.6px;
+                  top: 764.9px;
+                  width: 16.9px;
+                  height: 16.9px;
+                  transform: rotate(4.4deg);
+                "
+              ></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="field__layer field__layer--mid">
+          <div class="field__drift" style="--drift: 135s">
+            <div class="field__tile">
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 86.2px;
+                  top: 460.9px;
+                  width: 22.6px;
+                  height: 22.6px;
+                  transform: rotate(-9.2deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 325.7px;
+                  top: 537.1px;
+                  width: 21.8px;
+                  height: 21.8px;
+                  transform: rotate(-14.5deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 417.3px;
+                  top: 337.6px;
+                  width: 22.8px;
+                  height: 22.8px;
+                  transform: rotate(7.6deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1323.2px;
+                  top: 831.3px;
+                  width: 21.6px;
+                  height: 21.6px;
+                  transform: rotate(10.8deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 1187.8px;
+                  top: 625.8px;
+                  width: 27.9px;
+                  height: 27.9px;
+                  transform: rotate(-39.5deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 438.3px;
+                  top: 52.2px;
+                  width: 33.6px;
+                  height: 33.6px;
+                  transform: rotate(-24.5deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1144.9px;
+                  top: 490.3px;
+                  width: 23.6px;
+                  height: 23.6px;
+                  transform: rotate(4.5deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 143.1px;
+                  top: 264.8px;
+                  width: 18.7px;
+                  height: 18.7px;
+                  transform: rotate(-4.4deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 928.3px;
+                  top: 642.6px;
+                  width: 25.5px;
+                  height: 25.5px;
+                  transform: rotate(4.3deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 817.7px;
+                  top: 44.3px;
+                  width: 18.5px;
+                  height: 18.5px;
+                  transform: rotate(-4.7deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 1353px;
+                  top: 385px;
+                  width: 26.5px;
+                  height: 26.5px;
+                  transform: rotate(36.9deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 53.1px;
+                  top: 569px;
+                  width: 21.3px;
+                  height: 21.3px;
+                  transform: rotate(13.1deg);
+                "
+              ></i>
+            </div>
+            <div class="field__tile field__tile--next">
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 86.2px;
+                  top: 460.9px;
+                  width: 22.6px;
+                  height: 22.6px;
+                  transform: rotate(-9.2deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 325.7px;
+                  top: 537.1px;
+                  width: 21.8px;
+                  height: 21.8px;
+                  transform: rotate(-14.5deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 417.3px;
+                  top: 337.6px;
+                  width: 22.8px;
+                  height: 22.8px;
+                  transform: rotate(7.6deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1323.2px;
+                  top: 831.3px;
+                  width: 21.6px;
+                  height: 21.6px;
+                  transform: rotate(10.8deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 1187.8px;
+                  top: 625.8px;
+                  width: 27.9px;
+                  height: 27.9px;
+                  transform: rotate(-39.5deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 438.3px;
+                  top: 52.2px;
+                  width: 33.6px;
+                  height: 33.6px;
+                  transform: rotate(-24.5deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1144.9px;
+                  top: 490.3px;
+                  width: 23.6px;
+                  height: 23.6px;
+                  transform: rotate(4.5deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 143.1px;
+                  top: 264.8px;
+                  width: 18.7px;
+                  height: 18.7px;
+                  transform: rotate(-4.4deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 928.3px;
+                  top: 642.6px;
+                  width: 25.5px;
+                  height: 25.5px;
+                  transform: rotate(4.3deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 817.7px;
+                  top: 44.3px;
+                  width: 18.5px;
+                  height: 18.5px;
+                  transform: rotate(-4.7deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 1353px;
+                  top: 385px;
+                  width: 26.5px;
+                  height: 26.5px;
+                  transform: rotate(36.9deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 53.1px;
+                  top: 569px;
+                  width: 21.3px;
+                  height: 21.3px;
+                  transform: rotate(13.1deg);
+                "
+              ></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="field__layer field__layer--near">
+          <div class="field__drift" style="--drift: 90s">
+            <div class="field__tile">
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1170.7px;
+                  top: 847.6px;
+                  width: 34.2px;
+                  height: 34.2px;
+                  transform: rotate(-2.5deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1115.4px;
+                  top: 282.3px;
+                  width: 36.9px;
+                  height: 36.9px;
+                  transform: rotate(-5.7deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 484.8px;
+                  top: 826.4px;
+                  width: 43.7px;
+                  height: 43.7px;
+                  transform: rotate(3.8deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 492.9px;
+                  top: 65.5px;
+                  width: 43.1px;
+                  height: 43.1px;
+                  transform: rotate(23.2deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 682px;
+                  top: 313.4px;
+                  width: 39.1px;
+                  height: 39.1px;
+                  transform: rotate(-3deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 251.7px;
+                  top: 535.5px;
+                  width: 48.3px;
+                  height: 48.3px;
+                  transform: rotate(-39.5deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 872.8px;
+                  top: 353.8px;
+                  width: 38.4px;
+                  height: 38.4px;
+                  transform: rotate(14.6deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 483.9px;
+                  top: 375.6px;
+                  width: 38.2px;
+                  height: 38.2px;
+                  transform: rotate(-11.4deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 115px;
+                  top: 324.8px;
+                  width: 30.1px;
+                  height: 30.1px;
+                  transform: rotate(-15.5deg);
+                "
+              ></i>
+            </div>
+            <div class="field__tile field__tile--next">
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1170.7px;
+                  top: 847.6px;
+                  width: 34.2px;
+                  height: 34.2px;
+                  transform: rotate(-2.5deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 1115.4px;
+                  top: 282.3px;
+                  width: 36.9px;
+                  height: 36.9px;
+                  transform: rotate(-5.7deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 484.8px;
+                  top: 826.4px;
+                  width: 43.7px;
+                  height: 43.7px;
+                  transform: rotate(3.8deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 492.9px;
+                  top: 65.5px;
+                  width: 43.1px;
+                  height: 43.1px;
+                  transform: rotate(23.2deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 682px;
+                  top: 313.4px;
+                  width: 39.1px;
+                  height: 39.1px;
+                  transform: rotate(-3deg);
+                "
+              ></i>
+              <i
+                class="motif motif--brush"
+                style="
+                  left: 251.7px;
+                  top: 535.5px;
+                  width: 48.3px;
+                  height: 48.3px;
+                  transform: rotate(-39.5deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 872.8px;
+                  top: 353.8px;
+                  width: 38.4px;
+                  height: 38.4px;
+                  transform: rotate(14.6deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 483.9px;
+                  top: 375.6px;
+                  width: 38.2px;
+                  height: 38.2px;
+                  transform: rotate(-11.4deg);
+                "
+              ></i>
+              <i
+                class="motif motif--tooth"
+                style="
+                  left: 115px;
+                  top: 324.8px;
+                  width: 30.1px;
+                  height: 30.1px;
+                  transform: rotate(-15.5deg);
+                "
+              ></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="access">
         <div class="brand">
           <span class="brand__mark" aria-hidden="true">
             <svg class="icon" viewBox="0 0 24 24">
@@ -674,138 +1476,16 @@
               />
             </svg>
           </span>
-          <span>
-            <span class="brand__name" id="brand-name">OdontoSuite</span>
-            <span class="brand__sub">Clínica San Isidro</span>
-          </span>
+          <span class="brand__name">OdontoSuite</span>
+          <span class="brand__dot" aria-hidden="true"></span>
+          <span class="brand__clinic">Clínica San Isidro</span>
         </div>
 
-        <svg class="motif" viewBox="0 0 360 360" aria-hidden="true" focusable="false">
-          <circle cx="180" cy="180" r="172" fill="none" stroke="#c9e7dc" stroke-width="1.5" />
-          <circle
-            cx="180"
-            cy="180"
-            r="138"
-            fill="none"
-            stroke="#93cdb9"
-            stroke-width="1.4"
-            stroke-dasharray="2 9"
-          />
-          <circle cx="180" cy="180" r="106" fill="#c9e7dc" />
-          <circle cx="180" cy="180" r="106" fill="none" stroke="#93cdb9" stroke-width="1.5" />
-          <g transform="translate(84 86) scale(8)">
-            <path
-              d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
-              fill="#ffffff"
-              stroke="#0f7a5f"
-              stroke-width="0.2"
-            />
-          </g>
-          <circle cx="180" cy="8" r="4" fill="#5cb195" />
-          <circle cx="180" cy="352" r="4" fill="#5cb195" />
-          <circle cx="8" cy="180" r="4" fill="#5cb195" />
-          <circle cx="352" cy="180" r="4" fill="#5cb195" />
-        </svg>
+        <section class="card" aria-labelledby="login-title">
+          <h1 class="card__title" id="login-title">Iniciar sesión</h1>
 
-        <div class="claim">
-          <span class="claim__rule" aria-hidden="true"></span>
-          <p class="claim__text">
-            La clínica, en orden: agenda, acta clínica y dinero en un solo lugar
-          </p>
-          <ul class="claim__list">
-            <li class="claim__item">
-              <span class="claim__check" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <path d="M4.5 12.5l4.5 4.5 10-11" />
-                </svg>
-              </span>
-              <span>Agenda, sillones y lista de espera en una vista.</span>
-            </li>
-            <li class="claim__item">
-              <span class="claim__check" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <path d="M4.5 12.5l4.5 4.5 10-11" />
-                </svg>
-              </span>
-              <span>Acta clínica firmada que se corrige con addendum.</span>
-            </li>
-            <li class="claim__item">
-              <span class="claim__check" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <path d="M4.5 12.5l4.5 4.5 10-11" />
-                </svg>
-              </span>
-              <span>Caja y estado de cuenta que cuadran al cierre.</span>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div class="auth-panel">
-        <div class="auth-stack">
-          <section class="auth-card" aria-labelledby="login-title">
-            <p class="auth-card__eyebrow">Acceso al sistema</p>
-            <h1 class="auth-card__title" id="login-title">Iniciar sesión</h1>
-            <p class="auth-card__lede">Usa el correo que te asignó la clínica.</p>
-
-            <form class="auth-form" novalidate>
-              <div class="field">
-                <label class="field__label" for="login-email">Correo electrónico</label>
-                <input
-                  class="input"
-                  id="login-email"
-                  name="email"
-                  type="email"
-                  inputmode="email"
-                  autocomplete="username"
-                  spellcheck="false"
-                  value="dra.salazar@test.com"
-                />
-              </div>
-
-              <div class="field">
-                <label class="field__label" for="login-password">Contraseña</label>
-                <div class="input-group">
-                  <input
-                    class="input input--password"
-                    id="login-password"
-                    name="password"
-                    type="password"
-                    autocomplete="current-password"
-                    value="password123"
-                  />
-                  <button
-                    class="reveal"
-                    type="button"
-                    aria-controls="login-password"
-                    aria-pressed="false"
-                    aria-label="Mostrar contraseña"
-                  >
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"
-                      />
-                      <circle cx="12" cy="12" r="2.9" />
-                    </svg>
-                    <span>Mostrar</span>
-                  </button>
-                </div>
-              </div>
-
-              <div class="auth-form__row">
-                <a class="link" href="#recuperar">¿Olvidaste tu contraseña?</a>
-              </div>
-
-              <button class="btn btn--primary" type="submit">Entrar</button>
-            </form>
-          </section>
-
-          <section class="spec" aria-labelledby="state-label">
-            <p class="spec__label" id="state-label">
-              <span class="spec__dot" aria-hidden="true"></span>
-              Estado: credenciales inválidas
-            </p>
-            <div class="alert" role="alert">
+          <form class="form" novalidate data-login-form>
+            <div class="alert" role="alert" tabindex="-1" data-auth-error hidden>
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="12" r="8.5" />
                 <path d="M12 7.5v5.5" />
@@ -813,41 +1493,137 @@
               </svg>
               <p>Credenciales incorrectas. Verifica tu usuario y contraseña.</p>
             </div>
-            <p class="spec__meta">dra.salazar@test.com · 29 oct 2026, 09:14</p>
-          </section>
 
-          <section class="spec" aria-labelledby="recovery-label" data-reset-token-applied="true">
-            <div class="spec__head">
-              <p class="spec__title" id="recovery-label">Restablecer contraseña</p>
-              <span class="pill pill--success">
-                <span class="pill__dot" aria-hidden="true"></span>
-                Token aplicado
-              </span>
+            <div class="field-row">
+              <label class="field-row__label" for="login-email">Correo electrónico</label>
+              <input
+                class="input"
+                id="login-email"
+                name="email"
+                type="email"
+                inputmode="email"
+                autocomplete="username"
+                spellcheck="false"
+                value="dra.salazar@test.com"
+              />
             </div>
-            <p class="spec__note">
-              El código llega dentro del enlace del correo: ya está aplicado y no hace falta
-              escribirlo.
-            </p>
-            <a class="token" href="#restablecer">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="8.5" cy="8.5" r="4" />
-                <path d="M11.4 11.4l8.1 8.1" />
-                <path d="M16.5 16.5l2-2 2 2-2 2z" />
-              </svg>
-              <span>restablecer · token 9f2c1d8a…</span>
-              <span class="token__go">
-                Abrir
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M5 12h13" />
-                  <path d="M13 6.5l5.5 5.5-5.5 5.5" />
-                </svg>
-              </span>
-            </a>
-          </section>
-        </div>
 
-        <p class="artboard-meta">design/interfaces/28-login.html · 1440 px · 2026-10-29</p>
+            <div class="field-row">
+              <label class="field-row__label" for="login-password">Contraseña</label>
+              <div class="input-group">
+                <input
+                  class="input input--password"
+                  id="login-password"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  value="password123"
+                />
+                <button
+                  class="reveal"
+                  type="button"
+                  data-reveal
+                  aria-controls="login-password"
+                  aria-pressed="false"
+                  aria-label="Mostrar contraseña"
+                  title="Mostrar contraseña"
+                >
+                  <span class="reveal__icons" aria-hidden="true">
+                    <svg class="icon reveal__icon--on" viewBox="0 0 24 24">
+                      <path
+                        d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"
+                      />
+                      <circle cx="12" cy="12" r="2.9" />
+                    </svg>
+                    <svg class="icon reveal__icon--off" viewBox="0 0 24 24">
+                      <path d="M4 4l16 16" />
+                      <path d="M9.9 5.9A9.9 9.9 0 0112 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 01-3 3.6" />
+                      <path d="M6.6 7.8A16.4 16.4 0 002.5 12S6 18.5 12 18.5a9.6 9.6 0 003.7-.75" />
+                      <path d="M10.2 10.2a2.9 2.9 0 004.1 4.1" />
+                    </svg>
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div class="form__row">
+              <a class="link" href="#recuperar">¿Olvidaste tu contraseña?</a>
+            </div>
+
+            <button class="btn" type="submit" data-submit>
+              <span class="btn__spinner" data-spinner hidden aria-hidden="true"></span>
+              <span data-submit-label>Entrar</span>
+            </button>
+          </form>
+        </section>
       </div>
+
+      <p class="artboard-meta">design/interfaces/28-login.html · 1440 px · 2026-10-29</p>
     </main>
+
+    <script>
+      ;(() => {
+        const reveal = document.querySelector('[data-reveal]')
+        const password = document.getElementById('login-password')
+        const email = document.getElementById('login-email')
+
+        reveal.addEventListener('click', () => {
+          const hidden = password.type === 'password'
+          password.type = hidden ? 'text' : 'password'
+          reveal.setAttribute('aria-pressed', String(hidden))
+          const label = hidden ? 'Ocultar contraseña' : 'Mostrar contraseña'
+          reveal.setAttribute('aria-label', label)
+          reveal.setAttribute('title', label)
+        })
+
+        /* El formulario limpio se convierte en el rechazo del contrato
+           sin mover la tarjeta de su sitio. */
+        const form = document.querySelector('[data-login-form]')
+        const alert = document.querySelector('[data-auth-error]')
+        const button = document.querySelector('[data-submit]')
+        const buttonLabel = document.querySelector('[data-submit-label]')
+        const spinner = document.querySelector('[data-spinner]')
+        const status = document.createElement('span')
+        status.className = 'sr-only'
+        status.setAttribute('role', 'status')
+        form.append(status)
+
+        let busy = false
+
+        form.addEventListener('submit', event => {
+          event.preventDefault()
+          if (busy) return
+
+          busy = true
+          button.disabled = true
+          button.setAttribute('aria-busy', 'true')
+          alert.hidden = true
+          spinner.hidden = false
+          buttonLabel.textContent = 'Verificando'
+          status.textContent = 'Verificando credenciales'
+          email.removeAttribute('aria-invalid')
+          password.removeAttribute('aria-invalid')
+
+          window.setTimeout(() => {
+            busy = false
+            button.disabled = false
+            button.removeAttribute('aria-busy')
+            spinner.hidden = true
+            buttonLabel.textContent = 'Entrar'
+            status.textContent = ''
+            alert.hidden = false
+            email.setAttribute('aria-invalid', 'true')
+            password.setAttribute('aria-invalid', 'true')
+            alert.focus()
+          }, 1200)
+        })
+        ;[email, password].forEach(input => {
+          input.addEventListener('input', () => {
+            input.removeAttribute('aria-invalid')
+            alert.hidden = true
+          })
+        })
+      })()
+    </script>
   </body>
 </html>

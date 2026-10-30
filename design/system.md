@@ -46,7 +46,7 @@ multi-clínica puede repuntarla sin tocar componentes.
 
 | Token        | Valor     | Uso                                                                                 |
 | ------------ | --------- | ----------------------------------------------------------------------------------- |
-| `accent-50`  | `#e6f4ef` | Fondo teñido (badge informativo, input enfocado, `--color-accent-light`)            |
+| `accent-50`  | `#f2f8f5` | Superficie teñida más tenue (fondo de login, `--color-accent-light`)                |
 | `accent-100` | `#c9e7dc` | Fondo de estado suave, barras de progreso                                           |
 | `accent-200` | `#93cdb9` | Borde de chips primary, trazos de motivo dental                                     |
 | `accent-300` | `#5cb195` | Acento decorativo, series de gráfico                                                |
@@ -62,6 +62,14 @@ Fuente: `resources/js/design-system/tokens.js` (`colors.accent`) y
 `--color-accent-900`). El comentario de `tokens.js` fija además la medición que
 hizo aceptable la rampa: blanco sobre `500` = 5.29:1, blanco sobre `600` =
 7.65:1, `500` como texto sobre blanco = 5.29:1 y sobre canvas = 4.90:1.
+
+**Cambio de esta revisión (2026-10-30).** `accent-50` pasa de `#e6f4ef` a
+`#f2f8f5`, el paso que se probó en el login: el color se retira y la separación
+de la tarjeta queda en la sombra por capas. El valor anterior se retira de la
+paleta. Consecuencia asumida: un input enfocado ya no gana un lavado de fondo
+perceptible, así que la señal de foco descansa en el borde y el anillo de 3 px.
+`tokens.js` y `tokens.generated.css` todavía conservan `#e6f4ef`; este documento
+registra el valor aprobado y la implementación queda pendiente.
 
 ### 1.2 Rampas de sistema (iOS 13+)
 
@@ -126,11 +134,11 @@ bajo WCAG 1.4.11 (3:1), aunque un divisor decorativo esté exento.
 | `--color-accent`               | `--color-accent-500`                      | `#0f7a5f`                |
 | `--color-accent-hover`         | `--color-accent-600`                      | `#0a5f49`                |
 | `--color-accent-active`        | `--color-accent-700`                      | `#084c3b`                |
-| `--color-accent-light`         | `--color-accent-50`                       | `#e6f4ef`                |
+| `--color-accent-light`         | `--color-accent-50`                       | `#f2f8f5`                |
 | `--color-primary`              | `--color-accent-500`                      | `#0f7a5f`                |
 | `--color-primary-hover`        | `--color-accent-600`                      | `#0a5f49`                |
 | `--color-primary-active`       | `--color-accent-700`                      | `#084c3b`                |
-| `--color-primary-light`        | `--color-accent-50`                       | `#e6f4ef`                |
+| `--color-primary-light`        | `--color-accent-50`                       | `#f2f8f5`                |
 | `--color-primary-dark`         | `--color-accent-700`                      | `#084c3b`                |
 | `--color-background`           | `--color-background-system-background`    | `#ffffff`                |
 | `--color-background-secondary` | `--color-background-secondary-background` | `#f7f6f4`                |
@@ -174,12 +182,12 @@ resolviendo. **No se agregan consumidores nuevos** (lo dice el comentario de
 
 | Alias          | Valores                                                                                                                                             | Resuelve a                                                                              |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `systemBlue`   | `50 #e6f4ef`, `100 #c9e7dc`, `200 #93cdb9`, `300 #5cb195`, `400 #2a9070`, `500 #0f7a5f`, `600 #0a5f49`, `700 #084c3b`                               | `accent-50` … `accent-700`                                                              |
+| `systemBlue`   | `50 #f2f8f5`, `100 #c9e7dc`, `200 #93cdb9`, `300 #5cb195`, `400 #2a9070`, `500 #0f7a5f`, `600 #0a5f49`, `700 #084c3b`                               | `accent-50` … `accent-700`                                                              |
 | `cream`        | `50 #f7f6f4`, `100 #edebe7`, `200 #dcd8d2`                                                                                                          | `systemGray-50`, `-100`, `-200`                                                         |
 | `terracotta`   | `500 #0f7a5f`, `600 #0a5f49`                                                                                                                        | `accent-500`, `accent-600`                                                              |
-| `clinicalTeal` | `50 #e6f4ef`, `500 #0f7a5f`, `600 #0a5f49`                                                                                                          | `accent-50`, `accent-500`, `accent-600`                                                 |
+| `clinicalTeal` | `50 #f2f8f5`, `500 #0f7a5f`, `600 #0a5f49`                                                                                                          | `accent-50`, `accent-500`, `accent-600`                                                 |
 | `info`         | `500 #4a7191`                                                                                                                                       | `systemSteel-500` (estado semántico, no la marca)                                       |
-| `primary`      | `50 #e6f4ef`, `100 #c9e7dc`, `200 #93cdb9`, `300 #5cb195`, `400 #2a9070`, `500 #0f7a5f`, `600 #0a5f49`, `700 #084c3b`, `800 #063a2d`, `900 #04281f` | `accent-50` … `accent-900`                                                              |
+| `primary`      | `50 #f2f8f5`, `100 #c9e7dc`, `200 #93cdb9`, `300 #5cb195`, `400 #2a9070`, `500 #0f7a5f`, `600 #0a5f49`, `700 #084c3b`, `800 #063a2d`, `900 #04281f` | `accent-50` … `accent-900`                                                              |
 | `neutral`      | `50 #ffffff`, `100 #f7f6f4`, `200 #edebe7`, `500 #908b82`, `700 #3b3833`, `900 #1a1917`                                                             | Blanco, `systemGray-50`, `-100`, `-500`, `-700`, y `label`                              |
 | `success`      | `50 #e8f5e9`, `100 #cdedcf`, `300 #a4d8a8`, `500 #34c759`, `600 #248a3d`, `700 #1a6530`, `900 #0f4520`                                              | `systemGreen-50`, `-100`, `-200`, `-500`, `-600`, `-700` y un verde legacy de contraste |
 | `warning`      | `50 #fff9d6`, `100 #fff1ad`, `300 #ffe07a`, `500 #ffcc00`, `600 #a57000`, `700 #7a5200`, `900 #4d3300`                                              | `systemYellow-50`, `-100`, `-200`, `-500`, `-600`, `-700` y un ámbar legacy             |
@@ -690,14 +698,14 @@ página pinta su propia versión.
   error.
 - **Tipos (4):** `success` (`systemGreen-50/200/700`), `error`
   (`systemRed-50/200/700`), `warning` (`systemYellow-50/200/700`), `info`
-  (`systemBlue` → acento `#e6f4ef/#93cdb9/#084c3b`).
+  (`systemBlue` → acento `#f2f8f5/#93cdb9/#084c3b`).
 - **Contrato:** `role="status"` con `aria-live="polite"` para éxito e info, y
   `role="alert"` con `aria-live="assertive"` para error y advertencia;
   `aria-atomic="true"`; `rounded-ios`, `shadow-lg` (Tailwind) en reposo y
   `var(--shadow-large)` en hover, `p-4`, `gap-3`, `max-w-sm`; entrada de 300 ms
   (translateY 8 px + scale 0.95) y salida de 200 ms; autodismiss de 5000 ms
   salvo `persistent`; botón «Cerrar notificación». El `info` del toast resuelve
-  el alias `systemBlue`, es decir el acento (`#e6f4ef` / `#93cdb9` / `#084c3b`),
+  el alias `systemBlue`, es decir el acento (`#f2f8f5` / `#93cdb9` / `#084c3b`),
   no el acero.
 - **Source:** `resources/js/components/ui/Toast.vue`.
 
