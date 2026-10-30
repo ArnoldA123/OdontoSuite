@@ -718,7 +718,7 @@ describe('T8b chip tint and compact time smoke (defects 2/3)', () => {
     expect(
       classes.filter(c => c.startsWith('bg-')),
       `${view}: single bg`
-    ).toEqual(['bg-accent-50'])
+    ).toEqual(['bg-accent-100'])
     expect(
       classes.filter(c => c.startsWith('border-')),
       `${view}: single border colour`
@@ -851,7 +851,7 @@ describe('appointments month view smoke (T6)', () => {
     // Today (2026-05-13) wears the accent token highlight; out-of-month days
     // are quiet via the theme surface token (T6 quiet design language).
     expect(wrapper.find('[data-calendar-month-day="2026-05-13"]').classes()).toContain(
-      'bg-accent-50'
+      'bg-accent-100'
     )
     expect(wrapper.find('[data-calendar-month-day="2026-04-27"]').classes()).toContain(
       'bg-theme-surface'

@@ -63,13 +63,15 @@ Fuente: `resources/js/design-system/tokens.js` (`colors.accent`) y
 hizo aceptable la rampa: blanco sobre `500` = 5.29:1, blanco sobre `600` =
 7.65:1, `500` como texto sobre blanco = 5.29:1 y sobre canvas = 4.90:1.
 
-**Cambio de esta revisión (2026-10-30).** `accent-50` pasa de `#e6f4ef` a
-`#f2f8f5`, el paso que se probó en el login: el color se retira y la separación
-de la tarjeta queda en la sombra por capas. El valor anterior se retira de la
-paleta. Consecuencia asumida: un input enfocado ya no gana un lavado de fondo
+**Cambio implementado (2026-10-30).** `accent-50` pasa de `#e6f4ef` a `#f2f8f5`,
+el paso que se probó en el login: el color se retira y la separación de la
+tarjeta queda en la sombra por capas. El valor anterior se retira de la paleta y
+ya está en `tokens.js`, `tokens.generated.css` y los alias que resolvían a ese
+paso. Consecuencia asumida: un input enfocado ya no gana un lavado de fondo
 perceptible, así que la señal de foco descansa en el borde y el anillo de 3 px.
-`tokens.js` y `tokens.generated.css` todavía conservan `#e6f4ef`; este documento
-registra el valor aprobado y la implementación queda pendiente.
+Los consumidores que usaban `accent-50` como relleno —chips de cita, «hoy» del
+calendario, selección de texto y total del recibo— suben a `accent-100` para
+conservar su peso visual.
 
 ### 1.2 Rampas de sistema (iOS 13+)
 

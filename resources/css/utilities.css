@@ -188,7 +188,7 @@
 
 /* Text selection — preserved for design consistency */
 ::selection {
-  background: var(--color-accent-light);
+  background: var(--color-accent-100);
   color: var(--color-primary-dark);
 }
 

@@ -266,7 +266,7 @@ const generatePrintHTML = () => {
         .details { border: 1px solid var(--color-border); }
         .details-header { background: var(--color-surface); padding: 8px; font-weight: bold; }
         .details-row { padding: 8px; border-bottom: 1px solid var(--color-border-light); }
-        .total { background: var(--color-primary-light); padding: 10px; font-weight: bold; text-align: center; }
+        .total { background: var(--color-accent-100); padding: 10px; font-weight: bold; text-align: center; }
         .footer { text-align: center; margin-top: 20px; font-size: 10px; }
         @media print { body { margin: 0; } }
       </style>

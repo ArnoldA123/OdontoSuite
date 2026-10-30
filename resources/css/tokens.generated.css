@@ -2,7 +2,7 @@
 /* :root — token ramps and aliases (iOS 13+ clinical) */
 :root {
   /* accent */
-  --color-accent-50: #e6f4ef;
+  --color-accent-50: #f2f8f5;
   --color-accent-100: #c9e7dc;
   --color-accent-200: #93cdb9;
   --color-accent-300: #5cb195;
@@ -14,7 +14,7 @@
   --color-accent-900: #04281f;
 
   /* systemBlue */
-  --color-system-blue-50: #e6f4ef;
+  --color-system-blue-50: #f2f8f5;
   --color-system-blue-100: #c9e7dc;
   --color-system-blue-200: #93cdb9;
   --color-system-blue-300: #5cb195;
@@ -144,7 +144,7 @@
   --color-terracotta-600: #0a5f49;
 
   /* clinicalTeal */
-  --color-clinical-teal-50: #e6f4ef;
+  --color-clinical-teal-50: #f2f8f5;
   --color-clinical-teal-500: #0f7a5f;
   --color-clinical-teal-600: #0a5f49;
 
@@ -152,7 +152,7 @@
   --color-info-500: #4a7191;
 
   /* primary */
-  --color-primary-50: #e6f4ef;
+  --color-primary-50: #f2f8f5;
   --color-primary-100: #c9e7dc;
   --color-primary-200: #93cdb9;
   --color-primary-300: #5cb195;

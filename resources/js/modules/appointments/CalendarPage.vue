@@ -1303,7 +1303,7 @@ export default {
     }
 
     const monthCellClasses = day => {
-      if (day.isToday) return 'bg-accent-50'
+      if (day.isToday) return 'bg-accent-100'
       if (!day.isCurrentMonth) return 'bg-theme-surface'
       return ''
     }

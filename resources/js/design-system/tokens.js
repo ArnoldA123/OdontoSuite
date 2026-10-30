@@ -56,7 +56,7 @@ const tokens = {
     // and a 2.9x luminance gap, so an accent CTA and a success badge cannot
     // be confused.
     accent: {
-      50: '#e6f4ef',
+      50: '#f2f8f5',
       100: '#c9e7dc',
       200: '#93cdb9',
       300: '#5cb195',
@@ -72,7 +72,7 @@ const tokens = {
     // no longer this palette's accent. Kept so the 36 `system-blue-*` call
     // sites keep resolving while un-migrated; do NOT add new consumers.
     systemBlue: {
-      50: '#e6f4ef', // -> accent-50
+      50: '#f2f8f5', // -> accent-50
       100: '#c9e7dc', // -> accent-100
       200: '#93cdb9', // -> accent-200
       300: '#5cb195', // -> accent-300
@@ -250,7 +250,7 @@ const tokens = {
       600: '#0a5f49' // -> accent-600
     },
     clinicalTeal: {
-      50: '#e6f4ef', // -> accent-50
+      50: '#f2f8f5', // -> accent-50
       500: '#0f7a5f', // -> accent-500
       600: '#0a5f49' // -> accent-600
     },
@@ -260,7 +260,7 @@ const tokens = {
     // Deprecated alias for terracotta (kept for the 17 un-migrated
     // modules' bg-primary-* Tailwind classes; do NOT add new consumers).
     primary: {
-      50: '#e6f4ef', // -> accent-50
+      50: '#f2f8f5', // -> accent-50
       100: '#c9e7dc', // -> accent-100
       200: '#93cdb9', // -> accent-200
       300: '#5cb195', // -> accent-300
