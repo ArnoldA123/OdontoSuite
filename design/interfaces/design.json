@@ -194,7 +194,7 @@
     {
       "file": "28-login.html",
       "title": "Inicio de sesión",
-      "tradeoff": "Partido 60/40 con la marca a la izquierda y el formulario a la derecha: la pantalla se lee sin scroll a 900 px y el estado de credenciales inválidas se muestra como tarjeta rotulada, no como alerta flotante.",
+      "tradeoff": "Una sola superficie pastel (`accent-50`, #f2f8f5) con dientes y cepillos —los dos PNG del set usados como máscara de alfa y pintados en el acento— en deriva infinita sobre tres planos (200 s / 135 s / 90 s), sin seguir al puntero y por debajo de la tarjeta y las palabras. La separación de la tarjeta la hace la sombra por capas; el rechazo de credenciales aparece al enviar.",
       "width": 1440,
       "height": 900
     },
