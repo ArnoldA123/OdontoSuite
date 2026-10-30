@@ -1,0 +1,4239 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1440" />
+    <title>Sistema de diseño · OdontoSuite V2</title>
+    <style>
+      /* ============================================================
+         Tokens — copiados de resources/js/design-system/tokens.js y
+         resources/css/tokens.generated.css. Ver design/system.md.
+         ============================================================ */
+      :root {
+        --color-accent-50: #e6f4ef;
+        --color-accent-100: #c9e7dc;
+        --color-accent-200: #93cdb9;
+        --color-accent-300: #5cb195;
+        --color-accent-400: #2a9070;
+        --color-accent-500: #0f7a5f;
+        --color-accent-600: #0a5f49;
+        --color-accent-700: #084c3b;
+        --color-accent-800: #063a2d;
+        --color-accent-900: #04281f;
+
+        --color-system-red-50: #ffebea;
+        --color-system-red-100: #ffd9d7;
+        --color-system-red-200: #ffb8b3;
+        --color-system-red-300: #ff9890;
+        --color-system-red-400: #ff776c;
+        --color-system-red-500: #ff3b30;
+        --color-system-red-600: #d70015;
+        --color-system-red-700: #a50e10;
+
+        --color-system-orange-50: #fff1e5;
+        --color-system-orange-100: #ffe2c7;
+        --color-system-orange-200: #ffd09d;
+        --color-system-orange-300: #ffbd73;
+        --color-system-orange-400: #ffab49;
+        --color-system-orange-500: #ff9500;
+        --color-system-orange-600: #c93400;
+        --color-system-orange-700: #9a2700;
+
+        --color-system-yellow-50: #fff9d6;
+        --color-system-yellow-100: #fff1ad;
+        --color-system-yellow-200: #ffe57f;
+        --color-system-yellow-300: #ffd84f;
+        --color-system-yellow-400: #ffd11f;
+        --color-system-yellow-500: #ffcc00;
+        --color-system-yellow-600: #a57000;
+        --color-system-yellow-700: #7a5200;
+
+        --color-system-green-50: #e8f5e9;
+        --color-system-green-100: #cdedcf;
+        --color-system-green-200: #a4d8a8;
+        --color-system-green-300: #8ed29c;
+        --color-system-green-400: #5cc46c;
+        --color-system-green-500: #34c759;
+        --color-system-green-600: #248a3d;
+        --color-system-green-700: #1a6530;
+
+        --color-system-indigo-50: #efe9ff;
+        --color-system-indigo-100: #dfd2ff;
+        --color-system-indigo-200: #c8b6ff;
+        --color-system-indigo-300: #b09aff;
+        --color-system-indigo-400: #997eff;
+        --color-system-indigo-500: #5856d6;
+        --color-system-indigo-600: #3f3dab;
+        --color-system-indigo-700: #2d2b80;
+
+        --color-system-purple-50: #f6e9ff;
+        --color-system-purple-100: #ecd2ff;
+        --color-system-purple-200: #dfaeff;
+        --color-system-purple-300: #d189ff;
+        --color-system-purple-400: #c365ff;
+        --color-system-purple-500: #af52de;
+        --color-system-purple-600: #7a38a1;
+        --color-system-purple-700: #55276f;
+
+        --color-system-pink-50: #ffe9f0;
+        --color-system-pink-100: #ffd2dd;
+        --color-system-pink-200: #ffa9b8;
+        --color-system-pink-300: #ff7f93;
+        --color-system-pink-400: #ff556e;
+        --color-system-pink-500: #ff2d55;
+        --color-system-pink-600: #c30039;
+        --color-system-pink-700: #8e0028;
+
+        --color-system-gray-50: #f7f6f4;
+        --color-system-gray-100: #edebe7;
+        --color-system-gray-200: #dcd8d2;
+        --color-system-gray-300: #d2cec7;
+        --color-system-gray-400: #b5b0a8;
+        --color-system-gray-500: #908b82;
+        --color-system-gray-600: #635e57;
+        --color-system-gray-700: #3b3833;
+
+        --color-system-steel-50: #eef3f8;
+        --color-system-steel-100: #dbe5ef;
+        --color-system-steel-200: #bed0e0;
+        --color-system-steel-300: #9db7cd;
+        --color-system-steel-400: #7095b3;
+        --color-system-steel-500: #4a7191;
+        --color-system-steel-600: #3a5a75;
+        --color-system-steel-700: #2b4459;
+
+        --color-background-system-background: #ffffff;
+        --color-background-secondary-background: #f7f6f4;
+        --color-canvas: #f7f6f4;
+        --color-label-label: #1a1917;
+        --color-label-secondary-label: #5c5a55;
+        --color-separator-separator: #c9c5bd;
+        --color-hairline: rgba(26, 24, 20, 0.1);
+
+        --color-accent: var(--color-accent-500);
+        --color-accent-hover: var(--color-accent-600);
+        --color-accent-active: var(--color-accent-700);
+        --color-accent-light: var(--color-accent-50);
+        --color-surface: var(--color-background-secondary-background);
+        --color-surface-elevated: var(--color-background-system-background);
+        --color-text-primary: var(--color-label-label);
+        --color-text-secondary: var(--color-label-secondary-label);
+        --color-border: var(--color-separator-separator);
+        --color-border-light: var(--color-system-gray-100);
+
+        --color-danger-bg: var(--color-system-red-50);
+        --color-danger-text: var(--color-system-red-700);
+        --color-success-bg: var(--color-system-green-50);
+        --color-success-text: var(--color-system-green-700);
+        --color-warning-bg: var(--color-system-yellow-50);
+        --color-warning-text: var(--color-system-yellow-700);
+
+        --spacing-1: 4px;
+        --spacing-2: 8px;
+        --spacing-3: 12px;
+        --spacing-4: 16px;
+        --spacing-5: 20px;
+        --spacing-6: 24px;
+        --spacing-8: 32px;
+        --spacing-12: 48px;
+
+        --radius-sm: 4px;
+        --radius-md: 8px;
+        --radius-ios: 10px;
+        --radius-control: 12px;
+        --radius-modal: 14px;
+        --radius-card-lg: 16px;
+        --radius-panel: 22px;
+        --radius-shell: 32px;
+        --radius-full: 9999px;
+
+        --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --shadow-large: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        --shadow-elevated: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.18);
+
+        --elevation-0: none;
+        --elevation-1: 0 1px 3px rgba(92, 90, 85, 0.04);
+        --elevation-2: 0 2px 8px rgba(92, 90, 85, 0.06), 0 1px 2px rgba(92, 90, 85, 0.04);
+        --elevation-3: 0 8px 16px rgba(92, 90, 85, 0.08), 0 2px 6px rgba(92, 90, 85, 0.06);
+        --elevation-4: 0 16px 24px rgba(92, 90, 85, 0.12), 0 4px 8px rgba(92, 90, 85, 0.08);
+
+        --focus-ring-default: 0 0 0 3px rgba(15, 122, 95, 0.2);
+
+        --motion-duration-fast: 120ms;
+        --motion-duration-normal: 200ms;
+        --motion-duration-slow: 320ms;
+        --motion-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+        --motion-easing-decel: cubic-bezier(0, 0, 0.2, 1);
+        --motion-easing-accel: cubic-bezier(0.4, 0, 1, 1);
+        --motion-easing-ios: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+        --font-sans:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      }
+
+      /* ============================================================
+         Base
+         ============================================================ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--color-canvas);
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        width: 1440px;
+        font-family: var(--font-sans);
+        font-size: 15px;
+        line-height: 22px;
+        color: var(--color-text-primary);
+        background: var(--color-canvas);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .canvas {
+        width: 1440px;
+        padding: 48px;
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      p,
+      dl,
+      dd,
+      dt {
+        margin: 0;
+      }
+
+      /* Sin familia monoespaciada en el sistema: el código se lee con la misma
+         pila sans del resto (tokens.js no declara una fuente mono). */
+      code {
+        font-family: var(--font-sans);
+        font-size: 0.94em;
+        font-weight: 500;
+        color: var(--color-accent-700);
+        background: var(--color-accent-50);
+        border-radius: var(--radius-sm);
+        padding: 1px 5px;
+        white-space: nowrap;
+      }
+
+      :focus-visible {
+        outline: 3px solid var(--color-accent);
+        outline-offset: 2px;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /* ============================================================
+         Estructura de sección
+         ============================================================ */
+      .block {
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+        padding: 32px;
+      }
+
+      .block > header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      .block h2 {
+        font-size: 24px;
+        line-height: 32px;
+        letter-spacing: -0.015em;
+        font-weight: 600;
+      }
+
+      .block .block-source {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .block-source code {
+        font-family: var(--font-sans);
+        font-size: 12px;
+        background: transparent;
+        padding: 0;
+      }
+
+      .subhead {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+        letter-spacing: 0;
+        color: var(--color-text-secondary);
+        text-transform: uppercase;
+        margin: 32px 0 16px;
+      }
+
+      .subhead:first-of-type {
+        margin-top: 0;
+      }
+
+      .note {
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--color-text-secondary);
+      }
+
+      /* ============================================================
+         Hero band (receta de página)
+         ============================================================ */
+      .hero {
+        position: relative;
+        overflow: hidden;
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+        padding: 32px;
+      }
+
+      .hero-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .brand span {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+        color: var(--color-text-primary);
+      }
+
+      .hero h1 {
+        margin-top: 16px;
+        font-size: 36px;
+        line-height: 40px;
+        letter-spacing: -0.022em;
+        font-weight: 600;
+      }
+
+      .hero p.lede {
+        margin-top: 8px;
+        max-width: 720px;
+        font-size: 15px;
+        line-height: 22px;
+        color: var(--color-text-secondary);
+      }
+
+      .hero-meta {
+        margin-top: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .hero-meta span {
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-elevated);
+        border-radius: var(--radius-full);
+        padding: 4px 12px;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      /* Contorno de marca del hero */
+      .motif {
+        position: absolute;
+        right: -110px;
+        bottom: -120px;
+        width: 340px;
+        height: 340px;
+        opacity: 0.45;
+        pointer-events: none;
+      }
+
+      /* ============================================================
+         §1 Color
+         ============================================================ */
+      .swatch-row {
+        display: grid;
+        grid-template-columns: 112px repeat(10, 1fr);
+        gap: 8px;
+        align-items: end;
+        margin-bottom: 12px;
+      }
+
+      .swatch-row.ramp-8 {
+        grid-template-columns: 112px repeat(8, 1fr);
+      }
+
+      .ramp-name {
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        color: var(--color-text-secondary);
+        padding-bottom: 26px;
+      }
+
+      .swatch {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .chip {
+        height: 40px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-hairline);
+      }
+
+      .chip-meta {
+        display: flex;
+        flex-direction: column;
+        font-size: 10px;
+        line-height: 13px;
+        color: var(--color-text-secondary);
+      }
+
+      .chip-meta b {
+        font-weight: 600;
+        color: var(--color-text-primary);
+      }
+
+      .alias-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+
+      .alias {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-ios);
+        padding: 12px;
+        background: var(--color-surface-elevated);
+      }
+
+      .alias .dot {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-hairline);
+        flex: 0 0 auto;
+      }
+
+      .alias .alias-text {
+        min-width: 0;
+      }
+
+      .alias code {
+        font-family: var(--font-sans);
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        background: transparent;
+        padding: 0;
+      }
+
+      .alias small {
+        display: block;
+        font-size: 11px;
+        line-height: 15px;
+        color: var(--color-text-secondary);
+      }
+
+      .alias small code {
+        font-size: 11px;
+      }
+
+      /* ============================================================
+         §2 Tipografía
+         ============================================================ */
+      .type-row {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 24px;
+        align-items: baseline;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--color-border-light);
+      }
+
+      .type-row:last-child {
+        border-bottom: 0;
+      }
+
+      .type-spec {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .type-spec b {
+        display: block;
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--color-text-primary);
+      }
+
+      /* ============================================================
+         §3 Espaciado
+         ============================================================ */
+      .space-row {
+        display: grid;
+        grid-template-columns: 56px 64px 1fr;
+        align-items: center;
+        gap: 16px;
+        padding: 6px 0;
+      }
+
+      .space-bar {
+        height: 12px;
+        background: var(--color-accent-500);
+        border-radius: var(--radius-sm);
+      }
+
+      /* ============================================================
+         §4 Radios
+         ============================================================ */
+      .radius-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
+      }
+
+      .radius-sample {
+        border: 1px solid var(--color-border);
+        background: var(--color-surface);
+        height: 96px;
+        display: flex;
+        align-items: flex-end;
+        padding: 8px;
+        font-size: 11px;
+        line-height: 15px;
+        color: var(--color-text-secondary);
+      }
+
+      /* ============================================================
+         §5 Sombras
+         ============================================================ */
+      .shadow-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 16px;
+      }
+
+      .shadow-grid.elevation {
+        grid-template-columns: repeat(5, 1fr);
+      }
+
+      .shadow-sample {
+        background: var(--color-surface-elevated);
+        border-radius: var(--radius-ios);
+        height: 116px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 2px;
+        padding: 10px;
+        font-size: 11px;
+        line-height: 15px;
+        font-weight: 600;
+        color: var(--color-text-secondary);
+      }
+
+      .shadow-sample small {
+        display: block;
+        font-size: 10px;
+        line-height: 13px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+      }
+
+      /* Las muestras de sombra viven sobre el canvas cálido (#f7f6f4): una
+         sombra de 4 % de opacidad no se lee sobre blanco puro. */
+      .shadow-bed {
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-control);
+        padding: 24px;
+      }
+
+      /* ============================================================
+         §6 Movimiento
+         ============================================================ */
+      .motion-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+
+      .motion-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        line-height: 18px;
+      }
+
+      .motion-table th {
+        text-align: left;
+        font-size: 11px;
+        line-height: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--color-text-secondary);
+        padding: 8px 12px 8px 0;
+        border-bottom: 1px solid var(--color-border);
+        font-weight: 600;
+      }
+
+      .motion-table td {
+        padding: 10px 12px 10px 0;
+        border-bottom: 1px solid var(--color-border-light);
+        vertical-align: middle;
+      }
+
+      .motion-demo {
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-control);
+        background: var(--color-surface);
+        padding: 20px 16px;
+      }
+
+      .motion-track {
+        position: relative;
+        height: 20px;
+        margin-bottom: 12px;
+      }
+
+      .motion-dot {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 20px;
+        height: 20px;
+        border-radius: var(--radius-full);
+        background: var(--color-accent-500);
+        animation: slide 2600ms var(--motion-easing-ios) infinite;
+      }
+
+      @keyframes slide {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        50% {
+          transform: translateX(280px);
+        }
+      }
+
+      /* ============================================================
+         §7 Componentes
+         ============================================================ */
+      .spec-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+      }
+
+      .spec {
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-control);
+        background: var(--color-surface-elevated);
+        padding: 20px;
+      }
+
+      .spec h3 {
+        font-size: 17px;
+        line-height: 24px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .spec > .note {
+        margin-bottom: 16px;
+      }
+
+      .spec-full {
+        grid-column: 1 / -1;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .row + .row {
+        margin-top: 12px;
+      }
+
+      /* ---- Botones (Button.vue) ---- */
+      .btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid transparent;
+        border-radius: var(--radius-ios);
+        padding: 8px 16px;
+        font-family: var(--font-sans);
+        font-size: 15px;
+        line-height: 22px;
+        font-weight: 500;
+        cursor: pointer;
+        min-height: 44px;
+        transition:
+          background-color var(--motion-duration-normal) ease-out,
+          border-color var(--motion-duration-normal) ease-out,
+          color var(--motion-duration-normal) ease-out,
+          box-shadow var(--motion-duration-normal) ease-out,
+          transform var(--motion-duration-fast) var(--motion-easing-ios);
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .btn--primary {
+        background: var(--color-accent-500);
+        color: #ffffff;
+        box-shadow:
+          var(--elevation-3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      }
+
+      .btn--primary:hover {
+        background: var(--color-accent-600);
+      }
+
+      .btn--primary:active {
+        background: var(--color-accent-700);
+        transform: translateY(1px);
+      }
+
+      .btn--secondary {
+        background: transparent;
+        color: var(--color-text-primary);
+        border-color: var(--color-border);
+        box-shadow: var(--shadow-subtle);
+      }
+
+      .btn--secondary:hover {
+        background: var(--color-surface);
+        border-color: var(--color-system-gray-500);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .btn--ghost {
+        background: transparent;
+        color: var(--color-text-secondary);
+      }
+
+      .btn--ghost:hover {
+        background: var(--color-surface);
+        color: var(--color-text-primary);
+      }
+
+      .btn--danger {
+        background: var(--color-system-red-500);
+        color: var(--color-text-primary);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .btn--success {
+        background: var(--color-system-green-500);
+        color: var(--color-text-primary);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .btn--warning {
+        background: var(--color-system-yellow-500);
+        color: var(--color-text-primary);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .btn--danger:hover,
+      .btn--success:hover,
+      .btn--warning:hover {
+        box-shadow: var(--shadow-medium);
+      }
+
+      .btn--icon {
+        background: transparent;
+        color: var(--color-text-secondary);
+        border-radius: var(--radius-full);
+        padding: 0;
+        aspect-ratio: 1;
+      }
+
+      .btn--icon:hover {
+        background: var(--color-surface);
+        color: var(--color-text-primary);
+      }
+
+      .btn--xs {
+        font-size: 12px;
+        line-height: 16px;
+        padding: 4px 8px;
+        min-height: 28px;
+        border-radius: var(--radius-md);
+        gap: 4px;
+      }
+
+      .btn--sm {
+        font-size: 13px;
+        line-height: 18px;
+        padding: 6px 12px;
+        min-height: 36px;
+        gap: 6px;
+      }
+
+      .btn--lg {
+        font-size: 17px;
+        line-height: 24px;
+        padding: 12px 24px;
+        min-height: 52px;
+        gap: 10px;
+      }
+
+      .btn--xl {
+        font-size: 20px;
+        line-height: 28px;
+        letter-spacing: -0.01em;
+        padding: 16px 32px;
+        min-height: 60px;
+        gap: 12px;
+      }
+
+      .btn--icon.btn--xs {
+        width: 28px;
+        height: 28px;
+        padding: 4px;
+      }
+      .btn--icon.btn--sm {
+        width: 36px;
+        height: 36px;
+        padding: 6px;
+      }
+      .btn--icon.btn--lg {
+        width: 52px;
+        height: 52px;
+        padding: 12px;
+      }
+      .btn--icon.btn--xl {
+        width: 60px;
+        height: 60px;
+        padding: 16px;
+      }
+      .btn--icon.btn--md {
+        width: 44px;
+        height: 44px;
+        padding: 8px;
+      }
+
+      .btn-matrix {
+        display: grid;
+        grid-template-columns: 96px repeat(5, minmax(0, 1fr));
+        gap: 10px 12px;
+        align-items: center;
+        justify-items: start;
+      }
+
+      .btn-matrix__corner {
+        min-height: 1px;
+      }
+
+      .btn-matrix__col {
+        font-size: 11px;
+        line-height: 15px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--color-text-secondary);
+      }
+
+      .btn-matrix__row {
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        color: var(--color-text-secondary);
+      }
+
+      .btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .btn--lg svg,
+      .btn--xl svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      /* ---- Input / Select ---- */
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-width: 360px;
+      }
+
+      .field label {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 500;
+        color: var(--color-text-primary);
+      }
+
+      .control {
+        width: 100%;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-ios);
+        padding: 12px 16px;
+        min-height: 44px;
+        font-family: var(--font-sans);
+        font-size: 15px;
+        line-height: 22px;
+        color: var(--color-text-primary);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        text-align: left;
+        transition:
+          background-color var(--motion-duration-normal) ease-out,
+          border-color var(--motion-duration-normal) ease-out,
+          box-shadow var(--motion-duration-normal) ease-out;
+      }
+
+      .control:focus-visible {
+        outline: none;
+        border-color: var(--color-accent-500);
+        box-shadow: var(--focus-ring-default);
+      }
+
+      .control--error {
+        border-color: var(--color-system-red-500);
+      }
+
+      .control--error:focus-visible {
+        border-color: var(--color-system-red-500);
+        box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.2);
+      }
+
+      .control--placeholder {
+        color: var(--color-text-secondary);
+      }
+
+      input.control,
+      select.control {
+        display: block;
+      }
+
+      .hint {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .error-text {
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 500;
+        color: var(--color-system-red-700);
+      }
+
+      /* ---- Badges ---- */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 500;
+        padding: 4px 10px;
+        min-height: 24px;
+        border-radius: var(--radius-md);
+        border: 1px solid transparent;
+        white-space: nowrap;
+      }
+
+      .badge--default {
+        background: var(--color-surface);
+        color: var(--color-text-secondary);
+        border-color: var(--color-border);
+      }
+
+      .badge--primary {
+        background: var(--color-accent-100);
+        color: var(--color-accent-700);
+        border-color: var(--color-accent-200);
+      }
+
+      .badge--success {
+        background: var(--color-system-green-100);
+        color: var(--color-system-green-700);
+        border-color: var(--color-system-green-200);
+      }
+
+      .badge--warning {
+        background: var(--color-system-yellow-100);
+        color: var(--color-system-yellow-700);
+        border-color: var(--color-system-yellow-200);
+      }
+
+      .badge--error {
+        background: var(--color-system-red-100);
+        color: var(--color-system-red-700);
+        border-color: var(--color-system-red-200);
+      }
+
+      /* Badge `info`: en el componente resuelve `systemBlue`, que es el alias
+         retirado del acento (no el acero). Ver design/system.md §7.5. */
+      .badge--info {
+        background: var(--color-accent-100);
+        color: var(--color-accent-700);
+        border-color: var(--color-accent-200);
+      }
+
+      .badge--neutral {
+        background: var(--color-surface);
+        color: var(--color-text-secondary);
+        border-color: var(--color-border);
+      }
+
+      .badge--pill {
+        border-radius: var(--radius-full);
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 500;
+        padding: 4px 10px;
+        min-height: 24px;
+        border-radius: var(--radius-full);
+        white-space: nowrap;
+      }
+
+      .status__dot {
+        width: 6px;
+        height: 6px;
+        border-radius: var(--radius-full);
+        flex: 0 0 auto;
+      }
+
+      .status--success {
+        background: var(--color-system-green-50);
+        color: var(--color-system-green-700);
+      }
+      .status--success .status__dot {
+        background: var(--color-system-green-500);
+      }
+
+      .status--warning {
+        background: var(--color-system-yellow-50);
+        color: var(--color-system-yellow-700);
+      }
+      .status--warning .status__dot {
+        background: var(--color-system-yellow-500);
+      }
+
+      .status--error {
+        background: var(--color-system-red-50);
+        color: var(--color-system-red-700);
+      }
+      .status--error .status__dot {
+        background: var(--color-system-red-500);
+      }
+
+      .status--info {
+        background: var(--color-system-steel-50);
+        color: var(--color-system-steel-700);
+      }
+      .status--info .status__dot {
+        background: var(--color-system-steel-500);
+      }
+
+      .status--neutral {
+        background: var(--color-system-gray-100);
+        color: var(--color-system-gray-700);
+      }
+      .status--neutral .status__dot {
+        background: var(--color-system-gray-500);
+      }
+
+      /* ---- Cards ---- */
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      .card {
+        border-radius: var(--radius-ios);
+        padding: 24px;
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-elevated);
+        transition:
+          box-shadow var(--motion-duration-normal) ease-out,
+          transform var(--motion-duration-fast) var(--motion-easing-ios);
+      }
+
+      .card h4 {
+        font-size: 17px;
+        line-height: 24px;
+        font-weight: 600;
+      }
+
+      .card p {
+        margin-top: 4px;
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--color-text-secondary);
+      }
+
+      .card--default {
+        box-shadow: var(--shadow-soft);
+      }
+      .card--default:hover {
+        box-shadow: var(--shadow-medium);
+      }
+
+      .card--glass {
+        background: var(--color-surface-elevated);
+        border-color: var(--color-border);
+        box-shadow: var(--shadow-medium);
+      }
+
+      .card--flat {
+        background: var(--color-surface);
+        border-color: var(--color-border);
+        box-shadow: none;
+      }
+
+      .card--elevated {
+        background: var(--color-surface-elevated);
+        border-color: var(--color-hairline);
+        box-shadow:
+          var(--elevation-2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+
+      .card--outlined {
+        border-width: 2px;
+        border-color: var(--color-border);
+        box-shadow: none;
+      }
+
+      .card-kpi {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 16px;
+      }
+
+      .card-kpi .kpi-label {
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 500;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+
+      .card-kpi .kpi-value {
+        font-size: 24px;
+        line-height: 32px;
+        letter-spacing: -0.015em;
+        font-weight: 700;
+        font-feature-settings:
+          'tnum' 1,
+          'lnum' 1;
+      }
+
+      .card-kpi .kpi-caption {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      /* ---- DataTable ---- */
+      .table-shell {
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-ios);
+        background: var(--color-surface-elevated);
+        overflow: hidden;
+      }
+
+      .table-shell__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      .table-shell__head h4 {
+        font-size: 17px;
+        line-height: 24px;
+        font-weight: 600;
+      }
+
+      table.data {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      table.data caption {
+        text-align: left;
+        padding: 0 0 8px;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      table.data th {
+        text-align: left;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-secondary);
+        padding: 12px 24px;
+        border-bottom: 1px solid var(--color-border);
+        background: var(--color-surface-elevated);
+        white-space: nowrap;
+      }
+
+      table.data td {
+        padding: 16px 24px;
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--color-text-primary);
+        border-top: 1px solid var(--color-border);
+        vertical-align: middle;
+      }
+
+      table.data tbody tr:first-child td {
+        border-top: 0;
+      }
+
+      table.data td.money {
+        text-align: right;
+        font-feature-settings:
+          'tnum' 1,
+          'lnum' 1;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      table.data td.num {
+        font-feature-settings:
+          'tnum' 1,
+          'lnum' 1;
+        white-space: nowrap;
+      }
+
+      .patient {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .patient b {
+        font-weight: 600;
+      }
+
+      .patient small {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        font-feature-settings:
+          'tnum' 1,
+          'lnum' 1;
+      }
+
+      .table-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 24px;
+        border-top: 1px solid var(--color-border);
+        background: var(--color-surface);
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--color-text-secondary);
+      }
+
+      /* ---- Tabs ---- */
+      .tablist {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      .tab {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        background: transparent;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        min-height: 44px;
+      }
+
+      .tab:hover {
+        color: var(--color-text-primary);
+      }
+
+      .tab[aria-selected='true'] {
+        color: var(--color-accent-600);
+        border-bottom-color: var(--color-accent-500);
+      }
+
+      .tab .count {
+        font-size: 11px;
+        line-height: 14px;
+        font-weight: 600;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-full);
+        padding: 1px 7px;
+        font-feature-settings:
+          'tnum' 1,
+          'lnum' 1;
+      }
+
+      .tabpanel {
+        padding-top: 16px;
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--color-text-secondary);
+      }
+
+      /* ---- FilterBar ---- */
+      .filter-bar {
+        background: var(--color-background-secondary-background);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-control);
+        padding: 16px;
+      }
+
+      .filter-bar__title {
+        display: block;
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 500;
+        margin-bottom: 12px;
+      }
+
+      .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .filter-grid > * {
+        min-width: 0;
+      }
+
+      .filter-grid .span-2 {
+        grid-column: span 2;
+      }
+
+      .filter-grid .btn {
+        white-space: nowrap;
+        width: 100%;
+      }
+
+      .control > span,
+      .control > option {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* ---- Pagination ---- */
+      /* Pagination.vue: border-t + bg de superficie; el pie se apoya en la
+         tabla, así que no lleva radio ni bordes laterales. */
+      .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-top: 1px solid var(--color-border);
+        background: var(--color-surface-elevated);
+        padding: 12px 16px;
+      }
+
+      .pagination__text {
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--color-text-primary);
+      }
+
+      .pagination__nav {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .page-btn {
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        font-feature-settings:
+          'tnum' 1,
+          'lnum' 1;
+      }
+
+      .page-btn:hover {
+        background: var(--color-surface);
+      }
+
+      .page-btn[aria-current='page'] {
+        background: var(--color-accent-500);
+        border-color: var(--color-accent-500);
+        color: #ffffff;
+      }
+
+      .page-btn[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .ellipsis {
+        padding: 0 8px;
+        color: var(--color-text-secondary);
+      }
+
+      /* ---- Empty state ---- */
+      .empty {
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-ios);
+        padding: 24px;
+        text-align: center;
+      }
+
+      .empty svg {
+        display: block;
+        margin: 0 auto 12px;
+        color: var(--color-system-gray-500);
+      }
+
+      .empty__title {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 500;
+        color: var(--color-text-primary);
+      }
+
+      .empty__desc {
+        margin-top: 4px;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        max-width: 420px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* ---- Skeleton ---- */
+      .skeleton-item {
+        background: var(--color-system-gray-100);
+        border-radius: var(--radius-ios);
+        animation: pulse 2s var(--motion-easing-standard) infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.8;
+        }
+      }
+
+      .skeleton-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .select-wrap {
+        position: relative;
+      }
+
+      .select-wrap select.control {
+        appearance: none;
+        -webkit-appearance: none;
+        padding-right: 40px;
+        cursor: pointer;
+      }
+
+      .select-wrap svg {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+
+      /* ---- LoadingSpinner ---- */
+      .spinner {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .spinner__rings {
+        position: relative;
+        width: 48px;
+        height: 48px;
+      }
+
+      .spinner__rings .spinner-ring {
+        position: absolute;
+        inset: 0;
+        border-style: solid;
+        border-color: var(--color-accent-500);
+        border-right-color: transparent;
+        border-radius: var(--radius-full);
+        animation: spin 800ms linear infinite;
+      }
+
+      .spinner__rings .spinner-ring:nth-child(1) {
+        inset: 0;
+        border-width: 2px;
+      }
+      .spinner__rings .spinner-ring:nth-child(2) {
+        inset: 9px;
+        border-width: 2px;
+        animation-duration: 1100ms;
+      }
+      .spinner__rings .spinner-ring:nth-child(3) {
+        inset: 18px;
+        border-width: 2px;
+        animation-duration: 1400ms;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* ---- Toast ---- */
+      .toast {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        border-radius: var(--radius-ios);
+        box-shadow: var(--shadow-large);
+        padding: 16px;
+        max-width: 380px;
+        border: 1px solid transparent;
+      }
+
+      .toast--success {
+        background: var(--color-system-green-50);
+        border-color: var(--color-system-green-200);
+        color: var(--color-system-green-700);
+      }
+
+      .toast--error {
+        background: var(--color-system-red-50);
+        border-color: var(--color-system-red-200);
+        color: var(--color-system-red-700);
+      }
+
+      .toast--warning {
+        background: var(--color-system-yellow-50);
+        border-color: var(--color-system-yellow-200);
+        color: var(--color-system-yellow-700);
+      }
+
+      .toast__title {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+      }
+
+      .toast__msg {
+        margin-top: 4px;
+        font-size: 13px;
+        line-height: 18px;
+      }
+
+      .toast__close {
+        margin-left: auto;
+        background: transparent;
+        border: 0;
+        color: currentColor;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: var(--radius-ios);
+        display: inline-flex;
+      }
+
+      /* ---- Modal preview ---- */
+      .modal-stage {
+        position: relative;
+        background: linear-gradient(135deg, #e6f4ef, #f7f6f4);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-ios);
+        padding: 32px;
+        overflow: hidden;
+        min-height: 340px;
+      }
+
+      .modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+
+      .modal-panel {
+        width: 100%;
+        max-width: 420px;
+        background: var(--color-surface-elevated);
+        border-radius: var(--radius-modal);
+        box-shadow: var(--shadow-elevated); /* = shadow-2xl de Modal.vue */
+        overflow: hidden;
+      }
+
+      .modal-panel__head {
+        padding: 24px 24px 16px;
+        border-bottom: 1px solid var(--color-border);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .modal-panel h3 {
+        font-size: 20px;
+        line-height: 28px;
+        letter-spacing: -0.01em;
+        font-weight: 600;
+      }
+
+      .modal-panel__body {
+        padding: 16px 24px;
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--color-text-secondary);
+      }
+
+      .modal-panel__foot {
+        padding: 16px 24px 24px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+      }
+
+      .confirm-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-full);
+        background: var(--color-danger-bg);
+        color: var(--color-danger-text);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+      }
+
+      .confirm-body {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        font-size: 15px;
+        line-height: 22px;
+        color: var(--color-text-primary);
+      }
+
+      /* ---- Page recipe ---- */
+      .recipe {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
+      }
+
+      .recipe-step {
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-control);
+        background: var(--color-surface);
+        padding: 16px;
+      }
+
+      .recipe-step b {
+        display: block;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-accent-700);
+        margin-bottom: 4px;
+      }
+
+      .recipe-step span {
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--color-text-secondary);
+      }
+
+      /* ---- Footer ---- */
+      .foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        border-top: 1px solid var(--color-border);
+        padding-top: 24px;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .nav-index {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 20px;
+      }
+
+      .nav-index a {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-accent-700);
+        text-decoration: none;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-full);
+        padding: 4px 12px;
+        background: var(--color-surface-elevated);
+      }
+
+      .nav-index a:hover {
+        border-color: var(--color-accent-500);
+      }
+
+      /* ============================================================
+         Reduced motion
+         ============================================================ */
+      /* Las duraciones no se ponen a cero: el movimiento se cambia por
+         opacidad, que es la regla que ya aplican las primitivas (system.md §6). */
+      @media (prefers-reduced-motion: reduce) {
+        .btn {
+          transition:
+            background-color var(--motion-duration-normal) ease-out,
+            border-color var(--motion-duration-normal) ease-out,
+            color var(--motion-duration-normal) ease-out,
+            box-shadow var(--motion-duration-normal) ease-out,
+            opacity var(--motion-duration-normal) ease-out;
+        }
+
+        .control,
+        .card {
+          transition:
+            background-color var(--motion-duration-normal) ease-out,
+            border-color var(--motion-duration-normal) ease-out,
+            box-shadow var(--motion-duration-normal) ease-out,
+            opacity var(--motion-duration-normal) ease-out;
+        }
+
+        .btn:hover {
+          transform: none;
+          opacity: 0.88;
+        }
+
+        .btn:active {
+          opacity: 0.72;
+        }
+
+        .card--default:hover,
+        .card--glass:hover,
+        .card--elevated:hover {
+          transform: none;
+        }
+
+        .motion-dot,
+        .skeleton-item,
+        .spinner__rings .spinner-ring {
+          animation: none;
+        }
+
+        .skeleton-item {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="canvas">
+      <!-- ===================== HERO ===================== -->
+      <header class="hero" aria-labelledby="sys-title">
+        <svg class="motif" viewBox="0 0 200 200" aria-hidden="true">
+          <g fill="none" stroke="#93cdb9" stroke-width="2">
+            <circle cx="150" cy="50" r="120" />
+            <circle cx="150" cy="50" r="90" />
+            <circle cx="150" cy="50" r="60" />
+          </g>
+          <path
+            d="M64 24c-14 0-22 11-22 25 0 14 8 22 11 30s3 25 8 33c3 5 8 3 10-3s5-19 8-19 6 13 8 19 7 8 10 3 2-25 8-33 11-16 11-30c0-14-8-25-22-25-8 0-11 5-16 5s-8-5-14-5z"
+            fill="none"
+            stroke="#0f7a5f"
+            stroke-width="3"
+          />
+        </svg>
+
+        <div class="hero-top">
+          <p class="brand">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#0f7a5f"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
+              />
+            </svg>
+            <span>OdontoSuite</span>
+          </p>
+          <p class="note">design/system.html · 1440 px · 2026-10-29</p>
+        </div>
+
+        <h1 id="sys-title">Sistema de diseño</h1>
+        <p class="lede">
+          Captura visual del sistema que implementa el repositorio: rampas de color, escala
+          tipográfica del sistema, espaciado de 4 px, radios, sombras, movimiento y el contrato de
+          las primitivas de
+          <code>resources/js/components/ui/</code>
+          . Cada valor se leyó de
+          <code>tokens.js</code>
+          y de sus componentes; el documento que lo explica es
+          <code>design/system.md</code>
+          .
+        </p>
+
+        <div class="hero-meta">
+          <span>Rampa de acento: verde clínico #0f7a5f</span>
+          <span>Familia única del sistema, sin serif</span>
+          <span>Solo claro, sin modo oscuro</span>
+          <span>
+            Foco visible y
+            <code>prefers-reduced-motion</code>
+          </span>
+        </div>
+
+        <nav class="nav-index" aria-label="Índice de secciones">
+          <a href="#color">Color</a>
+          <a href="#tipografia">Tipografía</a>
+          <a href="#espaciado">Espaciado</a>
+          <a href="#radios">Radios</a>
+          <a href="#sombras">Sombras</a>
+          <a href="#movimiento">Movimiento</a>
+          <a href="#componentes">Componentes</a>
+          <a href="#receta">Receta de página</a>
+        </nav>
+      </header>
+
+      <main>
+        <!-- ===================== §1 COLOR ===================== -->
+        <section class="block" id="color" aria-labelledby="color-title">
+          <header>
+            <h2 id="color-title">Color</h2>
+            <p class="block-source">
+              Fuente:
+              <code>resources/js/design-system/tokens.js</code>
+              ·
+              <code>resources/css/tokens.generated.css</code>
+            </p>
+          </header>
+
+          <h3 class="subhead">Rampa de acento</h3>
+          <div class="swatch-row" role="list" aria-label="Rampa de acento, 50 a 900">
+            <span class="ramp-name">accent</span>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-accent-50)"></span>
+              <span class="chip-meta">
+                <b>50</b>
+                #e6f4ef
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-accent-100)"></span>
+              <span class="chip-meta">
+                <b>100</b>
+                #c9e7dc
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-accent-200)"></span>
+              <span class="chip-meta">
+                <b>200</b>
+                #93cdb9
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-accent-300)"></span>
+              <span class="chip-meta">
+                <b>300</b>
+                #5cb195
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-accent-400)"></span>
+              <span class="chip-meta">
+                <b>400</b>
+                #2a9070
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-accent-500)"></span>
+              <span class="chip-meta">
+                <b>500</b>
+                #0f7a5f
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-accent-600)"></span>
+              <span class="chip-meta">
+                <b>600</b>
+                #0a5f49
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-accent-700)"></span>
+              <span class="chip-meta">
+                <b>700</b>
+                #084c3b
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-accent-800)"></span>
+              <span class="chip-meta">
+                <b>800</b>
+                #063a2d
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-accent-900)"></span>
+              <span class="chip-meta">
+                <b>900</b>
+                #04281f
+              </span>
+            </div>
+          </div>
+
+          <h3 class="subhead">Rampas de sistema</h3>
+          <div class="swatch-row ramp-8" role="list" aria-label="Rampa systemRed: 50 a 700">
+            <span class="ramp-name">systemRed</span>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-red-50)"></span>
+              <span class="chip-meta">
+                <b>50</b>
+                #ffebea
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-red-100)"></span>
+              <span class="chip-meta">
+                <b>100</b>
+                #ffd9d7
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-red-200)"></span>
+              <span class="chip-meta">
+                <b>200</b>
+                #ffb8b3
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-red-300)"></span>
+              <span class="chip-meta">
+                <b>300</b>
+                #ff9890
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-red-400)"></span>
+              <span class="chip-meta">
+                <b>400</b>
+                #ff776c
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-red-500)"></span>
+              <span class="chip-meta">
+                <b>500</b>
+                #ff3b30
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-red-600)"></span>
+              <span class="chip-meta">
+                <b>600</b>
+                #d70015
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-red-700)"></span>
+              <span class="chip-meta">
+                <b>700</b>
+                #a50e10
+              </span>
+            </div>
+          </div>
+
+          <div class="swatch-row ramp-8" role="list" aria-label="Rampa systemOrange: 50 a 700">
+            <span class="ramp-name">systemOrange</span>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-orange-50)"></span>
+              <span class="chip-meta">
+                <b>50</b>
+                #fff1e5
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-orange-100)"></span>
+              <span class="chip-meta">
+                <b>100</b>
+                #ffe2c7
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-orange-200)"></span>
+              <span class="chip-meta">
+                <b>200</b>
+                #ffd09d
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-orange-300)"></span>
+              <span class="chip-meta">
+                <b>300</b>
+                #ffbd73
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-orange-400)"></span>
+              <span class="chip-meta">
+                <b>400</b>
+                #ffab49
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-orange-500)"></span>
+              <span class="chip-meta">
+                <b>500</b>
+                #ff9500
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-orange-600)"></span>
+              <span class="chip-meta">
+                <b>600</b>
+                #c93400
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-orange-700)"></span>
+              <span class="chip-meta">
+                <b>700</b>
+                #9a2700
+              </span>
+            </div>
+          </div>
+
+          <div class="swatch-row ramp-8" role="list" aria-label="Rampa systemYellow: 50 a 700">
+            <span class="ramp-name">systemYellow</span>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-yellow-50)"></span>
+              <span class="chip-meta">
+                <b>50</b>
+                #fff9d6
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-yellow-100)"></span>
+              <span class="chip-meta">
+                <b>100</b>
+                #fff1ad
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-yellow-200)"></span>
+              <span class="chip-meta">
+                <b>200</b>
+                #ffe57f
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-yellow-300)"></span>
+              <span class="chip-meta">
+                <b>300</b>
+                #ffd84f
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-yellow-400)"></span>
+              <span class="chip-meta">
+                <b>400</b>
+                #ffd11f
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-yellow-500)"></span>
+              <span class="chip-meta">
+                <b>500</b>
+                #ffcc00
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-yellow-600)"></span>
+              <span class="chip-meta">
+                <b>600</b>
+                #a57000
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-yellow-700)"></span>
+              <span class="chip-meta">
+                <b>700</b>
+                #7a5200
+              </span>
+            </div>
+          </div>
+
+          <div class="swatch-row ramp-8" role="list" aria-label="Rampa systemGreen: 50 a 700">
+            <span class="ramp-name">systemGreen</span>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-green-50)"></span>
+              <span class="chip-meta">
+                <b>50</b>
+                #e8f5e9
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-green-100)"></span>
+              <span class="chip-meta">
+                <b>100</b>
+                #cdedcf
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-green-200)"></span>
+              <span class="chip-meta">
+                <b>200</b>
+                #a4d8a8
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-green-300)"></span>
+              <span class="chip-meta">
+                <b>300</b>
+                #8ed29c
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-green-400)"></span>
+              <span class="chip-meta">
+                <b>400</b>
+                #5cc46c
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-green-500)"></span>
+              <span class="chip-meta">
+                <b>500</b>
+                #34c759
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-green-600)"></span>
+              <span class="chip-meta">
+                <b>600</b>
+                #248a3d
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-green-700)"></span>
+              <span class="chip-meta">
+                <b>700</b>
+                #1a6530
+              </span>
+            </div>
+          </div>
+
+          <div class="swatch-row ramp-8" role="list" aria-label="Rampa systemIndigo: 50 a 700">
+            <span class="ramp-name">systemIndigo</span>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-indigo-50)"></span>
+              <span class="chip-meta">
+                <b>50</b>
+                #efe9ff
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-indigo-100)"></span>
+              <span class="chip-meta">
+                <b>100</b>
+                #dfd2ff
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-indigo-200)"></span>
+              <span class="chip-meta">
+                <b>200</b>
+                #c8b6ff
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-indigo-300)"></span>
+              <span class="chip-meta">
+                <b>300</b>
+                #b09aff
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-indigo-400)"></span>
+              <span class="chip-meta">
+                <b>400</b>
+                #997eff
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-indigo-500)"></span>
+              <span class="chip-meta">
+                <b>500</b>
+                #5856d6
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-indigo-600)"></span>
+              <span class="chip-meta">
+                <b>600</b>
+                #3f3dab
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-indigo-700)"></span>
+              <span class="chip-meta">
+                <b>700</b>
+                #2d2b80
+              </span>
+            </div>
+          </div>
+
+          <div class="swatch-row ramp-8" role="list" aria-label="Rampa systemPurple: 50 a 700">
+            <span class="ramp-name">systemPurple</span>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-purple-50)"></span>
+              <span class="chip-meta">
+                <b>50</b>
+                #f6e9ff
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-purple-100)"></span>
+              <span class="chip-meta">
+                <b>100</b>
+                #ecd2ff
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-purple-200)"></span>
+              <span class="chip-meta">
+                <b>200</b>
+                #dfaeff
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-purple-300)"></span>
+              <span class="chip-meta">
+                <b>300</b>
+                #d189ff
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-purple-400)"></span>
+              <span class="chip-meta">
+                <b>400</b>
+                #c365ff
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-purple-500)"></span>
+              <span class="chip-meta">
+                <b>500</b>
+                #af52de
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-purple-600)"></span>
+              <span class="chip-meta">
+                <b>600</b>
+                #7a38a1
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-purple-700)"></span>
+              <span class="chip-meta">
+                <b>700</b>
+                #55276f
+              </span>
+            </div>
+          </div>
+
+          <div class="swatch-row ramp-8" role="list" aria-label="Rampa systemPink: 50 a 700">
+            <span class="ramp-name">systemPink</span>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-pink-50)"></span>
+              <span class="chip-meta">
+                <b>50</b>
+                #ffe9f0
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-pink-100)"></span>
+              <span class="chip-meta">
+                <b>100</b>
+                #ffd2dd
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-pink-200)"></span>
+              <span class="chip-meta">
+                <b>200</b>
+                #ffa9b8
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-pink-300)"></span>
+              <span class="chip-meta">
+                <b>300</b>
+                #ff7f93
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-pink-400)"></span>
+              <span class="chip-meta">
+                <b>400</b>
+                #ff556e
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-pink-500)"></span>
+              <span class="chip-meta">
+                <b>500</b>
+                #ff2d55
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-pink-600)"></span>
+              <span class="chip-meta">
+                <b>600</b>
+                #c30039
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-pink-700)"></span>
+              <span class="chip-meta">
+                <b>700</b>
+                #8e0028
+              </span>
+            </div>
+          </div>
+
+          <div class="swatch-row ramp-8" role="list" aria-label="Rampa systemGray: 50 a 700">
+            <span class="ramp-name">systemGray</span>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-gray-50)"></span>
+              <span class="chip-meta">
+                <b>50</b>
+                #f7f6f4
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-gray-100)"></span>
+              <span class="chip-meta">
+                <b>100</b>
+                #edebe7
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-gray-200)"></span>
+              <span class="chip-meta">
+                <b>200</b>
+                #dcd8d2
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-gray-300)"></span>
+              <span class="chip-meta">
+                <b>300</b>
+                #d2cec7
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-gray-400)"></span>
+              <span class="chip-meta">
+                <b>400</b>
+                #b5b0a8
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-gray-500)"></span>
+              <span class="chip-meta">
+                <b>500</b>
+                #908b82
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-gray-600)"></span>
+              <span class="chip-meta">
+                <b>600</b>
+                #635e57
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-gray-700)"></span>
+              <span class="chip-meta">
+                <b>700</b>
+                #3b3833
+              </span>
+            </div>
+          </div>
+
+          <div class="swatch-row ramp-8" role="list" aria-label="Rampa systemSteel: 50 a 700">
+            <span class="ramp-name">systemSteel</span>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-steel-50)"></span>
+              <span class="chip-meta">
+                <b>50</b>
+                #eef3f8
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-steel-100)"></span>
+              <span class="chip-meta">
+                <b>100</b>
+                #dbe5ef
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-steel-200)"></span>
+              <span class="chip-meta">
+                <b>200</b>
+                #bed0e0
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-steel-300)"></span>
+              <span class="chip-meta">
+                <b>300</b>
+                #9db7cd
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-steel-400)"></span>
+              <span class="chip-meta">
+                <b>400</b>
+                #7095b3
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-steel-500)"></span>
+              <span class="chip-meta">
+                <b>500</b>
+                #4a7191
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-steel-600)"></span>
+              <span class="chip-meta">
+                <b>600</b>
+                #3a5a75
+              </span>
+            </div>
+            <div class="swatch" role="listitem">
+              <span class="chip" style="background: var(--color-system-steel-700)"></span>
+              <span class="chip-meta">
+                <b>700</b>
+                #2b4459
+              </span>
+            </div>
+          </div>
+
+          <h3 class="subhead">Superficies, texto y bordes</h3>
+          <div class="alias-grid">
+            <div class="alias">
+              <span
+                class="dot"
+                style="background: var(--color-background-system-background)"
+              ></span>
+              <span class="alias-text">
+                <code>--color-surface-elevated</code>
+                <small>#ffffff · card, modal, control</small>
+              </span>
+            </div>
+            <div class="alias">
+              <span class="dot" style="background: var(--color-system-gray-50)"></span>
+              <span class="alias-text">
+                <code>--color-canvas</code>
+                <small>#f7f6f4 · lienzo y hero</small>
+              </span>
+            </div>
+            <div class="alias">
+              <span class="dot" style="background: var(--color-label-label)"></span>
+              <span class="alias-text">
+                <code>--color-text-primary</code>
+                <small>#1a1917 · texto y cifras</small>
+              </span>
+            </div>
+            <div class="alias">
+              <span class="dot" style="background: var(--color-label-secondary-label)"></span>
+              <span class="alias-text">
+                <code>--color-text-secondary</code>
+                <small>#5c5a55 · ayuda y captions</small>
+              </span>
+            </div>
+            <div class="alias">
+              <span class="dot" style="background: var(--color-separator-separator)"></span>
+              <span class="alias-text">
+                <code>--color-border</code>
+                <small>#c9c5bd · borde de control</small>
+              </span>
+            </div>
+            <div class="alias">
+              <span class="dot" style="background: var(--color-system-gray-100)"></span>
+              <span class="alias-text">
+                <code>--color-border-light</code>
+                <small>#edebe7 · divisor de card</small>
+              </span>
+            </div>
+            <div class="alias">
+              <span class="dot" style="background: var(--color-accent-50)"></span>
+              <span class="alias-text">
+                <code>--color-accent-light</code>
+                <small>#e6f4ef · fondo teñido</small>
+              </span>
+            </div>
+            <div class="alias">
+              <span class="dot" style="background: var(--color-accent-500)"></span>
+              <span class="alias-text">
+                <code>--color-accent</code>
+                <small>#0f7a5f · acento-500</small>
+              </span>
+            </div>
+            <div class="alias">
+              <span class="dot" style="background: var(--color-system-red-50)"></span>
+              <span class="alias-text">
+                <code>--color-danger-bg</code>
+                <small>#ffebea · danger-text #a50e10</small>
+              </span>
+            </div>
+            <div class="alias">
+              <span class="dot" style="background: var(--color-system-green-50)"></span>
+              <span class="alias-text">
+                <code>--color-success-bg</code>
+                <small>#e8f5e9 · success-text #1a6530</small>
+              </span>
+            </div>
+            <div class="alias">
+              <span class="dot" style="background: var(--color-system-yellow-50)"></span>
+              <span class="alias-text">
+                <code>--color-warning-bg</code>
+                <small>#fff9d6 · warning-text #7a5200</small>
+              </span>
+            </div>
+            <div class="alias">
+              <span class="dot" style="background: var(--color-system-steel-50)"></span>
+              <span class="alias-text">
+                <code>info-500 / steel-700</code>
+                <small>#4a7191 · #2b4459 · estado informativo</small>
+              </span>
+            </div>
+          </div>
+
+          <p class="note" style="margin-top: 16px">
+            Alias deprecados que siguen resolviendo sin consumidores nuevos:
+            <b>systemBlue</b>
+            → accent (50-700),
+            <b>cream</b>
+            → systemGray (50-200),
+            <b>terracotta</b>
+            y
+            <b>clinicalTeal</b>
+            → accent,
+            <b>primary</b>
+            → accent (50-900),
+            <b>neutral</b>
+            → blanco + systemGray, y
+            <b>success</b>
+            /
+            <b>warning</b>
+            /
+            <b>error</b>
+            con sus pasos legacy 300/900. El vidrio de chrome vive en
+            <code>--glass-bg</code>
+            <code>rgba(255, 255, 255, 0.78)</code>
+            ,
+            <code>--glass-border</code>
+            <code>rgba(255, 255, 255, 0.22)</code>
+            y
+            <code>--glass-backdrop</code>
+            <code>blur(20px) saturate(180%) contrast(1.04)</code>
+            , solo para sidebar, topbar y el sheet móvil.
+          </p>
+        </section>
+
+        <!-- ===================== §2 TIPOGRAFÍA ===================== -->
+        <section class="block" id="tipografia" aria-labelledby="type-title">
+          <header>
+            <h2 id="type-title">Tipografía</h2>
+            <p class="block-source">
+              Fuente:
+              <code>tokens.js</code>
+              <code>typography.fontFamily</code>
+              /
+              <code>typography.fontSize</code>
+            </p>
+          </header>
+
+          <p class="note" style="margin-bottom: 8px">
+            Familia única del sistema, sin serif y sin fuentes remotas:
+            <b>-apple-system</b>
+            , BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif.
+          </p>
+
+          <div class="type-row">
+            <div class="type-spec">
+              <b>text-xs</b>
+              12px / 16px · 0
+            </div>
+            <p style="font-size: 12px; line-height: 16px">
+              Documento 74819203 · sede San Isidro · 27/10/2026
+            </p>
+          </div>
+          <div class="type-row">
+            <div class="type-spec">
+              <b>text-sm</b>
+              13px / 18px · 0
+            </div>
+            <p style="font-size: 13px; line-height: 18px">
+              Control de placa y limpieza profunda en la pieza 36; próxima sesión en 21 días.
+            </p>
+          </div>
+          <div class="type-row">
+            <div class="type-spec">
+              <b>text-base</b>
+              15px / 22px · 0
+            </div>
+            <p style="font-size: 15px; line-height: 22px">
+              El presupuesto aprobado congela el tarifario de la sede, así que un cambio de precio
+              no altera lo que el paciente ya aceptó.
+            </p>
+          </div>
+          <div class="type-row">
+            <div class="type-spec">
+              <b>text-lg</b>
+              17px / 24px · 0
+            </div>
+            <p style="font-size: 17px; line-height: 24px">
+              Historia clínica de Marisol Quispe Huamán
+            </p>
+          </div>
+          <div class="type-row">
+            <div class="type-spec">
+              <b>text-xl</b>
+              20px / 28px · -0.01em
+            </div>
+            <p style="font-size: 20px; line-height: 28px; letter-spacing: -0.01em">
+              Atenciones de la semana
+            </p>
+          </div>
+          <div class="type-row">
+            <div class="type-spec">
+              <b>text-2xl</b>
+              24px / 32px · -0.015em
+            </div>
+            <p
+              style="
+                font-size: 24px;
+                line-height: 32px;
+                letter-spacing: -0.015em;
+                font-weight: 600;
+                font-feature-settings:
+                  'tnum' 1,
+                  'lnum' 1;
+              "
+            >
+              S/ 4,820.00 cobrados
+            </p>
+          </div>
+          <div class="type-row">
+            <div class="type-spec">
+              <b>text-3xl</b>
+              30px / 36px · -0.02em
+            </div>
+            <p style="font-size: 30px; line-height: 36px; letter-spacing: -0.02em">
+              Presupuestos del mes
+            </p>
+          </div>
+          <div class="type-row">
+            <div class="type-spec">
+              <b>text-4xl</b>
+              36px / 40px · -0.022em
+            </div>
+            <p
+              style="font-size: 36px; line-height: 40px; letter-spacing: -0.022em; font-weight: 600"
+            >
+              Profesionales
+            </p>
+          </div>
+          <div class="type-row">
+            <div class="type-spec">
+              <b>text-display</b>
+              48px / 48px · -0.022em
+            </div>
+            <p
+              style="font-size: 48px; line-height: 48px; letter-spacing: -0.022em; font-weight: 600"
+            >
+              Continuidad
+            </p>
+          </div>
+          <div class="type-row">
+            <div class="type-spec">
+              <b>text-hero</b>
+              64px / 64px · -0.022em
+            </div>
+            <p
+              style="font-size: 64px; line-height: 64px; letter-spacing: -0.022em; font-weight: 600"
+            >
+              Buena tarde
+            </p>
+          </div>
+
+          <p class="note" style="margin-top: 16px">
+            Cifras tabulares con
+            <code>font-feature-settings: "tnum" 1, "lnum" 1</code>
+            (token
+            <code>fontFeatures.tabularNums</code>
+            , utilidad
+            <code>tabular-nums</code>
+            ): es la regla para dinero, fechas, documentos y todo lo que se compara en columna.
+          </p>
+        </section>
+
+        <!-- ===================== §3 ESPACIADO ===================== -->
+        <section class="block" id="espaciado" aria-labelledby="space-title">
+          <header>
+            <h2 id="space-title">Espaciado</h2>
+            <p class="block-source">
+              Fuente:
+              <code>tokens.js</code>
+              <code>spacing</code>
+            </p>
+          </header>
+
+          <div class="space-row">
+            <span class="note"><b>0</b></span>
+            <span class="note">0px</span>
+            <span></span>
+          </div>
+          <div class="space-row">
+            <span class="note"><b>1</b></span>
+            <span class="note">4px</span>
+            <span class="space-bar" style="width: 4px"></span>
+          </div>
+          <div class="space-row">
+            <span class="note"><b>2</b></span>
+            <span class="note">8px</span>
+            <span class="space-bar" style="width: 8px"></span>
+          </div>
+          <div class="space-row">
+            <span class="note"><b>3</b></span>
+            <span class="note">12px</span>
+            <span class="space-bar" style="width: 12px"></span>
+          </div>
+          <div class="space-row">
+            <span class="note"><b>4</b></span>
+            <span class="note">16px</span>
+            <span class="space-bar" style="width: 16px"></span>
+          </div>
+          <div class="space-row">
+            <span class="note"><b>5</b></span>
+            <span class="note">20px</span>
+            <span class="space-bar" style="width: 20px"></span>
+          </div>
+          <div class="space-row">
+            <span class="note"><b>6</b></span>
+            <span class="note">24px</span>
+            <span class="space-bar" style="width: 24px"></span>
+          </div>
+          <div class="space-row">
+            <span class="note"><b>8</b></span>
+            <span class="note">32px</span>
+            <span class="space-bar" style="width: 32px"></span>
+          </div>
+          <div class="space-row">
+            <span class="note"><b>12</b></span>
+            <span class="note">48px</span>
+            <span class="space-bar" style="width: 48px"></span>
+          </div>
+          <div class="space-row">
+            <span class="note"><b>16</b></span>
+            <span class="note">64px</span>
+            <span class="space-bar" style="width: 64px"></span>
+          </div>
+          <div class="space-row">
+            <span class="note"><b>24</b></span>
+            <span class="note">96px</span>
+            <span class="space-bar" style="width: 96px"></span>
+          </div>
+          <div class="space-row">
+            <span class="note"><b>32</b></span>
+            <span class="note">128px</span>
+            <span class="space-bar" style="width: 128px"></span>
+          </div>
+          <div class="space-row">
+            <span class="note"><b>48</b></span>
+            <span class="note">192px</span>
+            <span class="space-bar" style="width: 192px"></span>
+          </div>
+        </section>
+
+        <!-- ===================== §4 RADIOS ===================== -->
+        <section class="block" id="radios" aria-labelledby="radius-title">
+          <header>
+            <h2 id="radius-title">Radios</h2>
+            <p class="block-source">
+              Fuente:
+              <code>tokens.js</code>
+              <code>radius</code>
+            </p>
+          </header>
+
+          <div class="radius-grid">
+            <div class="radius-sample" style="border-radius: 0">none · 0</div>
+            <div class="radius-sample" style="border-radius: 4px">sm · 4px · chop</div>
+            <div class="radius-sample" style="border-radius: 8px">md · 8px · input</div>
+            <div class="radius-sample" style="border-radius: 10px">ios · 10px · card</div>
+            <div class="radius-sample" style="border-radius: 12px">control · 12px</div>
+            <div class="radius-sample" style="border-radius: 14px">modal · 14px</div>
+            <div class="radius-sample" style="border-radius: 16px">cardLg · 16px</div>
+            <div class="radius-sample" style="border-radius: 22px">panel · 22px</div>
+            <div class="radius-sample" style="border-radius: 32px">shell · 32px</div>
+            <div class="radius-sample" style="border-radius: 9999px">full · pill</div>
+          </div>
+
+          <p class="note" style="margin-top: 16px">
+            Regla: el radio escala con el contenedor. Control interno 12 px, card 10 px, modal 14
+            px, panel 22 px, shell 32 px; píldora y avatar usan
+            <code>full</code>
+            .
+          </p>
+        </section>
+
+        <!-- ===================== §5 SOMBRAS ===================== -->
+        <section class="block" id="sombras" aria-labelledby="shadow-title">
+          <header>
+            <h2 id="shadow-title">Sombras y elevación</h2>
+            <p class="block-source">
+              Fuente:
+              <code>tokens.js</code>
+              <code>shadow</code>
+              /
+              <code>elevation</code>
+              /
+              <code>focusRing</code>
+            </p>
+          </header>
+
+          <h3 class="subhead">Rampa shadow (negro puro)</h3>
+          <div class="shadow-bed">
+            <div class="shadow-grid">
+              <div class="shadow-sample" style="box-shadow: var(--shadow-subtle)">
+                subtle
+                <small>negro 10 % + 6 %</small>
+              </div>
+              <div class="shadow-sample" style="box-shadow: var(--shadow-soft)">
+                soft
+                <small>negro 10 % + 6 %</small>
+              </div>
+              <div class="shadow-sample" style="box-shadow: var(--shadow-medium)">
+                medium
+                <small>negro 10 % + 5 %</small>
+              </div>
+              <div class="shadow-sample" style="box-shadow: var(--shadow-large)">
+                large
+                <small>negro 10 % + 4 %</small>
+              </div>
+              <div class="shadow-sample" style="box-shadow: var(--shadow-elevated)">
+                elevated
+                <small>negro 25 %</small>
+              </div>
+              <div class="shadow-sample" style="box-shadow: var(--shadow-glass)">
+                glass
+                <small>negro 18 % · 32px</small>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="subhead">Rampa elevation (gris cálido)</h3>
+          <div class="shadow-bed">
+            <div class="shadow-grid elevation">
+              <div
+                class="shadow-sample"
+                style="box-shadow: var(--elevation-0); border: 1px dashed #c9c5bd"
+              >
+                elevation-0
+                <small>none</small>
+              </div>
+              <div class="shadow-sample" style="box-shadow: var(--elevation-1)">
+                elevation-1
+                <small>1px · 3px · 4 %</small>
+              </div>
+              <div class="shadow-sample" style="box-shadow: var(--elevation-2)">
+                elevation-2
+                <small>2px · 8px · 6 %</small>
+              </div>
+              <div class="shadow-sample" style="box-shadow: var(--elevation-3)">
+                elevation-3
+                <small>8px · 16px · 8 %</small>
+              </div>
+              <div class="shadow-sample" style="box-shadow: var(--elevation-4)">
+                elevation-4
+                <small>16px · 24px · 12 %</small>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="subhead">Anillo de foco</h3>
+          <div class="row">
+            <button class="btn btn--secondary" type="button">Anillo de foco al tabular</button>
+            <span class="note">
+              <code>--focus-ring-default</code>
+              = 0 0 0 3px rgba(15, 122, 95, 0.2) · se declara en
+              <code>:focus-visible</code>
+              , nunca en
+              <code>:focus</code>
+            </span>
+          </div>
+        </section>
+
+        <!-- ===================== §6 MOVIMIENTO ===================== -->
+        <section class="block" id="movimiento" aria-labelledby="motion-title">
+          <header>
+            <h2 id="motion-title">Movimiento</h2>
+            <p class="block-source">
+              Fuente:
+              <code>tokens.js</code>
+              <code>motion</code>
+              ·
+              <code>utilities.css</code>
+            </p>
+          </header>
+
+          <div class="motion-grid">
+            <table class="motion-table">
+              <caption class="sr-only">Duraciones y curvas del sistema</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Token</th>
+                  <th scope="col">Valor</th>
+                  <th scope="col">Uso</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>duration fast</td>
+                  <td>120ms</td>
+                  <td>transform, foco</td>
+                </tr>
+                <tr>
+                  <td>duration normal</td>
+                  <td>200ms</td>
+                  <td>color, borde, sombra</td>
+                </tr>
+                <tr>
+                  <td>duration slow</td>
+                  <td>320ms</td>
+                  <td>entrada de superficie</td>
+                </tr>
+                <tr>
+                  <td>easing ios</td>
+                  <td>cubic-bezier(0.25, 0.46, 0.45, 0.94)</td>
+                  <td>transform</td>
+                </tr>
+                <tr>
+                  <td>easing standard</td>
+                  <td>cubic-bezier(0.4, 0, 0.2, 1)</td>
+                  <td>lavados</td>
+                </tr>
+                <tr>
+                  <td>easing decel</td>
+                  <td>cubic-bezier(0, 0, 0.2, 1)</td>
+                  <td>entradas</td>
+                </tr>
+                <tr>
+                  <td>easing accel</td>
+                  <td>cubic-bezier(0.4, 0, 1, 1)</td>
+                  <td>salidas</td>
+                </tr>
+                <tr>
+                  <td>response</td>
+                  <td>0.35 s</td>
+                  <td>muelle crítico</td>
+                </tr>
+                <tr>
+                  <td>damping</td>
+                  <td>1.0</td>
+                  <td>sin rebote</td>
+                </tr>
+                <tr>
+                  <td>dampingBounce</td>
+                  <td>0.8</td>
+                  <td>sin consumidor</td>
+                </tr>
+                <tr>
+                  <td>stiffness</td>
+                  <td>1.0</td>
+                  <td>rigidez del muelle</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div>
+              <div class="motion-demo">
+                <div class="motion-track">
+                  <span class="motion-dot" aria-hidden="true"></span>
+                </div>
+                <span class="note">Transform de 2.6 s en la curva iOS.</span>
+              </div>
+              <p class="note" style="margin-top: 12px">
+                <code>motion.dampingBounce = 0.8</code>
+                no tiene consumidor a propósito: ningún gesto del sistema es de momento, y un rebote
+                en una entrada que no lo es se lee como error. Solo se animan
+                <code>transform</code>
+                y
+                <code>opacity</code>
+                ; con
+                <code>prefers-reduced-motion: reduce</code>
+                la animación se apaga y la respuesta pasa a opacidad, nunca a duración cero.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================== §7 COMPONENTES ===================== -->
+        <section class="block" id="componentes" aria-labelledby="components-title">
+          <header>
+            <h2 id="components-title">Componentes</h2>
+            <p class="block-source">
+              Fuente:
+              <code>resources/js/components/ui/</code>
+              (34 primitivas; 18 documentadas en
+              <code>design/system.md</code>
+              §7)
+            </p>
+          </header>
+
+          <div class="spec-grid">
+            <!-- Botones -->
+            <div class="spec spec-full">
+              <h3>Button</h3>
+              <p class="note">
+                Siete variantes y cinco tamaños.
+                <code>type</code>
+                por defecto es
+                <code>button</code>
+                , el mínimo táctil es 44 px en
+                <code>md</code>
+                y las etiquetas de danger, success y warning usan el color de texto primario para
+                alcanzar AA (ver §10).
+              </p>
+
+              <div
+                class="btn-matrix"
+                role="group"
+                aria-label="Matriz de botones por variante y tamaño"
+              >
+                <span class="btn-matrix__corner"></span>
+                <span class="btn-matrix__col">xs</span>
+                <span class="btn-matrix__col">sm</span>
+                <span class="btn-matrix__col">md</span>
+                <span class="btn-matrix__col">lg</span>
+                <span class="btn-matrix__col">xl</span>
+
+                <span class="btn-matrix__row">primary</span>
+                <button class="btn btn--primary btn--xs" type="button">Guardar</button>
+                <button class="btn btn--primary btn--sm" type="button">Guardar</button>
+                <button class="btn btn--primary" type="button">Guardar</button>
+                <button class="btn btn--primary btn--lg" type="button">Guardar</button>
+                <button class="btn btn--primary btn--xl" type="button">Guardar</button>
+
+                <span class="btn-matrix__row">secondary</span>
+                <button class="btn btn--secondary btn--xs" type="button">Volver</button>
+                <button class="btn btn--secondary btn--sm" type="button">Volver</button>
+                <button class="btn btn--secondary" type="button">Volver</button>
+                <button class="btn btn--secondary btn--lg" type="button">Volver</button>
+                <button class="btn btn--secondary btn--xl" type="button">Volver</button>
+
+                <span class="btn-matrix__row">ghost</span>
+                <button class="btn btn--ghost btn--xs" type="button">Ver</button>
+                <button class="btn btn--ghost btn--sm" type="button">Ver</button>
+                <button class="btn btn--ghost" type="button">Ver</button>
+                <button class="btn btn--ghost btn--lg" type="button">Ver</button>
+                <button class="btn btn--ghost btn--xl" type="button">Ver</button>
+
+                <span class="btn-matrix__row">danger</span>
+                <button class="btn btn--danger btn--xs" type="button">Anular</button>
+                <button class="btn btn--danger btn--sm" type="button">Anular</button>
+                <button class="btn btn--danger" type="button">Anular</button>
+                <button class="btn btn--danger btn--lg" type="button">Anular</button>
+                <button class="btn btn--danger btn--xl" type="button">Anular</button>
+
+                <span class="btn-matrix__row">success</span>
+                <button class="btn btn--success btn--xs" type="button">Cobrar</button>
+                <button class="btn btn--success btn--sm" type="button">Cobrar</button>
+                <button class="btn btn--success" type="button">Cobrar</button>
+                <button class="btn btn--success btn--lg" type="button">Cobrar</button>
+                <button class="btn btn--success btn--xl" type="button">Cobrar</button>
+
+                <span class="btn-matrix__row">warning</span>
+                <button class="btn btn--warning btn--xs" type="button">Revisar</button>
+                <button class="btn btn--warning btn--sm" type="button">Revisar</button>
+                <button class="btn btn--warning" type="button">Revisar</button>
+                <button class="btn btn--warning btn--lg" type="button">Revisar</button>
+                <button class="btn btn--warning btn--xl" type="button">Revisar</button>
+
+                <span class="btn-matrix__row">icon</span>
+                <button class="btn btn--icon btn--xs" type="button" aria-label="Nueva cita">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </button>
+                <button class="btn btn--icon btn--sm" type="button" aria-label="Nueva cita">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </button>
+                <button class="btn btn--icon" type="button" aria-label="Nueva cita">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </button>
+                <button class="btn btn--icon btn--lg" type="button" aria-label="Nueva cita">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </button>
+                <button class="btn btn--icon btn--xl" type="button" aria-label="Nueva cita">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div class="row" style="margin-top: 16px">
+                <button class="btn btn--primary" type="button">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                  Nueva cita
+                </button>
+                <button class="btn btn--secondary" type="button">Limpiar filtros</button>
+                <button class="btn btn--ghost" type="button">Cerrar</button>
+                <span class="note">
+                  Con icono a la izquierda y texto: «Nuevo/Nueva &lt;sustantivo&gt;».
+                </span>
+              </div>
+            </div>
+
+            <!-- Input -->
+            <div class="spec">
+              <h3>Input</h3>
+              <p class="note">
+                Etiqueta, ayuda y error; 44 px de alto mínimo en
+                <code>md</code>
+                .
+              </p>
+
+              <div class="field">
+                <label for="demo-name">Nombre del paciente</label>
+                <input class="control" id="demo-name" type="text" value="Marisol Quispe Huamán" />
+                <span class="hint">Como figura en el documento de identidad.</span>
+              </div>
+
+              <div class="field" style="margin-top: 16px">
+                <label for="demo-doc">Documento de identidad</label>
+                <input
+                  class="control control--error"
+                  id="demo-doc"
+                  type="text"
+                  value="7481920"
+                  aria-invalid="true"
+                  aria-describedby="demo-doc-error"
+                />
+                <span class="error-text" id="demo-doc-error">
+                  El documento debe tener 8 dígitos.
+                </span>
+              </div>
+            </div>
+
+            <!-- Select -->
+            <div class="spec">
+              <h3>Select</h3>
+              <p class="note">Disparador cerrado; el placeholder se trunca en una línea.</p>
+
+              <div class="field">
+                <label id="demo-select-label">Profesional</label>
+                <button
+                  class="control"
+                  type="button"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-labelledby="demo-select-label demo-select-value"
+                >
+                  <span id="demo-select-value">Dra. Ana Lucía Torres Vega</span>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#5c5a55"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <span class="hint">Odontología restauradora · sede San Isidro.</span>
+              </div>
+
+              <div class="field" style="margin-top: 16px">
+                <label id="demo-select-empty-label">Especialidad</label>
+                <button
+                  class="control control--placeholder"
+                  type="button"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-labelledby="demo-select-empty-label"
+                >
+                  <span>Todas las especialidades</span>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#5c5a55"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Badges -->
+            <div class="spec">
+              <h3>Badge</h3>
+              <p class="note">
+                Patrón iOS relleno: fondo del paso 100, texto del 700, borde del 200.
+                <b>info</b>
+                resuelve el alias
+                <code>systemBlue</code>
+                (acento), mientras
+                <b>StatusBadge</b>
+                usa acero: dos tonos distintos para no confundir aviso con estado.
+              </p>
+
+              <div class="row">
+                <span class="badge badge--default">Borrador</span>
+                <span class="badge badge--primary">Aprobado</span>
+                <span class="badge badge--success">Pagado</span>
+                <span class="badge badge--warning">Pendiente</span>
+                <span class="badge badge--error">Anulado</span>
+                <span class="badge badge--info">En revisión</span>
+                <span class="badge badge--neutral">Archivado</span>
+              </div>
+              <div class="row">
+                <span class="badge badge--primary badge--pill">Ortodoncia</span>
+                <span class="badge badge--default badge--pill">12 citas</span>
+                <span class="badge badge--default" style="border-radius: 4px">S/ 180.00</span>
+              </div>
+            </div>
+
+            <!-- StatusBadge -->
+            <div class="spec">
+              <h3>StatusBadge</h3>
+              <p class="note">
+                <code>role="status"</code>
+                y
+                <code>aria-label="Estado: …"</code>
+                ; punto opcional de 6 px.
+              </p>
+
+              <div class="row">
+                <span class="status status--success" role="status" aria-label="Estado: Confirmada">
+                  <span class="status__dot" aria-hidden="true"></span>
+                  Confirmada
+                </span>
+                <span class="status status--warning" role="status" aria-label="Estado: En espera">
+                  <span class="status__dot" aria-hidden="true"></span>
+                  En espera
+                </span>
+                <span class="status status--error" role="status" aria-label="Estado: Cancelada">
+                  <span class="status__dot" aria-hidden="true"></span>
+                  Cancelada
+                </span>
+                <span class="status status--info" role="status" aria-label="Estado: Programada">
+                  <span class="status__dot" aria-hidden="true"></span>
+                  Programada
+                </span>
+                <span class="status status--neutral" role="status" aria-label="Estado: Sin sesión">
+                  <span class="status__dot" aria-hidden="true"></span>
+                  Sin sesión
+                </span>
+              </div>
+            </div>
+
+            <!-- Cards -->
+            <div class="spec spec-full">
+              <h3>Card</h3>
+              <p class="note">
+                Cinco variantes;
+                <code>glass</code>
+                es opaca a propósito (no difumina). El radio es siempre
+                <code>ios</code>
+                (10 px).
+              </p>
+
+              <div class="card-grid">
+                <div class="card card--default">
+                  <h4>default</h4>
+                  <p>
+                    Blanco con
+                    <code>shadow-soft</code>
+                    ; hover sube a
+                    <code>shadow-medium</code>
+                    .
+                  </p>
+                </div>
+                <div class="card card--glass">
+                  <h4>glass</h4>
+                  <p>
+                    Opaca: superficie blanca, borde
+                    <code>#c9c5bd</code>
+                    y
+                    <code>shadow-medium</code>
+                    .
+                  </p>
+                </div>
+                <div class="card card--flat">
+                  <h4>flat</h4>
+                  <p>
+                    Fondo
+                    <code>#f7f6f4</code>
+                    , sin sombra; para bloques secundarios.
+                  </p>
+                </div>
+                <div class="card card--elevated">
+                  <h4>elevated</h4>
+                  <p>
+                    <code>elevation-2</code>
+                    + hairline + brillo interior superior.
+                  </p>
+                </div>
+                <div class="card card--outlined">
+                  <h4>outlined</h4>
+                  <p>
+                    Borde de 2 px
+                    <code>#c9c5bd</code>
+                    , sin sombra en reposo.
+                  </p>
+                </div>
+                <div class="card card--elevated card-kpi">
+                  <span class="kpi-label">Cobrado hoy</span>
+                  <span class="kpi-value">S/ 4,820.00</span>
+                  <span class="kpi-caption">Sede San Isidro · 11 atenciones cerradas</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- DataTable -->
+            <div class="spec spec-full">
+              <h3>DataTable</h3>
+              <p class="note">
+                Contenedor con borde y radio
+                <code>ios</code>
+                , celdas de 13 px y columna de dinero con cifras tabulares. Footer con «Mostrando
+                X-Y de Z elementos».
+              </p>
+
+              <div class="table-shell">
+                <div class="table-shell__head">
+                  <h4>Listos para facturar</h4>
+                  <div class="row" style="gap: 8px">
+                    <button class="btn btn--secondary btn--sm" type="button">Exportar CSV</button>
+                    <button class="btn btn--primary btn--sm" type="button">Cobrar</button>
+                  </div>
+                </div>
+
+                <table class="data">
+                  <caption class="sr-only">
+                    Atenciones cerradas de la sede San Isidro listas para facturar
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Paciente</th>
+                      <th scope="col">Procedimiento</th>
+                      <th scope="col">Profesional</th>
+                      <th scope="col">Cierre</th>
+                      <th scope="col">Estado</th>
+                      <th scope="col" style="text-align: right">Importe</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <span class="patient">
+                          <b>Marisol Quispe Huamán</b>
+                          <small>DNI 74819203</small>
+                        </span>
+                      </td>
+                      <td>Limpieza dental + fluorización</td>
+                      <td>Dra. Ana Lucía Torres Vega</td>
+                      <td class="num">27/10/2026, 09:40</td>
+                      <td>
+                        <span class="status status--success">
+                          <span class="status__dot" aria-hidden="true"></span>
+                          Pagado
+                        </span>
+                      </td>
+                      <td class="money">S/ 180.00</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="patient">
+                          <b>Jorge Luis Ramírez Paredes</b>
+                          <small>DNI 40218765</small>
+                        </span>
+                      </td>
+                      <td>Endodoncia unirradicular, pieza 36</td>
+                      <td>Dr. Carlos Alberto Mendoza Ríos</td>
+                      <td class="num">27/10/2026, 10:15</td>
+                      <td>
+                        <span class="status status--warning">
+                          <span class="status__dot" aria-hidden="true"></span>
+                          Pendiente
+                        </span>
+                      </td>
+                      <td class="money">S/ 650.00</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="patient">
+                          <b>Rocío del Pilar Salazar Núñez</b>
+                          <small>DNI 45872319</small>
+                        </span>
+                      </td>
+                      <td>Corona de zirconio, pieza 11</td>
+                      <td>Dr. Iván Paredes Cáceres</td>
+                      <td class="num">26/10/2026, 16:05</td>
+                      <td>
+                        <span class="status status--info">
+                          <span class="status__dot" aria-hidden="true"></span>
+                          En proceso
+                        </span>
+                      </td>
+                      <td class="money">S/ 1,450.00</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="patient">
+                          <b>Carlos Alberto Mendoza Ríos</b>
+                          <small>DNI 09837154</small>
+                        </span>
+                      </td>
+                      <td>Extracción simple, pieza 48</td>
+                      <td>Dra. Ana Lucía Torres Vega</td>
+                      <td class="num">26/10/2026, 11:20</td>
+                      <td>
+                        <span class="status status--success">
+                          <span class="status__dot" aria-hidden="true"></span>
+                          Pagado
+                        </span>
+                      </td>
+                      <td class="money">S/ 240.00</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="patient">
+                          <b>Lucía Fernanda Chávez Rojas</b>
+                          <small>DNI 72319548</small>
+                        </span>
+                      </td>
+                      <td>Blanqueamiento dental con fotocurado</td>
+                      <td>Dr. Iván Paredes Cáceres</td>
+                      <td class="num">25/10/2026, 15:30</td>
+                      <td>
+                        <span class="status status--error">
+                          <span class="status__dot" aria-hidden="true"></span>
+                          Anulado
+                        </span>
+                      </td>
+                      <td class="money">S/ 480.00</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="table-foot">
+                  <span>Mostrando 1-5 de 23 elementos</span>
+                  <span class="note">
+                    El aviso «Desliza para ver más columnas» aparece sólo cuando la tabla excede su
+                    viewport.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- FilterBar -->
+            <div class="spec spec-full">
+              <h3>FilterBar</h3>
+              <p class="note">
+                <code>role="search"</code>
+                , grid de 4 columnas, fondo
+                <code>#f7f6f4</code>
+                y borde
+                <code>#edebe7</code>
+                . El único verbo de limpieza es «Limpiar filtros».
+              </p>
+
+              <div class="filter-bar" role="search" aria-label="Filtros: profesionales">
+                <span class="filter-bar__title">Filtros</span>
+                <div class="filter-grid">
+                  <div class="span-2">
+                    <label class="sr-only" for="f-q">Buscar profesionales</label>
+                    <input
+                      class="control"
+                      id="f-q"
+                      type="search"
+                      placeholder="Buscar por nombre o especialidad…"
+                    />
+                  </div>
+                  <div>
+                    <label class="sr-only" for="f-sede">Sede</label>
+                    <span class="select-wrap">
+                      <select class="control" id="f-sede">
+                        <option>Todas las sedes</option>
+                        <option selected>San Isidro</option>
+                        <option>Surco</option>
+                      </select>
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#5c5a55"
+                        stroke-width="2"
+                        aria-hidden="true"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </span>
+                  </div>
+                  <div>
+                    <button class="btn btn--secondary" type="button" style="width: 100%">
+                      Limpiar filtros
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="spec">
+              <h3>Tabs</h3>
+              <p class="note">
+                <code>role="tablist"</code>
+                , roving tabindex y panel con
+                <code>aria-labelledby</code>
+                . Variante underline.
+              </p>
+
+              <div class="tablist" role="tablist" aria-label="Ficha del paciente">
+                <button
+                  class="tab"
+                  id="tab-general"
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="panel-general"
+                  type="button"
+                  data-tab="general"
+                >
+                  General
+                  <span class="count">3</span>
+                </button>
+                <button
+                  class="tab"
+                  id="tab-evoluciones"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="panel-evoluciones"
+                  tabindex="-1"
+                  type="button"
+                  data-tab="evoluciones"
+                >
+                  Evoluciones
+                  <span class="count">12</span>
+                </button>
+                <button
+                  class="tab"
+                  id="tab-cuenta"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="panel-cuenta"
+                  tabindex="-1"
+                  type="button"
+                  data-tab="cuenta"
+                >
+                  Cuenta
+                </button>
+              </div>
+
+              <div
+                class="tabpanel"
+                id="panel-general"
+                role="tabpanel"
+                aria-labelledby="tab-general"
+                data-panel="general"
+              >
+                Marisol Quispe Huamán · 34 años · sin alergias declaradas · última visita el
+                27/10/2026.
+              </div>
+              <div
+                class="tabpanel"
+                id="panel-evoluciones"
+                role="tabpanel"
+                aria-labelledby="tab-evoluciones"
+                data-panel="evoluciones"
+                hidden
+              >
+                27/10/2026 · Control de placa · índice 12 % · sin sangrado al sondaje.
+              </div>
+              <div
+                class="tabpanel"
+                id="panel-cuenta"
+                role="tabpanel"
+                aria-labelledby="tab-cuenta"
+                data-panel="cuenta"
+                hidden
+              >
+                Saldo de cierre del período: S/ 0.00 · dos pagos imputados a sus cargos.
+              </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="spec">
+              <h3>Pagination</h3>
+              <p class="note">
+                <code>role="navigation"</code>
+                ,
+                <code>aria-current="page"</code>
+                en la activa y leyenda «Mostrando X a Y de Z resultados».
+              </p>
+
+              <div class="pagination" role="navigation" aria-label="Paginación de resultados">
+                <span class="pagination__text">
+                  Mostrando
+                  <b>1</b>
+                  a
+                  <b>5</b>
+                  de
+                  <b>23</b>
+                  resultados
+                </span>
+                <span class="pagination__nav">
+                  <button class="page-btn" type="button" aria-label="Ir a la página 1" disabled>
+                    ‹
+                  </button>
+                  <button
+                    class="page-btn"
+                    type="button"
+                    aria-label="Ir a la página 1"
+                    aria-current="page"
+                  >
+                    1
+                  </button>
+                  <button class="page-btn" type="button" aria-label="Ir a la página 2">2</button>
+                  <button class="page-btn" type="button" aria-label="Ir a la página 3">3</button>
+                  <span class="ellipsis" aria-hidden="true">…</span>
+                  <button class="page-btn" type="button" aria-label="Ir a la página 2">›</button>
+                </span>
+              </div>
+            </div>
+
+            <!-- Empty state -->
+            <div class="spec">
+              <h3>EmptyState / UiSectionEmpty</h3>
+              <p class="note">El hero ya publica el CTA, así que la sección vacía no lo repite.</p>
+
+              <div class="empty">
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M3 13.5h4.5l1.5 3h6l1.5-3H21M5.25 4.5h13.5a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V6a1.5 1.5 0 0 1 1.5-1.5z"
+                  />
+                </svg>
+                <p class="empty__title">Sin atenciones en el período</p>
+                <p class="empty__desc">
+                  Ningún profesional registró cierres entre el 1 y el 27 de octubre en esta sede.
+                </p>
+              </div>
+            </div>
+
+            <!-- Skeleton -->
+            <div class="spec">
+              <h3>Skeleton</h3>
+              <p class="note">
+                Placeholder del primer frame;
+                <code>aria-label</code>
+                «Cargando contenido...».
+              </p>
+
+              <div aria-label="Cargando contenido..." role="status">
+                <div class="skeleton-stack">
+                  <div class="skeleton-item" style="height: 16px; width: 100%"></div>
+                  <div class="skeleton-item" style="height: 16px; width: 80%"></div>
+                  <div class="skeleton-item" style="height: 16px; width: 60%"></div>
+                  <div class="skeleton-item" style="height: 72px; width: 100%"></div>
+                </div>
+              </div>
+
+              <h3 style="margin-top: 24px">LoadingSpinner</h3>
+              <p class="note">
+                Tres anillos concéntricos de 0.8 s lineales;
+                <code>aria-label</code>
+                «Cargando...» y la animación se apaga con reduced motion.
+              </p>
+              <div class="spinner" role="status" aria-label="Cargando...">
+                <span class="spinner__rings" aria-hidden="true">
+                  <span class="spinner-ring"></span>
+                  <span class="spinner-ring"></span>
+                  <span class="spinner-ring"></span>
+                </span>
+                <span class="note">Cargando atenciones…</span>
+              </div>
+            </div>
+
+            <!-- Toast -->
+            <div class="spec spec-full">
+              <h3>Toast</h3>
+              <p class="note">
+                <code>role="status"</code>
+                y
+                <code>aria-live="polite"</code>
+                para éxito e info;
+                <code>role="alert"</code>
+                y
+                <code>aria-live="assertive"</code>
+                para error y advertencia.
+              </p>
+
+              <div class="row" style="align-items: flex-start; gap: 24px">
+                <div
+                  class="toast toast--success"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div>
+                    <p class="toast__title">Cobro registrado</p>
+                    <p class="toast__msg">S/ 180.00 en Efectivo · caja de recepción.</p>
+                  </div>
+                  <button class="toast__close" type="button" aria-label="Cerrar notificación">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      aria-hidden="true"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <div
+                  class="toast toast--error"
+                  role="alert"
+                  aria-live="assertive"
+                  aria-atomic="true"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <div>
+                    <p class="toast__title">No se pudo anular el cobro</p>
+                    <p class="toast__msg">La gaveta de esta sesión ya está cerrada.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Modal preview -->
+            <div class="spec spec-full">
+              <h3>Modal y ConfirmDialog</h3>
+              <p class="note">
+                Vista previa estática: backdrop
+                <code>rgba(0, 0, 0, 0.5)</code>
+                con
+                <code>blur(4px)</code>
+                , panel blanco de radio
+                <code>modal</code>
+                (14 px) y
+                <code>shadow-2xl</code>
+                (el valor de
+                <code>elevated</code>
+                ).
+              </p>
+
+              <div class="row" style="align-items: stretch; gap: 24px">
+                <div class="modal-stage" style="flex: 1">
+                  <div class="modal-backdrop">
+                    <div
+                      class="modal-panel"
+                      role="dialog"
+                      aria-label="Vista previa del modal Nuevo cargo"
+                      aria-labelledby="modal-title"
+                    >
+                      <div class="modal-panel__head">
+                        <h3 id="modal-title">Nuevo cargo</h3>
+                        <button
+                          class="btn btn--icon btn--sm"
+                          type="button"
+                          aria-label="Cerrar modal"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                      <div class="modal-panel__body">
+                        <div class="field" style="max-width: none">
+                          <label for="modal-amount">Importe</label>
+                          <input class="control" id="modal-amount" type="text" value="S/ 320.00" />
+                          <span class="hint">
+                            Cargo manual de Marisol Quispe Huamán · 27/10/2026.
+                          </span>
+                        </div>
+                      </div>
+                      <div class="modal-panel__foot">
+                        <button class="btn btn--secondary" type="button">Cancelar</button>
+                        <button class="btn btn--primary" type="button">Guardar cargo</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="modal-stage" style="flex: 1">
+                  <div class="modal-backdrop">
+                    <div
+                      class="modal-panel"
+                      style="max-width: 380px"
+                      role="alertdialog"
+                      aria-label="Vista previa del diálogo Anular cobro"
+                      aria-labelledby="confirm-title"
+                      aria-describedby="confirm-desc"
+                    >
+                      <div class="modal-panel__head">
+                        <h3 id="confirm-title">Anular cobro</h3>
+                      </div>
+                      <div class="modal-panel__body">
+                        <div class="confirm-body">
+                          <span class="confirm-icon" aria-hidden="true">
+                            <svg
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M12 9v3.75m0 3h.008M10.29 3.86L2.82 16.1A1.5 1.5 0 004.11 18.4h15.78a1.5 1.5 0 001.29-2.3L13.71 3.86a1.5 1.5 0 00-2.59 0z"
+                              />
+                            </svg>
+                          </span>
+                          <p id="confirm-desc">
+                            Se anulará el cobro de S/ 180.00. El movimiento de caja queda registrado
+                            y no se borra.
+                          </p>
+                        </div>
+                      </div>
+                      <div class="modal-panel__foot">
+                        <button class="btn btn--secondary" type="button">Cancelar</button>
+                        <button class="btn btn--danger" type="button">Anular cobro</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================== §8 RECETA ===================== -->
+        <section class="block" id="receta" aria-labelledby="recipe-title">
+          <header>
+            <h2 id="recipe-title">Receta de página</h2>
+            <p class="block-source">
+              Fuente:
+              <code>resources/js/modules/professionals/ProfessionalsPage.vue</code>
+              y
+              <code>docs/ux-guidelines.md</code>
+              §9
+            </p>
+          </header>
+
+          <div class="recipe">
+            <div class="recipe-step">
+              <b>1 · Hero band</b>
+              <span>
+                Canvas + hairline, radio 22 px,
+                <code>elevation-2</code>
+                , un solo
+                <code>h1</code>
+                y un CTA primario.
+              </span>
+            </div>
+            <div class="recipe-step">
+              <b>2 · KPI strip</b>
+              <span>
+                Cuatro cards con cifra
+                <code>text-2xl</code>
+                ,
+                <code>tabular-nums</code>
+                y caption de alcance.
+              </span>
+            </div>
+            <div class="recipe-step">
+              <b>3 · FilterBar</b>
+              <span>Grid de 4 columnas y el botón secundario «Limpiar filtros».</span>
+            </div>
+            <div class="recipe-step">
+              <b>4 · DataTable</b>
+              <span>Affordance de scroll, acciones por permiso y paginación de servidor.</span>
+            </div>
+            <div class="recipe-step">
+              <b>5 · Estados</b>
+              <span>Skeleton → error con «Reintentar» → vacío → contenido. Nunca mezclados.</span>
+            </div>
+            <div class="recipe-step">
+              <b>6 · Diálogos</b>
+              <span>
+                <code>Modal</code>
+                ,
+                <code>Sheet</code>
+                y
+                <code>ConfirmDialog</code>
+                ; la pila de overlays decide qué Escape cierra.
+              </span>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top: 24px; align-items: flex-start; gap: 24px">
+            <div class="spec" style="flex: 1">
+              <h3>Vocabulario de acciones</h3>
+              <p class="note">
+                El disparador de un alta es «Nuevo/Nueva &lt;sustantivo&gt;»; el envío lleva verbo
+                con objeto («Guardar cargo»); «Cancelar», «Volver» y «Cerrar» solo abortan.
+              </p>
+              <div class="row">
+                <button class="btn btn--primary btn--sm" type="button">Nuevo procedimiento</button>
+                <button class="btn btn--secondary btn--sm" type="button">Guardar cambios</button>
+                <button class="btn btn--ghost btn--sm" type="button">Cerrar</button>
+              </div>
+            </div>
+
+            <div class="spec" style="flex: 1">
+              <h3>Contraste medido</h3>
+              <p class="note">
+                Blanco sobre
+                <code>error-500</code>
+                da 3.55:1, sobre
+                <code>success-500</code>
+                2.22:1 y sobre
+                <code>warning-500</code>
+                1.51:1: por eso esas tres variantes llevan etiqueta
+                <code>#1a1917</code>
+                . El mensaje de error usa
+                <code>error-700</code>
+                (7.86:1 sobre blanco).
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- ===================== FOOTER ===================== -->
+      <footer class="foot">
+        <span>
+          OdontoSuite V2 · sistema de diseño capturado el 2026-10-29 desde
+          <code>tokens.js</code>
+          ,
+          <code>tailwind.config.js</code>
+          ,
+          <code>tokens.generated.css</code>
+          ,
+          <code>app.css</code>
+          ,
+          <code>utilities.css</code>
+          y las primitivas de
+          <code>resources/js/components/ui/</code>
+          .
+        </span>
+        <span>
+          Documento de referencia:
+          <code>design/system.md</code>
+        </span>
+      </footer>
+    </div>
+
+    <script>
+      // Tabs de la ficha del paciente: roving tabindex y panel único visible.
+      ;(function () {
+        var tablist = document.querySelector('[role="tablist"][aria-label="Ficha del paciente"]')
+        if (!tablist) return
+
+        var tabs = Array.prototype.slice.call(tablist.querySelectorAll('[role="tab"]'))
+        var panels = Array.prototype.slice.call(
+          document.querySelectorAll('[role="tabpanel"][data-panel]')
+        )
+
+        function activate(id) {
+          tabs.forEach(function (tab) {
+            var selected = tab.dataset.tab === id
+            tab.setAttribute('aria-selected', selected ? 'true' : 'false')
+            tab.setAttribute('tabindex', selected ? '0' : '-1')
+          })
+          panels.forEach(function (panel) {
+            if (panel.dataset.panel === id) {
+              panel.removeAttribute('hidden')
+            } else {
+              panel.setAttribute('hidden', '')
+            }
+          })
+        }
+
+        tablist.addEventListener('click', function (event) {
+          var tab = event.target.closest('[role="tab"]')
+          if (!tab) return
+          activate(tab.dataset.tab)
+        })
+
+        tablist.addEventListener('keydown', function (event) {
+          var index = tabs.indexOf(document.activeElement)
+          if (index === -1) return
+          var next = null
+          if (event.key === 'ArrowRight') next = (index + 1) % tabs.length
+          if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length
+          if (event.key === 'Home') next = 0
+          if (event.key === 'End') next = tabs.length - 1
+          if (next === null) return
+          event.preventDefault()
+          tabs[next].focus()
+          activate(tabs[next].dataset.tab)
+        })
+      })()
+    </script>
+  </body>
+</html>
