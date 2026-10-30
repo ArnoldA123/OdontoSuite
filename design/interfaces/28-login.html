@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1440" />
+    <title>OdontoSuite · Iniciar sesión · Clínica San Isidro</title>
+    <style>
+      /* ============================================================
+         Tokens — valores de design/system.md. Ninguno inventado.
+         ============================================================ */
+      :root {
+        --color-accent: #0f7a5f;
+        --color-accent-hover: #0a5f49;
+        --color-accent-700: #084c3b;
+        --color-accent-50: #e6f4ef;
+        --color-accent-100: #c9e7dc;
+        --color-accent-200: #93cdb9;
+        --color-accent-300: #5cb195;
+
+        --color-canvas: #f7f6f4;
+        --color-surface-elevated: #ffffff;
+
+        --color-text-primary: #1a1917;
+        --color-text-secondary: #5c5a55;
+
+        --color-border: #c9c5bd;
+        --color-system-gray-500: #908b82;
+        --color-hairline: rgba(26, 24, 20, 0.1);
+
+        --color-success: #34c759;
+        --color-success-bg: #e8f5e9;
+        --color-success-text: #1a6530;
+        --color-danger: #ff3b30;
+        --color-danger-bg: #ffebea;
+        --color-danger-line: #ffd9d7;
+        --color-danger-text: #a50e10;
+
+        --radius-ios: 10px;
+        --radius-md: 8px;
+        --radius-card-lg: 16px;
+        --radius-panel: 22px;
+        --radius-full: 9999px;
+
+        --elevation-1: 0 1px 3px rgba(92, 90, 85, 0.04);
+        --elevation-2: 0 2px 8px rgba(92, 90, 85, 0.06), 0 1px 2px rgba(92, 90, 85, 0.04);
+        --elevation-3: 0 8px 16px rgba(92, 90, 85, 0.08), 0 2px 6px rgba(92, 90, 85, 0.06);
+        --focus-ring-default: 0 0 0 3px rgba(15, 122, 95, 0.2);
+
+        --font-sans:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        --font-features-tabular-nums: 'tnum' 1, 'lnum' 1;
+
+        /* Escala tipográfica — design/system.md §2.1 */
+        --text-sm: 13px;
+        --text-sm-line: 18px;
+        --text-base: 15px;
+        --text-base-line: 22px;
+        --text-xl: 20px;
+        --text-xl-line: 28px;
+        --text-3xl: 30px;
+        --text-3xl-line: 36px;
+        --text-4xl: 36px;
+        --text-4xl-line: 40px;
+
+        --motion-fast: 120ms;
+        --motion-normal: 200ms;
+        --motion-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+        --motion-easing-ios: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+
+      /* ============================================================
+         Base
+         ============================================================ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        overflow: hidden;
+        background: var(--color-canvas);
+      }
+
+      body {
+        margin: 0;
+        width: 1440px;
+        height: 900px;
+        overflow: hidden;
+        font-family: var(--font-sans);
+        font-size: var(--text-base);
+        line-height: var(--text-base-line);
+        color: var(--color-text-primary);
+        background: var(--color-canvas);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1,
+      p,
+      ul {
+        margin: 0;
+        padding: 0;
+      }
+
+      ul {
+        list-style: none;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+
+      svg {
+        display: block;
+      }
+
+      .icon {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 auto;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+        box-shadow: var(--focus-ring-default);
+      }
+
+      .num {
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      /* ============================================================
+         Lienzo — 60 / 40, sin sidebar ni topbar
+         ============================================================ */
+      .login {
+        display: grid;
+        grid-template-columns: 60% 40%;
+        height: 900px;
+        overflow: hidden;
+      }
+
+      /* ============================================================
+         A) Panel de marca (864 px)
+         ============================================================ */
+      .brand-panel {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
+        padding: 52px 64px 56px;
+        background: var(--color-accent-50);
+        border-right: 1px solid var(--color-hairline);
+      }
+
+      .brand {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand__mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-ios);
+        background: var(--color-accent);
+        color: #ffffff;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      }
+
+      .brand__mark .icon {
+        width: 23px;
+        height: 23px;
+      }
+
+      .brand__name {
+        display: block;
+        font-size: var(--text-xl);
+        line-height: var(--text-xl-line);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .brand__sub {
+        display: block;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .motif {
+        position: absolute;
+        top: 104px;
+        right: 24px;
+        z-index: 0;
+        width: 384px;
+        height: 384px;
+        pointer-events: none;
+      }
+
+      .claim {
+        position: relative;
+        z-index: 1;
+        max-width: 500px;
+      }
+
+      .claim__rule {
+        display: block;
+        width: 40px;
+        height: 2px;
+        margin-bottom: 20px;
+        border-radius: 2px;
+        background: var(--color-accent);
+      }
+
+      .claim__text {
+        font-size: var(--text-4xl);
+        line-height: var(--text-4xl-line);
+        font-weight: 600;
+        letter-spacing: -0.022em;
+      }
+
+      .claim__list {
+        display: grid;
+        gap: 10px;
+        margin-top: 26px;
+      }
+
+      .claim__item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 13.5px;
+        line-height: 20px;
+        color: var(--color-text-secondary);
+      }
+
+      .claim__check {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        flex: 0 0 auto;
+        margin-top: 1px;
+        border: 1px solid var(--color-accent-200);
+        border-radius: var(--radius-full);
+        background: var(--color-surface-elevated);
+        color: var(--color-accent-700);
+      }
+
+      .claim__check svg {
+        width: 10px;
+        height: 10px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* ============================================================
+         B) Columna de acceso (576 px)
+         ============================================================ */
+      .auth-panel {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 52px 64px;
+        background: var(--color-canvas);
+      }
+
+      .auth-stack {
+        display: grid;
+        gap: 16px;
+        width: 100%;
+      }
+
+      /* ---- Tarjeta del formulario ---- */
+      .auth-card {
+        padding: 26px 28px;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      }
+
+      .auth-card__eyebrow {
+        font-size: 11px;
+        line-height: 15px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--color-accent-700);
+      }
+
+      .auth-card__title {
+        margin-top: 4px;
+        font-size: var(--text-3xl);
+        line-height: var(--text-3xl-line);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .auth-card__lede {
+        margin-top: 6px;
+        font-size: var(--text-sm);
+        line-height: var(--text-sm-line);
+        color: var(--color-text-secondary);
+      }
+
+      /* ---- Formulario ---- */
+      .auth-form {
+        margin-top: 20px;
+      }
+
+      .field + .field {
+        margin-top: 14px;
+      }
+
+      .field__label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: var(--text-sm);
+        line-height: var(--text-sm-line);
+        font-weight: 500;
+      }
+
+      .input {
+        display: block;
+        width: 100%;
+        height: 44px;
+        padding: 0 14px;
+        appearance: none;
+        -webkit-appearance: none;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-system-gray-500);
+        border-radius: var(--radius-ios);
+        color: var(--color-text-primary);
+        font-family: var(--font-sans);
+        font-size: var(--text-base);
+        line-height: var(--text-base-line);
+        transition: border-color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .input::placeholder {
+        color: var(--color-text-secondary);
+        opacity: 1;
+      }
+
+      .input:focus {
+        border-color: var(--color-accent);
+      }
+
+      .input-group {
+        position: relative;
+      }
+
+      .input--password {
+        padding-right: 108px;
+      }
+
+      .reveal {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 36px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: var(--radius-md);
+        background: transparent;
+        color: var(--color-text-secondary);
+        font-size: 12.5px;
+        line-height: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          background-color var(--motion-normal) var(--motion-easing-standard),
+          color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .reveal .icon {
+        width: 16px;
+        height: 16px;
+      }
+
+      .reveal:hover {
+        background: var(--color-canvas);
+        color: var(--color-text-primary);
+      }
+
+      .auth-form__row {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 12px;
+      }
+
+      .link {
+        font-size: 12.5px;
+        line-height: 18px;
+        font-weight: 600;
+        color: var(--color-accent);
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 2px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 44px;
+        padding: 0 18px;
+        border: 1px solid transparent;
+        border-radius: var(--radius-ios);
+        font-family: var(--font-sans);
+        font-size: 13.5px;
+        line-height: 20px;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        transition:
+          background-color var(--motion-normal) var(--motion-easing-standard),
+          box-shadow var(--motion-normal) var(--motion-easing-standard),
+          transform var(--motion-fast) var(--motion-easing-ios);
+      }
+
+      .btn--primary {
+        width: 100%;
+        margin-top: 18px;
+        background: var(--color-accent);
+        color: #ffffff;
+        box-shadow:
+          var(--elevation-3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      }
+
+      .btn--primary:hover {
+        background: var(--color-accent-hover);
+        transform: translateY(-1px);
+      }
+
+      .btn--primary:active {
+        background: var(--color-accent-700);
+        transform: translateY(1px);
+      }
+
+      /* ---- Tarjetas de estado y recuperación ---- */
+      .spec {
+        padding: 16px 20px 18px;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-card-lg);
+        box-shadow: var(--elevation-1);
+      }
+
+      .spec__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .spec__label {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        color: var(--color-danger-text);
+      }
+
+      .spec__dot {
+        width: 6px;
+        height: 6px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-full);
+        background: var(--color-danger);
+      }
+
+      .spec__title {
+        font-size: var(--text-sm);
+        line-height: var(--text-sm-line);
+        font-weight: 600;
+      }
+
+      .spec__note {
+        margin-top: 7px;
+        font-size: 12.5px;
+        line-height: 18px;
+        color: var(--color-text-secondary);
+      }
+
+      .spec__meta {
+        margin-top: 9px;
+        font-size: 11.5px;
+        line-height: 15px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        margin-top: 9px;
+        padding: 10px 12px;
+        background: var(--color-danger-bg);
+        border: 1px solid var(--color-danger-line);
+        border-radius: var(--radius-ios);
+        color: var(--color-danger-text);
+      }
+
+      .alert .icon {
+        width: 16px;
+        height: 16px;
+        margin-top: 1px;
+      }
+
+      .alert p {
+        font-size: 12.5px;
+        line-height: 18px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: var(--radius-full);
+        font-size: 12px;
+        line-height: 18px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      .pill--success {
+        background: var(--color-success-bg);
+        color: var(--color-success-text);
+      }
+
+      .pill__dot {
+        width: 6px;
+        height: 6px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-full);
+        background: var(--color-success);
+      }
+
+      .token {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        padding: 8px 10px;
+        background: var(--color-canvas);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-ios);
+        color: var(--color-accent-700);
+        font-size: 12px;
+        line-height: 16px;
+        font-feature-settings: var(--font-features-tabular-nums);
+        transition: border-color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .token:hover {
+        border-color: var(--color-accent);
+      }
+
+      .token .icon {
+        width: 15px;
+        height: 15px;
+      }
+
+      .token__go {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: auto;
+        color: var(--color-accent);
+        font-weight: 600;
+      }
+
+      .token__go .icon {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ---- Pie del artboard ---- */
+      .artboard-meta {
+        position: absolute;
+        right: 52px;
+        bottom: 18px;
+        font-size: 11.5px;
+        line-height: 16px;
+        text-align: right;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      /* El anillo del token gana sobre la sombra propia del botón y del campo. */
+      .btn:focus-visible,
+      .input:focus-visible,
+      .reveal:focus-visible,
+      .link:focus-visible,
+      .token:focus-visible {
+        box-shadow: var(--focus-ring-default);
+      }
+
+      /* ============================================================
+         Movimiento reducido
+         ============================================================ */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+
+        .btn--primary:hover,
+        .btn--primary:active {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="login">
+      <section class="brand-panel" aria-labelledby="brand-name">
+        <div class="brand">
+          <span class="brand__mark" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path
+                d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
+              />
+            </svg>
+          </span>
+          <span>
+            <span class="brand__name" id="brand-name">OdontoSuite</span>
+            <span class="brand__sub">Clínica San Isidro</span>
+          </span>
+        </div>
+
+        <svg class="motif" viewBox="0 0 360 360" aria-hidden="true" focusable="false">
+          <circle cx="180" cy="180" r="172" fill="none" stroke="#c9e7dc" stroke-width="1.5" />
+          <circle
+            cx="180"
+            cy="180"
+            r="138"
+            fill="none"
+            stroke="#93cdb9"
+            stroke-width="1.4"
+            stroke-dasharray="2 9"
+          />
+          <circle cx="180" cy="180" r="106" fill="#c9e7dc" />
+          <circle cx="180" cy="180" r="106" fill="none" stroke="#93cdb9" stroke-width="1.5" />
+          <g transform="translate(84 86) scale(8)">
+            <path
+              d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
+              fill="#ffffff"
+              stroke="#0f7a5f"
+              stroke-width="0.2"
+            />
+          </g>
+          <circle cx="180" cy="8" r="4" fill="#5cb195" />
+          <circle cx="180" cy="352" r="4" fill="#5cb195" />
+          <circle cx="8" cy="180" r="4" fill="#5cb195" />
+          <circle cx="352" cy="180" r="4" fill="#5cb195" />
+        </svg>
+
+        <div class="claim">
+          <span class="claim__rule" aria-hidden="true"></span>
+          <p class="claim__text">
+            La clínica, en orden: agenda, acta clínica y dinero en un solo lugar
+          </p>
+          <ul class="claim__list">
+            <li class="claim__item">
+              <span class="claim__check" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4.5 12.5l4.5 4.5 10-11" />
+                </svg>
+              </span>
+              <span>Agenda, sillones y lista de espera en una vista.</span>
+            </li>
+            <li class="claim__item">
+              <span class="claim__check" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4.5 12.5l4.5 4.5 10-11" />
+                </svg>
+              </span>
+              <span>Acta clínica firmada que se corrige con addendum.</span>
+            </li>
+            <li class="claim__item">
+              <span class="claim__check" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4.5 12.5l4.5 4.5 10-11" />
+                </svg>
+              </span>
+              <span>Caja y estado de cuenta que cuadran al cierre.</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <div class="auth-panel">
+        <div class="auth-stack">
+          <section class="auth-card" aria-labelledby="login-title">
+            <p class="auth-card__eyebrow">Acceso al sistema</p>
+            <h1 class="auth-card__title" id="login-title">Iniciar sesión</h1>
+            <p class="auth-card__lede">Usa el correo que te asignó la clínica.</p>
+
+            <form class="auth-form" novalidate>
+              <div class="field">
+                <label class="field__label" for="login-email">Correo electrónico</label>
+                <input
+                  class="input"
+                  id="login-email"
+                  name="email"
+                  type="email"
+                  inputmode="email"
+                  autocomplete="username"
+                  spellcheck="false"
+                  value="dra.salazar@test.com"
+                />
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="login-password">Contraseña</label>
+                <div class="input-group">
+                  <input
+                    class="input input--password"
+                    id="login-password"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    value="password123"
+                  />
+                  <button
+                    class="reveal"
+                    type="button"
+                    aria-controls="login-password"
+                    aria-pressed="false"
+                    aria-label="Mostrar contraseña"
+                  >
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"
+                      />
+                      <circle cx="12" cy="12" r="2.9" />
+                    </svg>
+                    <span>Mostrar</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="auth-form__row">
+                <a class="link" href="#recuperar">¿Olvidaste tu contraseña?</a>
+              </div>
+
+              <button class="btn btn--primary" type="submit">Entrar</button>
+            </form>
+          </section>
+
+          <section class="spec" aria-labelledby="state-label">
+            <p class="spec__label" id="state-label">
+              <span class="spec__dot" aria-hidden="true"></span>
+              Estado: credenciales inválidas
+            </p>
+            <div class="alert" role="alert">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.5" />
+                <path d="M12 7.5v5.5" />
+                <path d="M12 16.4v.2" />
+              </svg>
+              <p>Credenciales incorrectas. Verifica tu usuario y contraseña.</p>
+            </div>
+            <p class="spec__meta">dra.salazar@test.com · 29 oct 2026, 09:14</p>
+          </section>
+
+          <section class="spec" aria-labelledby="recovery-label" data-reset-token-applied="true">
+            <div class="spec__head">
+              <p class="spec__title" id="recovery-label">Restablecer contraseña</p>
+              <span class="pill pill--success">
+                <span class="pill__dot" aria-hidden="true"></span>
+                Token aplicado
+              </span>
+            </div>
+            <p class="spec__note">
+              El código llega dentro del enlace del correo: ya está aplicado y no hace falta
+              escribirlo.
+            </p>
+            <a class="token" href="#restablecer">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="8.5" cy="8.5" r="4" />
+                <path d="M11.4 11.4l8.1 8.1" />
+                <path d="M16.5 16.5l2-2 2 2-2 2z" />
+              </svg>
+              <span>restablecer · token 9f2c1d8a…</span>
+              <span class="token__go">
+                Abrir
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 12h13" />
+                  <path d="M13 6.5l5.5 5.5-5.5 5.5" />
+                </svg>
+              </span>
+            </a>
+          </section>
+        </div>
+
+        <p class="artboard-meta">design/interfaces/28-login.html · 1440 px · 2026-10-29</p>
+      </div>
+    </main>
+  </body>
+</html>

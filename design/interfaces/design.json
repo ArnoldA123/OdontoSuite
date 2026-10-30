@@ -1,0 +1,209 @@
+{
+  "title": "OdontoSuite — superficies",
+  "brief": "Las pantallas de OdontoSuite V2 renderizadas sobre design/system.md para revisar cada una y decidir cambios. El artboard 01 fija el chrome (sidebar 248 px, topbar 64 px, hero, KPI strip) que copian los demás.",
+  "artboards": [
+    {
+      "file": "01-shell-dashboard.html",
+      "title": "Shell + Dashboard",
+      "tradeoff": "Fija el chrome y la jerarquía de operación en una sola pantalla; densidad media para que quepan cuatro KPIs, la cola de atención y el rail de caja.",
+      "width": 1440,
+      "height": 1200
+    },
+    {
+      "file": "02-my-day.html",
+      "title": "Mi día",
+      "tradeoff": "Tablero de tres carriles en lugar de lista plana: la cola se lee por estado del paciente (en espera, en atención, próximas), no como reporte. Cada carril publica su conteo completo y el resto en el pie, y el rail concentra lo que exige acción (firmas) y lo que llegó del taller.",
+      "width": 1440,
+      "height": 1148
+    },
+    {
+      "file": "03-calendar.html",
+      "title": "Calendario",
+      "tradeoff": "Rejilla semanal con scroll horizontal propio (columnas de día de ancho fijo) en lugar de comprimir la semana: se lee la hora y el paciente incluso en móvil, al precio de desplazar. El rail separa lista de espera y conflictos de sillón.",
+      "width": 1440,
+      "height": 1400
+    },
+    {
+      "file": "04-patients-list.html",
+      "title": "Pacientes",
+      "tradeoff": "Lista densa de seis columnas para abrir la ficha desde la misma tabla sin cambiar de pantalla; el costo es tipografía secundaria de 11,5–12 px y nombres largos con elipsis (el nombre completo viaja en el title). El rail conserva 433 px para saldo y continuidad.",
+      "width": 1440,
+      "height": 1300
+    },
+    {
+      "file": "05-patient-file.html",
+      "title": "Ficha del paciente",
+      "tradeoff": "La ficha abre con la identidad del paciente y no con un saludo: el hero es la persona (avatar, nombre, DNI, alergia, saldo), sin KPI strip ni filtros. La profundidad vive en las ocho tabs y el rail concentra próxima cita, plan activo y laboratorio; el estado de cuenta se lee con la aritmética completa a la vista.",
+      "width": 1440,
+      "height": 1300
+    },
+    {
+      "file": "06-medical-records.html",
+      "title": "Historias clínicas",
+      "tradeoff": "Workspace maestro-detalle dentro de una sola tarjeta: el selector de paciente es el panel izquierdo y la historia ocupa el resto, así cambiar de paciente no pierde el contexto clínico. El rail declara la inmutabilidad en lugar de ofrecer acciones de edición, y el addendum vive bajo la evolución que corrige.",
+      "width": 1440,
+      "height": 1400
+    },
+    {
+      "file": "07-treatment-plans.html",
+      "title": "Planes de tratamiento",
+      "tradeoff": "Tabla de seis columnas con el vencimiento dentro de la celda de importe y panel de detalle del plan seleccionado a la derecha: se decide sin salir de la lista. El costo es una tabla más ancha (1,7fr) y el rail de alertas comprimido a 409 px.",
+      "width": 1440,
+      "height": 1300
+    },
+    {
+      "file": "08-quotations.html",
+      "title": "Presupuestos",
+      "tradeoff": "Tabla a todo el ancho y el desglose del IGV debajo, en lugar de meter la tabla en la columna izquierda: siete columnas en 671 px recortaban el nombre del paciente en cinco de seis filas. El desglose muestra las tres líneas de concepto para que el subtotal sea trazable y el IGV se lea descompuesto, no sumado.",
+      "width": 1440,
+      "height": 1577
+    },
+    {
+      "file": "09-cash-register.html",
+      "title": "Caja",
+      "tradeoff": "Los cuatro KPIs se leen como la ecuación del turno y la tira de estados muestra los tres héroes (sin sesión, abierta, cerrada) en lugar de esconder dos. La sesión es de recepción, no de odontología: la gaveta es del actor que la abre. El rail escribe la aritmética completa para que el cierre sea verificable de un vistazo.",
+      "width": 1440,
+      "height": 1514
+    },
+    {
+      "file": "10-ready-to-bill.html",
+      "title": "Listos para facturar",
+      "tradeoff": "El panel de cobro ocupa la columna derecha y el rail se parte en dos: «Del turno» cierra la cola de atenciones y «Bloqueo contable» acompaña al aviso que explica. Cada tarjeta queda junto a lo que explica, en vez de apilar dos rails bajo un panel de 700 px de alto.",
+      "width": 1440,
+      "height": 1366
+    },
+    {
+      "file": "11-business-intelligence.html",
+      "title": "Business intelligence",
+      "tradeoff": "Gráfico a ancho completo y reporte debajo, en lugar de tabla dentro de dos columnas: treinta barras con sus treinta rótulos no caben legibles en 671 px. El corte por sede y la conciliación se leen juntos, y el rail separa el consolidado de lo que no tiene sede.",
+      "width": 1440,
+      "height": 1500
+    },
+    {
+      "file": "12-continuity.html",
+      "title": "Continuidad",
+      "tradeoff": "Cola con dos acciones por fila y un rail que declara la ventana de la métrica: el 72 % se calcula sobre recalls cerrados de 90 días (18 de 25), no sobre la cola de hoy, y una solicitud descartada no cuenta como completada. La tabla cede 3 px de padding para que «Agendar» no invada la columna de estado.",
+      "width": 1440,
+      "height": 1176
+    },
+    {
+      "file": "13-lab-cases.html",
+      "title": "Laboratorio protésico",
+      "tradeoff": "Escalera de fases en el rail con la fase actual marcada y «sólo avanza» escrito: el caso no retrocede y un caso colocado ya no se edita. La tabla de ocho columnas se comprime a 852 px y el banco compartido se explica en la nota de filtros, no con un estado extra.",
+      "width": 1440,
+      "height": 1409
+    },
+    {
+      "file": "14-ai-analysis.html",
+      "title": "Análisis IA",
+      "tradeoff": "Tabla a todo el ancho y la hoja de alta como tarjeta hermana: siete columnas no caben en 671 px sin romper el costo ni el nombre. La regla de cita se declara tres veces (KPI, fila y tarjeta) porque es lo que separa el apoyo de la decisión de un diagnóstico.",
+      "width": 1440,
+      "height": 1832
+    },
+    {
+      "file": "15-specialty-records.html",
+      "title": "Registros de especialidad",
+      "tradeoff": "Cinco pestañas con badge de conteo y las tarjetas dentro de la pestaña activa: los números del hero, los KPI y los badges suman 4 registros, así que la segunda tarjeta se separa con el rótulo «En curso en otra especialidad». El odontograma esquemático del rail vuelve trazable cada pieza marcada.",
+      "width": 1440,
+      "height": 1471
+    },
+    {
+      "file": "16-procedure-catalog.html",
+      "title": "Catálogo de procedimientos",
+      "tradeoff": "Tabla de ocho columnas con el origen del precio en la propia fila y el tarifario por sede en el mismo cuerpo: se ve qué tarifa gana sin abrir el detalle. Las tres pestañas del detalle se publican como tarjetas hermanas rotuladas porque un artboard estático no conmuta, y el rail mide 401 px.",
+      "width": 1440,
+      "height": 1818
+    },
+    {
+      "file": "17-procedure-stats.html",
+      "title": "Estadísticas del catálogo",
+      "tradeoff": "Ranking con barra proporcional y distribución por especialidad en el mismo cuerpo, con el pie del ranking publicando resto y total: las tres vistas cuadran con los KPIs en vez de contarse cada una por su lado. El costo es una página de 2.016 px y un rail que queda corto.",
+      "width": 1440,
+      "height": 2016
+    },
+    {
+      "file": "18-my-procedures.html",
+      "title": "Mis procedimientos",
+      "tradeoff": "Rejilla de seis tarjetas de altura fija con el precio como elemento dominante, en lugar de una tabla: el favorito se reconoce por forma y no por fila. Cada tarjeta mide exactamente 166 px, así que los seis CTA caen en la misma línea base y el barrido vertical de precios funciona.",
+      "width": 1440,
+      "height": 1292
+    },
+    {
+      "file": "19-reception-procedures.html",
+      "title": "Recepción de procedimientos",
+      "tradeoff": "Buscador grande y resultados en tarjetas en lugar de tabla y filtros: recepción busca un procedimiento concreto, no explora un catálogo. La pantalla no tiene ni un control de escritura, y el rail lo declara: recepción consulta y agenda, nunca edita.",
+      "width": 1440,
+      "height": 1599
+    },
+    {
+      "file": "20-professionals.html",
+      "title": "Profesionales",
+      "tradeoff": "Tabla y ficha del profesional con su horario semanal en el mismo cuerpo: la disponibilidad se lee sin abrir otra pantalla. El rail separa la cobertura por especialidad de lo que todavía no tiene horario.",
+      "width": 1440,
+      "height": 1646
+    },
+    {
+      "file": "21-appointment-types.html",
+      "title": "Tipos de cita",
+      "tradeoff": "La tabla ocupa el ancho completo y el detalle con el rail van debajo: siete columnas no caben en 671 px. La pantalla demuestra que los insumos son derivados sin un solo interruptor: el dato viaja con su procedencia («de la receta», «Origen del valor: Receta de CPT-0421»).",
+      "width": 1440,
+      "height": 1609
+    },
+    {
+      "file": "22-environments.html",
+      "title": "Ambientes",
+      "tradeoff": "Lista con rail fijo de 340 px en lugar del reparto por omisión: la píldora «Mantenimiento» y los nombres de paciente no caben en 671 px. El sillón pertenece a una sola sede y la pantalla lo repite en la columna, en los KPI y en el pie del panel.",
+      "width": 1440,
+      "height": 1272
+    },
+    {
+      "file": "23-specialties.html",
+      "title": "Catálogo de especialidades",
+      "tradeoff": "Tabla a todo el ancho y el modal de edición publicado como pieza aislada en una franja rotulada: un overlay escondería la tabla y el rail que la pantalla también debe mostrar. El código es de sólo lectura y no existe una sola acción de borrado en el archivo.",
+      "width": 1440,
+      "height": 1716
+    },
+    {
+      "file": "24-settings-branches.html",
+      "title": "Sucursales",
+      "tradeoff": "La sede se enseña como dimensión de autorización y no como filtro: la lista completa sólo la ve quien tiene alcance de grupo, y el chip del topbar lo declara. Sin filtros, porque tres sedes no lo necesitan; el dinero se reconcilia con el «sin sede» a la vista.",
+      "width": 1440,
+      "height": 1507
+    },
+    {
+      "file": "25-payment-methods.html",
+      "title": "Métodos de pago",
+      "tradeoff": "La familia se lee como píldora con su clave de máquina debajo y el punto lleva el tinte, para no gastar relleno de color en categorías. El rail demuestra la regla con un intento de cobro bloqueado real: mensaje del contrato, chip 422 y CTA deshabilitado.",
+      "width": 1440,
+      "height": 1541
+    },
+    {
+      "file": "26-branch-transfers.html",
+      "title": "Traslados de sede",
+      "tradeoff": "Cada fila ofrece solo la acción que su caso admite —retirar lo propio pendiente, decidir lo ajeno pendiente, nada sobre lo cerrado— y las reglas viven en el rail, no en una lista de roles impresa. El rail baja a 288 px para que las seis columnas y los dos botones de decisión quepan sin recortes.",
+      "width": 1440,
+      "height": 1208
+    },
+    {
+      "file": "27-accounting-locks.html",
+      "title": "Bloqueo contable",
+      "tradeoff": "Cuatro módulos con su origen (sede o global) y el formulario de cierre en el mismo cuerpo: se ve qué fecha manda sin abrir nada. El rail explica el 403, el motivo de administrador y la auditoría, en lugar de dejar la regla en la tabla.",
+      "width": 1440,
+      "height": 1747
+    },
+    {
+      "file": "28-login.html",
+      "title": "Inicio de sesión",
+      "tradeoff": "Partido 60/40 con la marca a la izquierda y el formulario a la derecha: la pantalla se lee sin scroll a 900 px y el estado de credenciales inválidas se muestra como tarjeta rotulada, no como alerta flotante.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "29-not-found.html",
+      "title": "Página no encontrada",
+      "tradeoff": "Dentro del shell, sin ítem activo y con una sola tarjeta de recuperación: no es una pantalla muerta, ofrece dos salidas reales y conserva la navegación intacta.",
+      "width": 1440,
+      "height": 900
+    }
+  ]
+}

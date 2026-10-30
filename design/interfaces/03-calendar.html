@@ -1,0 +1,2752 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1440" />
+    <title>OdontoSuite · Calendario · Clínica San Isidro</title>
+    <style>
+      /* ============================================================
+         Tokens — valores de design/system.md. Ninguno inventado.
+         Bloque copiado verbatim de 01-shell-dashboard.html.
+         ============================================================ */
+      :root {
+        --color-accent: #0f7a5f;
+        --color-accent-hover: #0a5f49;
+        --color-accent-700: #084c3b;
+        --color-accent-50: #e6f4ef;
+
+        --color-canvas: #f7f6f4;
+        --color-surface: #f7f6f4;
+        --color-surface-elevated: #ffffff;
+
+        --color-text-primary: #1a1917;
+        --color-text-secondary: #5c5a55;
+        --color-text-tertiary: rgba(26, 24, 20, 0.3);
+
+        --color-border: #c9c5bd;
+        --color-hairline: rgba(26, 24, 20, 0.1);
+        --color-separator: #c9c5bd;
+
+        --color-success: #34c759;
+        --color-success-bg: #e8f5e9;
+        --color-success-text: #1a6530;
+        --color-warning: #ffcc00;
+        --color-warning-bg: #fff9d6;
+        --color-warning-text: #7a5200;
+        --color-danger: #ff3b30;
+        --color-danger-bg: #ffebea;
+        --color-danger-text: #a50e10;
+        --color-info: #4a7191;
+        --color-info-bg: #eef3f8;
+        --color-info-text: #2b4459;
+
+        --color-system-gray-100: #edebe7;
+        --color-system-gray-500: #908b82;
+        --color-system-gray-700: #3b3833;
+
+        --radius-ios: 10px;
+        --radius-modal: 14px;
+        --radius-card-lg: 16px;
+        --radius-panel: 22px;
+        --radius-control: 12px;
+        --radius-md: 8px;
+        --radius-full: 9999px;
+
+        --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --elevation-1: 0 1px 3px rgba(92, 90, 85, 0.04);
+        --elevation-2: 0 2px 8px rgba(92, 90, 85, 0.06), 0 1px 2px rgba(92, 90, 85, 0.04);
+        --elevation-3: 0 8px 16px rgba(92, 90, 85, 0.08), 0 2px 6px rgba(92, 90, 85, 0.06);
+        --focus-ring-default: 0 0 0 3px rgba(15, 122, 95, 0.2);
+
+        --font-sans:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        --font-features-tabular-nums: 'tnum' 1, 'lnum' 1;
+
+        /* Escala tipográfica — design/system.md §2.1 */
+        --text-xs: 12px;
+        --text-xs-line: 16px;
+        --text-sm: 13px;
+        --text-sm-line: 18px;
+        --text-base: 15px;
+        --text-base-line: 22px;
+        --text-lg: 17px;
+        --text-lg-line: 24px;
+        --text-xl: 20px;
+        --text-xl-line: 28px;
+        --text-2xl: 24px;
+        --text-2xl-line: 32px;
+        --text-3xl: 30px;
+        --text-3xl-line: 36px;
+
+        --motion-fast: 120ms;
+        --motion-normal: 200ms;
+        --motion-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+        --motion-easing-ios: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+
+      /* Pasos de rampa que la rejilla necesita y el chrome no usa (§1.2). */
+      :root {
+        --color-accent-200: #93cdb9;
+        --color-system-green-200: #a4d8a8;
+        --color-system-yellow-200: #ffe57f;
+        --color-system-red-200: #ffb8b3;
+        --color-system-gray-200: #dcd8d2;
+      }
+
+      /* ============================================================
+         Base
+         ============================================================ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--color-canvas);
+        overflow-x: hidden;
+      }
+
+      body {
+        margin: 0;
+        width: 1440px;
+        min-height: 900px;
+        font-family: var(--font-sans);
+        font-size: var(--text-base);
+        line-height: var(--text-base-line);
+        color: var(--color-text-primary);
+        background: var(--color-canvas);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1,
+      h2,
+      p,
+      ul,
+      dl,
+      dd {
+        margin: 0;
+        padding: 0;
+      }
+
+      ul {
+        list-style: none;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+
+      svg {
+        display: block;
+      }
+
+      .icon {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 auto;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+        box-shadow: var(--focus-ring-default);
+      }
+
+      .num {
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      /* ============================================================
+         Sidebar — chrome de vidrio, 248 px fijos
+         ============================================================ */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 248px;
+        height: 100vh;
+        z-index: 40;
+        overflow: hidden;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.62));
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        backdrop-filter: blur(20px) saturate(180%);
+        border-right: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.55),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.04),
+          0 18px 40px -16px rgba(0, 0, 0, 0.1);
+      }
+
+      .sidebar::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: inherit;
+        mix-blend-mode: overlay;
+        pointer-events: none;
+      }
+
+      .sidebar__scroll {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        padding: 20px 12px;
+        overflow-y: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .sidebar__scroll::-webkit-scrollbar {
+        display: none;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 10px 18px;
+        border-bottom: 1px solid var(--color-hairline);
+      }
+
+      .brand__mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-ios);
+        background: var(--color-accent);
+        color: #ffffff;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      }
+
+      .brand__mark .icon {
+        width: 19px;
+        height: 19px;
+      }
+
+      .brand__text {
+        min-width: 0;
+      }
+
+      .brand__name {
+        display: block;
+        font-size: var(--text-lg);
+        line-height: 22px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+      }
+
+      .brand__sub {
+        display: block;
+        margin-top: 1px;
+        font-size: 11px;
+        line-height: 14px;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+      }
+
+      .nav-group__label {
+        margin: 18px 12px 6px;
+        font-size: 10.5px;
+        line-height: 14px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+
+      .nav-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 36px;
+        padding: 0 10px;
+        overflow: hidden;
+        border-radius: var(--radius-ios);
+        font-size: 13.5px;
+        line-height: 18px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        transition:
+          background-color var(--motion-normal) var(--motion-easing-standard),
+          color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .nav-item .icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .nav-item:not([aria-current='page']):hover {
+        background: rgba(26, 24, 20, 0.05);
+        color: var(--color-text-primary);
+      }
+
+      .nav-item[aria-current='page'] {
+        background: rgba(15, 122, 95, 0.1);
+        color: var(--color-accent-hover);
+        font-weight: 600;
+      }
+
+      .nav-item[aria-current='page']::before {
+        content: '';
+        position: absolute;
+        top: 1px;
+        bottom: 1px;
+        left: 0;
+        width: 2px;
+        border-radius: 2px;
+        background: var(--color-accent);
+      }
+
+      /* ============================================================
+         Shell + topbar de vidrio, 64 px
+         ============================================================ */
+      .shell {
+        margin-left: 248px;
+        min-height: 900px;
+        background: var(--color-canvas);
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        height: 64px;
+        padding: 0 32px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.62));
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        backdrop-filter: blur(20px) saturate(180%);
+        border-bottom: 1px solid var(--color-hairline);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.55),
+          0 10px 30px -22px rgba(0, 0, 0, 0.1);
+      }
+
+      .topbar__heading {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .topbar__title {
+        font-size: var(--text-xl);
+        line-height: var(--text-xl-line);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .topbar__context {
+        font-size: 12.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+      }
+
+      .topbar__right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 0 0 auto;
+      }
+
+      .search {
+        position: relative;
+        width: 260px;
+        height: 36px;
+      }
+
+      .search .icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        width: 16px;
+        height: 16px;
+        transform: translateY(-50%);
+        color: var(--color-text-secondary);
+        pointer-events: none;
+      }
+
+      .search input {
+        width: 100%;
+        height: 100%;
+        appearance: none;
+        -webkit-appearance: none;
+        padding: 0 12px 0 32px;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-ios);
+        background: rgba(255, 255, 255, 0.7);
+        font-family: var(--font-sans);
+        font-size: var(--text-xs);
+        line-height: var(--text-xs-line);
+        color: var(--color-text-primary);
+        transition: border-color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .search input::placeholder {
+        color: var(--color-text-secondary);
+        opacity: 1;
+      }
+
+      .search input::-webkit-search-cancel-button,
+      .search input::-webkit-search-decoration {
+        -webkit-appearance: none;
+      }
+
+      .search input:focus {
+        border-color: var(--color-accent);
+      }
+
+      .branch-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 10px;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-full);
+        background: rgba(255, 255, 255, 0.7);
+        font-size: 12.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+      }
+
+      .branch-chip__dot {
+        width: 6px;
+        height: 6px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-full);
+        background: var(--color-accent);
+      }
+
+      .icon-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border: 1px solid transparent;
+        border-radius: var(--radius-full);
+        background: transparent;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition:
+          background-color var(--motion-normal) var(--motion-easing-standard),
+          color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .icon-btn:hover {
+        background: var(--color-surface);
+        color: var(--color-text-primary);
+      }
+
+      .icon-btn__dot {
+        position: absolute;
+        top: 7px;
+        right: 7px;
+        width: 8px;
+        height: 8px;
+        border-radius: var(--radius-full);
+        background: var(--color-accent);
+        box-shadow: 0 0 0 2px var(--color-surface-elevated);
+      }
+
+      .topbar__divider {
+        width: 1px;
+        height: 24px;
+        flex: 0 0 auto;
+        background: var(--color-hairline);
+      }
+
+      .user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .user__avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-full);
+        background: var(--color-accent-50);
+        color: var(--color-accent-700);
+        font-size: 12.5px;
+        line-height: 16px;
+        font-weight: 600;
+      }
+
+      .user__name {
+        display: block;
+        font-size: 12.5px;
+        line-height: 16px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .user__role {
+        display: block;
+        font-size: 11px;
+        line-height: 14px;
+        color: var(--color-text-secondary);
+      }
+
+      /* ============================================================
+         Contenido
+         ============================================================ */
+      .main {
+        width: 100%;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 32px;
+        display: grid;
+        gap: 24px;
+        background: var(--color-canvas);
+      }
+
+      /* ---- A) Hero ---- */
+      .hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+        padding: 28px;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      }
+
+      .hero__copy {
+        min-width: 0;
+      }
+
+      .hero__eyebrow {
+        font-size: 11px;
+        line-height: 15px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--color-accent-700);
+      }
+
+      .hero h1 {
+        margin: 6px 0;
+        font-size: var(--text-3xl);
+        line-height: var(--text-3xl-line);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .hero__lede {
+        max-width: 520px;
+        font-size: var(--text-base);
+        line-height: var(--text-base-line);
+        color: var(--color-text-secondary);
+      }
+
+      .hero__actions {
+        display: flex;
+        align-items: center;
+        flex: 0 0 auto;
+        gap: 12px;
+      }
+
+      /* ---- Botones ---- */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 44px;
+        padding: 0 18px;
+        border: 1px solid transparent;
+        border-radius: var(--radius-ios);
+        font-family: var(--font-sans);
+        font-size: 13.5px;
+        line-height: 20px;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        transition:
+          background-color var(--motion-normal) var(--motion-easing-standard),
+          border-color var(--motion-normal) var(--motion-easing-standard),
+          color var(--motion-normal) var(--motion-easing-standard),
+          box-shadow var(--motion-normal) var(--motion-easing-standard),
+          transform var(--motion-fast) var(--motion-easing-ios);
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .btn--primary {
+        background: var(--color-accent);
+        color: #ffffff;
+        box-shadow:
+          var(--elevation-3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      }
+
+      .btn--primary:hover {
+        background: var(--color-accent-hover);
+      }
+
+      .btn--primary:active {
+        background: var(--color-accent-700);
+        transform: translateY(1px);
+      }
+
+      .btn--secondary {
+        background: transparent;
+        color: var(--color-text-primary);
+        border-color: var(--color-border);
+        box-shadow: var(--shadow-subtle);
+      }
+
+      .btn--secondary:hover {
+        background: var(--color-surface);
+        border-color: var(--color-system-gray-500);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .btn--ghost {
+        background: transparent;
+        color: var(--color-text-secondary);
+        box-shadow: none;
+      }
+
+      .btn--ghost:hover {
+        background: var(--color-surface);
+        color: var(--color-text-primary);
+        transform: none;
+      }
+
+      .btn--sm {
+        height: 28px;
+        padding: 0 6px;
+        gap: 6px;
+        border-radius: var(--radius-md);
+        font-size: 12.5px;
+        line-height: 16px;
+        font-weight: 500;
+      }
+
+      .btn--icon {
+        width: 28px;
+        padding: 0;
+      }
+
+      .btn--icon .icon {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ---- Conmutador segmentado (Día / Semana / Mes) ---- */
+      .segmented {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        height: 44px;
+        padding: 3px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-ios);
+      }
+
+      .segmented__option {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 36px;
+        padding: 0 14px;
+        border: 1px solid transparent;
+        border-radius: var(--radius-md);
+        background: transparent;
+        font-family: var(--font-sans);
+        font-size: 13.5px;
+        line-height: 20px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition:
+          background-color var(--motion-normal) var(--motion-easing-standard),
+          color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .segmented__option:hover {
+        background: rgba(26, 24, 20, 0.05);
+        color: var(--color-text-primary);
+      }
+
+      .segmented__option[aria-pressed='true'] {
+        background: var(--color-surface-elevated);
+        color: var(--color-text-primary);
+        font-weight: 600;
+        box-shadow: var(--shadow-subtle);
+      }
+
+      .segmented__option[aria-pressed='true']:hover {
+        background: var(--color-surface-elevated);
+        color: var(--color-text-primary);
+      }
+
+      /* ---- B) KPIs ---- */
+      .kpi-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .kpi {
+        padding: 20px;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-card-lg);
+        box-shadow: var(--elevation-1);
+      }
+
+      .kpi__label {
+        font-size: var(--text-xs);
+        line-height: var(--text-xs-line);
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+
+      .kpi__value {
+        margin: 8px 0 6px;
+        font-size: var(--text-3xl);
+        line-height: var(--text-3xl-line);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        font-feature-settings: var(--font-features-tabular-nums);
+        white-space: nowrap;
+      }
+
+      .kpi__meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .kpi__dot {
+        width: 6px;
+        height: 6px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-full);
+      }
+
+      .kpi__dot--success {
+        background: var(--color-success);
+      }
+
+      .kpi__dot--warning {
+        background: var(--color-warning);
+      }
+
+      .kpi__dot--danger {
+        background: var(--color-danger);
+      }
+
+      .kpi__dot--info {
+        background: var(--color-info);
+      }
+
+      .kpi__dot--neutral {
+        background: var(--color-system-gray-500);
+      }
+
+      /* ---- C) Barra de filtros ---- */
+      .filters {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: end;
+        padding: 16px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-system-gray-100);
+        border-radius: var(--radius-control);
+      }
+
+      .filter {
+        min-width: 0;
+      }
+
+      .filter__label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 11px;
+        line-height: 15px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+
+      .filter__field {
+        position: relative;
+      }
+
+      .filter__field select {
+        width: 100%;
+        height: 44px;
+        appearance: none;
+        -webkit-appearance: none;
+        padding: 0 34px 0 12px;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-ios);
+        font-family: var(--font-sans);
+        font-size: 13.5px;
+        line-height: 20px;
+        color: var(--color-text-primary);
+        cursor: pointer;
+        transition: border-color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .filter__field select:hover {
+        border-color: var(--color-system-gray-500);
+      }
+
+      .filter__field .icon {
+        position: absolute;
+        top: 50%;
+        right: 11px;
+        width: 16px;
+        height: 16px;
+        transform: translateY(-50%);
+        color: var(--color-text-secondary);
+        pointer-events: none;
+      }
+
+      /* ---- D) Tablero ---- */
+      .board {
+        display: grid;
+        /* 738 px = borde + 64 de hora + 6 columnas de 112: los seis días caben
+           enteros y el séptimo queda detrás del degradado de scroll. */
+        grid-template-columns: minmax(0, 738px) minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+      }
+
+      .board__main,
+      .board__side {
+        min-width: 0;
+      }
+
+      .board__side {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .panel,
+      .mini-card {
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-card-lg);
+        box-shadow: var(--elevation-1);
+      }
+
+      .panel {
+        overflow: hidden;
+      }
+
+      .panel__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 22px 20px 14px;
+      }
+
+      .panel__heading {
+        min-width: 0;
+      }
+
+      .panel__title,
+      .mini-card__title {
+        font-size: var(--text-lg);
+        line-height: var(--text-lg-line);
+        font-weight: 600;
+        letter-spacing: 0;
+      }
+
+      .panel__sub {
+        margin-top: 3px;
+        font-size: 12.5px;
+        line-height: 17px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .panel__tools {
+        display: flex;
+        align-items: center;
+        flex: 0 0 auto;
+        gap: 6px;
+      }
+
+      /* ---- E) Rejilla semanal ---- */
+      .week {
+        position: relative;
+        background: var(--color-canvas);
+        border-top: 1px solid var(--color-hairline);
+      }
+
+      .week__scroll {
+        position: relative;
+      }
+
+      .week__viewport {
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .week__viewport::-webkit-scrollbar {
+        display: none;
+      }
+
+      .week__viewport:focus-visible {
+        outline-offset: -2px;
+      }
+
+      .week__table {
+        width: 848px;
+        min-width: 848px;
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 0;
+      }
+
+      .week__corner {
+        width: 64px;
+        height: 48px;
+        padding: 0 10px 7px 0;
+        background: var(--color-surface);
+        vertical-align: bottom;
+        text-align: right;
+        font-size: 10px;
+        line-height: 13px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+
+      .day-head {
+        height: 48px;
+        padding: 0 6px;
+        background: var(--color-surface);
+        border-left: 1px solid var(--color-hairline);
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      .day-head__name {
+        display: block;
+        font-size: 10.5px;
+        line-height: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+
+      .day-head__line {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .day-head__date {
+        font-size: 15px;
+        line-height: 20px;
+        font-weight: 600;
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .day-head__tag {
+        display: inline-flex;
+        align-items: center;
+        height: 15px;
+        padding: 0 5px;
+        border-radius: var(--radius-full);
+        background: var(--color-accent);
+        color: #ffffff;
+        font-size: 9.5px;
+        line-height: 15px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: none;
+      }
+
+      .day-head--today {
+        background: var(--color-surface-elevated);
+        box-shadow: inset 0 -2px 0 var(--color-accent);
+      }
+
+      .day-head--today .day-head__name,
+      .day-head--today .day-head__date {
+        color: var(--color-accent-700);
+      }
+
+      .hour {
+        position: relative;
+        height: 48px;
+        padding: 3px 10px 0 0;
+        background: var(--color-surface);
+        border-top: 1px solid var(--color-hairline);
+        text-align: right;
+        vertical-align: top;
+        font-size: 10.5px;
+        line-height: 14px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+        white-space: nowrap;
+      }
+
+      .hour__end {
+        position: absolute;
+        right: 10px;
+        bottom: 1px;
+        font-size: 10px;
+        line-height: 12px;
+        color: var(--color-text-secondary);
+      }
+
+      .slot {
+        position: relative;
+        height: 48px;
+        padding: 0;
+        background-color: var(--color-canvas);
+        background-image: linear-gradient(
+          to bottom,
+          var(--color-system-gray-100) 1px,
+          transparent 1px
+        );
+        background-size: 100% 24px;
+        border-top: 1px solid var(--color-hairline);
+        border-left: 1px solid var(--color-hairline);
+        vertical-align: top;
+      }
+
+      .slot--today {
+        background-color: var(--color-surface-elevated);
+      }
+
+      /* ---- F) Chips de cita ---- */
+      .chip {
+        position: absolute;
+        inset: 2px 4px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0;
+        min-width: 0;
+        padding: 2px 5px;
+        overflow: hidden;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-md);
+        background: var(--color-surface-elevated);
+        font-family: var(--font-sans);
+        text-align: left;
+        cursor: pointer;
+        transition: box-shadow var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .chip:hover {
+        box-shadow: var(--shadow-soft);
+      }
+
+      .chip__time {
+        display: block;
+        overflow: hidden;
+        font-size: 10.5px;
+        line-height: 13px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .chip__patient {
+        display: block;
+        overflow: hidden;
+        font-size: 11px;
+        line-height: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      .chip__meta {
+        display: block;
+        overflow: hidden;
+        font-size: 10px;
+        line-height: 12px;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      .chip--scheduled {
+        background: var(--color-accent-50);
+        border-color: var(--color-accent-200);
+      }
+
+      .chip--scheduled .chip__time {
+        color: var(--color-accent-700);
+      }
+
+      .chip--confirmed {
+        background: var(--color-success-bg);
+        border-color: var(--color-system-green-200);
+      }
+
+      .chip--confirmed .chip__time {
+        color: var(--color-success-text);
+      }
+
+      .chip--attending,
+      .chip--noshow {
+        background: var(--color-warning-bg);
+        border-color: var(--color-system-yellow-200);
+      }
+
+      .chip--attending .chip__time,
+      .chip--noshow .chip__time {
+        color: var(--color-warning-text);
+      }
+
+      .chip--completed {
+        background: var(--color-system-gray-100);
+        border-color: var(--color-hairline);
+      }
+
+      .chip--completed .chip__time {
+        color: var(--color-text-secondary);
+      }
+
+      .chip--completed .chip__patient {
+        color: var(--color-system-gray-700);
+      }
+
+      .chip--cancelled {
+        background: var(--color-danger-bg);
+        border-color: var(--color-system-red-200);
+      }
+
+      .chip--cancelled .chip__time {
+        color: var(--color-danger-text);
+      }
+
+      /* Dos citas solapadas en el mismo sillón: comparten la celda. */
+      .chip-pair {
+        position: absolute;
+        inset: 2px 4px;
+        display: flex;
+        gap: 3px;
+      }
+
+      .chip-pair .chip {
+        position: relative;
+        flex: 1 1 0;
+        padding: 2px 4px;
+      }
+
+      .chip-pair .chip__time {
+        font-size: 10px;
+        line-height: 12px;
+      }
+
+      .chip-pair .chip__patient {
+        font-size: 10px;
+        line-height: 12px;
+      }
+
+      .chip-pair .chip__meta {
+        font-size: 9px;
+        line-height: 12px;
+      }
+
+      .chip__flag {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 9px;
+        height: 9px;
+        border-radius: 2px;
+        background: var(--color-warning);
+        color: var(--color-text-primary);
+        font-size: 7px;
+        line-height: 9px;
+        font-weight: 700;
+      }
+
+      .slot--closed {
+        background-color: var(--color-system-gray-200);
+        background-image: none;
+      }
+
+      .closed-note {
+        position: absolute;
+        top: 8px;
+        left: 6px;
+        right: 6px;
+        text-align: center;
+        font-size: 9.5px;
+        line-height: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+
+      .closed-note span {
+        display: block;
+        font-size: 9.5px;
+        font-weight: 500;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      .week__fade {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 52px;
+        pointer-events: none;
+        background: linear-gradient(to right, rgba(26, 24, 20, 0) 0%, rgba(26, 24, 20, 0.1) 100%);
+      }
+
+      .week__foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 10px 20px;
+        background: var(--color-surface-elevated);
+        border-top: 1px solid var(--color-hairline);
+      }
+
+      .legend {
+        display: flex;
+        align-items: center;
+        gap: 6px 12px;
+        flex-wrap: wrap;
+      }
+
+      .legend__item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        line-height: 14px;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+      }
+
+      .legend__swatch {
+        width: 10px;
+        height: 8px;
+        flex: 0 0 auto;
+        border: 1px solid var(--color-hairline);
+        border-radius: 2px;
+        background: var(--color-surface-elevated);
+      }
+
+      .legend__swatch--scheduled {
+        background: var(--color-accent-50);
+        border-color: var(--color-accent-200);
+      }
+
+      .legend__swatch--confirmed {
+        background: var(--color-success-bg);
+        border-color: var(--color-system-green-200);
+      }
+
+      .legend__swatch--attending {
+        background: var(--color-warning-bg);
+        border-color: var(--color-system-yellow-200);
+      }
+
+      .legend__swatch--completed {
+        background: var(--color-system-gray-100);
+        border-color: var(--color-hairline);
+      }
+
+      .legend__swatch--cancelled {
+        background: var(--color-danger-bg);
+        border-color: var(--color-system-red-200);
+      }
+
+      .week__hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        flex: 0 0 auto;
+        font-size: 11.5px;
+        line-height: 16px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+      }
+
+      .week__hint .icon {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ---- G) Tarjetas del rail ---- */
+      .mini-card {
+        padding: 20px;
+      }
+
+      .mini-card__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .next-list {
+        margin-top: 12px;
+      }
+
+      .next-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+      }
+
+      .next-row:first-child {
+        padding-top: 0;
+      }
+
+      .next-row:last-child {
+        padding-bottom: 0;
+      }
+
+      .next-row + .next-row {
+        box-shadow: inset 0 1px 0 var(--color-hairline);
+      }
+
+      .date-chip {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        flex: 0 0 auto;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-ios);
+        background: var(--color-canvas);
+      }
+
+      .date-chip__day {
+        font-size: 15px;
+        line-height: 18px;
+        font-weight: 600;
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .date-chip__month {
+        font-size: 10.5px;
+        line-height: 14px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        color: var(--color-text-secondary);
+      }
+
+      .next-row__body {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      .next-row__title {
+        display: block;
+        font-size: 13.5px;
+        line-height: 18px;
+        font-weight: 600;
+      }
+
+      .next-row__meta {
+        display: block;
+        margin-top: 1px;
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .mini-card__foot {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid var(--color-hairline);
+      }
+
+      .conflict {
+        margin-top: 12px;
+        padding: 14px;
+        background: var(--color-warning-bg);
+        border: 1px solid var(--color-system-yellow-200);
+        border-radius: var(--radius-ios);
+      }
+
+      .conflict__head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .conflict__icon {
+        color: var(--color-warning-text);
+      }
+
+      .conflict__icon .icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .conflict__title {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+      }
+
+      .conflict__body {
+        margin-top: 6px;
+        font-size: 12.5px;
+        line-height: 17px;
+        color: var(--color-text-secondary);
+      }
+
+      .conflict__meta {
+        margin-top: 6px;
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-warning-text);
+      }
+
+      .conflict__action {
+        margin-top: 10px;
+      }
+
+      .mini-card__note {
+        margin-top: 10px;
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      /* ---- H) Píldoras y badges ---- */
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: var(--radius-full);
+        font-size: var(--text-xs);
+        line-height: 18px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      .status__dot {
+        width: 6px;
+        height: 6px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-full);
+      }
+
+      .status--success {
+        background: var(--color-success-bg);
+        color: var(--color-success-text);
+      }
+
+      .status--success .status__dot {
+        background: var(--color-success);
+      }
+
+      .status--info {
+        background: var(--color-info-bg);
+        color: var(--color-info-text);
+      }
+
+      .status--info .status__dot {
+        background: var(--color-info);
+      }
+
+      .status--warning {
+        background: var(--color-warning-bg);
+        color: var(--color-warning-text);
+      }
+
+      .status--warning .status__dot {
+        background: var(--color-warning);
+      }
+
+      .status--neutral {
+        background: var(--color-system-gray-100);
+        color: var(--color-system-gray-700);
+      }
+
+      .status--neutral .status__dot {
+        background: var(--color-system-gray-500);
+      }
+
+      .status--danger {
+        background: var(--color-danger-bg);
+        color: var(--color-danger-text);
+      }
+
+      .status--danger .status__dot {
+        background: var(--color-danger);
+      }
+
+      /* ---- I) Pie del artboard ---- */
+      .artboard-meta {
+        font-size: 11.5px;
+        line-height: 16px;
+        text-align: right;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      /* El anillo del token gana sobre la sombra propia de botones y chrome. */
+      .btn:focus-visible,
+      .nav-item:focus-visible,
+      .icon-btn:focus-visible,
+      .brand:focus-visible,
+      .segmented__option:focus-visible,
+      .chip:focus-visible {
+        box-shadow: var(--focus-ring-default);
+      }
+
+      /* ============================================================
+         Movimiento reducido
+         ============================================================ */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+
+        .btn:hover,
+        .btn:active {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="sidebar" aria-label="Navegación principal">
+      <div class="sidebar__scroll">
+        <a
+          class="brand"
+          href="#calendario"
+          aria-label="OdontoSuite · Clínica San Isidro, ir al Dashboard"
+        >
+          <span class="brand__mark" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path
+                d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
+              />
+            </svg>
+          </span>
+          <span class="brand__text">
+            <span class="brand__name">OdontoSuite</span>
+            <span class="brand__sub">Clínica San Isidro</span>
+          </span>
+        </a>
+
+        <div class="nav-group" role="group" aria-labelledby="nav-principal">
+          <p class="nav-group__label" id="nav-principal">PRINCIPAL</p>
+          <a class="nav-item" href="#dashboard">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+              <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+              <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+              <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+            </svg>
+            <span>Dashboard</span>
+          </a>
+          <a class="nav-item" href="#mi-dia">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"
+              />
+            </svg>
+            <span>Mi día</span>
+          </a>
+          <a class="nav-item" href="#calendario" aria-current="page">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
+              <path d="M3.5 9.5h17M8 3v4M16 3v4" />
+              <path d="M7.5 13h2M11 13h2M14.5 13h2M7.5 16.5h2M11 16.5h2" />
+            </svg>
+            <span>Calendario</span>
+          </a>
+        </div>
+
+        <div class="nav-group" role="group" aria-labelledby="nav-clinica">
+          <p class="nav-group__label" id="nav-clinica">CLÍNICA</p>
+          <a class="nav-item" href="#pacientes">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="9" cy="8" r="3.25" />
+              <path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
+              <path d="M15.5 5.2a3 3 0 0 1 0 5.6M17 15.3c2.2.5 3.5 2.2 3.5 4.7" />
+            </svg>
+            <span>Pacientes</span>
+          </a>
+          <a class="nav-item" href="#historias-clinicas">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 3.5h8.5L19 8v12.5H6z" />
+              <path d="M14.5 3.5V8H19" />
+              <path d="M9 12h6M9 15.5h6" />
+            </svg>
+            <span>Historias clínicas</span>
+          </a>
+          <a class="nav-item" href="#planes-de-tratamiento">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="4.5" width="14" height="16.5" rx="2" />
+              <rect x="9" y="2.5" width="6" height="3.5" rx="1" />
+              <path d="M8.5 10h7M8.5 13.5h7M8.5 17h4" />
+            </svg>
+            <span>Planes de tratamiento</span>
+          </a>
+          <a class="nav-item" href="#presupuestos">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 3.5h12v17l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3-2 1.3z" />
+              <path d="M9 8h6M9 11.5h6M9 15h4" />
+            </svg>
+            <span>Presupuestos</span>
+          </a>
+          <a class="nav-item" href="#registros-de-especialidad">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"
+              />
+              <path d="M12 11v5M9.5 13.5h5" />
+            </svg>
+            <span>Registros de especialidad</span>
+          </a>
+          <a class="nav-item" href="#analisis-ia">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M11 3.5l1.55 3.95L16.5 9l-3.95 1.55L11 14.5 9.45 10.55 5.5 9l3.95-1.55z" />
+              <path d="M18 15.5l.75 1.75L20.5 18l-1.75.75L18 20.5l-.75-1.75L15.5 18l1.75-.75z" />
+            </svg>
+            <span>Análisis IA</span>
+          </a>
+        </div>
+
+        <div class="nav-group" role="group" aria-labelledby="nav-catalogo">
+          <p class="nav-group__label" id="nav-catalogo">CATÁLOGO</p>
+          <a class="nav-item" href="#procedimientos">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
+              />
+            </svg>
+            <span>Procedimientos</span>
+          </a>
+          <a class="nav-item" href="#estadisticas">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3.5 20.5h17" />
+              <path d="M7 20.5v-5.5M12 20.5V9M17 20.5V5.5" />
+            </svg>
+            <span>Estadísticas</span>
+          </a>
+          <a class="nav-item" href="#mis-procedimientos">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 3.5l2.7 5.5 6 .9-4.35 4.25 1.03 6-5.38-2.83-5.38 2.83 1.03-6L3.3 9.9l6-.9z"
+              />
+            </svg>
+            <span>Mis procedimientos</span>
+          </a>
+          <a class="nav-item" href="#recepcion">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13.5 3.5H19a1.5 1.5 0 0 1 1.5 1.5v14a1.5 1.5 0 0 1-1.5 1.5h-5.5" />
+              <path d="M3.5 12h11" />
+              <path d="M11 8l4 4-4 4" />
+            </svg>
+            <span>Recepción</span>
+          </a>
+        </div>
+
+        <div class="nav-group" role="group" aria-labelledby="nav-dinero">
+          <p class="nav-group__label" id="nav-dinero">DINERO</p>
+          <a class="nav-item" href="#caja">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="6" width="18" height="12.5" rx="2" />
+              <path d="M3 10h18" />
+              <path d="M7 14.5h3" />
+              <circle cx="17" cy="14.5" r="1" />
+            </svg>
+            <span>Caja</span>
+          </a>
+          <a class="nav-item" href="#listos-para-facturar">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 3.5h12v17l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3-2 1.3z" />
+              <path d="M9 9l2 2 4-4" />
+            </svg>
+            <span>Listos para facturar</span>
+          </a>
+          <a class="nav-item" href="#business-intelligence">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3.5a8.5 8.5 0 1 1-8.5 8.5" />
+              <path d="M12 3.5A8.5 8.5 0 0 1 20.5 12H12z" />
+            </svg>
+            <span>Business intelligence</span>
+          </a>
+        </div>
+
+        <div class="nav-group" role="group" aria-labelledby="nav-administracion">
+          <p class="nav-group__label" id="nav-administracion">ADMINISTRACIÓN</p>
+          <a class="nav-item" href="#profesionales">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="9.5" cy="8" r="3.25" />
+              <path d="M3.5 20c0-3.3 2.7-5.5 6-5.5 1.5 0 2.9.45 4 1.3" />
+              <path d="M15 17.5l2 2 4-4" />
+            </svg>
+            <span>Profesionales</span>
+          </a>
+          <a class="nav-item" href="#ambientes">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 11V7.5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2V11" />
+              <path d="M3.5 11.5a1.5 1.5 0 0 0-1.5 1.5v4h20v-4a1.5 1.5 0 0 0-1.5-1.5" />
+              <path d="M4.5 17v3M19.5 17v3" />
+            </svg>
+            <span>Ambientes</span>
+          </a>
+          <a class="nav-item" href="#tipos-de-cita">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M20.6 13.6l-7 7a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8z"
+              />
+              <circle cx="8" cy="8" r="1.4" />
+            </svg>
+            <span>Tipos de cita</span>
+          </a>
+          <a class="nav-item" href="#especialidades">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3.5l8.5 4.5L12 12.5 3.5 8z" />
+              <path d="M3.5 12.5L12 17l8.5-4.5" />
+              <path d="M3.5 16.5L12 21l8.5-4.5" />
+            </svg>
+            <span>Especialidades</span>
+          </a>
+          <a class="nav-item" href="#sucursales">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.5 20.5V5.5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15" />
+              <path d="M13.5 10.5h5a1 1 0 0 1 1 1v9" />
+              <path d="M3 20.5h18" />
+              <path d="M8 8.5h2M8 12h2M8 15.5h2M16 14h1M16 17.5h1" />
+            </svg>
+            <span>Sucursales</span>
+          </a>
+          <a class="nav-item" href="#metodos-de-pago">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+              <path d="M2.5 9.5h19" />
+              <path d="M6 15h4" />
+            </svg>
+            <span>Métodos de pago</span>
+          </a>
+          <a class="nav-item" href="#traslados-de-sede">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3.5 8h13M13 4.5L16.5 8 13 11.5" />
+              <path d="M20.5 16h-13M11 12.5L7.5 16l3.5 3.5" />
+            </svg>
+            <span>Traslados de sede</span>
+          </a>
+          <a class="nav-item" href="#bloqueo-contable">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4.5" y="10.5" width="15" height="10" rx="2" />
+              <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+              <path d="M12 14.5v2.5" />
+            </svg>
+            <span>Bloqueo contable</span>
+          </a>
+        </div>
+
+        <div class="nav-group" role="group" aria-labelledby="nav-operacion">
+          <p class="nav-group__label" id="nav-operacion">OPERACIÓN</p>
+          <a class="nav-item" href="#continuidad">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5" />
+              <path d="M20 4.5v4h-4" />
+              <path d="M20 12a8 8 0 0 1-13.7 5.6L4 15.5" />
+              <path d="M4 19.5v-4h4" />
+            </svg>
+            <span>Continuidad</span>
+          </a>
+          <a class="nav-item" href="#laboratorio">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 3.5h6" />
+              <path d="M10 3.5v6.2L5.4 18a2 2 0 0 0 1.8 3h9.6a2 2 0 0 0 1.8-3L14 9.7V3.5" />
+              <path d="M7.5 14.5h9" />
+            </svg>
+            <span>Laboratorio</span>
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="shell">
+      <header class="topbar">
+        <div class="topbar__heading">
+          <p class="topbar__title">Calendario</p>
+          <p class="topbar__context">Jueves 29 de octubre · Sede San Isidro</p>
+        </div>
+
+        <div class="topbar__right">
+          <div class="search">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="M16 16l4.5 4.5" />
+            </svg>
+            <input
+              type="search"
+              aria-label="Buscar paciente, cita o documento"
+              placeholder="Buscar paciente, cita o documento"
+            />
+          </div>
+
+          <span class="branch-chip">
+            <span class="branch-chip__dot" aria-hidden="true"></span>
+            Sede San Isidro
+          </span>
+
+          <button class="icon-btn" type="button" aria-label="Notificaciones sin leer">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5" />
+              <path d="M10.2 20a2 2 0 0 0 3.6 0" />
+            </svg>
+            <span class="icon-btn__dot" aria-hidden="true"></span>
+          </button>
+
+          <span class="topbar__divider" aria-hidden="true"></span>
+
+          <div class="user">
+            <span class="user__avatar" aria-hidden="true">VS</span>
+            <span>
+              <span class="user__name">Dra. Valeria Salazar</span>
+              <span class="user__role">Odontóloga</span>
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <section class="hero" aria-labelledby="calendar-title">
+          <div class="hero__copy">
+            <p class="hero__eyebrow">JUEVES 29 DE OCTUBRE</p>
+            <h1 id="calendar-title">Calendario</h1>
+            <p class="hero__lede">Semana del 27 de octubre al 2 de noviembre · Sede San Isidro</p>
+          </div>
+          <div class="hero__actions">
+            <div class="segmented" role="group" aria-label="Vista del calendario">
+              <button class="segmented__option" type="button" aria-pressed="false">Día</button>
+              <button class="segmented__option" type="button" aria-pressed="true">Semana</button>
+              <button class="segmented__option" type="button" aria-pressed="false">Mes</button>
+            </div>
+            <button class="btn btn--primary" type="button">Nueva cita</button>
+          </div>
+        </section>
+
+        <section class="kpi-strip" aria-label="Indicadores de la semana">
+          <div class="kpi">
+            <p class="kpi__label">Citas de la semana</p>
+            <p class="kpi__value num">58</p>
+            <p class="kpi__meta">
+              <span class="kpi__dot kpi__dot--success" aria-hidden="true"></span>
+              6 días con agenda
+            </p>
+          </div>
+
+          <div class="kpi">
+            <p class="kpi__label">Ocupación</p>
+            <p class="kpi__value num">78 %</p>
+            <p class="kpi__meta">
+              <span class="kpi__dot kpi__dot--warning" aria-hidden="true"></span>
+              Sillón 1 al tope el jueves
+            </p>
+          </div>
+
+          <div class="kpi">
+            <p class="kpi__label">Canceladas</p>
+            <p class="kpi__value num">3</p>
+            <p class="kpi__meta">
+              <span class="kpi__dot kpi__dot--danger" aria-hidden="true"></span>
+              2 con motivo registrado
+            </p>
+          </div>
+
+          <div class="kpi">
+            <p class="kpi__label">No asistió</p>
+            <p class="kpi__value num">2</p>
+            <p class="kpi__meta">
+              <span class="kpi__dot kpi__dot--neutral" aria-hidden="true"></span>
+              1 con recordatorio enviado
+            </p>
+          </div>
+        </section>
+
+        <section class="filters" role="search" aria-label="Filtros de la agenda">
+          <div class="filter">
+            <label class="filter__label" for="filter-profesional">Profesional</label>
+            <div class="filter__field">
+              <select id="filter-profesional">
+                <option selected>Todos los profesionales</option>
+                <option>Dra. Valeria Salazar</option>
+                <option>Dr. Ignacio Ríos</option>
+              </select>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9.5l6 6 6-6" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="filter">
+            <label class="filter__label" for="filter-sillon">Sillón</label>
+            <div class="filter__field">
+              <select id="filter-sillon">
+                <option selected>Todos los sillones</option>
+                <option>Sillón 1</option>
+                <option>Sillón 2</option>
+                <option>Sillón 3</option>
+              </select>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9.5l6 6 6-6" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="filter">
+            <label class="filter__label" for="filter-sede">Sede</label>
+            <div class="filter__field">
+              <select id="filter-sede">
+                <option selected>San Isidro</option>
+                <option>Surco</option>
+              </select>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9.5l6 6 6-6" />
+              </svg>
+            </div>
+          </div>
+
+          <button class="btn btn--secondary" type="button">Limpiar filtros</button>
+        </section>
+
+        <div class="board">
+          <div class="board__main">
+            <section class="panel" aria-labelledby="week-title">
+              <div class="panel__head">
+                <div class="panel__heading">
+                  <h2 class="panel__title" id="week-title">Agenda de la semana</h2>
+                  <p class="panel__sub">06:00–21:00 · ventana visible 08:00–18:00 · 3 sillones</p>
+                </div>
+                <div class="panel__tools">
+                  <button
+                    class="btn btn--ghost btn--icon"
+                    type="button"
+                    aria-label="Semana anterior"
+                  >
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M14.5 6l-6 6 6 6" />
+                    </svg>
+                  </button>
+                  <button class="btn btn--secondary btn--sm" type="button">Hoy</button>
+                  <button
+                    class="btn btn--ghost btn--icon"
+                    type="button"
+                    aria-label="Semana siguiente"
+                  >
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M9.5 6l6 6-6 6" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="week">
+                <div class="week__scroll">
+                  <div
+                    class="week__viewport"
+                    role="region"
+                    aria-label="Rejilla semanal desplazable: 06:00 a 21:00, ventana de 08:00 a 18:00"
+                    tabindex="0"
+                  >
+                    <table class="week__table">
+                      <caption class="sr-only">
+                        Agenda de la semana del martes 27 de octubre al lunes 2 de noviembre. Siete
+                        días de 06:00 a 21:00; la ventana visible va de 08:00 a 18:00 y muestra seis
+                        columnas de día.
+                      </caption>
+                      <colgroup>
+                        <col />
+                        <col />
+                        <col />
+                        <col />
+                        <col />
+                        <col />
+                        <col />
+                        <col />
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          <th class="week__corner" scope="col">Hora</th>
+                          <th class="day-head" scope="col">
+                            <span class="day-head__name" aria-hidden="true">Mar</span>
+                            <span class="day-head__line" aria-hidden="true">
+                              <span class="day-head__date">27</span>
+                            </span>
+                            <span class="sr-only">martes 27 de octubre</span>
+                          </th>
+                          <th class="day-head" scope="col">
+                            <span class="day-head__name" aria-hidden="true">Mié</span>
+                            <span class="day-head__line" aria-hidden="true">
+                              <span class="day-head__date">28</span>
+                            </span>
+                            <span class="sr-only">miércoles 28 de octubre</span>
+                          </th>
+                          <th class="day-head day-head--today" scope="col">
+                            <span class="day-head__name" aria-hidden="true">Jue</span>
+                            <span class="day-head__line" aria-hidden="true">
+                              <span class="day-head__date">29</span>
+                              <span class="day-head__tag">Hoy</span>
+                            </span>
+                            <span class="sr-only">jueves 29 de octubre, hoy</span>
+                          </th>
+                          <th class="day-head" scope="col">
+                            <span class="day-head__name" aria-hidden="true">Vie</span>
+                            <span class="day-head__line" aria-hidden="true">
+                              <span class="day-head__date">30</span>
+                            </span>
+                            <span class="sr-only">viernes 30 de octubre</span>
+                          </th>
+                          <th class="day-head" scope="col">
+                            <span class="day-head__name" aria-hidden="true">Sáb</span>
+                            <span class="day-head__line" aria-hidden="true">
+                              <span class="day-head__date">31</span>
+                            </span>
+                            <span class="sr-only">sábado 31 de octubre, media jornada</span>
+                          </th>
+                          <th class="day-head" scope="col">
+                            <span class="day-head__name" aria-hidden="true">Dom</span>
+                            <span class="day-head__line" aria-hidden="true">
+                              <span class="day-head__date">1 Nov</span>
+                            </span>
+                            <span class="sr-only">domingo 1 de noviembre</span>
+                          </th>
+                          <th class="day-head" scope="col">
+                            <span class="day-head__name" aria-hidden="true">Lun</span>
+                            <span class="day-head__line" aria-hidden="true">
+                              <span class="day-head__date">2 Nov</span>
+                            </span>
+                            <span class="sr-only">lunes 2 de noviembre</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <th class="hour" scope="row">08:00</th>
+                          <td class="slot">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="08:00 · Sillón 1 · Ana Lucía Torres Vega · Resina 26"
+                            >
+                              <span class="chip__time">08:00 · S1</span>
+                              <span class="chip__patient">Ana Lucía Torres Vega</span>
+                              <span class="chip__meta">Resina 26</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="08:00 · Sillón 1 · Patricia del Carmen Rojas Alcántara · Profilaxis"
+                            >
+                              <span class="chip__time">08:00 · S1</span>
+                              <span class="chip__patient">Patricia del Carmen Rojas Alcántara</span>
+                              <span class="chip__meta">Profilaxis</span>
+                            </button>
+                          </td>
+                          <td class="slot slot--today">
+                            <button
+                              class="chip chip--completed"
+                              type="button"
+                              title="08:00 · Sillón 1 · Luis Alberto Ramírez Soto · Resina 26"
+                            >
+                              <span class="chip__time">08:00 · S1</span>
+                              <span class="chip__patient">Luis Alberto Ramírez Soto</span>
+                              <span class="chip__meta">Resina 26</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="08:00 · Sillón 2 · Marco Antonio Paredes Salinas · Corona 26"
+                            >
+                              <span class="chip__time">08:00 · S2</span>
+                              <span class="chip__patient">Marco Antonio Paredes Salinas</span>
+                              <span class="chip__meta">Corona 26</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="08:00 · Sillón 1 · Ruth Noemí Ccahuana Torres · Control 26"
+                            >
+                              <span class="chip__time">08:00 · S1</span>
+                              <span class="chip__patient">Ruth Noemí Ccahuana Torres</span>
+                              <span class="chip__meta">Control 26</span>
+                            </button>
+                          </td>
+                          <td class="slot"></td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="08:00 · Sillón 1 · Ana Lucía Torres Vega · Obturación 26"
+                            >
+                              <span class="chip__time">08:00 · S1</span>
+                              <span class="chip__patient">Ana Lucía Torres Vega</span>
+                              <span class="chip__meta">Obturación 26</span>
+                            </button>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <th class="hour" scope="row">09:00</th>
+                          <td class="slot">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="09:00 · Sillón 2 · Jorge Luis Mendoza Ríos · Endodoncia 36"
+                            >
+                              <span class="chip__time">09:00 · S2</span>
+                              <span class="chip__patient">Jorge Luis Mendoza Ríos</span>
+                              <span class="chip__meta">Endodoncia 36</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="09:00 · Sillón 3 · Diego Fernando Rojas Paredes · Endodoncia 16"
+                            >
+                              <span class="chip__time">09:00 · S3</span>
+                              <span class="chip__patient">Diego Fernando Rojas Paredes</span>
+                              <span class="chip__meta">Endodoncia 16</span>
+                            </button>
+                          </td>
+                          <td class="slot slot--today">
+                            <button
+                              class="chip chip--attending"
+                              type="button"
+                              title="09:00 · Sillón 2 · Jorge Luis Mendoza Ríos · Endodoncia 36"
+                            >
+                              <span class="chip__time">09:00 · S2</span>
+                              <span class="chip__patient">Jorge Luis Mendoza Ríos</span>
+                              <span class="chip__meta">Endodoncia 36</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="09:00 · Sillón 1 · César Augusto Medina Rojas · Endodoncia 36"
+                            >
+                              <span class="chip__time">09:00 · S1</span>
+                              <span class="chip__patient">César Augusto Medina Rojas</span>
+                              <span class="chip__meta">Endodoncia 36</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="09:00 · Sillón 2 · Diego Fernando Rojas Paredes · Resina 26"
+                            >
+                              <span class="chip__time">09:00 · S2</span>
+                              <span class="chip__patient">Diego Fernando Rojas Paredes</span>
+                              <span class="chip__meta">Resina 26</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="09:00 · Sillón 1 · Sandro Quispe Ayquipa · Urgencia dolor 36"
+                            >
+                              <span class="chip__time">09:00 · S1</span>
+                              <span class="chip__patient">Sandro Quispe Ayquipa</span>
+                              <span class="chip__meta">Urgencia dolor 36</span>
+                            </button>
+                          </td>
+                          <td class="slot"></td>
+                        </tr>
+
+                        <tr>
+                          <th class="hour" scope="row">10:00</th>
+                          <td class="slot">
+                            <button
+                              class="chip chip--completed"
+                              type="button"
+                              title="10:00 · Sillón 3 · Carmen Rosa Quispe Huamán · Corona 46"
+                            >
+                              <span class="chip__time">10:00 · S3</span>
+                              <span class="chip__patient">Carmen Rosa Quispe Huamán</span>
+                              <span class="chip__meta">Corona 46</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--attending"
+                              type="button"
+                              title="10:00 · Sillón 1 · Hugo Percy Salinas Torres · Prótesis parcial"
+                            >
+                              <span class="chip__time">10:00 · S1</span>
+                              <span class="chip__patient">Hugo Percy Salinas Torres</span>
+                              <span class="chip__meta">Prótesis parcial</span>
+                            </button>
+                          </td>
+                          <td class="slot slot--today">
+                            <div class="chip-pair">
+                              <button
+                                class="chip chip--confirmed"
+                                type="button"
+                                title="10:00 · Sillón 1 · María Elena Chávez Rojas · Control"
+                              >
+                                <span class="chip__time">
+                                  10:00
+                                  <span class="chip__flag" aria-hidden="true">!</span>
+                                </span>
+                                <span class="chip__patient">María</span>
+                                <span class="chip__meta">Control</span>
+                              </button>
+                              <button
+                                class="chip chip--scheduled"
+                                type="button"
+                                title="10:00 · Sillón 1 · Hugo Percy Salinas Torres · Prótesis parcial"
+                              >
+                                <span class="chip__time">
+                                  10:00
+                                  <span class="chip__flag" aria-hidden="true">!</span>
+                                </span>
+                                <span class="chip__patient">Hugo</span>
+                                <span class="chip__meta">Prótesis</span>
+                              </button>
+                            </div>
+                            <span class="sr-only">
+                              Conflicto: dos citas comparten el sillón 1 a las 10:00.
+                            </span>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="10:00 · Sillón 3 · Carmen Rosa Quispe Huamán · Ajuste de prótesis"
+                            >
+                              <span class="chip__time">10:00 · S3</span>
+                              <span class="chip__patient">Carmen Rosa Quispe Huamán</span>
+                              <span class="chip__meta">Ajuste de prótesis</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="10:00 · Sillón 1 · Milagros Yupanqui Ccahuana · Profilaxis"
+                            >
+                              <span class="chip__time">10:00 · S1</span>
+                              <span class="chip__patient">Milagros Yupanqui Ccahuana</span>
+                              <span class="chip__meta">Profilaxis</span>
+                            </button>
+                          </td>
+                          <td class="slot"></td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="10:00 · Sillón 2 · Jorge Luis Mendoza Ríos · Control 36"
+                            >
+                              <span class="chip__time">10:00 · S2</span>
+                              <span class="chip__patient">Jorge Luis Mendoza Ríos</span>
+                              <span class="chip__meta">Control 36</span>
+                            </button>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <th class="hour" scope="row">11:00</th>
+                          <td class="slot">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="11:00 · Sillón 1 · Luis Alberto Ramírez Soto · Limpieza"
+                            >
+                              <span class="chip__time">11:00 · S1</span>
+                              <span class="chip__patient">Luis Alberto Ramírez Soto</span>
+                              <span class="chip__meta">Limpieza</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="11:00 · Sillón 2 · Milagros Yupanqui Ccahuana · Limpieza"
+                            >
+                              <span class="chip__time">11:00 · S2</span>
+                              <span class="chip__patient">Milagros Yupanqui Ccahuana</span>
+                              <span class="chip__meta">Limpieza</span>
+                            </button>
+                          </td>
+                          <td class="slot slot--today">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="11:00 · Sillón 3 · Carmen Rosa Quispe Huamán · Corona 46"
+                            >
+                              <span class="chip__time">11:00 · S3</span>
+                              <span class="chip__patient">Carmen Rosa Quispe Huamán</span>
+                              <span class="chip__meta">Corona 46</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--noshow"
+                              type="button"
+                              title="11:00 · Sillón 2 · Raúl Enrique Villanueva Rojas · Limpieza"
+                            >
+                              <span class="chip__time">11:00 · S2</span>
+                              <span class="chip__patient">Raúl Enrique Villanueva Rojas</span>
+                              <span class="chip__meta">Limpieza</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="11:00 · Sillón 3 · Carmen Rosa Quispe Huamán · Control de prótesis"
+                            >
+                              <span class="chip__time">11:00 · S3</span>
+                              <span class="chip__patient">Carmen Rosa Quispe Huamán</span>
+                              <span class="chip__meta">Control prótesis</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="11:00 · Sillón 2 · Nayeli Rojas Campos · Urgencia fractura 11"
+                            >
+                              <span class="chip__time">11:00 · S2</span>
+                              <span class="chip__patient">Nayeli Rojas Campos</span>
+                              <span class="chip__meta">Fractura 11</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="11:00 · Sillón 1 · Elsa María Huamán Quispe · Limpieza"
+                            >
+                              <span class="chip__time">11:00 · S1</span>
+                              <span class="chip__patient">Elsa María Huamán Quispe</span>
+                              <span class="chip__meta">Limpieza</span>
+                            </button>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <th class="hour" scope="row">12:00</th>
+                          <td class="slot"></td>
+                          <td class="slot"></td>
+                          <td class="slot slot--today">
+                            <button
+                              class="chip chip--confirmed"
+                              type="button"
+                              title="12:00 · Sillón 2 · Luis Alberto Ramírez Soto · Limpieza"
+                            >
+                              <span class="chip__time">12:00 · S2</span>
+                              <span class="chip__patient">Luis Alberto Ramírez Soto</span>
+                              <span class="chip__meta">Limpieza</span>
+                            </button>
+                          </td>
+                          <td class="slot"></td>
+                          <td class="slot slot--closed">
+                            <p class="closed-note">
+                              Media jornada
+                              <span>Cierra 12:00</span>
+                            </p>
+                          </td>
+                          <td class="slot"></td>
+                          <td class="slot"></td>
+                        </tr>
+
+                        <tr>
+                          <th class="hour" scope="row">13:00</th>
+                          <td class="slot"></td>
+                          <td class="slot"></td>
+                          <td class="slot slot--today"></td>
+                          <td class="slot"></td>
+                          <td class="slot slot--closed"></td>
+                          <td class="slot"></td>
+                          <td class="slot"></td>
+                        </tr>
+
+                        <tr>
+                          <th class="hour" scope="row">14:00</th>
+                          <td class="slot"></td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="14:00 · Sillón 1 · Elsa María Huamán Quispe · Obturación 26"
+                            >
+                              <span class="chip__time">14:00 · S1</span>
+                              <span class="chip__patient">Elsa María Huamán Quispe</span>
+                              <span class="chip__meta">Obturación 26</span>
+                            </button>
+                          </td>
+                          <td class="slot slot--today">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="14:00 · Sillón 1 · Víctor Hugo Cabrera León · Profilaxis"
+                            >
+                              <span class="chip__time">14:00 · S1</span>
+                              <span class="chip__patient">Víctor Hugo Cabrera León</span>
+                              <span class="chip__meta">Profilaxis</span>
+                            </button>
+                          </td>
+                          <td class="slot"></td>
+                          <td class="slot slot--closed"></td>
+                          <td class="slot"></td>
+                          <td class="slot"></td>
+                        </tr>
+
+                        <tr>
+                          <th class="hour" scope="row">15:00</th>
+                          <td class="slot">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="15:00 · Sillón 2 · Ana Lucía Torres Vega · Control 26"
+                            >
+                              <span class="chip__time">15:00 · S2</span>
+                              <span class="chip__patient">Ana Lucía Torres Vega</span>
+                              <span class="chip__meta">Control 26</span>
+                            </button>
+                          </td>
+                          <td class="slot"></td>
+                          <td class="slot slot--today">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="15:00 · Sillón 3 · Diego Fernando Rojas Paredes · Obturación 16"
+                            >
+                              <span class="chip__time">15:00 · S3</span>
+                              <span class="chip__patient">Diego Fernando Rojas Paredes</span>
+                              <span class="chip__meta">Obturación 16</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="15:00 · Sillón 1 · Luis Alberto Ramírez Soto · Obturación 16"
+                            >
+                              <span class="chip__time">15:00 · S1</span>
+                              <span class="chip__patient">Luis Alberto Ramírez Soto</span>
+                              <span class="chip__meta">Obturación 16</span>
+                            </button>
+                          </td>
+                          <td class="slot slot--closed"></td>
+                          <td class="slot"></td>
+                          <td class="slot"></td>
+                        </tr>
+
+                        <tr>
+                          <th class="hour" scope="row">16:00</th>
+                          <td class="slot">
+                            <button
+                              class="chip chip--cancelled"
+                              type="button"
+                              title="16:00 · Sillón 1 · María Elena Chávez Rojas · Exodoncia 38"
+                            >
+                              <span class="chip__time">16:00 · S1</span>
+                              <span class="chip__patient">María Elena Chávez Rojas</span>
+                              <span class="chip__meta">Exodoncia 38</span>
+                            </button>
+                          </td>
+                          <td class="slot">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="16:00 · Sillón 3 · Jorge Luis Mendoza Ríos · Control 36"
+                            >
+                              <span class="chip__time">16:00 · S3</span>
+                              <span class="chip__patient">Jorge Luis Mendoza Ríos</span>
+                              <span class="chip__meta">Control 36</span>
+                            </button>
+                          </td>
+                          <td class="slot slot--today">
+                            <button
+                              class="chip chip--scheduled"
+                              type="button"
+                              title="16:00 · Sillón 2 · Ana Lucía Torres Vega · Control 26"
+                            >
+                              <span class="chip__time">16:00 · S2</span>
+                              <span class="chip__patient">Ana Lucía Torres Vega</span>
+                              <span class="chip__meta">Control 26</span>
+                            </button>
+                          </td>
+                          <td class="slot"></td>
+                          <td class="slot slot--closed"></td>
+                          <td class="slot"></td>
+                          <td class="slot"></td>
+                        </tr>
+
+                        <tr>
+                          <th class="hour hour--last" scope="row">
+                            17:00
+                            <span class="hour__end" aria-hidden="true">18:00</span>
+                          </th>
+                          <td class="slot"></td>
+                          <td class="slot"></td>
+                          <td class="slot slot--today"></td>
+                          <td class="slot"></td>
+                          <td class="slot slot--closed"></td>
+                          <td class="slot"></td>
+                          <td class="slot"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <span class="week__fade" aria-hidden="true"></span>
+                </div>
+              </div>
+
+              <div class="week__foot">
+                <ul class="legend">
+                  <li class="legend__item">
+                    <span
+                      class="legend__swatch legend__swatch--scheduled"
+                      aria-hidden="true"
+                    ></span>
+                    Programada
+                  </li>
+                  <li class="legend__item">
+                    <span
+                      class="legend__swatch legend__swatch--confirmed"
+                      aria-hidden="true"
+                    ></span>
+                    Confirmada
+                  </li>
+                  <li class="legend__item">
+                    <span
+                      class="legend__swatch legend__swatch--attending"
+                      aria-hidden="true"
+                    ></span>
+                    En consulta / No asistió
+                  </li>
+                  <li class="legend__item">
+                    <span
+                      class="legend__swatch legend__swatch--completed"
+                      aria-hidden="true"
+                    ></span>
+                    Completada
+                  </li>
+                  <li class="legend__item">
+                    <span
+                      class="legend__swatch legend__swatch--cancelled"
+                      aria-hidden="true"
+                    ></span>
+                    Cancelada
+                  </li>
+                </ul>
+                <p class="week__hint">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9.5 6l6 6-6 6" />
+                  </svg>
+                  Desliza para ver más días
+                </p>
+              </div>
+            </section>
+          </div>
+
+          <div class="board__side">
+            <section class="mini-card" aria-labelledby="waitlist-title">
+              <div class="mini-card__head">
+                <h2 class="mini-card__title" id="waitlist-title">Lista de espera</h2>
+                <span
+                  class="status status--neutral"
+                  role="status"
+                  aria-label="Estado: 3 solicitudes"
+                >
+                  <span class="status__dot" aria-hidden="true"></span>
+                  3 solicitudes
+                </span>
+              </div>
+              <ul class="next-list">
+                <li class="next-row">
+                  <span class="date-chip" aria-hidden="true">
+                    <span class="date-chip__day">30</span>
+                    <span class="date-chip__month">OCT</span>
+                  </span>
+                  <span class="next-row__body">
+                    <span class="next-row__title">Rosa Elvira Paredes Muñoz</span>
+                    <span class="next-row__meta">Profilaxis y destartraje</span>
+                    <span class="next-row__meta">Prefiere vie 30 · S/ 180.00</span>
+                  </span>
+                  <button class="btn btn--ghost btn--sm" type="button">Agendar</button>
+                </li>
+                <li class="next-row">
+                  <span class="date-chip" aria-hidden="true">
+                    <span class="date-chip__day">02</span>
+                    <span class="date-chip__month">NOV</span>
+                  </span>
+                  <span class="next-row__body">
+                    <span class="next-row__title">Julio César Bermúdez Rojas</span>
+                    <span class="next-row__meta">Prótesis parcial removible</span>
+                    <span class="next-row__meta">Prefiere lun 2 · S/ 1,850.00</span>
+                  </span>
+                  <button class="btn btn--ghost btn--sm" type="button">Agendar</button>
+                </li>
+                <li class="next-row">
+                  <span class="date-chip" aria-hidden="true">
+                    <span class="date-chip__day">04</span>
+                    <span class="date-chip__month">NOV</span>
+                  </span>
+                  <span class="next-row__body">
+                    <span class="next-row__title">Carolina Isabel Fuentes Medina</span>
+                    <span class="next-row__meta">Endodoncia pieza 46</span>
+                    <span class="next-row__meta">Prefiere mié 4 · S/ 620.00</span>
+                  </span>
+                  <button class="btn btn--ghost btn--sm" type="button">Agendar</button>
+                </li>
+              </ul>
+              <div class="mini-card__foot">
+                <button class="btn btn--ghost btn--sm" type="button">Ver la cola completa</button>
+              </div>
+            </section>
+
+            <section class="mini-card" aria-labelledby="conflicts-title">
+              <div class="mini-card__head">
+                <h2 class="mini-card__title" id="conflicts-title">Conflictos</h2>
+                <span
+                  class="status status--warning"
+                  role="status"
+                  aria-label="Estado: 1 sin resolver"
+                >
+                  <span class="status__dot" aria-hidden="true"></span>
+                  1 sin resolver
+                </span>
+              </div>
+              <div class="conflict">
+                <div class="conflict__head">
+                  <span class="conflict__icon" aria-hidden="true">
+                    <svg class="icon" viewBox="0 0 24 24">
+                      <path d="M12 4.5l8 14H4z" />
+                      <path d="M12 10v3.5" />
+                      <path d="M12 16.4v.2" />
+                    </svg>
+                  </span>
+                  <p class="conflict__title">Sillón 1 · jueves 29, 10:00</p>
+                </div>
+                <p class="conflict__body">
+                  María Elena Chávez Rojas y Hugo Percy Salinas Torres quedaron en el mismo sillón.
+                  Reprograma una de las dos citas para liberar la agenda.
+                </p>
+                <p class="conflict__meta">Detectado a las 08:12 · sin resolver</p>
+                <div class="conflict__action">
+                  <button class="btn btn--secondary btn--sm" type="button">
+                    Revisar conflicto
+                  </button>
+                </div>
+              </div>
+              <p class="mini-card__note">Sin más conflictos en la semana.</p>
+            </section>
+          </div>
+        </div>
+
+        <p class="artboard-meta">design/interfaces/03-calendar.html · 1440 px · 2026-10-29</p>
+      </main>
+    </div>
+  </body>
+</html>
