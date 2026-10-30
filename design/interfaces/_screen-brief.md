@@ -155,12 +155,13 @@ Cola del profesional, no un reporte: es donde se atiende.
 
 - **Hero**: h1 «Presupuestos», sub «46 emitidos · S/ 128,400.00 · 6 por vencer»;
   acciones: secondary «Exportar», primary «Nuevo presupuesto».
-- **KPIs**: Emitidos 46 · Aprobados 18 · Por vencer 6 · Importe aprobado
-  S/ 62,300.00.
+- **KPIs**: Emitidos 46 · Aprobados 18 · Por vencer 6 · Importe aprobado S/
+  62,300.00.
 - **Filtros**: búsqueda «Número, paciente o documento», Estado (Todos), rango de
   fechas (01 oct – 31 oct), «Limpiar filtros».
-- **Tabla**: Número, Paciente, Estado (borrador/enviado/visto/aprobado/rechazado/
-  vencido), Total, Emitido, Vence, Acciones (ghost «Ver», «PDF»). 6 filas.
+- **Tabla**: Número, Paciente, Estado
+  (borrador/enviado/visto/aprobado/rechazado/ vencido), Total, Emitido, Vence,
+  Acciones (ghost «Ver», «PDF»). 6 filas.
 - **Panel de detalle**: presupuesto seleccionado con desglose **Subtotal /
   Descuento / Base imponible / IGV 18 % / Total** (el IGV se descompone, la suma
   es el total), pie con «Descargar PDF» (ghost) y «Enviar» (primary, sólo desde
@@ -176,8 +177,8 @@ Cola del profesional, no un reporte: es donde se atiende.
   esperado S/ 2,860.50.
 - **Tabs**: Movimientos (activo), Cobros, Sesiones, Depósitos, Reportes.
 - **Principal**: tabla de movimientos (Hora, Tipo, Concepto, Método, Paciente,
-  Importe) con 6 filas; una con método «Yape» debe llevar la nota «electrónico · no
-  mueve gaveta»; una devolución en `danger` con su motivo.
+  Importe) con 6 filas; una con método «Yape» debe llevar la nota «electrónico ·
+  no mueve gaveta»; una devolución en `danger` con su motivo.
 - **Estados del hero** (tira bajo los KPIs, tres miniaturas rotuladas): «Sin
   sesión» (KPIs `N/D` + «Abrir caja»), «Sesión abierta» (la del hero), «Sesión
   cerrada» (arqueo: contado, esperado, diferencia).
@@ -189,7 +190,8 @@ Cola del profesional, no un reporte: es donde se atiende.
 
 - **Hero**: h1 «Listos para facturar», sub «8 atenciones cerradas sin cobrar ·
   S/ 3,180.00»; acciones: secondary «Exportar», primary «Cobrar».
-- **KPIs**: Atenciones 8 · Importe S/ 3,180.00 · Con seguro 2 · Vencidas +48 h 1.
+- **KPIs**: Atenciones 8 · Importe S/ 3,180.00 · Con seguro 2 · Vencidas +48
+  h 1.
 - **Tabla**: Paciente, Atención (fecha + código), Cierre, Concepto, Saldo,
   Acciones («Cobrar»). 6 filas; la vencida con pill warning.
 - **Panel de cobro** (card derecha, reproduce el modal real): paciente, importe
@@ -205,13 +207,14 @@ Cola del profesional, no un reporte: es donde se atiende.
   acciones: select de período («Últimos 30 días»), primary «Exportar».
 - **KPIs**: Ingresos S/ 62,300.00 · Atenciones 184 · Ticket promedio S/ 338.59 ·
   Ocupación 78 %.
-- **Filtros**: Sede (San Isidro), Período, Profesional (todos), «Limpiar filtros».
+- **Filtros**: Sede (San Isidro), Período, Profesional (todos), «Limpiar
+  filtros».
 - **Principal**: gráfico de barras inline SVG (ingresos por día, 30 barras con
   eje y rótulos) y debajo el reporte tabular (Pacientes / Ingresos / Atenciones)
   con el corte «Por sede» y el bloque de conciliación (efectivo, electrónico,
   depósitos, pendiente de depositar).
-- **Rail**: «Consolidado» (tres sedes con importe y variación) y aviso info
-  «Sin sede» (2 movimientos sin cajón).
+- **Rail**: «Consolidado» (tres sedes con importe y variación) y aviso info «Sin
+  sede» (2 movimientos sin cajón).
 
 ## 12 — Continuidad (`12-continuity.html`)
 
@@ -221,23 +224,23 @@ Cola del profesional, no un reporte: es donde se atiende.
   Cumplimiento 72 %.
 - **Filtros**: Tipo (Todos), Intervalo (Todos), Sede (San Isidro), «Limpiar
   filtros».
-- **Tabla**: Paciente, Origen (plan / atención / cita), Motivo (control 6 meses),
-  Vence, Estado (pill), Acciones (primary «Agendar», ghost «Descartar» sólo en
-  solicitudes). 6 filas.
-- **Rail**: «Cumplimiento» (barra 72 % con la fórmula `completados /
-  (completados + vencidos)` y los dos operandos) y «Sin contacto» (2 con teléfono
-  y acción «Llamar»).
+- **Tabla**: Paciente, Origen (plan / atención / cita), Motivo (control 6
+  meses), Vence, Estado (pill), Acciones (primary «Agendar», ghost «Descartar»
+  sólo en solicitudes). 6 filas.
+- **Rail**: «Cumplimiento» (barra 72 % con la fórmula
+  `completados / (completados + vencidos)` y los dos operandos) y «Sin contacto»
+  (2 con teléfono y acción «Llamar»).
 
 ## 13 — Laboratorio protésico (`13-lab-cases.html`)
 
-- **Hero**: h1 «Laboratorio protésico», sub «14 casos activos · 3 entregados hoy»;
-  primary «Nuevo caso».
+- **Hero**: h1 «Laboratorio protésico», sub «14 casos activos · 3 entregados
+  hoy»; primary «Nuevo caso».
 - **KPIs**: En preparación 4 · En laboratorio 6 · Prueba en boca 3 · Entregados
   hoy 3.
-- **Filtros**: Fase (Todas), Técnico («Mis casos»), checkbox «Atrasados», «Limpiar
-  filtros».
-- **Tabla**: Caso, Paciente, Trabajo / Pieza, Material, Enviado, Prometido, Fase,
-  Acciones. 6 filas con fases distintas; una atrasada en warning.
+- **Filtros**: Fase (Todas), Técnico («Mis casos»), checkbox «Atrasados»,
+  «Limpiar filtros».
+- **Tabla**: Caso, Paciente, Trabajo / Pieza, Material, Enviado, Prometido,
+  Fase, Acciones. 6 filas con fases distintas; una atrasada en warning.
 - **Rail**: «Fases» (escalera vertical de cinco fases, la actual marcada, con la
   regla «sólo avanza») y «Atrasados» (1 caso con días de atraso y acción
   «Avanzar fase»).
@@ -252,16 +255,16 @@ Cola del profesional, no un reporte: es donde se atiende.
   Anulados 2.
 - **Filtros**: búsqueda por paciente, Estado (Todos / Pendiente / Revisado /
   Anulado), Sede, «Limpiar filtros».
-- **Tabla**: Paciente, Adjunto (miniatura con nombre de archivo), Atención, Estado
-  (pill), Costo (`USD 0.0042`), Fecha, Acciones («Revisar»). 6 filas; una anulada
-  con motivo y una con el bloque `data-ai-failure` → «El análisis no se pudo
-  completar.» en línea.
+- **Tabla**: Paciente, Adjunto (miniatura con nombre de archivo), Atención,
+  Estado (pill), Costo (`USD 0.0042`), Fecha, Acciones («Revisar»). 6 filas; una
+  anulada con motivo y una con el bloque `data-ai-failure` → «El análisis no se
+  pudo completar.» en línea.
 - **Panel de alta** (card derecha, reproduce el sheet): zona de carga con
-  arrastrar y soltar, nombre y peso del archivo, checkbox obligatorio «Declaro que
-  informé al paciente sobre el uso de IA», nota del tope diario por paciente y
-  primary «Analizar imagen».
-- **Rail**: «Aviso asistivo» (card info: no sustituye el juicio clínico ni entra al
-  registro sin revisión) y «Consumo del mes» (tokens y costo estimado).
+  arrastrar y soltar, nombre y peso del archivo, checkbox obligatorio «Declaro
+  que informé al paciente sobre el uso de IA», nota del tope diario por paciente
+  y primary «Analizar imagen».
+- **Rail**: «Aviso asistivo» (card info: no sustituye el juicio clínico ni entra
+  al registro sin revisión) y «Consumo del mes» (tokens y costo estimado).
 
 ## 15 — Registros de especialidad (`15-specialty-records.html`)
 
@@ -279,32 +282,32 @@ Cola del profesional, no un reporte: es donde se atiende.
 
 ## 16 — Catálogo de procedimientos (`16-procedure-catalog.html`)
 
-- **Hero**: h1 «Catálogo de procedimientos», sub «128 procedimientos · 96 activos»;
-  primary «Nuevo procedimiento».
+- **Hero**: h1 «Catálogo de procedimientos», sub «128 procedimientos · 96
+  activos»; primary «Nuevo procedimiento».
 - **KPIs**: Total 128 · Activos 96 · Con receta 38 · Con tarifa por sede 24.
 - **Filtros**: búsqueda («Nombre, código o descripción»), Especialidad, Estado,
   Sitio (Todos), «Limpiar filtros».
 - **Tabla**: Código (`CPT-0001`), Nombre, Especialidad, Sitio (pill
-  diente/superficie), Precio aplicado (con su origen «Sede» / «Convenio»), Insumos,
-  Estado, Acciones. 6 filas.
+  diente/superficie), Precio aplicado (con su origen «Sede» / «Convenio»),
+  Insumos, Estado, Acciones. 6 filas.
 - **Panel de detalle**: tabs «Detalle / Tarifario / Historial». Detalle:
-  aplicabilidad, códigos externos (RM 550-2023/MINSA y SIS) y receta («Resina A2 ·
-  0,5 jeringa»). Tarifario: fila por sede con vigencia y estado (vigente / futuro /
-  vencido). Historial: dos filas de auditoría.
-- **Rail**: «Calidad del catálogo» (12 sin receta, 8 sin código externo) con barras
-  y aviso.
+  aplicabilidad, códigos externos (RM 550-2023/MINSA y SIS) y receta («Resina A2
+  · 0,5 jeringa»). Tarifario: fila por sede con vigencia y estado (vigente /
+  futuro / vencido). Historial: dos filas de auditoría.
+- **Rail**: «Calidad del catálogo» (12 sin receta, 8 sin código externo) con
+  barras y aviso.
 
 ## 17 — Estadísticas del catálogo (`17-procedure-stats.html`)
 
-- **Hero**: h1 «Estadísticas del catálogo», sub «01–31 oct 2026 · Sede San Isidro»;
-  primary «Exportar CSV».
-- **KPIs**: Usos 412 · Procedimientos usados 38 · Ingreso generado S/ 48,900.00 ·
-  Ticket promedio S/ 118.69.
-- **Filtros**: presets 7 / 30 / 90 días, rango de fechas, Especialidad, Top N (10),
-  «Limpiar filtros».
-- **Principal**: ranking (posición, procedimiento, usos, ingreso, % del total con
-  barra proporcional) y distribución por especialidad como lista con barras (sin
-  librería de gráficos).
+- **Hero**: h1 «Estadísticas del catálogo», sub «01–31 oct 2026 · Sede San
+  Isidro»; primary «Exportar CSV».
+- **KPIs**: Usos 412 · Procedimientos usados 38 · Ingreso generado S/ 48,900.00
+  · Ticket promedio S/ 118.69.
+- **Filtros**: presets 7 / 30 / 90 días, rango de fechas, Especialidad, Top N
+  (10), «Limpiar filtros».
+- **Principal**: ranking (posición, procedimiento, usos, ingreso, % del total
+  con barra proporcional) y distribución por especialidad como lista con barras
+  (sin librería de gráficos).
 - **Rail**: «Top 3» y «Sin uso» (procedimientos activos sin uso en el período).
 
 ## 18 — Mis procedimientos (`18-my-procedures.html`)
@@ -319,33 +322,35 @@ Cola del profesional, no un reporte: es donde se atiende.
 
 ## 19 — Recepción de procedimientos (`19-reception-procedures.html`)
 
-- **Hero**: h1 «Recepción de procedimientos», sub «Consulta rápida · sólo lectura»;
-  sin acción primaria.
+- **Hero**: h1 «Recepción de procedimientos», sub «Consulta rápida · sólo
+  lectura»; sin acción primaria.
 - **KPIs**: Procedimientos 128 · Con precio de sede 24 · Especialidades 8 ·
   Actualizado hoy 09:12.
 - **Principal**: buscador grande y prominente («¿Qué procedimiento busca?») + 6
-  resultados en tarjetas con nombre, código, precio de la sede, duración estimada y
-  sitio; acciones «Ver precio» y «Agendar».
-- **Rail**: «Qué puede hacer recepción» (card info: consultar y agendar, no editar
-  el catálogo) y «Más buscados» (3).
+  resultados en tarjetas con nombre, código, precio de la sede, duración
+  estimada y sitio; acciones «Ver precio» y «Agendar».
+- **Rail**: «Qué puede hacer recepción» (card info: consultar y agendar, no
+  editar el catálogo) y «Más buscados» (3).
 
 ## 20 — Profesionales (`20-professionals.html`)
 
-- **Hero**: h1 «Profesionales», sub «12 activos · 3 especialidades»; primary «Nuevo
-  profesional».
+- **Hero**: h1 «Profesionales», sub «12 activos · 3 especialidades»; primary
+  «Nuevo profesional».
 - **KPIs**: Activos 12 · Odontólogos 7 · Implantólogos 3 · Asistentes 2.
 - **Filtros**: búsqueda, Especialidad, Estado, «Limpiar filtros».
 - **Tabla**: Profesional (avatar + nombre + rol), Especialidades (pills), Sede,
   Contacto, Próxima disponibilidad, Acciones («Ver ficha»). 6 filas.
-- **Panel de ficha**: profesional seleccionado con horario semanal (mini rejilla de
-  5 días × 3 bloques), sus especialidades y su próxima cita; pie con «Editar».
+- **Panel de ficha**: profesional seleccionado con horario semanal (mini rejilla
+  de 5 días × 3 bloques), sus especialidades y su próxima cita; pie con
+  «Editar».
 - **Rail**: «Cobertura por especialidad» (barras) y «Sin horario» (1 aviso).
 
 ---
 
 ## 21 — Tipos de cita (`21-appointment-types.html`)
 
-- **Hero**: h1 «Tipos de cita», sub «18 tipos · 12 activos»; primary «Nuevo tipo».
+- **Hero**: h1 «Tipos de cita», sub «18 tipos · 12 activos»; primary «Nuevo
+  tipo».
 - **KPIs**: Total 18 · Activos 12 · Requieren confirmación 7 · Con insumos 9.
 - **Filtros**: búsqueda, Estado, «Limpiar filtros».
 - **Tabla**: Nombre, Duración, Precio base, Requiere confirmación (pill sí/no),
@@ -360,8 +365,8 @@ Cola del profesional, no un reporte: es donde se atiende.
   ambiente».
 - **KPIs**: Activos 6 · En uso ahora 4 · En mantenimiento 1 · Sede San Isidro 4.
 - **Filtros**: Sede, Estado, «Limpiar filtros».
-- **Tabla**: Ambiente, Sede, Tipo, Estado (pill), Ocupación actual (paciente y hora
-  o «Libre»), Acciones. 6 filas.
+- **Tabla**: Ambiente, Sede, Tipo, Estado (pill), Ocupación actual (paciente y
+  hora o «Libre»), Acciones. 6 filas.
 - **Rail**: «Ocupación de hoy» (barra 4/6) y «Mantenimiento» (1 con nota).
 
 ## 23 — Catálogo de especialidades (`23-specialties.html`)
@@ -369,17 +374,19 @@ Cola del profesional, no un reporte: es donde se atiende.
 - **Hero**: h1 «Catálogo de especialidades», sub «8 especialidades · 6 activas»;
   primary «Nueva especialidad».
 - **KPIs**: Total 8 · Activas 6 · Procedimientos 128 · Profesionales 12.
-- **Tabla**: Código, Nombre, Procedimientos, Profesionales, Estado, Acciones.
-  6 filas.
-- **Panel de detalle**: modal de edición con código **de sólo lectura** (el `code`
-  es inmutable en `PUT`) y la nota «El código no se modifica; las especialidades se
-  desactivan, no se eliminan».
+- **Tabla**: Código, Nombre, Procedimientos, Profesionales, Estado, Acciones. 6
+  filas.
+- **Panel de detalle**: modal de edición con código **de sólo lectura** (el
+  `code` es inmutable en `PUT`) y la nota «El código no se modifica; las
+  especialidades se desactivan, no se eliminan».
 - **Rail**: «Uso» (top 3 por procedimientos) y aviso.
 
 ## 24 — Sucursales (`24-settings-branches.html`)
 
-- **Hero**: h1 «Sucursales», sub «3 sedes · 2 activas»; primary «Nueva sucursal».
-- **KPIs**: Sedes 3 · Activas 2 · Personal 14 · Facturación del mes S/ 62,300.00.
+- **Hero**: h1 «Sucursales», sub «3 sedes · 2 activas»; primary «Nueva
+  sucursal».
+- **KPIs**: Sedes 3 · Activas 2 · Personal 14 · Facturación del mes S/
+  62,300.00.
 - **Tabla**: Sede, Dirección, Personal, Cajas, Estado, Acciones. 3 filas.
 - **Panel de detalle**: la sede con su alcance («quien tiene sede opera sólo esa
   sede; sin sede, alcance de grupo») y sus conteos.
@@ -415,8 +422,8 @@ Cola del profesional, no un reporte: es donde se atiende.
 - **KPIs**: Módulos 4 · Bloqueados 2 · Último cierre 31 ago 2026 · Sedes 3.
 - **Tabla**: Módulo, Origen (Sede / Global), Vigente hasta, Estado, Acciones
   (Fijar / Retirar). 4 filas.
-- **Panel**: formulario «Fijar cierre» con módulo, sede, fecha y la nota del orden
-  «la fila de la sede gana sobre la global».
+- **Panel**: formulario «Fijar cierre» con módulo, sede, fecha y la nota del
+  orden «la fila de la sede gana sobre la global».
 - **Rail**: «Cómo funciona» (card info: 403, motivo de administrador de ≥10
   caracteres y auditoría) y «Autorizaciones recientes» (2).
 
@@ -424,9 +431,9 @@ Cola del profesional, no un reporte: es donde se atiende.
 
 Fuera del shell, 1440×900, sin sidebar ni topbar.
 
-- **Izquierda (60 %)**: panel de marca con el motivo dental en SVG, «OdontoSuite»
-  y una frase corta («La clínica, en orden: agenda, acta clínica y dinero en un
-  solo lugar»), más tres viñetas discretas.
+- **Izquierda (60 %)**: panel de marca con el motivo dental en SVG,
+  «OdontoSuite» y una frase corta («La clínica, en orden: agenda, acta clínica y
+  dinero en un solo lugar»), más tres viñetas discretas.
 - **Derecha (40 %)**: tarjeta de formulario (radius 22, `elevation-2`) con h1
   «Iniciar sesión», correo, contraseña con mostrar/ocultar, «¿Olvidaste tu
   contraseña?», primary «Entrar» y el error de credenciales en `danger` (estado
@@ -438,7 +445,8 @@ Fuera del shell, 1440×900, sin sidebar ni topbar.
 ## 29 — Página no encontrada (`29-not-found.html`)
 
 - **Dentro del shell**: sidebar y topbar completos, sin ítem activo.
-- **Contenido**: tarjeta centrada con h1 «Página no encontrada», explicación corta
-  («La ruta no existe o cambió de nombre»), el código `404` en 12 px tabular y dos
-  acciones: «Volver al panel» (primary) y «Ver pacientes» (secondary).
+- **Contenido**: tarjeta centrada con h1 «Página no encontrada», explicación
+  corta («La ruta no existe o cambió de nombre»), el código `404` en 12 px
+  tabular y dos acciones: «Volver al panel» (primary) y «Ver pacientes»
+  (secondary).
 - Sin KPIs, sin filtros, sin rail: es una pantalla de recuperación.
