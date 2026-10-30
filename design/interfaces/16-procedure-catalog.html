@@ -1,0 +1,3034 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1440" />
+    <title>OdontoSuite · Catálogo de procedimientos · Clínica San Isidro</title>
+    <style>
+      /* ============================================================
+         Tokens — valores de design/system.md. Ninguno inventado.
+         ============================================================ */
+      :root {
+        --color-accent: #0f7a5f;
+        --color-accent-hover: #0a5f49;
+        --color-accent-700: #084c3b;
+        --color-accent-50: #e6f4ef;
+
+        --color-canvas: #f7f6f4;
+        --color-surface: #f7f6f4;
+        --color-surface-elevated: #ffffff;
+
+        --color-text-primary: #1a1917;
+        --color-text-secondary: #5c5a55;
+        --color-text-tertiary: rgba(26, 24, 20, 0.3);
+
+        --color-border: #c9c5bd;
+        --color-hairline: rgba(26, 24, 20, 0.1);
+        --color-separator: #c9c5bd;
+
+        --color-success: #34c759;
+        --color-success-bg: #e8f5e9;
+        --color-success-text: #1a6530;
+        --color-warning: #ffcc00;
+        --color-warning-bg: #fff9d6;
+        --color-warning-text: #7a5200;
+        --color-danger: #ff3b30;
+        --color-danger-bg: #ffebea;
+        --color-danger-text: #a50e10;
+        --color-info: #4a7191;
+        --color-info-bg: #eef3f8;
+        --color-info-text: #2b4459;
+
+        --color-system-gray-100: #edebe7;
+        --color-system-gray-500: #908b82;
+        --color-system-gray-700: #3b3833;
+
+        --radius-ios: 10px;
+        --radius-modal: 14px;
+        --radius-card-lg: 16px;
+        --radius-panel: 22px;
+        --radius-control: 12px;
+        --radius-md: 8px;
+        --radius-full: 9999px;
+
+        --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --elevation-1: 0 1px 3px rgba(92, 90, 85, 0.04);
+        --elevation-2: 0 2px 8px rgba(92, 90, 85, 0.06), 0 1px 2px rgba(92, 90, 85, 0.04);
+        --elevation-3: 0 8px 16px rgba(92, 90, 85, 0.08), 0 2px 6px rgba(92, 90, 85, 0.06);
+        --focus-ring-default: 0 0 0 3px rgba(15, 122, 95, 0.2);
+
+        --font-sans:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        --font-features-tabular-nums: 'tnum' 1, 'lnum' 1;
+
+        /* Escala tipográfica — design/system.md §2.1 */
+        --text-xs: 12px;
+        --text-xs-line: 16px;
+        --text-sm: 13px;
+        --text-sm-line: 18px;
+        --text-base: 15px;
+        --text-base-line: 22px;
+        --text-lg: 17px;
+        --text-lg-line: 24px;
+        --text-xl: 20px;
+        --text-xl-line: 28px;
+        --text-2xl: 24px;
+        --text-2xl-line: 32px;
+        --text-3xl: 30px;
+        --text-3xl-line: 36px;
+
+        --motion-fast: 120ms;
+        --motion-normal: 200ms;
+        --motion-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+        --motion-easing-ios: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+
+      /* ============================================================
+         Base
+         ============================================================ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--color-canvas);
+        overflow-x: hidden;
+      }
+
+      body {
+        margin: 0;
+        width: 1440px;
+        min-height: 900px;
+        font-family: var(--font-sans);
+        font-size: var(--text-base);
+        line-height: var(--text-base-line);
+        color: var(--color-text-primary);
+        background: var(--color-canvas);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1,
+      h2,
+      p,
+      ul,
+      dl,
+      dd {
+        margin: 0;
+        padding: 0;
+      }
+
+      ul {
+        list-style: none;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+
+      svg {
+        display: block;
+      }
+
+      .icon {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 auto;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+        box-shadow: var(--focus-ring-default);
+      }
+
+      .num {
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      /* ============================================================
+         Sidebar — chrome de vidrio, 248 px fijos
+         ============================================================ */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 248px;
+        height: 100vh;
+        z-index: 40;
+        overflow: hidden;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.62));
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        backdrop-filter: blur(20px) saturate(180%);
+        border-right: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.55),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.04),
+          0 18px 40px -16px rgba(0, 0, 0, 0.1);
+      }
+
+      .sidebar::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: inherit;
+        mix-blend-mode: overlay;
+        pointer-events: none;
+      }
+
+      .sidebar__scroll {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        padding: 20px 12px;
+        overflow-y: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .sidebar__scroll::-webkit-scrollbar {
+        display: none;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 10px 18px;
+        border-bottom: 1px solid var(--color-hairline);
+      }
+
+      .brand__mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-ios);
+        background: var(--color-accent);
+        color: #ffffff;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      }
+
+      .brand__mark .icon {
+        width: 19px;
+        height: 19px;
+      }
+
+      .brand__text {
+        min-width: 0;
+      }
+
+      .brand__name {
+        display: block;
+        font-size: var(--text-lg);
+        line-height: 22px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+      }
+
+      .brand__sub {
+        display: block;
+        margin-top: 1px;
+        font-size: 11px;
+        line-height: 14px;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+      }
+
+      .nav-group__label {
+        margin: 18px 12px 6px;
+        font-size: 10.5px;
+        line-height: 14px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+
+      .nav-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 36px;
+        padding: 0 10px;
+        overflow: hidden;
+        border-radius: var(--radius-ios);
+        font-size: 13.5px;
+        line-height: 18px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        transition:
+          background-color var(--motion-normal) var(--motion-easing-standard),
+          color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .nav-item .icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .nav-item:not([aria-current='page']):hover {
+        background: rgba(26, 24, 20, 0.05);
+        color: var(--color-text-primary);
+      }
+
+      .nav-item[aria-current='page'] {
+        background: rgba(15, 122, 95, 0.1);
+        color: var(--color-accent-hover);
+        font-weight: 600;
+      }
+
+      .nav-item[aria-current='page']::before {
+        content: '';
+        position: absolute;
+        top: 1px;
+        bottom: 1px;
+        left: 0;
+        width: 2px;
+        border-radius: 2px;
+        background: var(--color-accent);
+      }
+
+      /* ============================================================
+         Shell + topbar de vidrio, 64 px
+         ============================================================ */
+      .shell {
+        margin-left: 248px;
+        min-height: 900px;
+        background: var(--color-canvas);
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        height: 64px;
+        padding: 0 32px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.62));
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        backdrop-filter: blur(20px) saturate(180%);
+        border-bottom: 1px solid var(--color-hairline);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.55),
+          0 10px 30px -22px rgba(0, 0, 0, 0.1);
+      }
+
+      .topbar__heading {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .topbar__title {
+        font-size: var(--text-xl);
+        line-height: var(--text-xl-line);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .topbar__context {
+        font-size: 12.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+      }
+
+      .topbar__right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 0 0 auto;
+      }
+
+      .search {
+        position: relative;
+        width: 260px;
+        height: 36px;
+      }
+
+      .search .icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        width: 16px;
+        height: 16px;
+        transform: translateY(-50%);
+        color: var(--color-text-secondary);
+        pointer-events: none;
+      }
+
+      .search input {
+        width: 100%;
+        height: 100%;
+        appearance: none;
+        -webkit-appearance: none;
+        padding: 0 12px 0 32px;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-ios);
+        background: rgba(255, 255, 255, 0.7);
+        font-family: var(--font-sans);
+        font-size: var(--text-xs);
+        line-height: var(--text-xs-line);
+        color: var(--color-text-primary);
+        transition: border-color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .search input::placeholder {
+        color: var(--color-text-secondary);
+        opacity: 1;
+      }
+
+      .search input::-webkit-search-cancel-button,
+      .search input::-webkit-search-decoration {
+        -webkit-appearance: none;
+      }
+
+      .search input:focus {
+        border-color: var(--color-accent);
+      }
+
+      .branch-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 10px;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-full);
+        background: rgba(255, 255, 255, 0.7);
+        font-size: 12.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+      }
+
+      .branch-chip__dot {
+        width: 6px;
+        height: 6px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-full);
+        background: var(--color-accent);
+      }
+
+      .icon-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border: 1px solid transparent;
+        border-radius: var(--radius-full);
+        background: transparent;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition:
+          background-color var(--motion-normal) var(--motion-easing-standard),
+          color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .icon-btn:hover {
+        background: var(--color-surface);
+        color: var(--color-text-primary);
+      }
+
+      .icon-btn__dot {
+        position: absolute;
+        top: 7px;
+        right: 7px;
+        width: 8px;
+        height: 8px;
+        border-radius: var(--radius-full);
+        background: var(--color-accent);
+        box-shadow: 0 0 0 2px var(--color-surface-elevated);
+      }
+
+      .topbar__divider {
+        width: 1px;
+        height: 24px;
+        flex: 0 0 auto;
+        background: var(--color-hairline);
+      }
+
+      .user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .user__avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-full);
+        background: var(--color-accent-50);
+        color: var(--color-accent-700);
+        font-size: 12.5px;
+        line-height: 16px;
+        font-weight: 600;
+      }
+
+      .user__name {
+        display: block;
+        font-size: 12.5px;
+        line-height: 16px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .user__role {
+        display: block;
+        font-size: 11px;
+        line-height: 14px;
+        color: var(--color-text-secondary);
+      }
+
+      /* ============================================================
+         Contenido
+         ============================================================ */
+      .main {
+        width: 100%;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 32px;
+        display: grid;
+        gap: 24px;
+        background: var(--color-canvas);
+      }
+
+      /* ---- A) Hero ---- */
+      .hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+        padding: 28px;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      }
+
+      .hero__copy {
+        min-width: 0;
+      }
+
+      .hero__eyebrow {
+        font-size: 11px;
+        line-height: 15px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--color-accent-700);
+      }
+
+      .hero h1 {
+        margin: 6px 0;
+        font-size: var(--text-3xl);
+        line-height: var(--text-3xl-line);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .hero__lede {
+        max-width: 520px;
+        font-size: var(--text-base);
+        line-height: var(--text-base-line);
+        color: var(--color-text-secondary);
+      }
+
+      .hero__actions {
+        display: flex;
+        flex: 0 0 auto;
+        gap: 12px;
+      }
+
+      /* ---- Botones ---- */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 44px;
+        padding: 0 18px;
+        border: 1px solid transparent;
+        border-radius: var(--radius-ios);
+        font-family: var(--font-sans);
+        font-size: 13.5px;
+        line-height: 20px;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        transition:
+          background-color var(--motion-normal) var(--motion-easing-standard),
+          border-color var(--motion-normal) var(--motion-easing-standard),
+          color var(--motion-normal) var(--motion-easing-standard),
+          box-shadow var(--motion-normal) var(--motion-easing-standard),
+          transform var(--motion-fast) var(--motion-easing-ios);
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .btn--primary {
+        background: var(--color-accent);
+        color: #ffffff;
+        box-shadow:
+          var(--elevation-3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      }
+
+      .btn--primary:hover {
+        background: var(--color-accent-hover);
+      }
+
+      .btn--primary:active {
+        background: var(--color-accent-700);
+        transform: translateY(1px);
+      }
+
+      .btn--secondary {
+        background: transparent;
+        color: var(--color-text-primary);
+        border-color: var(--color-border);
+        box-shadow: var(--shadow-subtle);
+      }
+
+      .btn--secondary:hover {
+        background: var(--color-surface);
+        border-color: var(--color-system-gray-500);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .btn--ghost {
+        background: transparent;
+        color: var(--color-text-secondary);
+        box-shadow: none;
+      }
+
+      .btn--ghost:hover {
+        background: var(--color-surface);
+        color: var(--color-text-primary);
+        transform: none;
+      }
+
+      .btn--sm {
+        height: 28px;
+        padding: 0 6px;
+        gap: 6px;
+        border-radius: var(--radius-md);
+        font-size: 12.5px;
+        line-height: 16px;
+        font-weight: 500;
+      }
+
+      /* ---- B) KPIs ---- */
+      .kpi-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .kpi {
+        padding: 20px;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-card-lg);
+        box-shadow: var(--elevation-1);
+      }
+
+      .kpi__label {
+        font-size: var(--text-xs);
+        line-height: var(--text-xs-line);
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+
+      .kpi__value {
+        margin: 8px 0 6px;
+        font-size: var(--text-3xl);
+        line-height: var(--text-3xl-line);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        font-feature-settings: var(--font-features-tabular-nums);
+        white-space: nowrap;
+      }
+
+      .kpi__meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .kpi__dot {
+        width: 6px;
+        height: 6px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-full);
+      }
+
+      .kpi__dot--success {
+        background: var(--color-success);
+      }
+
+      .kpi__dot--warning {
+        background: var(--color-warning);
+      }
+
+      .kpi__dot--info {
+        background: var(--color-info);
+      }
+
+      /* ---- C) Tablero ---- */
+      .board {
+        display: grid;
+        grid-template-columns: 1.75fr 1fr;
+        gap: 24px;
+        align-items: start;
+      }
+
+      .board__main,
+      .board__side {
+        min-width: 0;
+      }
+
+      .board__side {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .panel,
+      .mini-card {
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-card-lg);
+        box-shadow: var(--elevation-1);
+      }
+
+      .panel {
+        overflow: hidden;
+      }
+
+      .panel__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 22px 20px 14px;
+      }
+
+      .panel__heading {
+        min-width: 0;
+      }
+
+      .panel__title,
+      .mini-card__title {
+        font-size: var(--text-lg);
+        line-height: var(--text-lg-line);
+        font-weight: 600;
+        letter-spacing: 0;
+      }
+
+      .panel__sub {
+        margin-top: 3px;
+        font-size: 12.5px;
+        line-height: 17px;
+        color: var(--color-text-secondary);
+      }
+
+      /* ---- Tabla ---- */
+      .agenda {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      .agenda th {
+        padding: 9px 8px;
+        background: var(--color-surface);
+        border-top: 1px solid var(--color-hairline);
+        border-bottom: 1px solid var(--color-hairline);
+        font-size: 11px;
+        line-height: 15px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+        text-align: left;
+        white-space: nowrap;
+      }
+
+      .agenda td {
+        height: 56px;
+        padding: 0 8px;
+        font-size: var(--text-sm);
+        line-height: var(--text-sm-line);
+        vertical-align: middle;
+      }
+
+      .agenda th:first-child,
+      .agenda td:first-child {
+        padding-left: 20px;
+      }
+
+      .agenda th:last-child,
+      .agenda td:last-child {
+        padding-right: 20px;
+      }
+
+      .agenda tbody tr + tr td {
+        box-shadow: inset 0 1px 0 var(--color-hairline);
+      }
+
+      .agenda .is-right {
+        text-align: right;
+      }
+
+      .agenda .time {
+        font-feature-settings: var(--font-features-tabular-nums);
+        white-space: nowrap;
+      }
+
+      .patient {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .patient__avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-full);
+        background: var(--color-accent-50);
+        color: var(--color-accent-700);
+        font-size: 11px;
+        line-height: 14px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      .patient__body {
+        min-width: 0;
+      }
+
+      .patient__name {
+        display: block;
+        overflow: hidden;
+        font-size: 13.5px;
+        line-height: 18px;
+        font-weight: 600;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .patient__doc {
+        display: block;
+        font-size: 11.5px;
+        line-height: 15px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: var(--radius-full);
+        font-size: var(--text-xs);
+        line-height: 18px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      .status__dot {
+        width: 6px;
+        height: 6px;
+        flex: 0 0 auto;
+        border-radius: var(--radius-full);
+      }
+
+      .status--success {
+        background: var(--color-success-bg);
+        color: var(--color-success-text);
+      }
+
+      .status--success .status__dot {
+        background: var(--color-success);
+      }
+
+      .status--info {
+        background: var(--color-info-bg);
+        color: var(--color-info-text);
+      }
+
+      .status--info .status__dot {
+        background: var(--color-info);
+      }
+
+      .status--warning {
+        background: var(--color-warning-bg);
+        color: var(--color-warning-text);
+      }
+
+      .status--warning .status__dot {
+        background: var(--color-warning);
+      }
+
+      .status--neutral {
+        background: var(--color-system-gray-100);
+        color: var(--color-system-gray-700);
+      }
+
+      .status--neutral .status__dot {
+        background: var(--color-system-gray-500);
+      }
+
+      .status--danger {
+        background: var(--color-danger-bg);
+        color: var(--color-danger-text);
+      }
+
+      .status--danger .status__dot {
+        background: var(--color-danger);
+      }
+
+      /* ---- Tarjetas de la columna derecha ---- */
+      .mini-card {
+        padding: 20px;
+      }
+
+      .next-list {
+        margin-top: 12px;
+      }
+
+      .next-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+      }
+
+      .next-row:first-child {
+        padding-top: 0;
+      }
+
+      .next-row:last-child {
+        padding-bottom: 0;
+      }
+
+      .next-row + .next-row {
+        box-shadow: inset 0 1px 0 var(--color-hairline);
+      }
+
+      .date-chip {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        flex: 0 0 auto;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-ios);
+        background: var(--color-canvas);
+      }
+
+      .date-chip__day {
+        font-size: 15px;
+        line-height: 18px;
+        font-weight: 600;
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .date-chip__month {
+        font-size: 10.5px;
+        line-height: 14px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        color: var(--color-text-secondary);
+      }
+
+      .next-row__body {
+        min-width: 0;
+      }
+
+      .next-row__title {
+        display: block;
+        font-size: 13.5px;
+        line-height: 18px;
+        font-weight: 600;
+      }
+
+      .next-row__meta {
+        display: block;
+        margin-top: 1px;
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .cash__value {
+        margin: 8px 0 10px;
+        font-size: var(--text-3xl);
+        line-height: var(--text-3xl-line);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .progress {
+        height: 6px;
+        overflow: hidden;
+        border-radius: var(--radius-full);
+        background: var(--color-system-gray-100);
+      }
+
+      .progress__fill {
+        display: block;
+        width: 68%;
+        height: 100%;
+        border-radius: var(--radius-full);
+        background: var(--color-accent);
+      }
+
+      .cash__caption {
+        margin-top: 6px;
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .cash__rows {
+        display: grid;
+        gap: 6px;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid var(--color-hairline);
+      }
+
+      .cash__row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: var(--text-sm);
+        line-height: var(--text-sm-line);
+      }
+
+      .cash__row dt {
+        color: var(--color-text-secondary);
+      }
+
+      .cash__row dd {
+        font-weight: 600;
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .lab-list {
+        margin-top: 12px;
+      }
+
+      .lab-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+      }
+
+      .lab-row:first-child {
+        padding-top: 0;
+      }
+
+      .lab-row:last-child {
+        padding-bottom: 0;
+      }
+
+      .lab-row + .lab-row {
+        box-shadow: inset 0 1px 0 var(--color-hairline);
+      }
+
+      .lab-row__body {
+        min-width: 0;
+      }
+
+      .lab-row__title {
+        display: block;
+        font-size: 13.5px;
+        line-height: 18px;
+        font-weight: 600;
+      }
+
+      .lab-row__meta {
+        display: block;
+        margin-top: 1px;
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        flex: 0 0 auto;
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+        background: var(--color-success-bg);
+        color: var(--color-success-text);
+        font-size: var(--text-xs);
+        line-height: 16px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      /* ---- D) Pie del artboard ---- */
+      .artboard-meta {
+        font-size: 11.5px;
+        line-height: 16px;
+        text-align: right;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      /* El anillo del token gana sobre la sombra propia de botones y chrome. */
+      .btn:focus-visible,
+      .nav-item:focus-visible,
+      .icon-btn:focus-visible,
+      .brand:focus-visible {
+        box-shadow: var(--focus-ring-default);
+      }
+
+      /* ============================================================
+         Movimiento reducido
+         ============================================================ */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+
+        .btn:hover,
+        .btn:active {
+          transform: none;
+        }
+      }
+
+      /* ============================================================
+         Barra de filtros — FilterBar (design/system.md §7.10)
+         ============================================================ */
+      .filters {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr 0.9fr 0.9fr auto;
+        gap: 16px;
+        padding: 16px;
+        border: 1px solid var(--color-system-gray-100);
+        border-radius: var(--radius-control);
+        background: var(--color-surface);
+      }
+
+      .filter__field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .filter__label {
+        font-size: var(--text-xs);
+        line-height: var(--text-xs-line);
+        font-weight: 500;
+        color: var(--color-text-secondary);
+      }
+
+      .filter__search {
+        position: relative;
+        height: 44px;
+      }
+
+      .filter__search .icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        width: 16px;
+        height: 16px;
+        transform: translateY(-50%);
+        color: var(--color-text-secondary);
+        pointer-events: none;
+      }
+
+      .filter__search input {
+        width: 100%;
+        height: 100%;
+        appearance: none;
+        -webkit-appearance: none;
+        padding: 0 12px 0 36px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-ios);
+        background: var(--color-surface-elevated);
+        font-family: var(--font-sans);
+        font-size: var(--text-sm);
+        line-height: 20px;
+        color: var(--color-text-primary);
+        transition: border-color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .filter__search input::placeholder {
+        color: var(--color-text-secondary);
+        opacity: 1;
+      }
+
+      .filter__search input::-webkit-search-cancel-button,
+      .filter__search input::-webkit-search-decoration {
+        -webkit-appearance: none;
+      }
+
+      .filter__search input:focus {
+        border-color: var(--color-accent);
+      }
+
+      .filter__control {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        height: 44px;
+        padding: 0 12px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-ios);
+        background: var(--color-surface-elevated);
+        font-family: var(--font-sans);
+        font-size: var(--text-sm);
+        line-height: 20px;
+        color: var(--color-text-primary);
+        text-align: left;
+        cursor: pointer;
+        transition: border-color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .filter__control span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .filter__control .icon {
+        width: 16px;
+        height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .filter__control:hover {
+        border-color: var(--color-system-gray-500);
+      }
+
+      .filter__action {
+        display: flex;
+        align-items: flex-end;
+      }
+
+      /* ============================================================
+         Tabla del catálogo — 8 columnas, filas de 56 px
+         ============================================================ */
+      .panel__actions {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .catalog {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      .catalog th {
+        padding: 9px 6px;
+        background: var(--color-surface);
+        border-top: 1px solid var(--color-hairline);
+        border-bottom: 1px solid var(--color-hairline);
+        font-size: 10px;
+        line-height: 14px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+        text-align: left;
+      }
+
+      .catalog td {
+        height: 56px;
+        padding: 0 6px;
+        font-size: 12px;
+        line-height: 16px;
+        vertical-align: middle;
+      }
+
+      .catalog th:first-child,
+      .catalog td:first-child {
+        padding-left: 16px;
+      }
+
+      .catalog th:last-child,
+      .catalog td:last-child {
+        padding-right: 16px;
+      }
+
+      .catalog tbody tr + tr td {
+        box-shadow: inset 0 1px 0 var(--color-hairline);
+      }
+
+      .catalog tbody tr:not(.is-selected):hover td {
+        background: var(--color-surface);
+      }
+
+      .catalog tbody tr.is-selected td {
+        background: var(--color-accent-50);
+      }
+
+      .catalog tbody tr.is-selected td:first-child {
+        box-shadow: inset 2px 0 0 var(--color-accent);
+      }
+
+      .catalog .is-right {
+        text-align: right;
+      }
+
+      .catalog .code {
+        font-size: 11px;
+        line-height: 15px;
+        font-weight: 600;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+        white-space: nowrap;
+      }
+
+      .catalog .name {
+        display: block;
+        font-size: 12px;
+        line-height: 15px;
+        font-weight: 600;
+      }
+
+      .catalog .specialty {
+        display: block;
+        font-size: 11.5px;
+        line-height: 15px;
+        color: var(--color-text-secondary);
+      }
+
+      .amount {
+        display: block;
+        font-size: 12.5px;
+        line-height: 17px;
+        font-weight: 600;
+        font-feature-settings: var(--font-features-tabular-nums);
+        white-space: nowrap;
+      }
+
+      .origin {
+        display: inline-flex;
+        align-items: center;
+        height: 16px;
+        margin-top: 2px;
+        padding: 0 6px;
+        border-radius: var(--radius-full);
+        font-size: 10.5px;
+        line-height: 16px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .origin--branch {
+        background: var(--color-accent-50);
+        color: var(--color-accent-700);
+      }
+
+      .origin--payer {
+        background: var(--color-info-bg);
+        color: var(--color-info-text);
+      }
+
+      .origin--list {
+        background: var(--color-system-gray-100);
+        color: var(--color-system-gray-700);
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 7px;
+        border-radius: var(--radius-full);
+        font-size: 10.5px;
+        line-height: 15px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      .tag--surface {
+        background: var(--color-info-bg);
+        color: var(--color-info-text);
+      }
+
+      .tag--tooth {
+        background: var(--color-accent-50);
+        color: var(--color-accent-700);
+      }
+
+      .tag--arch {
+        background: var(--color-system-gray-100);
+        color: var(--color-system-gray-700);
+      }
+
+      .tag--none {
+        border: 1px solid var(--color-border);
+        color: var(--color-text-secondary);
+      }
+
+      .status--sm {
+        padding: 2px 6px;
+        font-size: 10.5px;
+        line-height: 16px;
+      }
+
+      .panel__foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 20px;
+        border-top: 1px solid var(--color-hairline);
+      }
+
+      .pager__legend {
+        font-size: 12.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .pager__pages {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .pager__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 30px;
+        height: 30px;
+        padding: 0 8px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: transparent;
+        font-family: var(--font-sans);
+        font-size: 12.5px;
+        line-height: 16px;
+        font-weight: 500;
+        color: var(--color-text-primary);
+        font-feature-settings: var(--font-features-tabular-nums);
+        cursor: pointer;
+        transition:
+          background-color var(--motion-normal) var(--motion-easing-standard),
+          border-color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .pager__btn:hover:not([aria-current='page']):not(:disabled) {
+        background: var(--color-surface);
+      }
+
+      .pager__btn[aria-current='page'] {
+        border-color: var(--color-accent);
+        background: var(--color-accent);
+        color: #ffffff;
+        font-weight: 600;
+      }
+
+      .pager__btn:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+
+      .pager__btn .icon {
+        width: 16px;
+        height: 16px;
+      }
+
+      .pager__ellipsis {
+        min-width: 24px;
+        font-size: 12.5px;
+        line-height: 16px;
+        text-align: center;
+        color: var(--color-text-secondary);
+      }
+
+      /* ============================================================
+         Panel de detalle — tabs Detalle / Tarifario / Historial
+         ============================================================ */
+      .board__main {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .panel__eyebrow {
+        font-size: 10.5px;
+        line-height: 14px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--color-accent-700);
+      }
+
+      .detail {
+        overflow: hidden;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-card-lg);
+        box-shadow: var(--elevation-1);
+      }
+
+      .detail__head {
+        padding: 20px 20px 16px;
+      }
+
+      .detail__eyebrow {
+        font-size: 11px;
+        line-height: 15px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--color-accent-700);
+      }
+
+      .detail__title {
+        margin: 6px 0 4px;
+        font-size: var(--text-lg);
+        line-height: var(--text-lg-line);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .detail__meta {
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .detail__price {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-ios);
+        background: var(--color-canvas);
+      }
+
+      .detail__price-label {
+        font-size: 10.5px;
+        line-height: 14px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+
+      .detail__price-value {
+        margin-top: 2px;
+        font-size: var(--text-2xl);
+        line-height: var(--text-2xl-line);
+        font-weight: 600;
+        letter-spacing: -0.015em;
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .detail__price-meta {
+        font-size: 11px;
+        line-height: 15px;
+        color: var(--color-text-secondary);
+        text-align: right;
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .tabs {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 0 20px;
+        border-top: 1px solid var(--color-hairline);
+        border-bottom: 1px solid var(--color-hairline);
+      }
+
+      .tab {
+        position: relative;
+        height: 44px;
+        padding: 0 10px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+        cursor: pointer;
+        transition:
+          color var(--motion-normal) var(--motion-easing-standard),
+          border-color var(--motion-normal) var(--motion-easing-standard);
+      }
+
+      .tab:hover {
+        color: var(--color-text-primary);
+      }
+
+      .tab[aria-selected='true'] {
+        color: var(--color-accent-700);
+        border-bottom-color: var(--color-accent);
+        font-weight: 600;
+      }
+
+      .detail__body {
+        display: grid;
+        gap: 14px;
+        padding: 16px 20px 20px;
+      }
+
+      .detail__block + .detail__block {
+        padding-top: 14px;
+        border-top: 1px solid var(--color-hairline);
+      }
+
+      .detail__label {
+        font-size: 11px;
+        line-height: 15px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+      }
+
+      .detail__note {
+        margin-top: 8px;
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .spec {
+        display: grid;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .spec__row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 12.5px;
+        line-height: 17px;
+      }
+
+      .spec__row dt {
+        color: var(--color-text-secondary);
+      }
+
+      .spec__row dd {
+        font-weight: 600;
+        text-align: right;
+      }
+
+      .codes {
+        display: grid;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .code-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .code-row__label {
+        color: var(--color-text-secondary);
+      }
+
+      .code-row__value {
+        padding: 1px 8px;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-md);
+        background: var(--color-surface);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 11.5px;
+        line-height: 16px;
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .recipe {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 8px;
+        padding: 10px 12px;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-ios);
+        background: var(--color-canvas);
+      }
+
+      .recipe__name {
+        display: block;
+        font-size: 12.5px;
+        line-height: 17px;
+        font-weight: 600;
+      }
+
+      .recipe__meta {
+        display: block;
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .recipe__qty {
+        flex: 0 0 auto;
+        font-size: 12.5px;
+        line-height: 17px;
+        font-weight: 600;
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      /* ============================================================
+         Tarifario por sede — tabla dentro del panel
+         ============================================================ */
+      .tariff {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      .tariff th {
+        padding: 9px 8px;
+        background: var(--color-surface);
+        border-top: 1px solid var(--color-hairline);
+        border-bottom: 1px solid var(--color-hairline);
+        font-size: 10.5px;
+        line-height: 14px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+        text-align: left;
+      }
+
+      .tariff td {
+        height: 48px;
+        padding: 0 8px;
+        font-size: 12px;
+        line-height: 16px;
+        vertical-align: middle;
+      }
+
+      .tariff th:first-child,
+      .tariff td:first-child {
+        padding-left: 20px;
+      }
+
+      .tariff th:last-child,
+      .tariff td:last-child {
+        padding-right: 20px;
+      }
+
+      .tariff tbody tr + tr td {
+        box-shadow: inset 0 1px 0 var(--color-hairline);
+      }
+
+      .tariff tbody tr.is-applied td {
+        background: var(--color-accent-50);
+      }
+
+      .tariff .is-right {
+        text-align: right;
+      }
+
+      .tariff .period {
+        font-size: 11.5px;
+        line-height: 15px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+        white-space: nowrap;
+      }
+
+      .applied-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        margin-right: 6px;
+        border-radius: var(--radius-full);
+        background: var(--color-accent);
+        vertical-align: 2px;
+      }
+
+      .tariff__foot {
+        display: grid;
+        gap: 10px;
+        padding: 14px 20px 18px;
+        border-top: 1px solid var(--color-hairline);
+        background: var(--color-surface);
+      }
+
+      .tariff__rule {
+        font-size: 12.5px;
+        line-height: 17px;
+      }
+
+      .cascade {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .cascade__step {
+        padding: 1px 8px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-full);
+        background: var(--color-surface-elevated);
+        color: var(--color-text-primary);
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      .cascade__step--active {
+        border-color: var(--color-accent);
+        background: var(--color-accent-50);
+        color: var(--color-accent-700);
+        font-weight: 600;
+      }
+
+      /* ============================================================
+         Historial y rail de calidad
+         ============================================================ */
+      .mini-card__sub {
+        margin-top: 3px;
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+      }
+
+      .hist {
+        margin-top: 12px;
+      }
+
+      .hist__row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+      }
+
+      .hist__row:first-child {
+        padding-top: 0;
+      }
+
+      .hist__row:last-child {
+        padding-bottom: 0;
+      }
+
+      .hist__row + .hist__row {
+        box-shadow: inset 0 1px 0 var(--color-hairline);
+      }
+
+      .hist__body {
+        min-width: 0;
+      }
+
+      .hist__title {
+        display: block;
+        font-size: 12.5px;
+        line-height: 17px;
+        font-weight: 600;
+      }
+
+      .hist__meta {
+        display: block;
+        margin-top: 2px;
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .hist__date {
+        flex: 0 0 auto;
+        font-size: 11px;
+        line-height: 15px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+        white-space: nowrap;
+      }
+
+      .gap {
+        margin-top: 16px;
+      }
+
+      .gap__head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .gap__label {
+        font-size: 12.5px;
+        line-height: 17px;
+        font-weight: 600;
+      }
+
+      .gap__value {
+        font-size: var(--text-xl);
+        line-height: var(--text-xl-line);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .bar {
+        height: 6px;
+        margin: 8px 0 6px;
+        overflow: hidden;
+        border-radius: var(--radius-full);
+        background: var(--color-system-gray-100);
+      }
+
+      .bar__fill {
+        display: block;
+        height: 100%;
+        border-radius: var(--radius-full);
+        background: var(--color-warning);
+      }
+
+      .gap__meta {
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--color-text-secondary);
+        font-feature-settings: var(--font-features-tabular-nums);
+      }
+
+      .notice {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-top: 16px;
+        padding: 10px 12px;
+        border-radius: var(--radius-ios);
+      }
+
+      .notice--warning {
+        background: var(--color-warning-bg);
+        color: var(--color-warning-text);
+      }
+
+      .notice .icon {
+        width: 16px;
+        height: 16px;
+        margin-top: 1px;
+      }
+
+      .notice p {
+        font-size: 11.5px;
+        line-height: 16px;
+      }
+
+      /* El anillo del token gana sobre la sombra propia de los controles. */
+      .tab:focus-visible,
+      .pager__btn:focus-visible,
+      .filter__control:focus-visible {
+        box-shadow: var(--focus-ring-default);
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="sidebar" aria-label="Navegación principal">
+      <div class="sidebar__scroll">
+        <a
+          class="brand"
+          href="#dashboard"
+          aria-label="OdontoSuite · Clínica San Isidro, ir al Dashboard"
+        >
+          <span class="brand__mark" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path
+                d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
+              />
+            </svg>
+          </span>
+          <span class="brand__text">
+            <span class="brand__name">OdontoSuite</span>
+            <span class="brand__sub">Clínica San Isidro</span>
+          </span>
+        </a>
+
+        <div class="nav-group" role="group" aria-labelledby="nav-principal">
+          <p class="nav-group__label" id="nav-principal">PRINCIPAL</p>
+          <a class="nav-item" href="#dashboard">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+              <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+              <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+              <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+            </svg>
+            <span>Dashboard</span>
+          </a>
+          <a class="nav-item" href="#mi-dia">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"
+              />
+            </svg>
+            <span>Mi día</span>
+          </a>
+          <a class="nav-item" href="#calendario">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
+              <path d="M3.5 9.5h17M8 3v4M16 3v4" />
+              <path d="M7.5 13h2M11 13h2M14.5 13h2M7.5 16.5h2M11 16.5h2" />
+            </svg>
+            <span>Calendario</span>
+          </a>
+        </div>
+
+        <div class="nav-group" role="group" aria-labelledby="nav-clinica">
+          <p class="nav-group__label" id="nav-clinica">CLÍNICA</p>
+          <a class="nav-item" href="#pacientes">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="9" cy="8" r="3.25" />
+              <path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
+              <path d="M15.5 5.2a3 3 0 0 1 0 5.6M17 15.3c2.2.5 3.5 2.2 3.5 4.7" />
+            </svg>
+            <span>Pacientes</span>
+          </a>
+          <a class="nav-item" href="#historias-clinicas">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 3.5h8.5L19 8v12.5H6z" />
+              <path d="M14.5 3.5V8H19" />
+              <path d="M9 12h6M9 15.5h6" />
+            </svg>
+            <span>Historias clínicas</span>
+          </a>
+          <a class="nav-item" href="#planes-de-tratamiento">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="4.5" width="14" height="16.5" rx="2" />
+              <rect x="9" y="2.5" width="6" height="3.5" rx="1" />
+              <path d="M8.5 10h7M8.5 13.5h7M8.5 17h4" />
+            </svg>
+            <span>Planes de tratamiento</span>
+          </a>
+          <a class="nav-item" href="#presupuestos">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 3.5h12v17l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3-2 1.3z" />
+              <path d="M9 8h6M9 11.5h6M9 15h4" />
+            </svg>
+            <span>Presupuestos</span>
+          </a>
+          <a class="nav-item" href="#registros-de-especialidad">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"
+              />
+              <path d="M12 11v5M9.5 13.5h5" />
+            </svg>
+            <span>Registros de especialidad</span>
+          </a>
+          <a class="nav-item" href="#analisis-ia">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M11 3.5l1.55 3.95L16.5 9l-3.95 1.55L11 14.5 9.45 10.55 5.5 9l3.95-1.55z" />
+              <path d="M18 15.5l.75 1.75L20.5 18l-1.75.75L18 20.5l-.75-1.75L15.5 18l1.75-.75z" />
+            </svg>
+            <span>Análisis IA</span>
+          </a>
+        </div>
+
+        <div class="nav-group" role="group" aria-labelledby="nav-catalogo">
+          <p class="nav-group__label" id="nav-catalogo">CATÁLOGO</p>
+          <a class="nav-item" href="#procedimientos" aria-current="page">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
+              />
+            </svg>
+            <span>Procedimientos</span>
+          </a>
+          <a class="nav-item" href="#estadisticas">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3.5 20.5h17" />
+              <path d="M7 20.5v-5.5M12 20.5V9M17 20.5V5.5" />
+            </svg>
+            <span>Estadísticas</span>
+          </a>
+          <a class="nav-item" href="#mis-procedimientos">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 3.5l2.7 5.5 6 .9-4.35 4.25 1.03 6-5.38-2.83-5.38 2.83 1.03-6L3.3 9.9l6-.9z"
+              />
+            </svg>
+            <span>Mis procedimientos</span>
+          </a>
+          <a class="nav-item" href="#recepcion">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13.5 3.5H19a1.5 1.5 0 0 1 1.5 1.5v14a1.5 1.5 0 0 1-1.5 1.5h-5.5" />
+              <path d="M3.5 12h11" />
+              <path d="M11 8l4 4-4 4" />
+            </svg>
+            <span>Recepción</span>
+          </a>
+        </div>
+
+        <div class="nav-group" role="group" aria-labelledby="nav-dinero">
+          <p class="nav-group__label" id="nav-dinero">DINERO</p>
+          <a class="nav-item" href="#caja">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="6" width="18" height="12.5" rx="2" />
+              <path d="M3 10h18" />
+              <path d="M7 14.5h3" />
+              <circle cx="17" cy="14.5" r="1" />
+            </svg>
+            <span>Caja</span>
+          </a>
+          <a class="nav-item" href="#listos-para-facturar">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 3.5h12v17l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3-2 1.3z" />
+              <path d="M9 9l2 2 4-4" />
+            </svg>
+            <span>Listos para facturar</span>
+          </a>
+          <a class="nav-item" href="#business-intelligence">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3.5a8.5 8.5 0 1 1-8.5 8.5" />
+              <path d="M12 3.5A8.5 8.5 0 0 1 20.5 12H12z" />
+            </svg>
+            <span>Business intelligence</span>
+          </a>
+        </div>
+
+        <div class="nav-group" role="group" aria-labelledby="nav-administracion">
+          <p class="nav-group__label" id="nav-administracion">ADMINISTRACIÓN</p>
+          <a class="nav-item" href="#profesionales">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="9.5" cy="8" r="3.25" />
+              <path d="M3.5 20c0-3.3 2.7-5.5 6-5.5 1.5 0 2.9.45 4 1.3" />
+              <path d="M15 17.5l2 2 4-4" />
+            </svg>
+            <span>Profesionales</span>
+          </a>
+          <a class="nav-item" href="#ambientes">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 11V7.5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2V11" />
+              <path d="M3.5 11.5a1.5 1.5 0 0 0-1.5 1.5v4h20v-4a1.5 1.5 0 0 0-1.5-1.5" />
+              <path d="M4.5 17v3M19.5 17v3" />
+            </svg>
+            <span>Ambientes</span>
+          </a>
+          <a class="nav-item" href="#tipos-de-cita">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M20.6 13.6l-7 7a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8z"
+              />
+              <circle cx="8" cy="8" r="1.4" />
+            </svg>
+            <span>Tipos de cita</span>
+          </a>
+          <a class="nav-item" href="#especialidades">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3.5l8.5 4.5L12 12.5 3.5 8z" />
+              <path d="M3.5 12.5L12 17l8.5-4.5" />
+              <path d="M3.5 16.5L12 21l8.5-4.5" />
+            </svg>
+            <span>Especialidades</span>
+          </a>
+          <a class="nav-item" href="#sucursales">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.5 20.5V5.5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15" />
+              <path d="M13.5 10.5h5a1 1 0 0 1 1 1v9" />
+              <path d="M3 20.5h18" />
+              <path d="M8 8.5h2M8 12h2M8 15.5h2M16 14h1M16 17.5h1" />
+            </svg>
+            <span>Sucursales</span>
+          </a>
+          <a class="nav-item" href="#metodos-de-pago">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+              <path d="M2.5 9.5h19" />
+              <path d="M6 15h4" />
+            </svg>
+            <span>Métodos de pago</span>
+          </a>
+          <a class="nav-item" href="#traslados-de-sede">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3.5 8h13M13 4.5L16.5 8 13 11.5" />
+              <path d="M20.5 16h-13M11 12.5L7.5 16l3.5 3.5" />
+            </svg>
+            <span>Traslados de sede</span>
+          </a>
+          <a class="nav-item" href="#bloqueo-contable">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4.5" y="10.5" width="15" height="10" rx="2" />
+              <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+              <path d="M12 14.5v2.5" />
+            </svg>
+            <span>Bloqueo contable</span>
+          </a>
+        </div>
+
+        <div class="nav-group" role="group" aria-labelledby="nav-operacion">
+          <p class="nav-group__label" id="nav-operacion">OPERACIÓN</p>
+          <a class="nav-item" href="#continuidad">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5" />
+              <path d="M20 4.5v4h-4" />
+              <path d="M20 12a8 8 0 0 1-13.7 5.6L4 15.5" />
+              <path d="M4 19.5v-4h4" />
+            </svg>
+            <span>Continuidad</span>
+          </a>
+          <a class="nav-item" href="#laboratorio">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 3.5h6" />
+              <path d="M10 3.5v6.2L5.4 18a2 2 0 0 0 1.8 3h9.6a2 2 0 0 0 1.8-3L14 9.7V3.5" />
+              <path d="M7.5 14.5h9" />
+            </svg>
+            <span>Laboratorio</span>
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="shell">
+      <header class="topbar">
+        <div class="topbar__heading">
+          <p class="topbar__title">Catálogo de procedimientos</p>
+          <p class="topbar__context">128 procedimientos · 96 activos · Sede San Isidro</p>
+        </div>
+
+        <div class="topbar__right">
+          <div class="search">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="M16 16l4.5 4.5" />
+            </svg>
+            <input
+              type="search"
+              aria-label="Buscar paciente, cita o documento"
+              placeholder="Buscar paciente, cita o documento"
+            />
+          </div>
+
+          <span class="branch-chip">
+            <span class="branch-chip__dot" aria-hidden="true"></span>
+            Sede San Isidro
+          </span>
+
+          <button class="icon-btn" type="button" aria-label="Notificaciones sin leer">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5" />
+              <path d="M10.2 20a2 2 0 0 0 3.6 0" />
+            </svg>
+            <span class="icon-btn__dot" aria-hidden="true"></span>
+          </button>
+
+          <span class="topbar__divider" aria-hidden="true"></span>
+
+          <div class="user">
+            <span class="user__avatar" aria-hidden="true">VS</span>
+            <span>
+              <span class="user__name">Dra. Valeria Salazar</span>
+              <span class="user__role">Odontóloga</span>
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <section class="hero" aria-labelledby="catalog-page-title">
+          <div class="hero__copy">
+            <p class="hero__eyebrow">Catálogo · Sede San Isidro</p>
+            <h1 id="catalog-page-title">Catálogo de procedimientos</h1>
+            <p class="hero__lede">
+              128 procedimientos, 96 activos. El importe que se cobra es el de la sede vigente a la
+              fecha de emisión, no el precio de lista.
+            </p>
+          </div>
+          <div class="hero__actions">
+            <button class="btn btn--primary" type="button">Nuevo procedimiento</button>
+          </div>
+        </section>
+
+        <section class="kpi-strip" aria-label="Indicadores del catálogo">
+          <div class="kpi">
+            <p class="kpi__label">Total</p>
+            <p class="kpi__value num">128</p>
+            <p class="kpi__meta">
+              <span class="kpi__dot kpi__dot--info" aria-hidden="true"></span>
+              32 inactivos
+            </p>
+          </div>
+
+          <div class="kpi">
+            <p class="kpi__label">Activos</p>
+            <p class="kpi__value num">96</p>
+            <p class="kpi__meta">
+              <span class="kpi__dot kpi__dot--success" aria-hidden="true"></span>
+              <span class="num">75 %</span>
+              &nbsp;del catálogo
+            </p>
+          </div>
+
+          <div class="kpi">
+            <p class="kpi__label">Con receta</p>
+            <p class="kpi__value num">38</p>
+            <p class="kpi__meta">
+              <span class="kpi__dot kpi__dot--warning" aria-hidden="true"></span>
+              12 activos sin insumos
+            </p>
+          </div>
+
+          <div class="kpi">
+            <p class="kpi__label">Con tarifa por sede</p>
+            <p class="kpi__value num">24</p>
+            <p class="kpi__meta">
+              <span class="kpi__dot kpi__dot--info" aria-hidden="true"></span>
+              Cobran distinto al de lista
+            </p>
+          </div>
+        </section>
+
+        <section class="filters" role="search" aria-label="Filtros: Catálogo de procedimientos">
+          <div class="filter__field">
+            <label class="filter__label" for="filter-q">Buscar</label>
+            <div class="filter__search">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5" />
+                <path d="M16 16l4.5 4.5" />
+              </svg>
+              <input id="filter-q" type="search" placeholder="Nombre, código o descripción" />
+            </div>
+          </div>
+
+          <div class="filter__field">
+            <span class="filter__label" id="filter-specialty-label">Especialidad</span>
+            <button
+              class="filter__control"
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-labelledby="filter-specialty-label filter-specialty-value"
+            >
+              <span id="filter-specialty-value">Todas</span>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="filter__field">
+            <span class="filter__label" id="filter-status-label">Estado</span>
+            <button
+              class="filter__control"
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-labelledby="filter-status-label filter-status-value"
+            >
+              <span id="filter-status-value">Todos</span>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="filter__field">
+            <span class="filter__label" id="filter-site-label">Sitio</span>
+            <button
+              class="filter__control"
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-labelledby="filter-site-label filter-site-value"
+            >
+              <span id="filter-site-value">Todos</span>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="filter__action">
+            <button class="btn btn--secondary" type="button">Limpiar filtros</button>
+          </div>
+        </section>
+
+        <div class="board">
+          <div class="board__main">
+            <section class="panel" aria-labelledby="catalog-table-title">
+              <div class="panel__head">
+                <div class="panel__heading">
+                  <h2 class="panel__title" id="catalog-table-title">Catálogo</h2>
+                  <p class="panel__sub">
+                    Precio aplicado por convenio y sede · el sitio se exige en cada línea
+                  </p>
+                </div>
+                <div class="panel__actions">
+                  <button class="btn btn--ghost btn--sm" type="button">Importar CSV</button>
+                </div>
+              </div>
+
+              <table class="catalog">
+                <caption class="sr-only">
+                  Procedimientos del catálogo con su especialidad, el sitio que declaran y el precio
+                  aplicado para la sede San Isidro
+                </caption>
+                <colgroup>
+                  <col style="width: 12.5%" />
+                  <col style="width: 17.8%" />
+                  <col style="width: 13.9%" />
+                  <col style="width: 12%" />
+                  <col style="width: 13.5%" />
+                  <col style="width: 9.4%" />
+                  <col style="width: 9.5%" />
+                  <col style="width: 11.4%" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th scope="col">Código</th>
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Especialidad</th>
+                    <th scope="col">Sitio</th>
+                    <th scope="col">Precio aplicado</th>
+                    <th scope="col" class="is-right">Insumos</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col" class="is-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="is-selected" aria-current="true">
+                    <td><span class="code">CPT-0026</span></td>
+                    <td><span class="name">Restauración de resina oclusal</span></td>
+                    <td><span class="specialty">Restauradora</span></td>
+                    <td><span class="tag tag--surface">Superficie</span></td>
+                    <td>
+                      <span class="amount">S/ 172.00</span>
+                      <span class="origin origin--branch">Sede</span>
+                    </td>
+                    <td class="is-right num">1</td>
+                    <td>
+                      <span
+                        class="status status--success status--sm"
+                        role="status"
+                        aria-label="Estado: Activo"
+                      >
+                        Activo
+                      </span>
+                    </td>
+                    <td class="is-right">
+                      <button
+                        class="btn btn--ghost btn--sm"
+                        type="button"
+                        aria-label="Ver detalle de Restauración de resina oclusal"
+                      >
+                        Ver
+                      </button>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td><span class="code">CPT-0041</span></td>
+                    <td><span class="name">Endodoncia unirradicular</span></td>
+                    <td><span class="specialty">Endodoncia</span></td>
+                    <td><span class="tag tag--tooth">Diente</span></td>
+                    <td>
+                      <span class="amount">S/ 420.00</span>
+                      <span class="origin origin--payer">Convenio</span>
+                    </td>
+                    <td class="is-right num">3</td>
+                    <td>
+                      <span
+                        class="status status--success status--sm"
+                        role="status"
+                        aria-label="Estado: Activo"
+                      >
+                        Activo
+                      </span>
+                    </td>
+                    <td class="is-right">
+                      <button
+                        class="btn btn--ghost btn--sm"
+                        type="button"
+                        aria-label="Ver detalle de Endodoncia unirradicular"
+                      >
+                        Ver
+                      </button>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td><span class="code">CPT-0102</span></td>
+                    <td><span class="name">Exodoncia simple</span></td>
+                    <td><span class="specialty">Cirugía oral</span></td>
+                    <td><span class="tag tag--tooth">Diente</span></td>
+                    <td>
+                      <span class="amount">S/ 150.00</span>
+                      <span class="origin origin--list">Lista</span>
+                    </td>
+                    <td class="is-right num">—</td>
+                    <td>
+                      <span
+                        class="status status--success status--sm"
+                        role="status"
+                        aria-label="Estado: Activo"
+                      >
+                        Activo
+                      </span>
+                    </td>
+                    <td class="is-right">
+                      <button
+                        class="btn btn--ghost btn--sm"
+                        type="button"
+                        aria-label="Ver detalle de Exodoncia simple"
+                      >
+                        Ver
+                      </button>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td><span class="code">CPT-0157</span></td>
+                    <td><span class="name">Corona de zirconio</span></td>
+                    <td><span class="specialty">Implantología</span></td>
+                    <td><span class="tag tag--tooth">Diente</span></td>
+                    <td>
+                      <span class="amount">S/ 1,850.00</span>
+                      <span class="origin origin--branch">Sede</span>
+                    </td>
+                    <td class="is-right num">2</td>
+                    <td>
+                      <span
+                        class="status status--success status--sm"
+                        role="status"
+                        aria-label="Estado: Activo"
+                      >
+                        Activo
+                      </span>
+                    </td>
+                    <td class="is-right">
+                      <button
+                        class="btn btn--ghost btn--sm"
+                        type="button"
+                        aria-label="Ver detalle de Corona de zirconio"
+                      >
+                        Ver
+                      </button>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td><span class="code">CPT-0188</span></td>
+                    <td><span class="name">Profilaxis con flúor</span></td>
+                    <td><span class="specialty">Preventiva</span></td>
+                    <td><span class="tag tag--arch">Arcada</span></td>
+                    <td>
+                      <span class="amount">S/ 96.00</span>
+                      <span class="origin origin--branch">Sede</span>
+                    </td>
+                    <td class="is-right num">2</td>
+                    <td>
+                      <span
+                        class="status status--success status--sm"
+                        role="status"
+                        aria-label="Estado: Activo"
+                      >
+                        Activo
+                      </span>
+                    </td>
+                    <td class="is-right">
+                      <button
+                        class="btn btn--ghost btn--sm"
+                        type="button"
+                        aria-label="Ver detalle de Profilaxis con flúor"
+                      >
+                        Ver
+                      </button>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td><span class="code">CPT-0203</span></td>
+                    <td><span class="name">Blanqueamiento ambulatorio</span></td>
+                    <td><span class="specialty">Estética</span></td>
+                    <td><span class="tag tag--none">Sin sitio</span></td>
+                    <td>
+                      <span class="amount">S/ 380.00</span>
+                      <span class="origin origin--list">Lista</span>
+                    </td>
+                    <td class="is-right num">—</td>
+                    <td>
+                      <span
+                        class="status status--neutral status--sm"
+                        role="status"
+                        aria-label="Estado: Inactivo"
+                      >
+                        Inactivo
+                      </span>
+                    </td>
+                    <td class="is-right">
+                      <button
+                        class="btn btn--ghost btn--sm"
+                        type="button"
+                        aria-label="Ver detalle de Blanqueamiento ambulatorio"
+                      >
+                        Ver
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <nav class="panel__foot" aria-label="Paginación del catálogo">
+                <p class="pager__legend">Mostrando 1 a 20 de 128 procedimientos</p>
+                <div class="pager__pages">
+                  <button class="pager__btn" type="button" aria-label="Página anterior" disabled>
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M14.5 6l-6 6 6 6" />
+                    </svg>
+                  </button>
+                  <button
+                    class="pager__btn"
+                    type="button"
+                    aria-current="page"
+                    aria-label="Página 1"
+                  >
+                    1
+                  </button>
+                  <button class="pager__btn" type="button" aria-label="Página 2">2</button>
+                  <button class="pager__btn" type="button" aria-label="Página 3">3</button>
+                  <span class="pager__ellipsis" aria-hidden="true">…</span>
+                  <button class="pager__btn" type="button" aria-label="Página 7">7</button>
+                  <button class="pager__btn" type="button" aria-label="Página siguiente">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M9.5 6l6 6-6 6" />
+                    </svg>
+                  </button>
+                </div>
+              </nav>
+            </section>
+
+            <section class="panel" id="tariff-panel" aria-labelledby="tariff-title">
+              <div class="panel__head">
+                <div class="panel__heading">
+                  <p class="panel__eyebrow">Tab «Tarifario»</p>
+                  <h2 class="panel__title" id="tariff-title">Tarifario por sede</h2>
+                  <p class="panel__sub">
+                    CPT-0026 · San Isidro cobra S/ 172.00 en lugar de los S/ 185.00 de lista
+                  </p>
+                </div>
+                <div class="panel__actions">
+                  <button class="btn btn--ghost btn--sm" type="button">Agregar precio</button>
+                </div>
+              </div>
+
+              <table class="tariff">
+                <caption class="sr-only">
+                  Precios por sede y convenio del procedimiento CPT-0026 con su vigencia y estado
+                </caption>
+                <colgroup>
+                  <col style="width: 20%" />
+                  <col style="width: 20%" />
+                  <col style="width: 28%" />
+                  <col style="width: 15%" />
+                  <col style="width: 17%" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th scope="col">Sede</th>
+                    <th scope="col">Convenio</th>
+                    <th scope="col">Vigencia</th>
+                    <th scope="col" class="is-right">Precio</th>
+                    <th scope="col">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="is-applied">
+                    <td>
+                      <span class="applied-dot" aria-hidden="true"></span>
+                      San Isidro
+                      <span class="sr-only">aplica</span>
+                    </td>
+                    <td>—</td>
+                    <td><span class="period">01 ene 2026 – 31 dic 2026</span></td>
+                    <td class="is-right">
+                      <span class="amount">S/ 172.00</span>
+                    </td>
+                    <td>
+                      <span
+                        class="status status--success status--sm"
+                        role="status"
+                        aria-label="Estado: Vigente"
+                      >
+                        Vigente
+                      </span>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>La Molina</td>
+                    <td>—</td>
+                    <td><span class="period">01 oct 2026 – 30 jun 2027</span></td>
+                    <td class="is-right"><span class="amount">S/ 178.00</span></td>
+                    <td>
+                      <span
+                        class="status status--success status--sm"
+                        role="status"
+                        aria-label="Estado: Vigente"
+                      >
+                        Vigente
+                      </span>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>Surco</td>
+                    <td>—</td>
+                    <td><span class="period">01 nov 2026 – 31 dic 2027</span></td>
+                    <td class="is-right"><span class="amount">S/ 180.00</span></td>
+                    <td>
+                      <span
+                        class="status status--info status--sm"
+                        role="status"
+                        aria-label="Estado: Futuro"
+                      >
+                        Futuro
+                      </span>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>La Molina</td>
+                    <td>Pacífico EPS</td>
+                    <td><span class="period">01 ene 2025 – 31 dic 2025</span></td>
+                    <td class="is-right"><span class="amount">S/ 164.00</span></td>
+                    <td>
+                      <span
+                        class="status status--danger status--sm"
+                        role="status"
+                        aria-label="Estado: Vencido"
+                      >
+                        Vencido
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="tariff__foot">
+                <p class="tariff__rule">
+                  Precio de lista
+                  <span class="num">S/ 185.00</span>
+                  ; en San Isidro aplica
+                  <span class="num">S/ 172.00</span>
+                  . La fila de la sede gana sobre la lista y el presupuesto congela ese importe al
+                  emitirse.
+                </p>
+                <p class="cascade">
+                  Cascada a la fecha de referencia
+                  <span class="cascade__step">Convenio + sede</span>
+                  <span class="cascade__arrow" aria-hidden="true">→</span>
+                  <span class="cascade__step">Convenio</span>
+                  <span class="cascade__arrow" aria-hidden="true">→</span>
+                  <span class="cascade__step cascade__step--active">Sede</span>
+                  <span class="cascade__arrow" aria-hidden="true">→</span>
+                  <span class="cascade__step">Lista</span>
+                </p>
+              </div>
+            </section>
+            <section class="mini-card" id="history-panel" aria-labelledby="history-title">
+              <p class="panel__eyebrow">Tab «Historial»</p>
+              <h2 class="mini-card__title" id="history-title">Historial</h2>
+              <p class="mini-card__sub">Cambios registrados sobre CPT-0026</p>
+
+              <ul class="hist">
+                <li class="hist__row">
+                  <span class="hist__body">
+                    <span class="hist__title">Precio de sede actualizado</span>
+                    <span class="hist__meta">S/ 165.00 → S/ 172.00 · Lic. Rocío Paredes</span>
+                  </span>
+                  <span class="hist__date">12 oct 2026</span>
+                </li>
+                <li class="hist__row">
+                  <span class="hist__body">
+                    <span class="hist__title">Receta de insumos editada</span>
+                    <span class="hist__meta">Resina compuesta A2 · 0,5 jeringa</span>
+                  </span>
+                  <span class="hist__date">03 sep 2026</span>
+                </li>
+              </ul>
+            </section>
+          </div>
+
+          <div class="board__side">
+            <section class="detail" aria-labelledby="selected-proc-title">
+              <div class="detail__head">
+                <p class="detail__eyebrow">Procedimiento seleccionado</p>
+                <h2 class="detail__title" id="selected-proc-title">
+                  Restauración de resina oclusal
+                </h2>
+                <p class="detail__meta">CPT-0026 · Restauradora · actualizado 12 oct 2026</p>
+
+                <div class="detail__price">
+                  <div>
+                    <p class="detail__price-label">Precio aplicado</p>
+                    <p class="detail__price-value">S/ 172.00</p>
+                  </div>
+                  <div>
+                    <span class="origin origin--branch">Sede</span>
+                    <p class="detail__price-meta">Lista S/ 185.00</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tabs" role="tablist" aria-label="Detalle del procedimiento CPT-0026">
+                <button
+                  class="tab"
+                  id="tab-detalle"
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="panel-detalle"
+                  tabindex="0"
+                >
+                  Detalle
+                </button>
+                <button
+                  class="tab"
+                  id="tab-tarifario"
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="tariff-panel"
+                  tabindex="-1"
+                >
+                  Tarifario
+                </button>
+                <button
+                  class="tab"
+                  id="tab-historial"
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="history-panel"
+                  tabindex="-1"
+                >
+                  Historial
+                </button>
+              </div>
+
+              <div
+                class="detail__body"
+                id="panel-detalle"
+                role="tabpanel"
+                aria-labelledby="tab-detalle"
+              >
+                <div class="detail__block">
+                  <h3 class="detail__label">Aplicabilidad</h3>
+                  <dl class="spec">
+                    <div class="spec__row">
+                      <dt>Tipo de sitio</dt>
+                      <dd>Superficie</dd>
+                    </div>
+                    <div class="spec__row">
+                      <dt>Sitio en la línea</dt>
+                      <dd>Pieza 26 · superficie O</dd>
+                    </div>
+                    <div class="spec__row">
+                      <dt>Duración estimada</dt>
+                      <dd><span class="num">45 min</span></dd>
+                    </div>
+                  </dl>
+                  <p class="detail__note">
+                    Un plan o presupuesto que nombre este procedimiento debe declarar pieza y
+                    superficie: sin sitio la API responde 422 y la línea no se emite.
+                  </p>
+                </div>
+
+                <div class="detail__block">
+                  <h3 class="detail__label">Códigos externos</h3>
+                  <ul class="codes">
+                    <li class="code-row">
+                      <span class="code-row__label">RM 550-2023/MINSA</span>
+                      <span class="code-row__value">552104</span>
+                    </li>
+                    <li class="code-row">
+                      <span class="code-row__label">SIS</span>
+                      <span class="code-row__value">S1301041</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="detail__block">
+                  <h3 class="detail__label">Receta de insumos</h3>
+                  <div class="recipe">
+                    <span>
+                      <span class="recipe__name">Resina compuesta A2</span>
+                      <span class="recipe__meta">Stock 12 · lote 24-A2</span>
+                    </span>
+                    <span class="recipe__qty">0,5 jeringa</span>
+                  </div>
+                  <p class="detail__note">
+                    Se descuenta del almacén de la sede al cerrar la atención.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section class="mini-card" aria-labelledby="quality-title">
+              <h2 class="mini-card__title" id="quality-title">Calidad del catálogo</h2>
+              <p class="mini-card__sub">Revisión de octubre sobre los 96 activos</p>
+
+              <div class="gap">
+                <div class="gap__head">
+                  <span class="gap__label">Sin receta de insumos</span>
+                  <span class="gap__value num">12</span>
+                </div>
+                <div
+                  class="bar"
+                  role="progressbar"
+                  aria-label="Activos sin receta de insumos"
+                  aria-valuemin="0"
+                  aria-valuemax="96"
+                  aria-valuenow="12"
+                  aria-valuetext="12 de 96 activos sin receta"
+                >
+                  <span class="bar__fill" style="width: 12.5%"></span>
+                </div>
+                <p class="gap__meta">12 de 96 activos no declaran ningún insumo.</p>
+              </div>
+
+              <div class="gap">
+                <div class="gap__head">
+                  <span class="gap__label">Sin código externo</span>
+                  <span class="gap__value num">8</span>
+                </div>
+                <div
+                  class="bar"
+                  role="progressbar"
+                  aria-label="Activos sin código externo"
+                  aria-valuemin="0"
+                  aria-valuemax="96"
+                  aria-valuenow="8"
+                  aria-valuetext="8 de 96 activos sin código externo"
+                >
+                  <span class="bar__fill" style="width: 8.3%"></span>
+                </div>
+                <p class="gap__meta">
+                  8 de 96 activos no tienen equivalencia en el nomenclador ni en el SIS.
+                </p>
+              </div>
+
+              <div class="notice notice--warning">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 4.5l8.5 15h-17z" />
+                  <path d="M12 10v4.5" />
+                  <circle cx="12" cy="17.2" r="0.9" />
+                </svg>
+                <p>
+                  <strong>Antes de emitir presupuestos.</strong>
+                  Sin receta, el cierre no descuenta stock; sin código externo, el procedimiento no
+                  se concilia con el nomenclador ni con el SIS.
+                </p>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <p class="artboard-meta">
+          design/interfaces/16-procedure-catalog.html · 1440 px · 2026-10-29
+        </p>
+      </main>
+    </div>
+  </body>
+</html>
