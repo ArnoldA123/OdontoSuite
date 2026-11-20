@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "comments": [
+    {
+      "id": "1xemk4tt",
+      "file": "28-login.html",
+      "selector": "body > main",
+      "excerpt": "OdontoSuite Clínica San Isidro La clínica, en orden: agenda, acta clínica y dinero en un solo lugar Agenda, sillones y lista de espera en una vista. Acta clínica firmada que se corrige con addendum. Caja y estado de cuenta que cuadran al cierre. ACCESO AL SISTEMA Iniciar sesión Usa el correo que te",
+      "comment": "quiero que lo hagas mas premium este login , podes usar la skill de apple-design",
+      "createdAt": "2026-10-30T15:55:20.475Z",
+      "status": "resolved",
+      "sentAt": "2026-10-30T15:55:20.487Z",
+      "resolvedAt": "2026-10-30T17:27:33.925Z"
+    },
+    {
+      "id": "xr98vh0d",
+      "file": "28-login.html",
+      "selector": "body > main",
+      "excerpt": "OdontoSuite Clínica San Isidro La clínica, en orden: agenda, acta clínica y dinero en un solo lugar Cada acto queda firmado y cada lectura, auditada. 01 Agenda, sillones y lista de espera en una vista. 02 Acta clínica firmada que se corrige con addendum. 03 Caja y estado de cuenta que cuadran al cie",
+      "comment": "que se vea limpia y premium, como tal y un recurso pra hacer como un tipo de efecto parallax infinito unicamente, como ese recurso puede ser pequeños los dientes varios replicados dispersos y de manera infinita, limpio, veo mucho texto, considera que es solo un login",
+      "createdAt": "2026-10-30T17:27:27.773Z",
+      "status": "resolved",
+      "sentAt": "2026-10-30T17:27:27.795Z",
+      "resolvedAt": "2026-10-30T17:27:37.407Z",
+      "screenshot": ".screenshots/xr98vh0d.png"
+    },
+    {
+      "id": "oabc5907",
+      "file": "28-login.html",
+      "selector": "body > main > section",
+      "excerpt": "OdontoSuite Clínica San Isidro La clínica, en orden. Agenda·Acta clínica·Dinero Acceso auditado · NTS 139 / NTS 188",
+      "comment": "considero que sigue habiwndo cosas innecesarias no esenciales en este loogin, veo 2 zonas de diferentes colores, veo palabras innecesarias que no tiene que estar en un login, pero eso no quitar lo esencia y basico segun normativas y buenas practicas, ademas dije un parallax infinito nada mas no que sigan el cursor o algo por el estilo,, consideras que \"La clínica en orden\" es necesario?? y mas palabras?",
+      "createdAt": "2026-10-30T17:35:48.754Z",
+      "status": "resolved",
+      "sentAt": "2026-10-30T17:35:48.765Z",
+      "resolvedAt": "2026-10-30T17:38:32.284Z"
+    },
+    {
+      "id": "jgm48jyk",
+      "file": "28-login.html",
+      "selector": "body > main > div:nth-of-type(2)",
+      "excerpt": "OdontoSuite Clínica San Isidro Iniciar sesión Correo electrónico Contraseña ¿Olvidaste tu contraseña? Entrar",
+      "comment": "estupendo quedo, un unico detalle que el fondo de color que esta como quiero que sea mas pastel o mas sutil, pero a su ves siga viendose premium (un color no hace que se vea premium) si no las sombras y mas microinteracciones y detalles a tener en cuenta, y como cambiara creo el fondo seria bueno ccambiar el system design tambien unicamente para la paleta que planeo que cambies ose el colore mas sutil, primero haz unna prueba y despues vemos",
+      "createdAt": "2026-10-30T17:41:48.579Z",
+      "status": "resolved",
+      "sentAt": "2026-10-30T17:41:48.587Z",
+      "resolvedAt": "2026-10-30T17:47:35.790Z"
+    },
+    {
+      "id": "qz5r2xsf",
+      "file": "28-login.html",
+      "selector": "body > main > div:nth-of-type(2)",
+      "excerpt": "OdontoSuite Clínica San Isidro Iniciar sesión Correo electrónico Contraseña ¿Olvidaste tu contraseña? Entrar",
+      "comment": "los reecursos de dientes del parallax seve como por debado o con un flitro como tal me parece de color del fondo medio verdoso, eso no debe de pasar dado a que es recurso limpio asi que o ponle encima del fondo y debajo de la card del login y las palabras, osea el color natural del recurso, incluso agrega tambien este intercalado aleatoriamente con el diente y este cepillo de recurso. y si me gusto el fondo el color asi que iria  bien si lo intercambias en el system design tambien el que esta ahora por el que estaba antes",
+      "createdAt": "2026-10-30T19:11:32.229Z",
+      "status": "resolved",
+      "sentAt": "2026-10-30T19:11:32.292Z",
+      "resolvedAt": "2026-10-30T19:22:53.980Z",
+      "screenshot": ".screenshots/qz5r2xsf.png"
+    },
+    {
+      "id": "lw7rwvga",
+      "file": "28-login.html",
+      "selector": "body",
+      "excerpt": "OdontoSuite Clínica San Isidro Iniciar sesión Correo electrónico Contraseña ¿Olvidaste tu contraseña? Entrar design/interfaces/28-login.html · 1440 px · 2026-10-29",
+      "comment": "no  esta responsive correctamente",
+      "createdAt": "2026-11-19T15:42:27.557Z",
+      "status": "resolved",
+      "sentAt": "2026-11-19T15:42:27.693Z",
+      "resolvedAt": "2026-11-19T15:45:24.889Z",
+      "resolution": "Viewport fluido (width=device-width), body y superficie sin ancho ni alto fijos, tarjeta a min(404px,100%) con espaciado en clamp, marca que envuelve, campos a 16px en móvil, el campo de dientes escala con el bucle (--tile-h) y el pie deja de pisar la tarjeta. Medido de 320 a 1920 sin desborde horizontal."
+    },
+    {
+      "id": "5o3qol6m",
+      "file": "28-login.html",
+      "selector": "body > main > div:nth-of-type(2) > section",
+      "excerpt": "Iniciar sesión Correo electrónico Contraseña ¿Olvidaste tu contraseña? Entrar",
+      "comment": "ademas le faltan algunas cosas, si bien esta bien limpio y perfecto algunas cosas como terminos y condiciones, contactar con el administrador etc, incluso iconos de google, microsoft u otro correo",
+      "createdAt": "2026-11-19T15:43:39.229Z",
+      "status": "resolved",
+      "sentAt": "2026-11-19T15:43:39.249Z",
+      "resolvedAt": "2026-11-19T15:48:16.903Z",
+      "resolution": "La tarjeta gana subtítulo, acceso federado en dos botones (Google y Microsoft con sus marcas en SVG inline), separador «o entra con tu correo», y bajo ella el enlace de contacto con el administrador y el pie legal: Términos del servicio, Política de privacidad y soporte técnico. Todo con los tokens existentes, sin recursos externos."
+    },
+    {
+      "id": "1wrq7kbi",
+      "file": "28-login.html",
+      "selector": "body > main > div:nth-of-type(2) > div > span:nth-of-type(1) > svg",
+      "excerpt": "",
+      "comment": "este color no me gusca del icono, debe ser neutro o no ir nada o hacer un svg super mejorado a corde",
+      "createdAt": "2026-11-19T15:44:14.223Z",
+      "status": "resolved",
+      "sentAt": "2026-11-19T15:44:14.235Z",
+      "resolvedAt": "2026-11-19T15:50:22.063Z",
+      "resolution": "La marca deja el verde: chip neutro en tinta (#1a1917) con anillo hairline y el diente redibujado a trazo sobre rejilla 24, simétrico, con raíces más cortas y surco oclusal separado del borde. El verde queda solo en el botón «Entrar» y en los enlaces."
+    },
+    {
+      "id": "4ksgax2v",
+      "file": "28-login.html",
+      "selector": "body > main > div:nth-of-type(2) > div > span:nth-of-type(4)",
+      "excerpt": "Clínica San Isidro",
+      "comment": "este no es el nombre de la clinica, y como ser generico pues esto no deberia de ir algun nombre o que se pueda editar en la interfaz de configuraciones como tal tambien",
+      "createdAt": "2026-11-19T15:45:05.248Z",
+      "status": "resolved",
+      "sentAt": "2026-11-19T15:45:05.262Z",
+      "resolvedAt": "2026-11-19T15:51:21.061Z",
+      "resolution": "Fuera el nombre inventado: la barra queda como logotipo de producto (marca + «OdontoSuite») y el contexto de clínica pasa al subtítulo, genérico y cierto en cualquier instalación: «Ingresa con la cuenta que te asignó tu clínica». Queda una nota en el marcado recordando que el nombre de la clínica es dato configurable de la organización, no del acceso."
+    },
+    {
+      "id": "owa7wcj9",
+      "file": "28-login.html",
+      "selector": "body > main > div:nth-of-type(2) > div > span:nth-of-type(1) > svg",
+      "excerpt": "",
+      "comment": "no es profesional el icono, ni atrapa el entorno rtampoco intenta de nuevo si no elimina todo caso",
+      "createdAt": "2026-11-19T15:52:44.699Z",
+      "status": "resolved",
+      "sentAt": "2026-11-19T15:52:44.819Z",
+      "resolvedAt": "2026-11-19T15:53:23.523Z",
+      "resolution": "Se elimina el icono: fuera el chip con el diente y todo su CSS. La cabecera queda como logotipo tipográfico puro —«OdontoSuite» a 20 px, semibold, interletra cerrada— centrado sobre la tarjeta. Ningún glifo inventado compite con el entorno; la identidad la sostiene la tipografía."
+    },
+    {
+      "id": "sky9xyka",
+      "file": "28-login.html",
+      "selector": "body > main > div:nth-of-type(2) > section",
+      "excerpt": "Iniciar sesión Ingresa con la cuenta que te asignó tu clínica. Google Microsoft o entra con tu correo Correo electrónico Contraseña ¿Olvidaste tu contraseña? Entrar ¿Aún no tienes cuenta? Contacta con el administrador",
+      "comment": "los iconos de cuentas de correo de googl y microsoft que yo recuerde por orden jerarjica va despues de los campos de ingreso de login y debajo del boton entran pero antes de aun no tienes cuenta. es por ello que replantea la jerarquia de los objetoos dee todo el login",
+      "createdAt": "2026-11-19T15:55:05.799Z",
+      "status": "resolved",
+      "sentAt": "2026-11-19T15:55:05.930Z",
+      "resolvedAt": "2026-11-19T15:56:24.536Z",
+      "resolution": "Jerarquía replanteada: título → subtítulo → correo, contraseña, «¿Olvidaste tu contraseña?» y «Entrar» como vía primaria; después el separador «o usa una cuenta externa», los botones de Google y Microsoft, y al final «¿Aún no tienes cuenta? Contacta con el administrador». Los proveedores bajan un escalón visual: borde hairline y fondo transparente, sin elevación."
+    }
+  ]
+}
