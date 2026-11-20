@@ -5,13 +5,13 @@ namespace Tests\Unit\DesignSystem;
 use PHPUnit\Framework\TestCase;
 
 /**
- * WU4 - dashboard hierarchy contract (D7 / D6 / D10).
+ * Dashboard information architecture after U2.
  *
- * Source-inspection guards for the three-block reading hierarchy, the
- * hero band carrying the login's visual language, and the topbar subtitle
- * that must stop framing the page as a "Resumen". DOM behavior is covered
- * by tests/js/smoke/dashboard-hierarchy.test.js; these rules are the
- * cheap re-run gate for the source anatomy.
+ * Source-inspection guards for the two-block reading order (Hoy -> Dónde
+ * seguir), the hero band carrying the login's visual language, the compact
+ * destination cards and the topbar subtitle that must stop framing the page as
+ * a "Resumen". DOM behavior is covered by tests/js/smoke/dashboard-*.test.js;
+ * these rules are the cheap re-run gate for the source anatomy.
  */
 class DashboardHierarchyContractTest extends TestCase
 {
@@ -40,130 +40,185 @@ class DashboardHierarchyContractTest extends TestCase
     }
 
     /**
-     * D7 - the three blocks render in reading order: "Hoy", then
-     * "Requiere tu atención", then the secondary "Próximos días".
+     * U2 - the page renders two blocks in reading order: "Hoy" and "Dónde
+     * seguir". The three appointment blocks are retired.
      */
-    public function test_dashboard_renders_the_three_blocks_in_reading_order(): void
+    public function test_dashboard_renders_the_two_blocks_in_reading_order(): void
     {
         $src = $this->dashboardSource();
 
         $hoy = strpos($src, 'data-dashboard-block="hoy"');
-        $attention = strpos($src, 'data-dashboard-block="attention"');
-        $upcoming = strpos($src, 'data-dashboard-block="upcoming"');
+        $destinations = strpos($src, 'data-dashboard-block="destinations"');
 
-        $this->assertNotFalse($hoy, 'DashboardPage.vue must render block "hoy" (WU4 / D7).');
-        $this->assertNotFalse($attention, 'DashboardPage.vue must render block "attention" (WU4 / D7).');
-        $this->assertNotFalse($upcoming, 'DashboardPage.vue must render block "upcoming" (WU4 / D7).');
-        $this->assertLessThan($attention, $hoy, 'Block "Hoy" must render before "Requiere tu atención" (D7).');
-        $this->assertLessThan($upcoming, $attention, 'Block "Requiere tu atención" must render before "Próximos días" (D7).');
+        $this->assertNotFalse($hoy, 'DashboardPage.vue must render block "hoy".');
+        $this->assertNotFalse($destinations, 'DashboardPage.vue must render block "destinations".');
+        $this->assertLessThan($destinations, $hoy, 'Block "Hoy" must render before "Dónde seguir".');
+
+        foreach (['attention', 'upcoming'] as $retired) {
+            $this->assertStringNotContainsString(
+                'data-dashboard-block="'.$retired.'"',
+                $src,
+                "\"{$retired}\" is not a dashboard block anymore: its content moved out of the page (U2)."
+            );
+        }
 
         $this->assertSame(
             0,
             preg_match_all('/aria-label="Resumen del día"/', $src),
-            'DashboardPage.vue must render zero "Resumen del día" regions (WU4 / D7: its content lives in block "Hoy").'
+            'DashboardPage.vue must render zero "Resumen del día" regions.'
         );
         $this->assertStringNotContainsString(
-            'aria-label="Pendientes"',
+            'aria-label="Agenda de hoy"',
             $src,
-            'DashboardPage.vue must retire the flat "Pendientes" region name for the block heading (WU4 / D7).'
+            'DashboardPage.vue must no longer list today\'s appointments (U2).'
         );
         $this->assertStringNotContainsString(
-            'aria-label="Próximas citas"',
+            'aria-label="Requiere tu atención"',
             $src,
-            'DashboardPage.vue must retire the flat "Próximas citas" region name for the block heading (WU4 / D7).'
+            'DashboardPage.vue must retire the "Requiere tu atención" block: the answers live in Pendientes (U1/U2).'
+        );
+        $this->assertStringNotContainsString(
+            'aria-label="Próximos días"',
+            $src,
+            'DashboardPage.vue must retire the week preview (U2).'
         );
     }
 
     /**
-     * D7 - block "Hoy" leads with the KPI strip and follows it with the
-     * agenda list; both sit under the block heading.
+     * U2 - block "Hoy" leads with the KPI strip and owns no list anymore.
      */
-    public function test_kpi_strip_leads_the_agenda_inside_block_hoy(): void
+    public function test_kpi_strip_is_the_only_content_of_block_hoy(): void
     {
         $src = $this->dashboardSource();
 
         $blockStart = strpos($src, 'data-dashboard-block="hoy"');
         $heading = strpos($src, '<h2 class="text-2xl font-semibold text-label">Hoy</h2>');
         $strip = strpos($src, 'data-reveal="kpi"');
-        $agenda = strpos($src, 'aria-label="Agenda de hoy"');
+        $destinations = strpos($src, 'data-dashboard-block="destinations"');
 
-        foreach ([$heading, $strip, $agenda] as $pos) {
+        foreach ([$heading, $strip, $destinations] as $pos) {
             $this->assertNotFalse($pos);
-            $this->assertGreaterThan($blockStart, $pos, 'Block "Hoy" must own its heading, strip and agenda.');
+            $this->assertGreaterThan($blockStart, $pos, 'Block "Hoy" must own its heading and strip.');
         }
-        $this->assertLessThan($strip, $heading, 'The block heading must lead the KPI strip (D7).');
-        $this->assertLessThan($agenda, $strip, 'The KPI strip must lead the agenda (D7).');
+        $this->assertLessThan($strip, $heading, 'The block heading must lead the KPI strip.');
+        $this->assertLessThan($destinations, $strip, 'The strip must close block "Hoy" before the destinations.');
+
+        $this->assertStringNotContainsString(
+            'data-appointment-row',
+            $src,
+            'DashboardPage.vue must keep zero appointment rows (U2).'
+        );
+        $this->assertStringNotContainsString(
+            'todayAppointments',
+            $src,
+            'DashboardPage.vue must not keep the today list that fed the retired agenda.'
+        );
     }
 
     /**
-     * D6 - the hero band carries the login's surface vocabulary (mint
-     * tint, hairline, panel radius, elevation rung) and its display
-     * greeting; the brand lockup glyph rides accent-500.
+     * U2 - the destinations are three link cards, each with one line of what it
+     * resolves and no invented counter.
      */
-    public function test_hero_band_carries_the_login_surface_vocabulary(): void
+    public function test_destinations_block_is_compact_and_counter_free(): void
+    {
+        $src = $this->dashboardSource();
+
+        $block = strpos($src, 'data-dashboard-block="destinations"');
+        $this->assertNotFalse($block);
+
+        foreach (["to: '/calendar'", "to: '/my-day'", "to: '/continuity'"] as $route) {
+            $this->assertStringContainsString(
+                $route,
+                $src,
+                "The destinations block must link to {$route}."
+            );
+        }
+
+        foreach (['Agenda', 'Mi jornada', 'Pendientes'] as $title) {
+            $this->assertStringContainsString(
+                "title: '{$title}'",
+                $src,
+                "The destinations block must title the \"{$title}\" card."
+            );
+        }
+
+        $this->assertStringContainsString(
+            'v-for="destination in destinations"',
+            $src,
+            'The destinations block must render its cards from one declared list.'
+        );
+        $this->assertStringContainsString(
+            'description:',
+            $src,
+            'Every destination card must declare the line of what it resolves.'
+        );
+
+        // The cards carry no counter and no data read.
+        $this->assertStringContainsString(
+            '<RouterLink',
+            $src,
+            'Every destination card must be a real link, not a clickable surface.'
+        );
+
+        $this->assertStringNotContainsString(
+            'count:',
+            $src,
+            'The destinations must not carry invented counters.'
+        );
+    }
+
+    /**
+     * The page header is the shared component: one anatomy for the nine
+     * surfaces, mounted with the greeting as its title. The brand lockup and
+     * the dental motif live outside the header.
+     */
+    public function test_page_header_owns_the_greeting_band(): void
     {
         $src = $this->dashboardSource();
 
         $this->assertStringContainsString(
+            '<PageHeader',
+            $src,
+            'DashboardPage.vue must mount the shared <PageHeader>.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/<PageHeader\b[\s\S]{0,400}?kicker="HOY"/',
+            $src,
+            'The dashboard header must declare the HOY kicker.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/:title="`\$\{getGreeting\(\)\}, \$\{firstName\}`"/',
+            $src,
+            'The greeting must travel to <PageHeader :title>.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/:subtitle="getTodayDate\(\)"/',
+            $src,
+            'The date must travel to <PageHeader :subtitle>.'
+        );
+
+        // The surface recipe moved to the component; the page no longer
+        // repeats it, and it carries no brand lockup or motif.
+        $this->assertStringNotContainsString(
             'data-dashboard-hero',
             $src,
-            'DashboardPage.vue must render the hero band hook (WU4 / D6).'
+            'DashboardPage.vue must not keep the retired hero hook.'
         );
-        $this->assertStringContainsString(
-            'background: var(--color-canvas)',
-            $src,
-            'The hero band must paint the login backdrop base (WU4 / D6; user direction: no mint tint).'
-        );
-        $this->assertStringContainsString(
-            'border: 1px solid var(--color-hairline)',
-            $src,
-            'The hero band must carry the hairline vocabulary (WU4 / D6).'
-        );
-        $this->assertStringContainsString(
-            'border-radius: var(--radius-panel)',
-            $src,
-            'The hero band must ride the panel radius (WU4 / D6).'
-        );
-        $this->assertMatchesRegularExpression(
-            '/text-4xl font-semibold[^>]*>\s*\{\{ getGreeting\(\) \}\}/',
-            $src,
-            'The hero greeting must use the login display step (WU4 / D6).'
-        );
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             'OdontoSuite',
             $src,
-            'The hero band must carry the login brand lockup wordmark (WU4 / D6).'
+            'The dashboard header must not paint the brand wordmark.'
+        );
+        $this->assertStringNotContainsString(
+            'DentalMotifLayer',
+            $src,
+            'The dashboard header must not mount the dental motif.'
         );
     }
 
     /**
-     * D7 - "Próximos días" is visually secondary: the quietest heading
-     * tier and a reduced-prominence surface around its rows.
-     */
-    public function test_upcoming_block_stays_visually_secondary(): void
-    {
-        $src = $this->dashboardSource();
-
-        $this->assertStringContainsString(
-            '<h2 class="text-base font-medium text-theme-secondary">Próximos días</h2>',
-            $src,
-            'The upcoming block must render the quietest heading tier (WU4 / D7).'
-        );
-        $this->assertStringContainsString(
-            'data-upcoming-surface',
-            $src,
-            'The upcoming rows must sit on their secondary surface hook (WU4 / D7).'
-        );
-        $this->assertMatchesRegularExpression(
-            '/data-upcoming-surface[\s\S]{0,400}?var\(--color-system-gray-100\)/',
-            $src,
-            'The secondary surface must use the quiet system-gray tint (WU4 / D7).'
-        );
-    }
-
-    /**
-     * D10 - the dashboard topbar description must stop framing the page
-     * as a "Resumen"; only the dashboard entry of the per-page map moves.
+     * D10 - the dashboard topbar description must stop framing the page as a
+     * "Resumen"; only the dashboard entry of the per-page map moves.
      */
     public function test_dashboard_topbar_description_drops_the_resumen_frame(): void
     {
@@ -183,8 +238,8 @@ class DashboardHierarchyContractTest extends TestCase
     }
 
     /**
-     * HOTFIX-DASH-011 / WU4 - the em-dash ban holds file-wide on the
-     * restructured template (block comments included).
+     * HOTFIX-DASH-011 - the em-dash ban holds file-wide on the restructured
+     * template (block comments included).
      */
     public function test_dashboard_page_keeps_the_em_dash_ban(): void
     {

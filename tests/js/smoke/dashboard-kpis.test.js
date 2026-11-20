@@ -2,36 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// WU1 (D1/D3/D8) regression coverage: the daily-operations KPI strip renders
-// exactly four cards (Citas hoy / Atendidas hoy / Por atender / Saldo de caja),
-// the three day counts derive from the SAME todayAppointments array the agenda
-// renders through the SAME status map the rows label, no comparison chip or
-// reserved blank slot survives (the backend delta_label is broken), and the
-// cash card keeps its existing session-balance behaviour.
-const { getMock, makeAppointment, installPayload } = vi.hoisted(() => {
-  const makeAppointment = (id, status = 'confirmed') => ({
-    id,
-    scheduled_at: `2026-10-04T${String(8 + id).padStart(2, '0')}:30:00-05:00`,
-    status,
-    patient: {
-      id: 100 + id,
-      full_name: `Paciente ${id}`,
-      first_name: 'Paciente',
-      last_name: `${id}`
-    },
-    appointment_type: { id: 3, name: 'Limpieza dental' },
-    user: { id: 2, name: 'Dra. Carla Núñez' }
-  })
-
+// The dashboard stopped listing appointments, so the daily-operations strip
+// keeps the two numbers it can source honestly: today's appointment count
+// (published by GET /api/dashboard/stats) and the drawer balance (from
+// useCashRegister). No comparison chip, no reserved blank slot and no second
+// counter survive.
+const { getMock, installPayload } = vi.hoisted(() => {
   const getMock = vi.fn()
 
-  const installPayload = (stats = {}, appointments = [], cashCurrent = null) => {
+  const installPayload = (stats = {}, cashCurrent = null) => {
     getMock.mockImplementation(async url => {
       if (url === '/api/dashboard/stats') {
         return { data: stats }
-      }
-      if (url === '/api/dashboard/appointments-today') {
-        return { data: appointments }
       }
       if (url === '/api/cash-register/current') {
         return { data: cashCurrent || {} }
@@ -40,7 +22,7 @@ const { getMock, makeAppointment, installPayload } = vi.hoisted(() => {
     })
   }
 
-  return { getMock, makeAppointment, installPayload }
+  return { getMock, installPayload }
 })
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
@@ -93,8 +75,7 @@ const normalize = value => value.replace(/\u00a0/g, ' ')
 
 const kpiStrip = wrapper => wrapper.find('[data-reveal="kpi"]')
 
-const DAY_STAT_KEYS = ['appointments-today', 'completed-today', 'pending-today']
-const ALL_STAT_KEYS = [...DAY_STAT_KEYS, 'cash-balance']
+const ALL_STAT_KEYS = ['appointments-today', 'cash-balance']
 
 describe('dashboard daily-operations KPI strip (WU1)', () => {
   beforeEach(() => {
@@ -103,81 +84,48 @@ describe('dashboard daily-operations KPI strip (WU1)', () => {
     installPayload()
   })
 
-  it('renders exactly four KPI cards with the stable data-stat value hooks', async () => {
-    installPayload({}, [makeAppointment(1)])
-
+  it('renders only the two sourceable KPI cards with their stable hooks', async () => {
     const wrapper = await mountDashboard()
     const strip = kpiStrip(wrapper)
 
-    expect(strip.findAll('[data-stat-card]')).toHaveLength(4)
+    expect(strip.findAll('[data-stat-card]')).toHaveLength(2)
 
     for (const key of ALL_STAT_KEYS) {
       expect(strip.find(`[data-stat="${key}"]`).exists()).toBe(true)
       expect(strip.find(`[data-stat-card="${key}"]`).exists()).toBe(true)
     }
 
-    // D2: historical metrics live in BI, not in the daily-operations strip.
-    for (const gone of ['total-patients', 'total-appointments-month', 'total-income']) {
+    // The day buckets that read the retired appointment list are gone with it;
+    // the historical metrics still live in BI (D2).
+    for (const gone of [
+      'completed-today',
+      'pending-today',
+      'total-patients',
+      'total-appointments-month',
+      'total-income'
+    ]) {
       expect(strip.find(`[data-stat-card="${gone}"]`).exists()).toBe(false)
     }
 
     wrapper.unmount()
   })
 
-  it('derives Citas hoy from the agenda array, never from a second counter', async () => {
-    installPayload({ appointments_today: 99, completed_today: 77, pending_confirmation: 55 }, [
-      makeAppointment(1),
-      makeAppointment(2),
-      makeAppointment(3)
-    ])
+  it('reads Citas hoy from the summary count, never from a second list', async () => {
+    installPayload({ appointments_today: 99 })
 
     const wrapper = await mountDashboard()
     const strip = kpiStrip(wrapper)
 
-    expect(strip.find('[data-stat="appointments-today"]').text()).toBe('3')
+    expect(strip.find('[data-stat="appointments-today"]').text()).toBe('99')
 
-    wrapper.unmount()
-  })
-
-  it('derives Atendidas hoy and Por atender from the same status map the rows render', async () => {
-    installPayload({}, [
-      makeAppointment(1, 'completed'),
-      makeAppointment(2, 'completed'),
-      makeAppointment(3, 'cancelled'),
-      makeAppointment(4, 'scheduled'),
-      makeAppointment(5, 'in_consultation')
-    ])
-
-    const wrapper = await mountDashboard()
-    const strip = kpiStrip(wrapper)
-
-    expect(strip.find('[data-stat="appointments-today"]').text()).toBe('5')
-    expect(strip.find('[data-stat="completed-today"]').text()).toBe('2')
-    // The honest remaining bucket: not completed and not cancelled.
-    expect(strip.find('[data-stat="pending-today"]').text()).toBe('2')
-
-    // The rows label the same statuses through the same map.
-    const rowTexts = wrapper.findAll('[data-appointment-row]').map(row => row.text())
-    expect(rowTexts.filter(text => text.includes('Completada'))).toHaveLength(2)
-    expect(rowTexts.filter(text => text.includes('Cancelada'))).toHaveLength(1)
-    expect(rowTexts.filter(text => text.includes('Programada'))).toHaveLength(1)
-    expect(rowTexts.filter(text => text.includes('En Consulta'))).toHaveLength(1)
-
-    // The scheduled badge rides a real Badge variant; `secondary` is not one
-    // and the validator silently painted the default classes instead.
-    const scheduledRow = wrapper
-      .findAll('[data-appointment-row]')
-      .find(row => row.text().includes('Programada'))
-    expect(
-      scheduledRow.findAll('[data-variant]').map(element => element.attributes('data-variant'))
-    ).toEqual(['neutral'])
+    const requested = getMock.mock.calls.map(([url]) => url)
+    expect(requested).toContain('/api/dashboard/stats')
+    expect(requested).not.toContain('/api/dashboard/appointments-today')
 
     wrapper.unmount()
   })
 
   it('renders one scope caption per card and reserves no blank slots', async () => {
-    installPayload({}, [makeAppointment(1)])
-
     const wrapper = await mountDashboard()
     const strip = kpiStrip(wrapper)
 
@@ -186,14 +134,7 @@ describe('dashboard daily-operations KPI strip (WU1)', () => {
       expect(card.findAll('[data-kpi-caption]')).toHaveLength(1)
     }
 
-    const captions = {
-      'appointments-today': 'Agenda del día',
-      'completed-today': 'Completadas',
-      'pending-today': 'Sin completar ni cancelar'
-    }
-    for (const [key, text] of Object.entries(captions)) {
-      expect(strip.find(`[data-kpi-caption="${key}"]`).text()).toBe(text)
-    }
+    expect(strip.find('[data-kpi-caption="appointments-today"]').text()).toBe('Agenda del día')
 
     // D3: no reserved chip/caption slots anywhere in the strip.
     expect(strip.html()).not.toContain('min-h-6')
@@ -203,15 +144,11 @@ describe('dashboard daily-operations KPI strip (WU1)', () => {
   })
 
   it('renders the uppercase eyebrow plus the big tabular number per card', async () => {
-    installPayload({}, [makeAppointment(1)])
-
     const wrapper = await mountDashboard()
     const strip = kpiStrip(wrapper)
 
     const eyebrows = {
       'appointments-today': 'Citas Hoy',
-      'completed-today': 'Atendidas Hoy',
-      'pending-today': 'Por Atender',
       'cash-balance': 'Saldo de Caja'
     }
     for (const [key, label] of Object.entries(eyebrows)) {
@@ -251,21 +188,18 @@ describe('dashboard daily-operations KPI strip (WU1)', () => {
     wrapper.unmount()
   })
 
-  it('shows N/D in the day KPIs when the today resource fails', async () => {
+  it('shows N/D on the day count when the summary fails', async () => {
     getMock.mockImplementation(async url => {
-      if (url === '/api/dashboard/stats') return { data: {} }
-      if (url === '/api/dashboard/appointments-today') throw { status: 500 }
+      if (url === '/api/dashboard/stats') throw { status: 500 }
       return { data: [] }
     })
 
     const wrapper = await mountDashboard()
     const strip = kpiStrip(wrapper)
 
-    // Single source: when the source is down the KPIs say N/D, never a
+    // Single source: when the source is down the card says N/D, never a
     // fabricated zero.
-    for (const key of DAY_STAT_KEYS) {
-      expect(strip.find(`[data-stat="${key}"]`).text()).toBe('N/D')
-    }
+    expect(strip.find('[data-stat="appointments-today"]').text()).toBe('N/D')
 
     wrapper.unmount()
   })
@@ -283,7 +217,6 @@ describe('dashboard daily-operations KPI strip (WU1)', () => {
       'goToProfessionals',
       'goToEnvironments',
       'goToBusinessIntelligence',
-      'goToCalendar',
       'UsersIcon',
       'UserGroupIcon',
       'BuildingOfficeIcon',
@@ -335,7 +268,7 @@ describe('dashboard single cash surface (WU2)', () => {
   })
 
   it('removes the header pill entirely: no data-cash-pill-state anywhere', async () => {
-    installPayload({}, [], openCurrent)
+    installPayload({}, openCurrent)
 
     const wrapper = await mountDashboard()
 
@@ -347,7 +280,7 @@ describe('dashboard single cash surface (WU2)', () => {
   })
 
   it('renders the state line on the cash card through the data-cash-state hook', async () => {
-    installPayload({}, [], openCurrent)
+    installPayload({}, openCurrent)
 
     const wrapper = await mountDashboard()
     const card = kpiStrip(wrapper).find('[data-stat-card="cash-balance"]')
@@ -366,7 +299,6 @@ describe('dashboard single cash surface (WU2)', () => {
         cash_session: { status: 'open', opened_at: '2026-10-05T09:15:00' },
         total_income: 999
       },
-      [],
       closedCurrent
     )
 
@@ -384,7 +316,7 @@ describe('dashboard single cash surface (WU2)', () => {
   })
 
   it('renders Abierta, the opening caption and the live balance while a session is open', async () => {
-    installPayload({}, [], openCurrent)
+    installPayload({}, openCurrent)
 
     const wrapper = await mountDashboard()
     const card = kpiStrip(wrapper).find('[data-stat-card="cash-balance"]')
@@ -398,7 +330,7 @@ describe('dashboard single cash surface (WU2)', () => {
   })
 
   it('renders Sin sesión and N/D values when the composable has no session', async () => {
-    installPayload({}, [], {})
+    installPayload({}, {})
 
     const wrapper = await mountDashboard()
     const card = kpiStrip(wrapper).find('[data-stat-card="cash-balance"]')
@@ -406,13 +338,13 @@ describe('dashboard single cash surface (WU2)', () => {
     expect(card.find('[data-cash-state]').attributes('data-cash-state')).toBe('no_session')
     expect(card.find('[data-cash-state]').text()).toBe('Sin sesión')
     expect(card.find('[data-stat="cash-balance"]').text()).toBe('N/D')
-    expect(card.find('[data-kpi-caption="cash-balance"]').text()).toBe('N/D')
+    expect(card.find('[data-kpi-caption="cash-balance"]').text()).toBe('Sin sesión abierta')
 
     wrapper.unmount()
   })
 
   it('renders Ir a Caja exactly once and only inside the cash card', async () => {
-    installPayload({}, [], openCurrent)
+    installPayload({}, openCurrent)
 
     const wrapper = await mountDashboard()
     const card = kpiStrip(wrapper).find('[data-stat-card="cash-balance"]')

@@ -852,10 +852,14 @@ const navigation = computed(() => {
     },
     {
       // F4 (#310): the reception desk of continuity — overdue recalls and the
-      // conduct the professional left at a closure. The API gates the read on
-      // `view.continuity`; the list below only decides who is worth offering it
-      // (the same desks that read the agenda).
-      name: 'Continuidad',
+      // conduct the professional left at a closure. S15: the desk also
+      // publishes the commercial pending answers the dashboard used to carry,
+      // so the entry reads "Pendientes" while its route stays untouched. The
+      // six desks that work the queue keep it through `view.continuity`;
+      // finance reaches the same desk for its quotations through
+      // `view.quotation` (it holds no queue grant, and the page simply omits
+      // the queue). A session with neither sees no entry.
+      name: 'Pendientes',
       to: '/continuity',
       icon: ArrowPathIcon,
       roles: [
@@ -864,8 +868,10 @@ const navigation = computed(() => {
         'odontologo',
         'implantologo',
         'tecnico_dental',
-        'asistente'
+        'asistente',
+        'finanzas'
       ],
+      anyPermissions: ['viewContinuity', 'viewQuotation'],
       badge: null
     },
     {
@@ -898,7 +904,7 @@ const navigation = computed(() => {
       badge: null
     },
     {
-      name: 'Tipos de Cita',
+      name: 'Tipos de cita',
       to: '/appointment-types',
       icon: CogIcon,
       roles: ['administrador'],
@@ -910,7 +916,7 @@ const navigation = computed(() => {
       // propósito: esta administra la taxonomía, aquella captura registros por
       // paciente. Issue #210: ninguna de las dos usa la etiqueta desnuda
       // "Especialidades", que no decía cuál superficie abría.
-      name: 'Catálogo de Especialidades',
+      name: 'Catálogo de especialidades',
       to: '/specialties',
       icon: TagIcon,
       roles: ['administrador'],
@@ -927,7 +933,7 @@ const navigation = computed(() => {
     {
       // #305: self-service transfer between sedes. Every role asks; the API
       // decides who sees and decides (request/decide.branch_transfer).
-      name: 'Traslados de Sede',
+      name: 'Traslados de sede',
       to: '/branch-transfers',
       icon: ArrowsRightLeftIcon,
       roles: ['all'],
@@ -937,7 +943,7 @@ const navigation = computed(() => {
       // Sprint 2 (B-CASH-3): modulo de metodos de pago (solo admin).
       // T6: the user-visible label carries the accent every sibling entry
       // has; the route path stays ASCII.
-      name: 'Métodos de Pago',
+      name: 'Métodos de pago',
       to: '/settings/payment-methods',
       icon: CreditCardIcon,
       roles: ['administrador'],
@@ -947,7 +953,7 @@ const navigation = computed(() => {
       // #304 S1/S5: the accounting freeze surface. `roles` decides whether the
       // entry is worth rendering; `permissions` repeats the API gate so a
       // session without `manage.accounting_lock` never offers the door.
-      name: 'Bloqueo Contable',
+      name: 'Bloqueo contable',
       to: '/settings/accounting-locks',
       icon: LockClosedIcon,
       roles: ['administrador'],
@@ -955,28 +961,28 @@ const navigation = computed(() => {
       badge: null
     },
     {
-      name: 'Catálogo de Procedimientos',
+      name: 'Catálogo de procedimientos',
       to: '/procedure-catalog',
       icon: ClipboardDocumentListIcon,
       roles: ['administrador'],
       badge: null
     },
     {
-      name: 'Estadísticas Catálogo',
+      name: 'Estadísticas del catálogo',
       to: '/procedure-stats',
       icon: ChartIcon,
       roles: ['administrador', 'finanzas'],
       badge: null
     },
     {
-      name: 'Mis Procedimientos',
+      name: 'Mis procedimientos',
       to: '/my-procedures',
       icon: StarIcon,
       roles: ['odontologo', 'implantologo', 'tecnico_dental', 'asistente'],
       badge: null
     },
     {
-      name: 'Catálogo de Procedimientos',
+      name: 'Catálogo de procedimientos',
       to: '/reception-procedures',
       icon: ClipboardDocumentListIcon,
       roles: ['recepcionista', 'finanzas'],
@@ -997,7 +1003,7 @@ const navigation = computed(() => {
       badge: null
     },
     {
-      name: 'Planes de Tratamiento',
+      name: 'Planes de tratamiento',
       to: '/treatment-plans',
       icon: ClipboardDocumentListIcon,
       roles: ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'],
@@ -1014,14 +1020,14 @@ const navigation = computed(() => {
     {
       // F5 (#285): the laboratory desk left the clinical record; the prosthetic
       // case is its surface. The API answers 403, so the entry is not offered.
-      name: 'Historias Clínicas',
+      name: 'Historias clínicas',
       to: '/medical-records',
       icon: HeartIcon,
       roles: ['administrador', 'odontologo', 'implantologo', 'asistente'],
       badge: null
     },
     {
-      name: 'Registros de Especialidad',
+      name: 'Registros de especialidad',
       to: '/specialty-records',
       icon: AcademicCapIcon,
       // #313 (decision D1): el registro de especialidad es un acto clínico con
@@ -1048,7 +1054,7 @@ const navigation = computed(() => {
       badge: null
     },
     {
-      name: 'Análisis IA',
+      name: 'Análisis de IA',
       to: '/ai-analysis',
       icon: CpuChipIcon,
       roles: ['administrador', 'odontologo', 'implantologo'],
@@ -1060,6 +1066,11 @@ const navigation = computed(() => {
   // según los permisos efectivos de la sesión.
   return allItems.filter(item => {
     if (!item.roles.includes('all') && !item.roles.includes(safeUser.value?.role)) return false
+    // `anyPermissions` describes a desk reachable through either grant (the
+    // Pendientes desk answers the queue and the commercial pending answers).
+    if (item.anyPermissions) {
+      return item.anyPermissions.some(key => can[key]?.value === true)
+    }
     if (!item.permissions) return true
 
     return item.permissions.every(key => can[key]?.value === true)
@@ -1135,15 +1146,18 @@ const pageTitledRoutes = [
   '/ai-analysis',
   '/appointment-types',
   '/business-intelligence',
+  '/calendar',
   '/cash-register',
   '/cash-register/ready-to-bill',
   '/continuity',
+  '/dashboard',
   '/environments',
   '/lab-cases',
   '/my-day',
   '/my-procedures',
   '/procedure-catalog',
   '/procedure-stats',
+  '/professionals',
   '/quotations',
   '/reception-procedures',
   '/settings/accounting-locks',
@@ -1208,7 +1222,7 @@ const getPageDescription = () => {
     '/medical-records': 'Historias clínicas de pacientes',
     '/medical-records/': 'Historia clínica del paciente',
     '/specialty-records': 'Registros de especialidades odontológicas',
-    '/continuity': 'Recalls vencidos y solicitudes de continuidad',
+    '/continuity': 'Lo que espera respuesta en la clínica',
     '/lab-cases': 'Casos del laboratorio protésico'
   }
   const exact = descriptions[route.path]

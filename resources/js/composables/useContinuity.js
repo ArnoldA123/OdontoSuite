@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { useApi } from './useApi'
+import { usePermissions } from './usePermissions'
 import { useToast } from './useToast'
 
 // F4 (#310) — the reception desk of continuity. `GET /api/continuity/queue`
@@ -34,6 +35,20 @@ export function useContinuity() {
    */
   const load = async () => {
     const { get } = useApi()
+    const { can } = usePermissions()
+
+    // The queue is the continuity desks' surface. Finance opens this desk for
+    // its commercial answers without `view.continuity`, so the two calls are
+    // skipped instead of answering 403 on every load: no error, no blank
+    // zeros, just no queue.
+    if (can.viewContinuity?.value !== true) {
+      queue.value = emptyQueue()
+      metrics.value = null
+      error.value = null
+      loading.value = false
+      return
+    }
+
     loading.value = true
     try {
       const [queueResponse, metricsResponse] = await Promise.all([

@@ -2,24 +2,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// T4 regression coverage. The dashboard motion layer is deliberately
-// moderate (soft section reveals, a first-load KPI count-up, hover lift)
-// and every path collapses under prefers-reduced-motion: reduce. These
-// tests pin the contract at the DOM level: the four entrance springs must
-// be consumed by real template rules, the KPI counter must start at 0 and
-// converge to the fixture value when motion is allowed, the reduced-motion
-// path must render final values with no spring attached, and the
-// quick-action surface must share the KPI elevation rung.
+// T4 regression coverage. The dashboard motion layer is deliberately moderate
+// (two soft section reveals, a first-load KPI count-up, hover lift) and every
+// path collapses under prefers-reduced-motion: reduce. These tests pin the
+// contract at the DOM level: the entrance springs are consumed by real
+// template rules, the day counter starts at 0 and converges to the summary
+// value when motion is allowed, and the reduced-motion path renders final
+// values with no spring attached.
 const { getMock, installPayload } = vi.hoisted(() => {
   const getMock = vi.fn()
 
-  const installPayload = (stats = {}, appointments = []) => {
+  const installPayload = (stats = {}) => {
     getMock.mockImplementation(async url => {
       if (url === '/api/dashboard/stats') {
         return { data: stats }
-      }
-      if (url === '/api/dashboard/appointments-today') {
-        return { data: appointments }
       }
       return { data: [] }
     })
@@ -57,8 +53,7 @@ import pageSource from '../../../resources/js/modules/dashboard/DashboardPage.vu
 
 const revealBindings = [
   ['[data-reveal="greeting"]', '--spring-dash-greeting-o'],
-  ['[data-reveal="kpi"]', '--spring-dash-kpi-o'],
-  ['[data-reveal="empty-state"]', '--spring-dash-empty-o']
+  ['[data-reveal="kpi"]', '--spring-dash-kpi-o']
 ]
 
 const nativeMatchMedia = window.matchMedia
@@ -121,20 +116,6 @@ const signInAs = role => {
   localStorage.setItem('user', JSON.stringify({ id: 1, name: 'Ana Admin', role }))
 }
 
-const makeAppointment = id => ({
-  id,
-  scheduled_at: `2026-10-04T${String(8 + id).padStart(2, '0')}:30:00-05:00`,
-  status: 'confirmed',
-  patient: {
-    id: 100 + id,
-    full_name: `Paciente ${id}`,
-    first_name: 'Paciente',
-    last_name: `${id}`
-  },
-  appointment_type: { id: 3, name: 'Limpieza dental' },
-  user: { id: 2, name: 'Dra. Carla Núñez' }
-})
-
 const mountDashboard = async () => {
   const router = createRouter({
     history: createMemoryHistory(),
@@ -183,23 +164,21 @@ describe('dashboard motion (T4)', () => {
     wrapper.unmount()
   })
 
-  it('counts KPI numbers up from 0 on first load only', async () => {
+  it('counts the day number up from 0 on first load only', async () => {
     mockMedia({ noPreference: true })
     installManualFrames()
-    installPayload({}, [makeAppointment(1), makeAppointment(2), makeAppointment(3)])
+    installPayload({ appointments_today: 3 })
 
     const wrapper = await mountDashboard()
 
     expect(kpiNumber(wrapper, 'appointments-today')).toBe('0')
-    expect(kpiNumber(wrapper, 'pending-today')).toBe('0')
 
     await pumpFrames()
 
     expect(kpiNumber(wrapper, 'appointments-today')).toBe('3')
-    expect(kpiNumber(wrapper, 'pending-today')).toBe('3')
 
     // A refresh updates the number instantly; the count-up never replays.
-    installPayload({}, [makeAppointment(9)])
+    installPayload({ appointments_today: 1 })
     await wrapper.find('[data-refresh-button]').trigger('click')
     await flushPromises()
     await flushPromises()
@@ -211,7 +190,7 @@ describe('dashboard motion (T4)', () => {
   it('renders final values with no spring attached under reduced motion', async () => {
     mockMedia({ reducedMotion: true })
     installManualFrames()
-    installPayload({}, [makeAppointment(1), makeAppointment(2)])
+    installPayload({ appointments_today: 2 })
 
     const wrapper = await mountDashboard()
 
@@ -234,21 +213,20 @@ describe('dashboard motion (T4)', () => {
     wrapper.unmount()
   })
 
-  it('shares the KPI elevation rung while the KPI strip stays static (T3)', async () => {
+  it('shares the KPI elevation rung while the strip stays static (T3)', async () => {
     mockMedia()
-    installPayload({}, [makeAppointment(1)])
 
     const wrapper = await mountDashboard()
 
-    // T3 — the KPI cards keep their elevation but are a static reference
+    // T3 - the KPI cards keep their elevation but are a static reference
     // surface: no hover lift, no click affordance.
     const kpi = wrapper.find('[data-stat-card="appointments-today"]')
     expect(kpi.attributes('data-hover')).toBeUndefined()
     expect(kpi.attributes('style')).toContain('var(--elevation-2)')
 
-    const row = wrapper.find('[data-appointment-row]')
-    expect(row.exists()).toBe(true)
-    expect(row.attributes('data-hover')).toBe('true')
+    // The destination cards are links: their lift belongs to the anchor, never
+    // to a KPI card.
+    expect(wrapper.findAll('[data-stat-card][data-hover="true"]')).toHaveLength(0)
 
     wrapper.unmount()
   })

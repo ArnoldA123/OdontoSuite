@@ -2,21 +2,25 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// WU4 hierarchy coverage (D7 / D6 / D10): the dashboard reads as three
-// blocks in order (Hoy -> Requiere tu atención -> Próximos días), the day's
-// KPI strip leads block 1 before the agenda, the retired "Resumen del día"
-// footer section is gone, and the header is a hero band carrying the
-// login's display typography over its calm mint surface vocabulary. Block 3
-// stays visually secondary (quieter heading, recessed surface).
+// Hierarchy coverage (WU4 / U2): the dashboard reads as two blocks in order
+// (Hoy -> Dónde seguir), the day's KPI strip leads block 1, the retired
+// "Resumen del día" footer and the three appointment blocks are gone, and the
+// header is a hero band carrying the login's display typography over its calm
+// surface vocabulary.
 const { getMock, installPayload } = vi.hoisted(() => {
   const getMock = vi.fn()
 
-  const installPayload = ({ today = [], upcoming = [], pending = {} } = {}) => {
+  const installPayload = (stats = {}) => {
     getMock.mockImplementation(async url => {
-      if (url === '/api/dashboard/stats') return { data: {} }
-      if (url === '/api/dashboard/appointments-today') return { data: today }
-      if (url === '/api/dashboard/upcoming') return { data: upcoming }
-      if (url === '/api/dashboard/pending') return { data: pending }
+      if (url === '/api/dashboard/stats') return { data: stats }
+      if (url === '/api/cash-register/current') {
+        return {
+          data: {
+            session: { id: 7, status: 'open', opened_at: '2026-10-05T08:30:00' },
+            summary: { opening_amount: 100, expected_amount: 280 }
+          }
+        }
+      }
       return { data: [] }
     })
   }
@@ -70,92 +74,31 @@ const mountDashboard = async () => {
   return wrapper
 }
 
-const appointmentRow = (id, scheduledAt, fullName) => {
-  const parts = fullName.split(' ')
-  return {
-    id,
-    scheduled_at: scheduledAt,
-    status: 'confirmed',
-    patient: {
-      id: 100 + id,
-      first_name: parts[0],
-      last_name: parts.slice(1).join(' '),
-      full_name: fullName
-    },
-    appointment_type: { id: 3, name: 'Limpieza dental' },
-    user: { id: 2, name: 'Dra. Carla Núñez' }
-  }
-}
-
-const localIso = (year, monthIndex, day) => new Date(year, monthIndex, day, 10, 0).toISOString()
-
-const fullPayload = () => ({
-  today: [
-    appointmentRow(1, '2026-10-05T09:30:00-05:00', 'Ana Torres Quispe'),
-    appointmentRow(2, '2026-10-05T11:30:00-05:00', 'Luis Rojas')
-  ],
-  upcoming: [
-    appointmentRow(3, '2026-10-06T10:00:00-05:00', 'Marta Díaz'),
-    appointmentRow(4, '2026-10-08T09:00:00-05:00', 'Pedro Ruiz')
-  ],
-  pending: {
-    quotations: {
-      count: 1,
-      items: [
-        {
-          id: 11,
-          patient_name: 'Ana Torres Quispe',
-          total_amount: 149.9,
-          status: 'sent',
-          created_at: localIso(2026, 9, 3)
-        }
-      ]
-    },
-    treatment_plans: {
-      count: 1,
-      items: [
-        {
-          id: 21,
-          patient_name: 'Marta Díaz',
-          final_cost: 249.5,
-          status: 'proposed',
-          created_at: localIso(2026, 9, 2)
-        }
-      ]
-    }
-  }
-})
-
 const precedes = (first, second) =>
   Boolean(first && second) &&
   Boolean(first.element.compareDocumentPosition(second.element) & Node.DOCUMENT_POSITION_FOLLOWING)
 
-describe('dashboard three-block hierarchy (D7)', () => {
+describe('dashboard two-block hierarchy (U2)', () => {
   beforeEach(() => {
     signInAs('administrador')
     getMock.mockReset()
-    installPayload(fullPayload())
+    installPayload()
   })
 
-  it('renders exactly three blocks in reading order with matching accessible names', async () => {
+  it('renders the two blocks in reading order with matching accessible names', async () => {
     const wrapper = await mountDashboard()
 
     const blocks = wrapper.findAll('[data-dashboard-block]')
     expect(blocks.map(block => block.attributes('data-dashboard-block'))).toEqual([
       'hoy',
-      'attention',
-      'upcoming'
+      'destinations'
     ])
-    expect(blocks.map(block => block.attributes('aria-label'))).toEqual([
-      'Hoy',
-      'Requiere tu atención',
-      'Próximos días'
-    ])
+    expect(blocks.map(block => block.attributes('aria-label'))).toEqual(['Hoy', 'Dónde seguir'])
 
     wrapper.unmount()
   })
 
-  it('groups the KPI strip and the agenda under "Hoy", strip first', async () => {
+  it('groups the KPI strip under "Hoy" with the block heading first', async () => {
     const wrapper = await mountDashboard()
 
     const block = wrapper.find('[data-dashboard-block="hoy"]')
@@ -165,82 +108,70 @@ describe('dashboard three-block hierarchy (D7)', () => {
     expect(heading.text()).toBe('Hoy')
 
     const strip = block.find('[data-reveal="kpi"]')
-    const agenda = block.find('section[aria-label="Agenda de hoy"]')
     expect(strip.exists()).toBe(true)
-    expect(agenda.exists()).toBe(true)
 
-    // Block heading -> KPI strip -> agenda: the day's numbers lead.
+    // Block heading -> KPI strip.
     expect(precedes(heading, strip)).toBe(true)
-    expect(precedes(strip, agenda)).toBe(true)
-    expect(block.findAll('[data-stat-card]')).toHaveLength(4)
-    expect(agenda.findAll('[data-appointment-row]')).toHaveLength(2)
+    expect(block.findAll('[data-stat-card]')).toHaveLength(2)
 
     wrapper.unmount()
   })
 
-  it('retires the "Resumen del día" footer section (D7 / IA1)', async () => {
+  it('retires the appointment blocks and the "Resumen del día" footer section (U2)', async () => {
     const wrapper = await mountDashboard()
 
     expect(wrapper.text()).not.toContain('Resumen del día')
     expect(wrapper.html()).not.toContain('aria-label="Resumen del día"')
-    // Source-level: no element may carry the retired name. Design-record
-    // comments may still name it (WU3 guards match rendered text for the
-    // same reason).
-    expect(pageSource).not.toContain('aria-label="Resumen del día"')
+
+    for (const retired of ['Agenda de hoy', 'Próximos días', 'Requiere tu atención']) {
+      expect(wrapper.find(`section[aria-label="${retired}"]`).exists()).toBe(false)
+    }
+    expect(wrapper.find('[data-dashboard-block="attention"]').exists()).toBe(false)
+    expect(wrapper.find('[data-dashboard-block="upcoming"]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-appointment-row]')).toHaveLength(0)
+    expect(wrapper.findAll('[data-upcoming-row]')).toHaveLength(0)
+    expect(wrapper.findAll('[data-pending-row]')).toHaveLength(0)
+
+    // Source-level: no element may carry the retired names.
     expect(pageSource).not.toMatch(/>\s*Resumen del día\s*</)
+    expect(pageSource).not.toContain('aria-label="Agenda de hoy"')
+    expect(pageSource).not.toContain('aria-label="Próximos días"')
+    expect(pageSource).not.toContain('aria-label="Requiere tu atención"')
 
     wrapper.unmount()
   })
 
-  it('keeps heading semantics sane (topbar owns the single h1)', async () => {
+  it('keeps heading semantics sane (one visible h1, owned by the page header)', async () => {
     const wrapper = await mountDashboard()
 
     const content = wrapper.find('[data-dashboard-content]')
-    expect(content.find('h1').exists()).toBe(false)
+    const pageHeadings = content.findAll('h1')
+    expect(pageHeadings).toHaveLength(1)
+    expect(pageHeadings[0].element).toBe(content.find('[data-page-header-title]').element)
 
-    const hoy = wrapper.find('[data-dashboard-block="hoy"]')
-    const attention = wrapper.find('[data-dashboard-block="attention"]')
-    const upcoming = wrapper.find('[data-dashboard-block="upcoming"]')
-    expect(hoy.find('h2').text()).toBe('Hoy')
-    expect(attention.find('h2').text()).toBe('Requiere tu atención')
-    expect(upcoming.find('h2').text()).toBe('Próximos días')
+    const blockHeadings = content.findAll('h2').map(heading => heading.text())
+    expect(blockHeadings).toEqual(['Hoy', 'Dónde seguir'])
 
-    // The agenda is a subsection of block 1: h3, never an h2 and never
-    // skipping levels under the block heading.
-    const agenda = wrapper.find('section[aria-label="Agenda de hoy"]')
-    expect(agenda.find('h3').text()).toBe('Agenda de hoy')
-    expect(agenda.find('h2').exists()).toBe(false)
-
-    wrapper.unmount()
-  })
-
-  it('tiers the block headings typographically, strongest first', async () => {
-    const wrapper = await mountDashboard()
-
-    const hoy = wrapper.find('[data-dashboard-block="hoy"] h2')
-    const attention = wrapper.find('[data-dashboard-block="attention"] h2')
-    const upcoming = wrapper.find('[data-dashboard-block="upcoming"] h2')
-
-    expect(hoy.classes()).toEqual(
-      expect.arrayContaining(['text-2xl', 'font-semibold', 'text-label'])
-    )
-    expect(attention.classes()).toEqual(
-      expect.arrayContaining(['text-xl', 'font-semibold', 'text-label'])
-    )
-    expect(upcoming.classes()).toEqual(
-      expect.arrayContaining(['text-base', 'font-medium', 'text-theme-secondary'])
-    )
+    // The destination card titles are copy, not headings: the block owns the
+    // only heading of that section.
+    const destinations = wrapper.find('[data-dashboard-block="destinations"]')
+    expect(destinations.findAll('h3')).toHaveLength(0)
+    expect(destinations.text()).toContain('Agenda')
+    expect(destinations.text()).toContain('Mi jornada')
+    expect(destinations.text()).toContain('Pendientes')
 
     wrapper.unmount()
   })
 
-  it('keeps the unified pending list inside its block with per-row routing hooks', async () => {
+  it('tiers both block headings on the same strongest rung', async () => {
     const wrapper = await mountDashboard()
 
-    const block = wrapper.find('[data-dashboard-block="attention"]')
-    expect(block.findAll('[data-pending-row]')).toHaveLength(2)
-    expect(block.find('[data-pending-row="quotations"]').exists()).toBe(true)
-    expect(block.find('[data-pending-row="treatment-plans"]').exists()).toBe(true)
+    for (const hook of ['hoy', 'destinations']) {
+      const heading = wrapper.find(`[data-dashboard-block="${hook}"] h2`)
+      expect(heading.classes()).toEqual(
+        expect.arrayContaining(['text-2xl', 'font-semibold', 'text-label'])
+      )
+    }
 
     wrapper.unmount()
   })
@@ -250,82 +181,53 @@ describe('dashboard hero band (D6 login language)', () => {
   beforeEach(() => {
     signInAs('administrador')
     getMock.mockReset()
-    installPayload(fullPayload())
+    installPayload()
   })
 
-  it('renders the hero band with the login display typography, date and refresh', async () => {
+  it('renders the canonical page header with the greeting, the date and refresh', async () => {
     const wrapper = await mountDashboard()
 
-    const hero = wrapper.find('[data-dashboard-hero]')
-    expect(hero.exists()).toBe(true)
-    // The compact header hooks survive (WU2 refresh, entrance reveal).
-    expect(hero.attributes('data-dashboard-header')).toBeDefined()
-    expect(hero.attributes('data-reveal')).toBe('greeting')
-    expect(hero.find('[data-refresh-button]').exists()).toBe(true)
+    // The motion wrapper keeps the entrance hooks; the header itself is the
+    // shared component, so the anatomy cannot drift again.
+    const region = wrapper.find('[data-dashboard-header]')
+    expect(region.exists()).toBe(true)
+    expect(region.attributes('data-reveal')).toBe('greeting')
+    expect(region.find('[data-refresh-button]').exists()).toBe(true)
 
-    // Greeting in the login's display step: text-4xl font-semibold.
-    const greeting = hero.findAll('p').find(p => p.text().includes('Ana'))
-    expect(greeting).toBeTruthy()
+    const header = wrapper.find('[data-page-header]')
+    expect(header.exists()).toBe(true)
+    expect(header.find('[data-page-header-kicker]').text()).toBe('HOY')
+
+    const greeting = header.find('[data-page-header-title]')
+    expect(greeting.element.tagName).toBe('H1')
+    expect(greeting.text()).toContain('Ana')
     expect(greeting.classes()).toEqual(expect.arrayContaining(['text-4xl', 'font-semibold']))
 
-    // The date line keeps its tabular-nums declaration (HOTFIX-DASH-008).
-    const date = hero.find('p[style*="font-feature-settings"]')
+    const date = header.find('[data-page-header-subtitle]')
     expect(date.exists()).toBe(true)
     expect(date.text()).toMatch(/\d{1,2} de /)
 
     wrapper.unmount()
   })
 
-  it('carries the login brand lockup as the sparingly used green accent', async () => {
+  it('keeps the brand lockup out of the page header', async () => {
     const wrapper = await mountDashboard()
 
-    const hero = wrapper.find('[data-dashboard-hero]')
-    expect(hero.text()).toContain('OdontoSuite')
-    // Same tooth glyph and accent-500 hand-off as the login lockup.
-    expect(hero.html()).toContain('var(--color-accent-500)')
+    const header = wrapper.find('[data-page-header]')
+    expect(header.text()).not.toContain('OdontoSuite')
+    expect(header.html()).not.toContain('var(--color-accent-500)')
 
     wrapper.unmount()
   })
 
-  it('paints the hero with the login surface vocabulary (mint tint, hairline, panel radius)', async () => {
+  it('paints the header with the canonical panel surface', async () => {
     const wrapper = await mountDashboard()
 
-    const style = wrapper.find('[data-dashboard-hero]').attributes('style') || ''
+    const style = wrapper.find('[data-page-header]').attributes('style') || ''
     expect(style).toContain('var(--color-canvas)')
     expect(style).toContain('var(--color-hairline)')
     expect(style).toContain('var(--radius-panel)')
-
-    wrapper.unmount()
-  })
-})
-
-describe('dashboard secondary upcoming block (D7)', () => {
-  beforeEach(() => {
-    signInAs('administrador')
-    getMock.mockReset()
-    installPayload(fullPayload())
-  })
-
-  it('renders Próximos días as the quietest block on a reduced-prominence surface', async () => {
-    const wrapper = await mountDashboard()
-
-    const block = wrapper.find('[data-dashboard-block="upcoming"]')
-    const heading = block.find('h2')
-    expect(heading.text()).toBe('Próximos días')
-    expect(heading.classes()).toEqual(
-      expect.arrayContaining(['text-base', 'font-medium', 'text-theme-secondary'])
-    )
-
-    // Quieter surface: recessed tint + hairline + panel radius, no elevation.
-    const surface = block.find('[data-upcoming-surface]')
-    expect(surface.exists()).toBe(true)
-    const style = surface.attributes('style') || ''
-    expect(style).toContain('var(--color-system-gray-100)')
-    expect(style).toContain('var(--color-hairline)')
-    expect(style).toContain('var(--radius-panel)')
-    expect(style).not.toContain('elevation')
-
-    expect(block.findAll('[data-upcoming-row]')).toHaveLength(2)
+    expect(style).toContain('var(--elevation-2)')
 
     wrapper.unmount()
   })

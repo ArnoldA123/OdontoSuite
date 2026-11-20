@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// T3 regression coverage: the dashboard must render a dedicated error state
-// when the stats request fails (instead of silently showing empty content),
-// retry from that state, keep the agenda usable when only the today request
-// fails, and expose a manual refresh control that never blanks the page.
+// T3 regression coverage: the dashboard renders a dedicated error state when
+// the summary request fails (instead of silently showing a fabricated zero),
+// retries from that state, exposes a manual refresh control that never blanks
+// the page, and keeps the standard /login redirect on a 401.
 const { getMock } = vi.hoisted(() => ({ getMock: vi.fn() }))
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
@@ -34,19 +34,10 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/dashboard/DashboardPage.vue'
 
-const makeAppointment = id => ({
-  id,
-  scheduled_at: `2026-10-04T${String(8 + id).padStart(2, '0')}:30:00-05:00`,
-  status: 'confirmed',
-  patient: {
-    id: 100 + id,
-    full_name: `Paciente ${id}`,
-    first_name: 'Paciente',
-    last_name: `${id}`
-  },
-  appointment_type: { id: 3, name: 'Limpieza dental' },
-  user: { id: 2, name: 'Dra. Carla Núñez' }
-})
+const cashCurrent = {
+  session: { id: 7, status: 'open', opened_at: '2026-10-04T08:30:00' },
+  summary: { opening_amount: 100, total_income: 200, total_expenses: 20, expected_amount: 280 }
+}
 
 const signInAs = role => {
   localStorage.setItem('auth_token', 'test-token')
@@ -68,9 +59,17 @@ const mountDashboard = async () => {
 }
 
 const statsCalls = () => getMock.mock.calls.filter(([url]) => url === '/api/dashboard/stats')
-const todayCalls = () =>
-  getMock.mock.calls.filter(([url]) => url === '/api/dashboard/appointments-today')
-const pendingCalls = () => getMock.mock.calls.filter(([url]) => url === '/api/dashboard/pending')
+const cashCalls = () => getMock.mock.calls.filter(([url]) => url === '/api/cash-register/current')
+
+const installStats = stats =>
+  getMock.mockImplementation(async url => {
+    if (url === '/api/dashboard/stats') {
+      if (stats instanceof Error) throw stats
+      return { data: stats }
+    }
+    if (url === '/api/cash-register/current') return { data: cashCurrent }
+    return { data: [] }
+  })
 
 describe('dashboard load states (T3)', () => {
   beforeEach(() => {
@@ -78,14 +77,8 @@ describe('dashboard load states (T3)', () => {
     getMock.mockReset()
   })
 
-  it('renders the stats error state with a Reintentar action when stats fails', async () => {
-    getMock.mockImplementation(async url => {
-      if (url === '/api/dashboard/stats') {
-        throw { status: 500, response: { data: { message: 'boom' } } }
-      }
-      if (url === '/api/dashboard/appointments-today') return { data: [makeAppointment(1)] }
-      return { data: [] }
-    })
+  it('renders the summary error state with a Reintentar action when the summary fails', async () => {
+    installStats(Object.assign(new Error('boom'), { status: 500 }))
 
     const { wrapper } = await mountDashboard()
 
@@ -96,26 +89,23 @@ describe('dashboard load states (T3)', () => {
     expect(error.text()).toContain('Reintentar')
     expect(error.find('svg').exists()).toBe(true)
 
-    // #388 - the summary failure keeps its own block and does not unmount
-    // the sections whose own requests answered: the KPI strip and the agenda
-    // stay on screen from their own sources.
-    expect(wrapper.find('[data-stat-card="appointments-today"]').exists()).toBe(true)
-    expect(wrapper.find('[data-dashboard-block="hoy"]').exists()).toBe(true)
-    expect(wrapper.find('[data-appointment-row]').exists()).toBe(true)
+    // #388 - the failure keeps its own block: the static destinations and the
+    // cash card stay on screen from their own sources.
+    expect(wrapper.find('[data-dashboard-block="destinations"]').exists()).toBe(true)
+    expect(wrapper.find('[data-stat-card="cash-balance"]').exists()).toBe(true)
 
     wrapper.unmount()
   })
 
   it('re-issues only the summary when Reintentar is clicked and clears the error', async () => {
     let attempt = 0
-    const sixAppointments = Array.from({ length: 6 }, (_, idx) => makeAppointment(idx + 1))
     getMock.mockImplementation(async url => {
       if (url === '/api/dashboard/stats') {
         attempt += 1
         if (attempt === 1) throw { status: 500 }
-        return { data: {} }
+        return { data: { appointments_today: 6 } }
       }
-      if (url === '/api/dashboard/appointments-today') return { data: sixAppointments }
+      if (url === '/api/cash-register/current') return { data: cashCurrent }
       return { data: [] }
     })
 
@@ -126,71 +116,24 @@ describe('dashboard load states (T3)', () => {
     await flushPromises()
     await flushPromises()
 
-    // #388 - the retry is summary-only: the other sources are neither
-    // re-fetched nor unmounted.
+    // The retry is summary-only: the cash reading is neither re-fetched nor
+    // unmounted.
     expect(statsCalls()).toHaveLength(2)
-    expect(todayCalls()).toHaveLength(1)
-    expect(pendingCalls()).toHaveLength(1)
+    expect(cashCalls()).toHaveLength(1)
     expect(wrapper.find('[data-state="error-stats"]').exists()).toBe(false)
-    expect(wrapper.find('[data-appointment-row]').exists()).toBe(true)
     expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('6')
 
     wrapper.unmount()
   })
 
-  it('shows the agenda error inline and retries only the today resource', async () => {
-    let attempt = 0
-    getMock.mockImplementation(async url => {
-      if (url === '/api/dashboard/stats') return { data: {} }
-      if (url === '/api/dashboard/appointments-today') {
-        attempt += 1
-        if (attempt === 1) throw { status: 500 }
-        return { data: [makeAppointment(1)] }
-      }
-      return { data: [] }
-    })
-
-    const { wrapper } = await mountDashboard()
-
-    const agenda = wrapper.find('section[aria-label="Agenda de hoy"]')
-    const inlineError = agenda.find('[data-state="error-appointments"]')
-    expect(inlineError.exists()).toBe(true)
-    expect(inlineError.attributes('role')).toBe('alert')
-    expect(inlineError.text()).toContain('Reintentar')
-
-    // The rest of the page stays usable, and the day KPI never paints a
-    // fabricated counter while its single source is down.
-    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('N/D')
-    expect(wrapper.find('[data-stat-card="cash-balance"]').exists()).toBe(true)
-
-    await wrapper.find('[data-retry-appointments]').trigger('click')
-    await flushPromises()
-    await flushPromises()
-
-    expect(attempt).toBe(2)
-    expect(statsCalls()).toHaveLength(1)
-    expect(pendingCalls()).toHaveLength(1)
-    expect(wrapper.find('[data-state="error-appointments"]').exists()).toBe(false)
-    expect(wrapper.find('[data-appointment-row]').exists()).toBe(true)
-    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('1')
-
-    wrapper.unmount()
-  })
-
   it('refresh control reloads without unmounting the current content', async () => {
-    getMock.mockImplementation(async url => {
-      if (url === '/api/dashboard/stats') return { data: {} }
-      if (url === '/api/dashboard/appointments-today') {
-        return { data: [makeAppointment(1), makeAppointment(2)] }
-      }
-      return { data: [] }
-    })
+    installStats({ appointments_today: 2 })
 
     const { wrapper } = await mountDashboard()
 
     const refresh = wrapper.find('[data-refresh-button]')
     expect(refresh.exists()).toBe(true)
-    expect(refresh.attributes('aria-label')).toBe('Actualizar')
+    expect(refresh.text()).toContain('Actualizar')
     expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('2')
 
     let resolveStats
@@ -200,9 +143,7 @@ describe('dashboard load states (T3)', () => {
           resolveStats = resolve
         })
       }
-      if (url === '/api/dashboard/appointments-today') {
-        return { data: Array.from({ length: 7 }, (_, idx) => makeAppointment(idx + 1)) }
-      }
+      if (url === '/api/cash-register/current') return { data: cashCurrent }
       return { data: [] }
     })
 
@@ -214,20 +155,21 @@ describe('dashboard load states (T3)', () => {
     expect(wrapper.find('[data-stat-card="appointments-today"]').exists()).toBe(true)
     expect(wrapper.find('[data-dashboard-content]').attributes('aria-busy')).toBe('true')
 
-    resolveStats({ data: {} })
+    resolveStats({ data: { appointments_today: 7 } })
     await flushPromises()
     await flushPromises()
 
     expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('7')
     expect(wrapper.find('[data-dashboard-content]').attributes('aria-busy')).toBe('false')
     expect(wrapper.find('[aria-label="Cargando resumen"]').exists()).toBe(false)
-    // T7b: the manual refresh re-issues the fourth dashboard resource too.
-    expect(pendingCalls()).toHaveLength(2)
+    // The cash reading is served from the composable state after the first
+    // load: a manual refresh never duplicates it.
+    expect(cashCalls()).toHaveLength(1)
 
     wrapper.unmount()
   })
 
-  it('still redirects to /login when the stats request returns 401', async () => {
+  it('still redirects to /login when the summary request returns 401', async () => {
     getMock.mockImplementation(async () => {
       throw { status: 401, response: { data: { message: 'Sesión expirada' } } }
     })
@@ -240,20 +182,13 @@ describe('dashboard load states (T3)', () => {
     wrapper.unmount()
   })
 
-  it.each([
-    ['404', 404],
-    ['401', 401]
-  ])('degrades the agenda to empty on a today %s response', async (_label, status) => {
-    getMock.mockImplementation(async url => {
-      if (url === '/api/dashboard/stats') return { data: {} }
-      if (url === '/api/dashboard/appointments-today') throw { status }
-      return { data: [] }
-    })
+  it('renders zero instead of a fabricated day when the summary payload is not an object', async () => {
+    installStats([])
 
     const { wrapper } = await mountDashboard()
 
-    expect(wrapper.find('[data-state="error-appointments"]').exists()).toBe(false)
-    expect(wrapper.find('[data-state="empty-appointments"]').exists()).toBe(true)
+    expect(wrapper.find('[data-state="error-stats"]').exists()).toBe(false)
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('0')
 
     wrapper.unmount()
   })

@@ -2,38 +2,28 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// T1 regression coverage: DashboardPage must fetch today's appointments from
-// the canonical `dashboard/appointments-today` route and render the
-// AppointmentResource shape (patient.full_name + nested appointment_type).
-const { getMock, todayAppointment, installTodayPayload } = vi.hoisted(() => {
-  const todayAppointment = {
-    id: 41,
-    scheduled_at: '2026-10-04T10:30:00-05:00',
-    status: 'confirmed',
-    patient: {
-      id: 9,
-      first_name: 'Ana',
-      last_name: 'Torres Quispe',
-      full_name: 'Ana Torres Quispe'
-    },
-    appointment_type: { id: 3, name: 'Limpieza dental' }
-  }
-
+// U2 regression coverage: GET /api/dashboard/appointments-today no longer has
+// a reader on the dashboard. The day count is published by the summary and the
+// card only appears for the desks that may read appointments.
+const { getMock, installPayload } = vi.hoisted(() => {
   const getMock = vi.fn()
 
-  const installTodayPayload = payload => {
+  const installPayload = (stats = {}) => {
     getMock.mockImplementation(async url => {
-      if (url === '/api/dashboard/appointments-today') {
-        return { data: payload }
-      }
-      if (url === '/api/dashboard/stats') {
-        return { data: {} }
+      if (url === '/api/dashboard/stats') return { data: stats }
+      if (url === '/api/cash-register/current') {
+        return {
+          data: {
+            session: { id: 7, status: 'open', opened_at: '2026-10-04T08:30:00' },
+            summary: { opening_amount: 100, expected_amount: 280 }
+          }
+        }
       }
       return { data: [] }
     })
   }
 
-  return { getMock, todayAppointment, installTodayPayload }
+  return { getMock, installPayload }
 })
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
@@ -62,6 +52,11 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/dashboard/DashboardPage.vue'
 
+const signInAs = role => {
+  localStorage.setItem('auth_token', 'test-token')
+  localStorage.setItem('user', JSON.stringify({ id: 1, name: 'Ana Admin', role }))
+}
+
 const mountDashboard = async () => {
   const router = createRouter({
     history: createMemoryHistory(),
@@ -75,51 +70,52 @@ const mountDashboard = async () => {
   return wrapper
 }
 
-describe('dashboard today appointments', () => {
+const requestedUrls = () => getMock.mock.calls.map(([url]) => url)
+
+describe('dashboard retired today list (U2)', () => {
   beforeEach(() => {
-    localStorage.setItem('auth_token', 'test-token')
-    localStorage.setItem(
-      'user',
-      JSON.stringify({ id: 1, name: 'Admin Prueba', role: 'administrador' })
-    )
+    signInAs('administrador')
     getMock.mockReset()
-    installTodayPayload([todayAppointment])
+    installPayload({ appointments_today: 4 })
   })
 
-  it('fetches from the canonical appointments-today endpoint', async () => {
+  it('never requests the retired appointments-today endpoint', async () => {
     const wrapper = await mountDashboard()
 
-    const urls = getMock.mock.calls.map(([url]) => url)
-    expect(urls).toContain('/api/dashboard/appointments-today')
-    expect(urls).not.toContain('/api/dashboard/today')
+    expect(requestedUrls()).not.toContain('/api/dashboard/appointments-today')
+    expect(requestedUrls()).toContain('/api/dashboard/stats')
 
     wrapper.unmount()
   })
 
-  it('renders the patient full_name from the AppointmentResource payload', async () => {
+  it('publishes the day count from the summary it already fetches', async () => {
     const wrapper = await mountDashboard()
 
-    const rows = wrapper.findAll('[data-appointment-row]')
-    expect(rows).toHaveLength(1)
-    expect(rows[0].text()).toContain('Ana Torres Quispe')
-    expect(rows[0].text()).toContain('Limpieza dental')
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('4')
+    expect(wrapper.find('[data-kpi-caption="appointments-today"]').text()).toBe('Agenda del día')
 
     wrapper.unmount()
   })
 
-  it('falls back to the composed first/last name when full_name is absent', async () => {
-    installTodayPayload([
-      {
-        ...todayAppointment,
-        patient: { id: 10, first_name: 'Luis', last_name: 'Rojas' }
-      }
-    ])
+  it('hides the day card from a role that cannot read appointments', async () => {
+    signInAs('finanzas')
 
     const wrapper = await mountDashboard()
 
-    const rows = wrapper.findAll('[data-appointment-row]')
-    expect(rows).toHaveLength(1)
-    expect(rows[0].text()).toContain('Luis Rojas')
+    expect(wrapper.find('[data-stat-card="appointments-today"]').exists()).toBe(false)
+    // The cash card is the one this desk keeps.
+    expect(wrapper.find('[data-stat-card="cash-balance"]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('hides the cash card from a clinical role without view.cash_register', async () => {
+    signInAs('odontologo')
+
+    const wrapper = await mountDashboard()
+
+    expect(wrapper.find('[data-stat-card="appointments-today"]').exists()).toBe(true)
+    expect(wrapper.find('[data-stat-card="cash-balance"]').exists()).toBe(false)
 
     wrapper.unmount()
   })

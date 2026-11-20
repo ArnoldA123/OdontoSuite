@@ -134,25 +134,37 @@ class AppointmentTreatmentNotesDeskTest extends TestCase
         $this->assertSame(self::AGENDA_NOTE, $labDay->json('data.waiting.0.notes'));
     }
 
-    public function test_the_dashboard_and_the_consultation_context_follow_the_same_boundary(): void
+    public function test_the_dashboard_lists_are_retired_and_the_agenda_keeps_the_boundary(): void
     {
         $appointment = $this->appointmentFor($this->staff('odontologo'));
 
-        $adminToday = $this->actingAs($this->staff('administrador'), 'sanctum')
-            ->getJson('/api/dashboard/appointments-today')
-            ->assertOk();
-        $this->assertSame(self::CONDUCT, $adminToday->json('data.0.treatment_notes'));
+        // U2 - the dashboard stopped publishing appointment lists, for the
+        // clinical desks and for finance alike.
+        foreach (['administrador', 'finanzas'] as $role) {
+            $desk = $this->staff($role);
 
-        // The dashboard is the one agenda surface finance reaches, and it
-        // carries no conduct either.
-        foreach (['recepcionista', 'tecnico_dental', 'finanzas'] as $role) {
-            $today = $this->actingAs($this->staff($role), 'sanctum')
+            $this->actingAs($desk, 'sanctum')
                 ->getJson('/api/dashboard/appointments-today')
-                ->assertOk();
+                ->assertNotFound();
 
-            $this->assertArrayNotHasKey('treatment_notes', $today->json('data.0'));
-            $today->assertJsonMissingPath('data.0.treatment_notes');
+            $this->actingAs($desk, 'sanctum')
+                ->getJson('/api/dashboard/upcoming')
+                ->assertNotFound();
         }
+
+        // The agenda is the surface that still publishes the appointment, and
+        // it keeps the same boundary: the conduct only reaches the desk that
+        // reads the clinical record.
+        $receptionIndex = $this->actingAs($this->staff('recepcionista'), 'sanctum')
+            ->getJson('/api/appointments')
+            ->assertOk();
+        $receptionIndex->assertJsonMissingPath('data.0.treatment_notes');
+        $this->assertSame(self::AGENDA_NOTE, $receptionIndex->json('data.0.notes'));
+
+        $clinicalIndex = $this->actingAs($this->staff('odontologo'), 'sanctum')
+            ->getJson('/api/appointments')
+            ->assertOk();
+        $this->assertSame(self::CONDUCT, $clinicalIndex->json('data.0.treatment_notes'));
 
         // `/consultation-context` is opened by reception too: the wizard gets
         // the appointment without the conduct.

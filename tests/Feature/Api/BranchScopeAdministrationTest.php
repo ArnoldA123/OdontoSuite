@@ -153,14 +153,26 @@ class BranchScopeAdministrationTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_naming_another_branch_in_the_dashboard_is_forbidden(): void
+    public function test_the_retired_dashboard_list_is_gone_and_the_summary_keeps_the_sede_gate(): void
     {
         $own = Branch::factory()->create();
         $other = Branch::factory()->create();
         $actor = $this->user($own, 'recepcionista');
 
+        // U2 - the appointment lists left the dashboard, so there is no list
+        // left to widen to another sede.
         $this->actingAs($actor, 'sanctum')
             ->getJson("/api/dashboard/appointments-today?branch_id={$other->id}")
+            ->assertNotFound();
+
+        $this->actingAs($actor, 'sanctum')
+            ->getJson("/api/dashboard/upcoming?branch_id={$other->id}")
+            ->assertNotFound();
+
+        // The retained dashboard read keeps the sede gate: naming another
+        // branch is forbidden, not filtered.
+        $this->actingAs($actor, 'sanctum')
+            ->getJson("/api/dashboard/stats?branch_id={$other->id}")
             ->assertForbidden();
     }
 }

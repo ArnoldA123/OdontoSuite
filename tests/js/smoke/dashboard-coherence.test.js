@@ -2,21 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// WU1 coherence coverage. The KPI strip is a titled section like its
-// siblings, it renders NO comparison chip and NO reserved blank slot (the
-// backend delta_label is broken, D3), the four cards carry no decorative
-// status-like dot, and every caption states the scope of its number instead
-// of repeating the eyebrow or the page date.
+// Coherence coverage. The strip is a titled block like its sibling, it renders
+// NO comparison chip and NO reserved blank slot (the backend delta_label is
+// broken, D3), the cards carry no decorative status-like dot, and every caption
+// states the scope of its number instead of repeating the eyebrow or the page
+// date. The "Dónde seguir" block reads as the second, quieter half of the page.
 const { getMock, installPayload } = vi.hoisted(() => {
   const getMock = vi.fn()
 
-  const installPayload = (stats = {}, appointments = [], cashCurrent = null) => {
+  const installPayload = (stats = {}, cashCurrent = null) => {
     getMock.mockImplementation(async url => {
       if (url === '/api/dashboard/stats') {
         return { data: stats }
-      }
-      if (url === '/api/dashboard/appointments-today') {
-        return { data: appointments }
       }
       if (url === '/api/cash-register/current') {
         return { data: cashCurrent || {} }
@@ -84,14 +81,14 @@ const comparisonPayload = {
 
 const chipSelector = '[data-variant="success"], [data-variant="error"], [data-variant="neutral"]'
 
-describe('dashboard block headings (T4 / WU4)', () => {
+describe('dashboard block headings (WU4)', () => {
   beforeEach(() => {
     signInAs('administrador')
     getMock.mockReset()
     installPayload()
   })
 
-  it('groups the KPI strip under the block h2 "Hoy", agenda as its subsection', async () => {
+  it('groups the KPI strip under the block h2 "Hoy"', async () => {
     const wrapper = await mountDashboard()
     const block = wrapper.find('[data-dashboard-block="hoy"]')
     expect(block.exists()).toBe(true)
@@ -110,17 +107,23 @@ describe('dashboard block headings (T4 / WU4)', () => {
       heading.element.compareDocumentPosition(grid.element) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
 
-    // The agenda is the block's subsection (h3), never a second h2 and
-    // never before the strip (D7).
-    const agenda = block.find('section[aria-label="Agenda de hoy"]')
-    expect(agenda.find('h3').text()).toBe('Agenda de hoy')
-    expect(agenda.find('h2').exists()).toBe(false)
-    expect(
-      grid.element.compareDocumentPosition(agenda.element) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy()
-
     // The retired footer section is gone (D7 / IA1).
     expect(wrapper.text()).not.toContain('Resumen del día')
+
+    wrapper.unmount()
+  })
+
+  it('renders the "Dónde seguir" block after "Hoy" as the page second half', async () => {
+    const wrapper = await mountDashboard()
+
+    const hoy = wrapper.find('[data-dashboard-block="hoy"]')
+    const destinations = wrapper.find('[data-dashboard-block="destinations"]')
+
+    expect(destinations.exists()).toBe(true)
+    expect(destinations.find('h2').text()).toBe('Dónde seguir')
+    expect(
+      hoy.element.compareDocumentPosition(destinations.element) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
 
     wrapper.unmount()
   })
@@ -133,13 +136,10 @@ describe('dashboard block headings (T4 / WU4)', () => {
     expect(wrapper.text()).not.toContain('Acciones rápidas')
     expect(wrapper.text()).not.toContain('Acciones Rápidas')
 
-    // The secondary block keeps its quiet heading and existing copy.
-    const upcoming = wrapper.find('[data-dashboard-block="upcoming"]')
-    expect(upcoming.exists()).toBe(true)
-    expect(upcoming.find('h2').text()).toBe('Próximos días')
-    expect(upcoming.find('h2').classes()).toEqual(
-      expect.arrayContaining(['text-base', 'font-medium', 'text-theme-secondary'])
-    )
+    // The retired appointment blocks left no heading behind.
+    expect(wrapper.find('section[aria-label="Agenda de hoy"]').exists()).toBe(false)
+    expect(wrapper.find('[data-dashboard-block="attention"]').exists()).toBe(false)
+    expect(wrapper.find('[data-dashboard-block="upcoming"]').exists()).toBe(false)
 
     wrapper.unmount()
   })
@@ -186,11 +186,11 @@ describe('dashboard KPI card decoration (T4)', () => {
     installPayload()
   })
 
-  it('renders zero decorative dots inside the four KPI cards', async () => {
+  it('renders zero decorative dots inside the KPI cards', async () => {
     const wrapper = await mountDashboard()
     const cards = kpiSection(wrapper).findAll('[data-stat-card]')
 
-    expect(cards).toHaveLength(4)
+    expect(cards).toHaveLength(2)
     for (const card of cards) {
       expect(card.findAll('span[aria-hidden="true"]')).toHaveLength(0)
       expect(card.html()).not.toContain('--color-accent-500')
@@ -216,16 +216,11 @@ describe('dashboard KPI captions (WU1)', () => {
     const wrapper = await mountDashboard()
     const section = kpiSection(wrapper)
 
-    const expected = {
-      'appointments-today': 'Agenda del día',
-      'completed-today': 'Completadas',
-      'pending-today': 'Sin completar ni cancelar'
-    }
-    for (const [cardKey, text] of Object.entries(expected)) {
-      const card = section.find(`[data-stat-card="${cardKey}"]`)
-      const captions = card.findAll('[data-kpi-caption]')
-      expect(captions).toHaveLength(1)
-      expect(captions[0].text()).toBe(text)
+    const caption = section.find('[data-stat-card="appointments-today"] [data-kpi-caption]')
+    expect(caption.text()).toBe('Agenda del día')
+
+    for (const card of section.findAll('[data-stat-card]')) {
+      expect(card.findAll('[data-kpi-caption]')).toHaveLength(1)
     }
 
     // No caption restates the page header's date anchor.
@@ -234,11 +229,13 @@ describe('dashboard KPI captions (WU1)', () => {
     wrapper.unmount()
   })
 
-  it('keeps the retired historical captions out of the strip', async () => {
+  it('keeps the retired historical and day-bucket captions out of the strip', async () => {
     const wrapper = await mountDashboard()
     const section = kpiSection(wrapper)
 
     for (const gone of [
+      'data-kpi-caption="completed-today"',
+      'data-kpi-caption="pending-today"',
       'data-kpi-caption="total-patients"',
       'data-kpi-caption="total-appointments-month"',
       'data-kpi-caption="total-income"'

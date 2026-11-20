@@ -74,8 +74,11 @@ class HotfixDashboardEmDashAuditTest extends TestCase
     }
 
     /**
-     * T5 — the shared section-state components extracted from the page follow
-     * the same file-wide em-dash ban as DashboardPage.vue.
+     * T5 / U2 — the shared section-state surface follows the same file-wide
+     * em-dash ban as DashboardPage.vue. `DashboardSectionEmpty.vue` retired
+     * with the dashboard lists, so the guard audits the surviving shared
+     * pieces: the section error still consumed by Business Intelligence and
+     * the empty-state primitive that owns the anatomy.
      */
     public function test_dashboard_section_state_components_have_zero_em_dashes(): void
     {
@@ -84,15 +87,15 @@ class HotfixDashboardEmDashAuditTest extends TestCase
         $response->assertStatus(200);
 
         $files = [
-            'DashboardSectionError.vue',
-            'DashboardSectionEmpty.vue',
+            'resources/js/modules/dashboard/DashboardSectionError.vue',
+            'resources/js/components/ui/UiSectionEmpty.vue',
         ];
 
-        foreach ($files as $file) {
-            $path = dirname(__DIR__, 3).'/resources/js/modules/dashboard/'.$file;
+        foreach ($files as $relative) {
+            $path = dirname(__DIR__, 3).'/'.$relative;
             $this->assertFileExists(
                 $path,
-                "{$file} must exist (T5 shared section-state pattern, HOTFIX-DASH-011 boundary)."
+                "{$relative} must exist (T5 shared section-state pattern, HOTFIX-DASH-011 boundary)."
             );
 
             $source = (string) file_get_contents($path);
@@ -101,8 +104,13 @@ class HotfixDashboardEmDashAuditTest extends TestCase
             $this->assertSame(
                 0,
                 (int) $emDashCount,
-                "{$file} MUST contain zero U+2014 (em-dash) characters anywhere in the file — HOTFIX-DASH-011, design-taste §9.G (binary ban, zero exceptions)."
+                "{$relative} MUST contain zero U+2014 (em-dash) characters anywhere in the file — HOTFIX-DASH-011, design-taste §9.G (binary ban, zero exceptions)."
             );
         }
+
+        $this->assertFileDoesNotExist(
+            dirname(__DIR__, 3).'/resources/js/modules/dashboard/DashboardSectionEmpty.vue',
+            'DashboardSectionEmpty.vue must stay retired: its dashboard consumers are gone (U2).'
+        );
     }
 }
