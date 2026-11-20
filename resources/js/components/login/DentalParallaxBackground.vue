@@ -1,266 +1,30 @@
 <template>
-  <div
-    ref="rootRef"
-    class="dental-parallax"
-    :class="{ 'is-parallax-active': active, 'has-drift': driftActive }"
-    aria-hidden="true"
-  >
-    <div class="dental-parallax-layer dental-parallax-far" data-layer="far">
-      <div class="dental-parallax-drift">
-        <div class="dental-parallax-art">
-          <img
+  <div class="dental-parallax" :class="{ 'has-drift': driftOn }" aria-hidden="true">
+    <div
+      v-for="plane in PLANES"
+      :key="plane.id"
+      class="dental-parallax-plane"
+      :class="`dental-parallax-plane--${plane.id}`"
+      :data-layer="plane.id"
+      :style="{ '--drift-duration': `${plane.duration}s` }"
+    >
+      <div class="dental-parallax-track">
+        <div class="dental-parallax-tile">
+          <span
+            v-for="(mark, index) in plane.marks"
+            :key="index"
             class="dental-parallax-mark"
-            src="/images/login/tooth-1.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 36%;
-              --mark-y: 14.5%;
-              --mark-w: 1.9vw;
-              --mark-r: -12deg;
-              --mark-sm-x: 24%;
-              --mark-sm-y: 8%;
-              --mark-sm-w: 2vw;
-              --mark-sm-r: -14deg;
-            "
-          />
-          <img
-            class="dental-parallax-mark"
-            src="/images/login/tooth-1.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 79.3%;
-              --mark-y: 16.4%;
-              --mark-w: 2vw;
-              --mark-r: 14deg;
-              --mark-sm-x: 62%;
-              --mark-sm-y: 8.5%;
-              --mark-sm-w: 2.2vw;
-              --mark-sm-r: 12deg;
-            "
-          />
-          <img
-            class="dental-parallax-mark dental-parallax-toothbrush"
-            src="/images/login/toothbrush.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 13.7%;
-              --mark-y: 40.3%;
-              --mark-w: 2.2vw;
-              --mark-r: -8deg;
-              --mark-sm-x: 13.5%;
-              --mark-sm-y: 42%;
-              --mark-sm-w: 2.6vw;
-              --mark-sm-r: 8deg;
-            "
-          />
-          <img
-            class="dental-parallax-mark"
-            src="/images/login/tooth-1.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 88.9%;
-              --mark-y: 60.7%;
-              --mark-w: 2.1vw;
-              --mark-r: 10deg;
-              --mark-sm-x: 87%;
-              --mark-sm-y: 44%;
-              --mark-sm-w: 1.9vw;
-              --mark-sm-r: -10deg;
-            "
-          />
-          <img
-            class="dental-parallax-mark dental-parallax-toothbrush"
-            src="/images/login/toothbrush.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 25.1%;
-              --mark-y: 85%;
-              --mark-w: 2.4vw;
-              --mark-r: 22deg;
-              --mark-sm-x: 38%;
-              --mark-sm-y: 88%;
-              --mark-sm-w: 2.6vw;
-              --mark-sm-r: 18deg;
-            "
+            :class="`dental-parallax-mark--${mark[0]}`"
+            :style="markStyle(mark)"
           />
         </div>
-      </div>
-    </div>
-
-    <div class="dental-parallax-layer dental-parallax-mid" data-layer="mid">
-      <div class="dental-parallax-drift">
-        <div class="dental-parallax-art">
-          <img
+        <div class="dental-parallax-tile dental-parallax-tile--relay">
+          <span
+            v-for="(mark, index) in plane.marks"
+            :key="`relay-${index}`"
             class="dental-parallax-mark"
-            src="/images/login/tooth-1.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 19.4%;
-              --mark-y: 17.9%;
-              --mark-w: 2.5vw;
-              --mark-r: 8deg;
-              --mark-sm-x: 46%;
-              --mark-sm-y: 9.5%;
-              --mark-sm-w: 2.6vw;
-              --mark-sm-r: 10deg;
-            "
-          />
-          <img
-            class="dental-parallax-mark"
-            src="/images/login/tooth-1.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 65.6%;
-              --mark-y: 81.1%;
-              --mark-w: 2.9vw;
-              --mark-r: -13deg;
-              --mark-sm-x: 70%;
-              --mark-sm-y: 84%;
-              --mark-sm-w: 2.8vw;
-              --mark-sm-r: -12deg;
-            "
-          />
-          <img
-            class="dental-parallax-mark"
-            src="/images/login/tooth-1.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 82.5%;
-              --mark-y: 49%;
-              --mark-w: 2.6vw;
-              --mark-r: 7deg;
-              --mark-sm-x: 13.4%;
-              --mark-sm-y: 60%;
-              --mark-sm-w: 3vw;
-              --mark-sm-r: -9deg;
-            "
-          />
-          <img
-            class="dental-parallax-mark dental-parallax-toothbrush"
-            src="/images/login/toothbrush.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 48.7%;
-              --mark-y: 85.5%;
-              --mark-w: 3.2vw;
-              --mark-r: -26deg;
-              --mark-sm-x: 56%;
-              --mark-sm-y: 11.5%;
-              --mark-sm-w: 3.4vw;
-              --mark-sm-r: -22deg;
-            "
-          />
-          <img
-            class="dental-parallax-mark dental-parallax-toothbrush"
-            src="/images/login/toothbrush.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 90.5%;
-              --mark-y: 30.5%;
-              --mark-w: 3.3vw;
-              --mark-r: 30deg;
-              --mark-sm-x: 33%;
-              --mark-sm-y: 90%;
-              --mark-sm-w: 3.6vw;
-              --mark-sm-r: 26deg;
-            "
-          />
-        </div>
-      </div>
-    </div>
-
-    <div class="dental-parallax-layer dental-parallax-near" data-layer="near">
-      <div class="dental-parallax-drift">
-        <div class="dental-parallax-art">
-          <img
-            class="dental-parallax-mark"
-            src="/images/login/tooth-1.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 14.3%;
-              --mark-y: 65.6%;
-              --mark-w: 3.6vw;
-              --mark-r: -16deg;
-              --mark-sm-x: 79%;
-              --mark-sm-y: 8%;
-              --mark-sm-w: 3.4vw;
-              --mark-sm-r: -15deg;
-            "
-          />
-          <img
-            class="dental-parallax-mark"
-            src="/images/login/tooth-1.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 61.5%;
-              --mark-y: 17.4%;
-              --mark-w: 4vw;
-              --mark-r: 9deg;
-              --mark-sm-x: 20%;
-              --mark-sm-y: 87%;
-              --mark-sm-w: 3.8vw;
-              --mark-sm-r: 11deg;
-            "
-          />
-          <img
-            class="dental-parallax-mark"
-            src="/images/login/tooth-1.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 73%;
-              --mark-y: 84.5%;
-              --mark-w: 4.4vw;
-              --mark-r: -11deg;
-              --mark-sm-x: 64%;
-              --mark-sm-y: 91%;
-              --mark-sm-w: 4.2vw;
-              --mark-sm-r: -10deg;
-            "
-          />
-          <img
-            class="dental-parallax-mark dental-parallax-toothbrush"
-            src="/images/login/toothbrush.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 87%;
-              --mark-y: 58.8%;
-              --mark-w: 4.5vw;
-              --mark-r: 24deg;
-              --mark-sm-x: 74%;
-              --mark-sm-y: 92%;
-              --mark-sm-w: 4.5vw;
-              --mark-sm-r: 20deg;
-            "
-          />
-          <img
-            class="dental-parallax-mark dental-parallax-toothbrush"
-            src="/images/login/toothbrush.png"
-            alt=""
-            draggable="false"
-            style="
-              --mark-x: 25.5%;
-              --mark-y: 15.5%;
-              --mark-w: 4.45vw;
-              --mark-r: -20deg;
-              --mark-sm-x: 30%;
-              --mark-sm-y: 12%;
-              --mark-sm-w: 4.45vw;
-              --mark-sm-r: -18deg;
-            "
+            :class="`dental-parallax-mark--${mark[0]}`"
+            :style="markStyle(mark)"
           />
         </div>
       </div>
@@ -269,226 +33,187 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
-import { usePointerParallax } from '@/composables/usePointerParallax'
+import { onMounted, ref } from 'vue'
 
-const rootRef = ref(null)
+// One pastel field, three planes of dental marks drifting upward forever. Each
+// plane repeats its 1440 x 900 tile twice and travels exactly one tile height,
+// so the loop closes without a seam at any viewport height. No pointer input:
+// the scene is ambient, and a reduced-motion user gets it painted static.
+const TOOTH = 'tooth'
+const BRUSH = 'brush'
 
-const { active, reduced } = usePointerParallax(rootRef, { response: 0.45, damping: 0.85 })
+// [glyph, left, top, size, rotation] in design px over the 1440 x 900 tile.
+const FAR_MARKS = [
+  [TOOTH, 157.5, 686.7, 16, 12.4],
+  [BRUSH, 356.5, 220, 20.2, 22.7],
+  [TOOTH, 506.8, 521.3, 14.9, 4.3],
+  [BRUSH, 645.5, 388.3, 18.2, 21.3],
+  [TOOTH, 1343.8, 530.2, 11.8, 7.1],
+  [TOOTH, 960.1, 858.4, 11.8, 15.8],
+  [TOOTH, 1176.3, 647.9, 11.4, -15],
+  [BRUSH, 641.9, 533.4, 18.2, 41.7],
+  [TOOTH, 358.1, 774.8, 13.1, 1.6],
+  [TOOTH, 711.2, 608.7, 12.3, -1.8],
+  [TOOTH, 48, 380.1, 13.8, 11.8],
+  [TOOTH, 1186.4, 339.7, 12.2, 6.9],
+  [TOOTH, 1233.1, 568.6, 15.8, 5.3],
+  [TOOTH, 854, 356.4, 13.8, -11.8],
+  [BRUSH, 1022.4, 637.5, 18.2, 24],
+  [TOOTH, 939.6, 764.9, 16.9, 4.4]
+]
 
-// Ambient drift starts after mount, so a reduced-motion user never sees a
-// first frame of autonomous motion. The CSS block is the second guard, for a
-// live preference flip.
-const driftActive = ref(false)
+const MID_MARKS = [
+  [TOOTH, 86.2, 460.9, 22.6, -9.2],
+  [TOOTH, 325.7, 537.1, 21.8, -14.5],
+  [TOOTH, 417.3, 337.6, 22.8, 7.6],
+  [TOOTH, 1323.2, 831.3, 21.6, 10.8],
+  [BRUSH, 1187.8, 625.8, 27.9, -39.5],
+  [BRUSH, 438.3, 52.2, 33.6, -24.5],
+  [TOOTH, 1144.9, 490.3, 23.6, 4.5],
+  [TOOTH, 143.1, 264.8, 18.7, -4.4],
+  [TOOTH, 928.3, 642.6, 25.5, 4.3],
+  [TOOTH, 817.7, 44.3, 18.5, -4.7],
+  [BRUSH, 1353, 385, 26.5, 36.9],
+  [TOOTH, 53.1, 569, 21.3, 13.1]
+]
 
-onMounted(() => {
-  driftActive.value = !reduced.value
+const NEAR_MARKS = [
+  [TOOTH, 1170.7, 847.6, 34.2, -2.5],
+  [TOOTH, 1115.4, 282.3, 36.9, -5.7],
+  [TOOTH, 484.8, 826.4, 43.7, 3.8],
+  [BRUSH, 492.9, 65.5, 43.1, 23.2],
+  [TOOTH, 682, 313.4, 39.1, -3],
+  [BRUSH, 251.7, 535.5, 48.3, -39.5],
+  [TOOTH, 872.8, 353.8, 38.4, 14.6],
+  [TOOTH, 483.9, 375.6, 38.2, -11.4],
+  [TOOTH, 115, 324.8, 30.1, -15.5]
+]
+
+const PLANES = [
+  { id: 'far', duration: 200, marks: FAR_MARKS },
+  { id: 'mid', duration: 135, marks: MID_MARKS },
+  { id: 'near', duration: 90, marks: NEAR_MARKS }
+]
+
+const markStyle = ([, x, y, size, rotation]) => ({
+  left: `${x}px`,
+  top: `${y}px`,
+  width: `${size}px`,
+  height: `${size}px`,
+  transform: `rotate(${rotation}deg)`
 })
 
-watch(reduced, value => {
-  driftActive.value = !value
+// The loop never starts for a reduced-motion user, so the first frame is
+// already at rest; the CSS block is the second guard, for a live flip.
+const driftOn = ref(true)
+
+onMounted(() => {
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) driftOn.value = false
 })
 </script>
 
 <style scoped>
-/* Full-bleed raster scene. The base gradient plus three depth tiers compose
-   the scene, and each tier stacks two independent transforms: the pointer
-   offset (CSS vars on the layer, written by usePointerParallax) and the
-   ambient drift loop (on the inner wrapper). Only the plain tooth and the
-   toothbrush are placed, in small and varied sizes, so the centered form card
-   stays the subject while the scene distributes around it. The light-gray
-   tooth PNGs are darkened per tier through --mark-brightness so every mark
-   stays clearly perceptible over the light canvas. */
+/* One surface, no gradient: the pastel accent-50 is the page, and the two
+   dental assets ride on it as alpha masks painted in the accent ramp. Nothing
+   here reacts to the pointer; only the vertical drift moves. */
 .dental-parallax {
+  /* The tile height is also the loop travel: one full tile per cycle means the
+     relay tile lands exactly where the first one started. */
+  --drift-tile-h: 900px;
+  --drift-tile-h: max(900px, 100lvh);
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  background: linear-gradient(160deg, var(--color-canvas) 0%, var(--color-accent-50) 100%);
+  background: var(--color-accent-50);
 }
 
-.dental-parallax-layer {
-  position: absolute;
-  /* Overscan so the largest pointer amplitude plus the widest drift travel
-     never reveals an edge. */
-  inset: -64px;
-  width: calc(100% + 128px);
-  height: calc(100% + 128px);
-  transform: translate3d(
-    calc(var(--parallax-x, 0) * var(--parallax-amplitude, 0px)),
-    calc(var(--parallax-y, 0) * var(--parallax-amplitude, 0px)),
-    0
-  );
-}
-
-.dental-parallax-drift {
+.dental-parallax-plane {
   position: absolute;
   inset: 0;
 }
 
-.dental-parallax-art {
+.dental-parallax-track {
   position: absolute;
   inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
 }
 
-/* Each mark centers itself on its design-frame coordinates and consumes the
-   per-tier brightness, so the far tier stays faint and the near tier reads
-   strongest without repainting the assets. */
-.dental-parallax-mark {
-  position: absolute;
-  left: var(--mark-x);
-  top: var(--mark-y);
-  width: var(--mark-w);
-  height: auto;
-  transform: translate(-50%, -50%) rotate(var(--mark-r, 0deg));
-  filter: brightness(var(--mark-brightness, 1));
-}
-
-/* The toothbrush ships as a near-black silhouette, so it damps its own alpha
-   instead of rendering at the tooth tint's strength. */
-.dental-parallax-toothbrush {
-  opacity: 0.42;
-}
-
-/* Three full-viewport layers: promote them for the compositor only while
-   the parallax is live (or settling), never at rest. */
-.dental-parallax.is-parallax-active .dental-parallax-layer {
+.dental-parallax.has-drift .dental-parallax-track {
+  animation-name: dental-parallax-drift;
+  animation-duration: var(--drift-duration, 200s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
   will-change: transform;
 }
 
-/* Ambient drift: a slow loop per tier, off under reduced motion. Transform
-   only, so the compositor owns the motion and nothing repaints; the loops
-   differ in duration and start phase, and each returns to its origin. Every
-   animation-name is written literally (never through a variable) so the
-   scoped-style keyframe rename rewrites name and reference together. */
-.dental-parallax.has-drift .dental-parallax-drift {
-  animation-duration: var(--dental-drift-duration);
-  animation-delay: var(--dental-drift-delay);
-  animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
-  animation-iteration-count: infinite;
-  animation-fill-mode: both;
+.dental-parallax-tile {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1440px;
+  height: var(--drift-tile-h);
+  transform: translateX(-50%);
 }
 
-.dental-parallax.has-drift .dental-parallax-far .dental-parallax-drift {
-  animation-name: dental-parallax-drift-far;
+.dental-parallax-tile--relay {
+  top: var(--drift-tile-h);
 }
 
-.dental-parallax.has-drift .dental-parallax-mid .dental-parallax-drift {
-  animation-name: dental-parallax-drift-mid;
-}
-
-.dental-parallax.has-drift .dental-parallax-near .dental-parallax-drift {
-  animation-name: dental-parallax-drift-near;
-}
-
-@keyframes dental-parallax-drift-far {
-  0% {
+@keyframes dental-parallax-drift {
+  from {
     transform: translate3d(0, 0, 0);
   }
-  35% {
-    transform: translate3d(-9px, 7px, 0);
-  }
-  70% {
-    transform: translate3d(8px, -10px, 0);
-  }
-  100% {
-    transform: translate3d(0, 0, 0);
+  to {
+    transform: translate3d(0, calc(-1 * var(--drift-tile-h)), 0);
   }
 }
 
-@keyframes dental-parallax-drift-mid {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  30% {
-    transform: translate3d(13px, -11px, 0);
-  }
-  65% {
-    transform: translate3d(-14px, 12px, 0);
-  }
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
+/* The shape is the asset; the color is painted solid behind it. Masking keeps
+   the drawing crisp at every size and lets one PNG carry the whole accent
+   ramp, so no tier needs its own exported file. */
+.dental-parallax-mark {
+  position: absolute;
+  display: block;
+  background-color: var(--color-accent-200);
+  -webkit-mask-image: var(--glyph);
+  mask-image: var(--glyph);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 
-@keyframes dental-parallax-drift-near {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  32% {
-    transform: translate3d(-19px, 14px, 0);
-  }
-  68% {
-    transform: translate3d(17px, -20px, 0);
-  }
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
+.dental-parallax-mark--tooth {
+  --glyph: url('/images/login/tooth-1.png');
 }
 
-.dental-parallax-far {
-  --parallax-amplitude: 10px;
-  --dental-drift-duration: 58s;
-  --dental-drift-delay: 0s;
-  --mark-brightness: 0.86;
-  opacity: 0.4;
+.dental-parallax-mark--brush {
+  --glyph: url('/images/login/toothbrush.png');
 }
 
-.dental-parallax-mid {
-  --parallax-amplitude: 22px;
-  --dental-drift-duration: 46s;
-  --dental-drift-delay: 2.5s;
-  --mark-brightness: 0.78;
-  opacity: 0.58;
+/* Depth is ink, not opacity: the far plane is the palest tint of the ramp, the
+   near plane the saturated one, and the thin brush stroke takes one more step
+   than the tooth so it stays legible at the smallest sizes. */
+.dental-parallax-plane--far .dental-parallax-mark {
+  background-color: var(--color-accent-100);
 }
 
-.dental-parallax-near {
-  --parallax-amplitude: 36px;
-  --dental-drift-duration: 34s;
-  --dental-drift-delay: 5s;
-  --mark-brightness: 0.68;
-  opacity: 0.7;
+.dental-parallax-plane--near .dental-parallax-mark {
+  background-color: var(--color-accent-200);
 }
 
-/* Small screens: the centered card owns the middle of the viewport, so the
-   design-frame spread leaves it only edge slivers. Every mark switches to
-   its --mark-sm-* slot (the top and bottom bands plus two clipped side
-   edges) by rebinding the layout properties themselves; the inline base
-   custom properties stay as the fallback, which keeps the override outside
-   the inline-vs-stylesheet cascade. */
-@media (max-width: 640px) {
-  .dental-parallax-mark {
-    left: var(--mark-sm-x, var(--mark-x));
-    top: var(--mark-sm-y, var(--mark-y));
-    width: var(--mark-sm-w, var(--mark-w));
-    transform: translate(-50%, -50%) rotate(var(--mark-sm-r, var(--mark-r, 0deg)));
-  }
+.dental-parallax-plane--mid .dental-parallax-mark--brush,
+.dental-parallax-plane--near .dental-parallax-mark--brush {
+  background-color: var(--color-accent-300);
 }
 
-/* Reduced motion: the scene is fully static. The pointer listener is never
-   attached either (usePointerParallax) and the drift class is never applied,
-   and this rule neutralizes any transform or loop left on by a live
-   preference flip. */
 @media (prefers-reduced-motion: reduce) {
-  .dental-parallax-layer {
-    transform: none !important;
-  }
-
-  .dental-parallax-drift {
-    animation: none !important;
-    transform: none !important;
-  }
-}
-
-/* Reduced transparency: keep the scene and drop the translucency. Every
-   layer paints at full opacity while the per-tier brightness treatment stays
-   on the marks, so the hierarchy survives without alpha compositing. */
-@media (prefers-reduced-transparency: reduce) {
-  .dental-parallax-layer {
-    opacity: 1;
+  .dental-parallax.has-drift .dental-parallax-track {
+    animation: none;
+    transform: none;
+    will-change: auto;
   }
 }
 </style>
