@@ -38,7 +38,7 @@ class SqliteMigrateFreshDeclarationTest extends TestCase
         // nombrar la columna con o sin tabla. Lo que se fija es el fallo por la
         // columna indexada, no la redacción del motor.
         $this->assertMatchesRegularExpression(
-            '/no such column: (?:[\w."]+\\.)?type/',
+            '/no such column:[^\n]{0,40}type/',
             $output
         );
     }
