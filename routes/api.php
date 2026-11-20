@@ -137,12 +137,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('payment-methods/active', [PaymentMethodController::class, 'active'])
         ->middleware('permission:'.Permissions::VIEW_PAYMENT_METHOD);
 
-    // Dashboard (every authenticated role).
+    // Dashboard (every authenticated role). The page publishes the summary and
+    // the commercial pending answers; the appointment lists live in the agenda
+    // and the professional desk.
     Route::middleware('permission:'.Permissions::VIEW_DASHBOARD)->group(function () {
         Route::get('dashboard/stats', [DashboardController::class, 'stats']);
-        // BF-026 (slice 11): removed duplicate `dashboard/today` alias.
-        Route::get('dashboard/appointments-today', [DashboardController::class, 'today']);
-        Route::get('dashboard/upcoming', [DashboardController::class, 'upcoming']);
         Route::get('dashboard/pending', [DashboardController::class, 'pending']);
     });
 

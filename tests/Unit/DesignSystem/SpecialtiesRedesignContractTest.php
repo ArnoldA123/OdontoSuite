@@ -46,19 +46,24 @@ class SpecialtiesRedesignContractTest extends TestCase
         return substr($source, $start, $end - $start + 1);
     }
 
-    public function test_page_leads_with_the_hero_band_instead_of_a_duplicated_page_header(): void
+    public function test_page_leads_with_the_shared_page_header(): void
     {
         $page = self::read(self::PAGE);
 
-        $this->assertStringNotContainsString(
-            '<PageHeader',
+        $this->assertMatchesRegularExpression(
+            "/import\s+PageHeader\s+from\s+['\"][^'\"]*components\/layout\/PageHeader\.vue['\"]/",
             $page,
-            'The redesigned page MUST NOT render <PageHeader>; the hero band owns the title.'
+            'The page must import the shared PageHeader.'
         );
         $this->assertMatchesRegularExpression(
-            '#<header\b[^>]*data-specialties-hero[^>]*>[\s\S]*?data-hero-title[^>]*>\s*Especialidades\s*</#',
+            '#<PageHeader\b[^>]*kicker="Catálogo"[^>]*title="Especialidades"#u',
             $page,
-            'The hero band MUST expose data-specialties-hero and carry the exact title "Especialidades".'
+            'The shared header MUST carry the "Catálogo" kicker and the exact title "Especialidades".'
+        );
+        $this->assertStringNotContainsString(
+            'data-specialties-hero',
+            $page,
+            'The retired hero band must be gone: the page header is the shared component.'
         );
     }
 

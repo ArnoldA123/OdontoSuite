@@ -1,6 +1,6 @@
 <template>
-  <header :class="containerClasses">
-    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+  <header data-page-header class="page-header" :style="surfaceStyle">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div class="min-w-0 flex-1">
         <Breadcrumbs
           v-if="breadcrumbs && breadcrumbs.length"
@@ -10,15 +10,16 @@
           variant="minimal"
           class="mb-2"
         />
-        <h2 class="page-title">
+        <p v-if="kicker" data-page-header-kicker class="page-kicker">{{ kicker }}</p>
+        <h1 data-page-header-title class="page-title text-4xl font-semibold text-label">
           {{ title }}
-        </h2>
-        <p v-if="subtitle" class="page-subtitle">
+        </h1>
+        <p v-if="subtitle" data-page-header-subtitle class="page-subtitle">
           {{ subtitle }}
         </p>
       </div>
 
-      <div v-if="$slots.actions" class="page-actions flex items-center gap-2 flex-wrap">
+      <div v-if="$slots.actions" data-page-header-actions class="page-actions">
         <slot name="actions" />
       </div>
     </div>
@@ -26,7 +27,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import Breadcrumbs from '../ui/Breadcrumbs.vue'
 
 defineProps({
@@ -38,43 +38,50 @@ defineProps({
     type: String,
     default: ''
   },
+  kicker: {
+    type: String,
+    default: ''
+  },
   breadcrumbs: {
     type: Array,
     default: () => []
   }
 })
 
-const containerClasses = computed(() => ['page-header', 'animate-fade-in'])
+// Canonical page header surface: canvas fill, hairline, panel radius and the
+// elevation-2 rung. Declared inline (same as the nine page headers it
+// replaces) so the anatomy is measurable from the rendered element.
+const surfaceStyle = {
+  background: 'var(--color-canvas)',
+  border: '1px solid var(--color-hairline)',
+  borderRadius: 'var(--radius-panel)',
+  boxShadow: 'var(--elevation-2)'
+}
 </script>
 
 <style scoped>
 .page-header {
-  @apply p-6 pb-4 border-b border-theme;
-  background-color: var(--color-background);
+  @apply p-6 md:p-8;
 }
 
-.page-title {
-  @apply text-3xl font-bold tracking-tight;
-  color: var(--color-text-primary);
-  line-height: 1.2;
-}
-
-.page-subtitle {
-  @apply mt-1 text-base;
+.page-kicker {
+  @apply text-xs font-medium uppercase tracking-wide;
   color: var(--color-text-secondary);
 }
 
-.page-actions {
-  @apply flex-shrink-0;
+.page-title {
+  @apply mt-2;
 }
 
-@media (max-width: 640px) {
-  .page-header {
-    @apply p-4 pb-3;
-  }
+.page-subtitle {
+  @apply mt-2 text-sm;
+  color: var(--color-text-secondary);
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
+}
 
-  .page-title {
-    @apply text-2xl;
-  }
+.page-actions {
+  @apply flex flex-shrink-0 flex-wrap items-center gap-2;
 }
 </style>

@@ -165,7 +165,7 @@ describe('environments smoke', () => {
 })
 
 describe('environments filter bar (#456)', () => {
-  it('mounts the filter bar primitive around the search and the two selects', async () => {
+  it('mounts the filter bar primitive around the search and the single state select', async () => {
     getMock.mockResolvedValue({ data: [rowActive] })
     const wrapper = await mountPage()
 
@@ -174,8 +174,11 @@ describe('environments filter bar (#456)', () => {
     expect(bar.exists()).toBe(true)
     expect(bar.attributes('role')).toBe('search')
     expect(bar.find('input').exists()).toBe(true)
-    expect(bar.find('[data-status-filter]').exists()).toBe(true)
-    expect(bar.find('[data-archived-filter]').exists()).toBe(true)
+    // One state select: the operational status and the archive visibility are
+    // one question, not two controls whose defaults read the same.
+    expect(bar.findAll('[data-status-filter]')).toHaveLength(1)
+    expect(bar.find('[data-archived-filter]').exists()).toBe(false)
+    expect(bar.find('label').text()).toBe('Estado')
 
     // Nothing chosen yet: the in-bar reset is not offered.
     expect(bar.find('[data-filters-clear]').exists()).toBe(false)
@@ -396,7 +399,7 @@ describe('environments delete flow (T2)', () => {
 })
 
 describe('environments modal surfaces (T3)', () => {
-  it('drops the dead View modal and keeps "Ver detalle" as the single path to the detail route', async () => {
+  it('drops the dead View modal and keeps "Ver ficha" as the single path to the detail route', async () => {
     const source = pageSource()
     expect(source).not.toMatch(/\bviewEnvironment\b/)
     expect(source).not.toContain('viewingEnvironment')
@@ -406,7 +409,7 @@ describe('environments modal surfaces (T3)', () => {
     getMock.mockResolvedValue({ data: [rowActive] })
     const wrapper = await mountPage()
 
-    await clickRowAction(wrapper, 'Ver detalle')
+    await clickRowAction(wrapper, 'Ver ficha')
     await flushPromises()
 
     expect(pageRouter.currentRoute.value.path).toBe('/environments/1')
@@ -745,7 +748,7 @@ describe('environments archive management (S9)', () => {
     getMock.mockResolvedValue({ data: [rowArchived] })
     const wrapper = await mountPage()
 
-    await selectFilterOption(wrapper, 'Solo archivados', 1)
+    await selectFilterOption(wrapper, 'Archivados')
     await flushPromises()
 
     expect(getMock.mock.calls.at(-1)[0]).toBe('/api/dental-chairs?archived=only')
@@ -770,12 +773,10 @@ describe('environments archive management (S9)', () => {
     await flushPromises()
     expect(getMock.mock.calls.at(-1)[0]).toBe('/api/dental-chairs/search?q=consult')
 
-    await selectFilterOption(wrapper, 'Incluir archivados', 1)
+    await selectFilterOption(wrapper, 'Archivados')
     await flushPromises()
 
-    expect(getMock.mock.calls.at(-1)[0]).toBe(
-      '/api/dental-chairs/search?q=consult&archived=include'
-    )
+    expect(getMock.mock.calls.at(-1)[0]).toBe('/api/dental-chairs/search?q=consult&archived=only')
     wrapper.unmount()
   })
 
@@ -805,7 +806,7 @@ describe('environments archive management (S9)', () => {
     putMock.mockResolvedValue({ data: {} })
     const wrapper = await mountPage()
 
-    await selectFilterOption(wrapper, 'Solo archivados', 1)
+    await selectFilterOption(wrapper, 'Archivados')
     await flushPromises()
     await clickRowAction(wrapper, 'Reactivar')
     await flushPromises()
@@ -823,10 +824,10 @@ describe('environments write affordances (#439)', () => {
     getMock.mockResolvedValue({ data: [rowActive, rowArchived] })
     const wrapper = await mountPage()
 
-    // The read surface is untouched: list, filters and "Ver detalle" stay.
+    // The read surface is untouched: list, filters and "Ver ficha" stay.
     expect(wrapper.text()).toContain('Consultorio Norte')
     expect(wrapper.text()).toContain('Consultorio Historico')
-    expect(wrapper.text()).toContain('Ver detalle')
+    expect(wrapper.text()).toContain('Ver ficha')
     expect(wrapper.find('[data-status-filter]').exists()).toBe(true)
 
     // Every door the API answers 403 is gone: create, edit, archive, delete.

@@ -192,18 +192,20 @@ describe('appointment-types smoke', () => {
   it('mounts AppointmentTypesPage.vue and renders content', async () => {
     const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
     await flushPromises()
-    expect(wrapper.text()).toContain('Tipos de Cita')
+    expect(wrapper.text()).toContain('Tipos de cita')
     wrapper.unmount()
   })
 
-  it('renders the hero band with eyebrow, headline, caption and primary action', async () => {
+  it('renders the canonical page header with kicker, title, description and primary action', async () => {
     const wrapper = await mountPage(CATALOG)
-    const hero = wrapper.find('[data-appointment-types-hero]')
-    expect(hero.exists()).toBe(true)
-    expect(hero.find('[data-hero-title]').text()).toBe('Tipos de Cita')
-    expect(hero.find('[data-hero-eyebrow]').text()).toBe('Catálogo')
-    expect(hero.find('[data-hero-caption]').text().length).toBeGreaterThan(0)
-    expect(hero.find('[data-hero-action]').text()).toContain('Nuevo tipo')
+    const header = wrapper.find('[data-page-header]')
+    expect(header.exists()).toBe(true)
+    expect(header.find('h1').text()).toBe('Tipos de cita')
+    expect(header.find('[data-page-header-kicker]').text()).toBe('Catálogo')
+    expect(header.find('[data-page-header-subtitle]').text().length).toBeGreaterThan(0)
+    expect(header.text()).toContain('Actualizar')
+    expect(header.find('[data-page-action="new-type"]').text()).toContain('Nuevo tipo de cita')
+    expect(header.text()).not.toContain('Volver')
     wrapper.unmount()
   })
 
@@ -284,12 +286,12 @@ describe('appointment-types smoke', () => {
   it('keeps only the New and Edit modals (the View modal is gone)', async () => {
     const wrapper = await mountPage(CATALOG)
     const titles = wrapper.findAllComponents(Modal).map(m => m.props('title'))
-    expect(titles).toContain('Nuevo Tipo de Cita')
-    expect(titles).toContain('Editar Tipo de Cita')
-    expect(titles).not.toContain('Ver Tipo de Cita')
-    expect(titles.filter(t => typeof t === 'string' && t.includes('Tipo de Cita'))).toEqual([
-      'Nuevo Tipo de Cita',
-      'Editar Tipo de Cita'
+    expect(titles).toContain('Nuevo tipo de cita')
+    expect(titles).toContain('Editar tipo de cita')
+    expect(titles).not.toContain('Ver tipo de cita')
+    expect(titles.filter(t => typeof t === 'string' && t.includes('tipo de cita'))).toEqual([
+      'Nuevo tipo de cita',
+      'Editar tipo de cita'
     ])
     wrapper.unmount()
   })
@@ -302,7 +304,7 @@ describe('appointment-types smoke', () => {
       expect(document.body.textContent).toContain('Código hex')
     }
 
-    await wrapper.find('[data-hero-action]').trigger('click')
+    await wrapper.find('[data-page-action="new-type"]').trigger('click')
     await flushPromises()
     bodyColorPair()
 
@@ -325,7 +327,7 @@ describe('appointment-types smoke', () => {
     await router.isReady()
     const wrapper = await mountPage(CATALOG)
 
-    expect(document.body.textContent).toContain('Editar Tipo de Cita')
+    expect(document.body.textContent).toContain('Editar tipo de cita')
     const nameInput = [...document.body.querySelectorAll('input')].find(
       i => i.value === 'Ortodoncia'
     )
@@ -341,7 +343,7 @@ describe('appointment-types smoke', () => {
     await editRow.find('[data-row-action="edit"]').trigger('click')
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Editar Tipo de Cita')
+    expect(document.body.textContent).toContain('Editar tipo de cita')
     expect(editDurationInput().value).toBe('45')
     wrapper.unmount()
   })
@@ -351,7 +353,7 @@ describe('appointment-types smoke', () => {
     await router.isReady()
     const wrapper = await mountPage(CATALOG)
 
-    expect(document.body.textContent).toContain('Editar Tipo de Cita')
+    expect(document.body.textContent).toContain('Editar tipo de cita')
     expect(editDurationInput().value).toBe('60')
     wrapper.unmount()
     await router.push('/appointment-types')
@@ -362,7 +364,7 @@ describe('appointment-types smoke', () => {
     await router.isReady()
     const wrapper = await mountPage(CATALOG)
 
-    expect(document.body.textContent).not.toContain('Editar Tipo de Cita')
+    expect(document.body.textContent).not.toContain('Editar tipo de cita')
     expect(router.currentRoute.value.query.edit).toBeUndefined()
     wrapper.unmount()
     await router.push('/appointment-types')
@@ -390,7 +392,7 @@ describe('appointment-types smoke', () => {
   it('offers the write affordances to a session holding manage.appointment_type', async () => {
     const wrapper = await mountPage(CATALOG)
 
-    expect(wrapper.find('[data-hero-action]').exists()).toBe(true)
+    expect(wrapper.find('[data-page-action="new-type"]').exists()).toBe(true)
     const row = rows(wrapper).find(r => r.text().includes('Limpieza dental'))
     expect(row.find('[data-row-action="edit"]').exists()).toBe(true)
     expect(row.find('[data-row-action="delete"]').exists()).toBe(true)
@@ -401,7 +403,7 @@ describe('appointment-types smoke', () => {
     seedSession('recepcionista')
     const wrapper = await mountPage(CATALOG)
 
-    expect(wrapper.find('[data-hero-action]').exists()).toBe(false)
+    expect(wrapper.find('[data-page-action="new-type"]').exists()).toBe(false)
     expect(wrapper.findAll('[data-row-action="edit"]')).toHaveLength(0)
     expect(wrapper.findAll('[data-row-action="delete"]')).toHaveLength(0)
 
@@ -417,7 +419,7 @@ describe('appointment-types smoke', () => {
   it('opens the prefilled form from ?edit=<id> and keeps it open after the query replace', async () => {
     const { wrapper, shellRouter } = await mountShellAt('/appointment-types?edit=2')
 
-    expect(document.body.textContent).toContain('Editar Tipo de Cita')
+    expect(document.body.textContent).toContain('Editar tipo de cita')
     expect(openModalNameInput('Ortodoncia')).toBeTruthy()
     expect(editDurationInput().value).toBe('60')
 
@@ -425,7 +427,7 @@ describe('appointment-types smoke', () => {
     // route opt-out the key (`$route.path`) is unchanged, so the page that
     // just opened the form is not remounted and the form stays filled.
     expect(shellRouter.currentRoute.value.query.edit).toBeUndefined()
-    expect(document.body.textContent).toContain('Editar Tipo de Cita')
+    expect(document.body.textContent).toContain('Editar tipo de cita')
     expect(openModalNameInput('Ortodoncia')).toBeTruthy()
 
     wrapper.unmount()
@@ -436,7 +438,7 @@ describe('appointment-types smoke', () => {
     expect(openModalNameInput('Limpieza dental')).toBeTruthy()
 
     await closeOpenEditModal()
-    expect(document.body.textContent).not.toContain('Editar Tipo de Cita')
+    expect(document.body.textContent).not.toContain('Editar tipo de cita')
 
     // List -> detail -> «Editar» mounts the page again and reads the query.
     await shellRouter.push('/appointment-types/3')
@@ -444,7 +446,7 @@ describe('appointment-types smoke', () => {
     await shellRouter.push({ path: '/appointment-types', query: { edit: '3' } })
     await flushPromises()
 
-    expect(document.body.textContent).toContain('Editar Tipo de Cita')
+    expect(document.body.textContent).toContain('Editar tipo de cita')
     expect(openModalNameInput('Blanqueamiento')).toBeTruthy()
     expect(shellRouter.currentRoute.value.query.edit).toBeUndefined()
 
@@ -530,7 +532,9 @@ describe('appointment-types list inherits UiDataTable (#453)', () => {
     expect(row.text()).toContain('Profilaxis dental completa')
     expect(row.text()).toContain('30 min')
     expect(row.text()).toContain('Activo')
-    expect(row.find('[data-type-swatch]').exists()).toBe(true)
+    // Contract 3 (row-action palette): the colour dot beside the name read as an
+    // orphan element. The colour lives in the create/edit form only.
+    expect(row.find('[data-type-swatch]').exists()).toBe(false)
     expect(row.get('[aria-label^="Precio"]').text().length).toBeGreaterThan(0)
 
     const actions = row

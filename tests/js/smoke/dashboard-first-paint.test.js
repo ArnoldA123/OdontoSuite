@@ -2,11 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// #387 (S2) — the dashboard's first frame is the skeleton, never an empty
-// state, and the cash session never gates the four day sources. Before the
-// fix `loading` started false (so the content branch painted with empty
-// arrays) and `onMounted` awaited the cash session before requesting stats,
-// agenda, pending or upcoming.
+// #387 (S2) - the dashboard's first frame is the skeleton, never a partially
+// painted page; the cash session never gates the summary. U2: the page no
+// longer owns appointment lists, so it must not request the retired endpoints.
 const harness = vi.hoisted(() => ({
   get: vi.fn(),
   loadCurrentSession: vi.fn()
@@ -43,7 +41,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 }))
 
 // The cash composable is the gate the fix removes: its session load is held
-// open (row 2) so the four day sources must still be requested.
+// open (row 2) so the summary must still be requested.
 vi.mock('../../../resources/js/composables/useCashRegister', async () => {
   const { computed, ref } = await import('vue')
   const currentSession = ref(null)
@@ -62,20 +60,6 @@ vi.mock('../../../resources/js/composables/useCashRegister', async () => {
 
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/dashboard/DashboardPage.vue'
-
-const makeAppointment = id => ({
-  id,
-  scheduled_at: `2026-10-04T${String(8 + id).padStart(2, '0')}:30:00-05:00`,
-  status: 'confirmed',
-  patient: {
-    id: 100 + id,
-    full_name: `Paciente ${id}`,
-    first_name: 'Paciente',
-    last_name: `${id}`
-  },
-  appointment_type: { id: 3, name: 'Limpieza dental' },
-  user: { id: 2, name: 'Dra. Carla Núñez' }
-})
 
 const signInAs = role => {
   localStorage.setItem('auth_token', 'test-token')
@@ -99,12 +83,15 @@ const mountDashboard = router => mount(Page, { global: { plugins: [router, uiCom
 
 const requestedUrls = () => harness.get.mock.calls.map(([url]) => url)
 
+const REMOVED_ENDPOINTS = [
+  '/api/dashboard/appointments-today',
+  '/api/dashboard/upcoming',
+  '/api/dashboard/pending'
+]
+
 const installDashboardPayload = () => {
   harness.get.mockImplementation(async url => {
     if (url === '/api/dashboard/stats') return { data: {} }
-    if (url === '/api/dashboard/appointments-today') return { data: [makeAppointment(1)] }
-    if (url === '/api/dashboard/upcoming') return { data: [] }
-    if (url === '/api/dashboard/pending') return { data: {} }
     return { data: [] }
   })
 }
@@ -117,7 +104,7 @@ describe('dashboard first paint (#387)', () => {
     installDashboardPayload()
   })
 
-  it('renders the first-load skeleton on the first frame, never an empty state', async () => {
+  it('renders the first-load skeleton on the first frame, never a partial page', async () => {
     const router = await makeRouter()
     const wrapper = mountDashboard(router)
 
@@ -135,8 +122,8 @@ describe('dashboard first paint (#387)', () => {
     wrapper.unmount()
   })
 
-  it('loads the four day sources while the cash session is still in flight', async () => {
-    // The cash session never settles: the four day sources must not wait on it.
+  it('loads the summary while the cash session is still in flight', async () => {
+    // The cash session never settles: the summary must not wait on it.
     harness.loadCurrentSession.mockImplementation(() => new Promise(() => {}))
 
     const router = await makeRouter()
@@ -144,14 +131,20 @@ describe('dashboard first paint (#387)', () => {
     await flushPromises()
 
     expect(harness.loadCurrentSession).toHaveBeenCalledTimes(1)
-    expect(requestedUrls()).toEqual(
-      expect.arrayContaining([
-        '/api/dashboard/stats',
-        '/api/dashboard/appointments-today',
-        '/api/dashboard/upcoming',
-        '/api/dashboard/pending'
-      ])
-    )
+    expect(requestedUrls()).toContain('/api/dashboard/stats')
+
+    wrapper.unmount()
+  })
+
+  it('never requests the retired appointment endpoints', async () => {
+    const router = await makeRouter()
+    const wrapper = mountDashboard(router)
+    await flushPromises()
+    await flushPromises()
+
+    for (const endpoint of REMOVED_ENDPOINTS) {
+      expect(requestedUrls()).not.toContain(endpoint)
+    }
 
     wrapper.unmount()
   })

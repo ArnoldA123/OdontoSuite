@@ -360,87 +360,33 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * WU3 / D6 — "Pendientes" is ONE merged list: quotations and treatment
-     * plans are rows of a single dataset. The twin columns (per-type
-     * header, count and empty box) are removed; only the presentation
-     * merges, the per-type payload gating stays in the script.
+     * U1 / U2 — the commercial pending answers moved to Pendientes. The
+     * dashboard keeps neither the merged row model nor the type badges; the
+     * receiving contract lives in ContinuityPendingSectionTest.
      */
-    public function test_dashboard_pending_block_is_one_merged_list(): void
+    public function test_dashboard_no_longer_owns_the_pending_block(): void
     {
         $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $pending = $this->sectionRegion($src, 'Requiere tu atención');
-        $this->assertStringNotContainsString(
-            'data-pending-group',
-            $pending,
-            'DashboardPage.vue Pendientes must render no per-type columns (WU3 / D6: one merged list).'
-        );
-        foreach (['Presupuestos pendientes', 'Planes por aceptar'] as $retiredHeader) {
+        foreach (['pendingRows', 'data-pending-row', "typeLabel: 'Presupuesto'"] as $retired) {
             $this->assertStringNotContainsString(
-                $retiredHeader,
-                $pending,
-                "DashboardPage.vue Pendientes must drop the duplicated \"{$retiredHeader}\" column header (WU3 / D6)."
-            );
-        }
-
-        $this->assertSame(
-            1,
-            preg_match_all('/v-for="row in pendingRows"/', $src),
-            'DashboardPage.vue must iterate ONE merged pendingRows dataset (WU3 / D6).'
-        );
-        $this->assertSame(
-            1,
-            preg_match_all('/data-state="empty-pending"/', $src),
-            'DashboardPage.vue must render exactly ONE unified pending empty state (WU3 / D6 / D9).'
-        );
-    }
-
-    /**
-     * WU3 / D6 — the merged row contract: patient name, amount (per-type
-     * field), type badge (Presupuesto / Plan de tratamiento), status badge,
-     * date and ONE row-level action routing to the entity's module list.
-     * Rows sort by their pending date ascending.
-     */
-    public function test_dashboard_pending_rows_carry_type_badges_and_one_action(): void
-    {
-        $path = self::projectRootPath().self::DASHBOARD_FILE;
-        $src = (string) self::readFile($path);
-        $this->assertNotNull($src);
-
-        foreach (['Presupuesto', 'Plan de tratamiento'] as $typeLabel) {
-            $this->assertStringContainsString(
-                "typeLabel: '{$typeLabel}'",
+                $retired,
                 $src,
-                "DashboardPage.vue merged pending rows must carry the type badge copy \"{$typeLabel}\" (WU3 / D6)."
+                "DashboardPage.vue must not keep \"{$retired}\": the pending answers live in Pendientes (U1/U2)."
             );
         }
 
-        $this->assertStringContainsString(
-            "route: '/quotations'",
-            $src,
-            'Quotation rows must route to the /quotations module list (no detail route exists).'
-        );
-        $this->assertStringContainsString(
-            "route: '/treatment-plans'",
-            $src,
-            'Treatment-plan rows must route to the /treatment-plans module list (no detail route exists).'
-        );
-        $this->assertStringContainsString(
-            '@click="goToPendingEntity(row.entityType)"',
-            $src,
-            'Every merged pending row must render its single action through goToPendingEntity (WU3 / D6).'
-        );
-        $this->assertStringContainsString(
-            'rows.sort(',
-            $src,
-            'Merged pending rows must sort by their pending date ascending (WU3 / D6).'
-        );
         $this->assertStringNotContainsString(
-            'Ver todos',
+            '/api/dashboard/pending',
             $src,
-            'DashboardPage.vue must keep no section-level overflow link on Pendientes (the row action owns the destination).'
+            'DashboardPage.vue must not request the pending answers anymore (U1/U2).'
+        );
+        $this->assertStringContainsString(
+            "to: '/continuity'",
+            $src,
+            'The dashboard points at Pendientes instead of publishing its answers.'
         );
     }
 
@@ -499,24 +445,18 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * DoD — DashboardPage.vue must consume the PR2 card primitive
-     * (`UiCard`) and the page must show 5 stat cards, all using
-     * `variant="glass"` per the spec. Even when permission-gating hides
-     * some, the source still emits them — the gating happens at the
-     * template level via `v-if`.
-     *
-     * WU1 — verified stat-card labels (daily-operations strip): "Citas Hoy",
-     * "Atendidas Hoy", "Por Atender", "Saldo de Caja" (D1). The historical
-     * metrics (Pacientes, Citas del Mes, Ingresos) left for BI (D2) and the
-     * retired stat handles must be gone.
+     * U2 — the strip keeps the two numbers it can source honestly: the day's
+     * appointment count (from the summary) and the drawer balance. The three
+     * day buckets that read the retired list, and the historical metrics that
+     * live in BI (D2), are gone.
      */
-    public function test_dashboard_contains_all_four_daily_operations_stat_card_labels(): void
+    public function test_dashboard_contains_the_two_sourceable_stat_card_labels(): void
     {
         $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $labels = ['Citas Hoy', 'Atendidas Hoy', 'Por Atender', 'Saldo de Caja'];
+        $labels = ['Citas Hoy', 'Saldo de Caja'];
         foreach ($labels as $label) {
             $this->assertStringContainsString(
                 $label,
@@ -526,6 +466,8 @@ class DashboardAppShellTest extends TestCase
         }
 
         $retired = [
+            'data-stat-card="completed-today"',
+            'data-stat-card="pending-today"',
             'data-stat-card="total-patients"',
             'data-stat-card="total-appointments-month"',
             'data-stat-card="total-income"',
@@ -535,7 +477,7 @@ class DashboardAppShellTest extends TestCase
             $this->assertStringNotContainsString(
                 $handle,
                 $src,
-                "DashboardPage.vue must not keep the retired KPI handle {$handle} (WU1: four daily-operations cards, D1/D2)."
+                "DashboardPage.vue must not keep the retired KPI handle {$handle} (U2: two sourceable cards)."
             );
         }
     }
@@ -578,10 +520,8 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * WU3 / D5 — no calendar CTA survives on the dashboard: "Ver calendario"
-     * re-listed the sidebar destination and is removed with the quick-actions
-     * header. The pending block keeps no "Ver todos" overflow links either
-     * (the merged rows own their destinations).
+     * U2 — the retired blocks leave no navigation handler or overflow link
+     * behind. The only page-level navigation is the three destination links.
      */
     public function test_dashboard_renders_no_ver_calendario_or_ver_todos_ctas(): void
     {
@@ -592,27 +532,31 @@ class DashboardAppShellTest extends TestCase
         $this->assertSame(
             0,
             substr_count($src, 'Ver calendario'),
-            'DashboardPage.vue must render zero "Ver calendario" CTAs (WU3 / D5: the calendar lives in the sidebar).'
+            'DashboardPage.vue must render zero "Ver calendario" CTAs: the calendar card is the only way in.'
         );
         $this->assertSame(
             0,
             substr_count($src, 'Ver todos'),
-            'DashboardPage.vue must render zero "Ver todos" overflow links (WU3 / D6: one row-level action per entity).'
+            'DashboardPage.vue must render zero "Ver todos" overflow links.'
+        );
+        $this->assertStringNotContainsString(
+            'goToCalendar',
+            $src,
+            'DashboardPage.vue must not keep a calendar navigation handler: the destination link owns it.'
         );
 
         foreach (['Agenda de hoy', 'Próximos días', 'Requiere tu atención'] as $label) {
-            $region = $this->sectionRegion($src, $label);
             $this->assertStringNotContainsString(
-                'goToCalendar',
-                $region,
-                "DashboardPage.vue section \"{$label}\" must not bind a calendar navigation handler (WU3 / D5)."
+                'aria-label="'.$label.'"',
+                $src,
+                "DashboardPage.vue must not render the retired section \"{$label}\" (U2)."
             );
         }
     }
 
     /**
-     * T3 — the four KPI cards are a static reference strip: none carries
-     * the UiCard clickable/hover props or an @click binding. The cash card
+     * T3 / U2 — the KPI cards are a static reference strip: none carries the
+     * UiCard clickable/hover props or an @click binding. The cash card
      * "Ir a Caja" action (WU2 / D4) remains the only cash destination CTA.
      */
     public function test_dashboard_stat_cards_have_no_click_affordance(): void
@@ -628,9 +572,9 @@ class DashboardAppShellTest extends TestCase
         );
         $openings = $matches[0] ?? [];
         $this->assertSame(
-            4,
+            2,
             count($openings),
-            'DashboardPage.vue must render exactly 4 stat cards for the static-strip check (D1).'
+            'DashboardPage.vue must render exactly 2 stat cards for the static-strip check.'
         );
 
         foreach ($openings as $idx => $opening) {
@@ -727,31 +671,31 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * T5 — DashboardPage.vue renders the today-appointments empty case
-     * through the shared DashboardSectionEmpty component (extracted from the
-     * previous inline block; HOTFIX-DASH-007 icon + CTA ride its slots).
+     * U2 — the page keeps no shared empty state: the three blocks that owned
+     * one are retired and the destinations are static links.
      */
-    public function test_dashboard_uses_empty_state_for_today_appointments(): void
+    public function test_dashboard_renders_no_shared_empty_state(): void
     {
         $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // The shared empty pattern lives in the dashboard module; the page
-        // consumes it for the today's-appointments empty case.
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             '<DashboardSectionEmpty',
             $src,
-            "DashboardPage.vue must render <DashboardSectionEmpty /> for the today's-appointments empty case (T5)."
+            'DashboardPage.vue must render no shared empty state: its lists are gone (U2).'
+        );
+        $this->assertStringNotContainsString(
+            'data-state="empty-',
+            $src,
+            'DashboardPage.vue must render no empty-state hook (U2).'
         );
     }
 
     /**
-     * T5 — the three per-section inline error blocks (agenda, próximas
-     * citas, pendientes) were near-duplicate copies of the same markup.
-     * They now all render the shared DashboardSectionError component, the
-     * page keeps no copy of the old inline block, and the page-level stats
-     * error keeps its own distinct role.
+     * T5 / U2 — the shared per-section error component left with the three
+     * blocks. The summary error is the only error surface of the page, and it
+     * keeps its own distinct role.
      */
     public function test_dashboard_uses_shared_section_error_component(): void
     {
@@ -759,52 +703,32 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $this->assertSame(
-            0,
-            substr_count($src, 'rounded-ios p-5 bg-systemRed-50'),
-            'DashboardPage.vue must not keep the duplicated inline section-error markup (T5: DashboardSectionError owns it).'
+        $this->assertStringNotContainsString(
+            '<DashboardSectionError',
+            $src,
+            'DashboardPage.vue must not render the shared section error anymore (U2).'
         );
-
-        $this->assertSame(
-            3,
-            preg_match_all('/<DashboardSectionError\b/', $src),
-            'DashboardPage.vue must render exactly three <DashboardSectionError /> blocks (agenda, próximas citas, pendientes).'
-        );
-
-        $hooks = [
-            'error-appointments' => 'data-retry-appointments',
-            'error-upcoming' => 'data-retry-upcoming',
-            'error-pending' => 'data-retry-pending',
-        ];
-        foreach ($hooks as $state => $retry) {
-            $this->assertMatchesRegularExpression(
-                '/<DashboardSectionError\b(?=[^>]*data-state="'.$state.'")[^>]*>/s',
+        foreach (['data-state="error-appointments"', 'data-state="error-upcoming"', 'data-state="error-pending"'] as $retired) {
+            $this->assertStringNotContainsString(
+                $retired,
                 $src,
-                "DashboardPage.vue must keep the `{$state}` hook on its shared section-error component (T5)."
-            );
-            $this->assertMatchesRegularExpression(
-                '/<DashboardSectionError\b(?=[^>]*data-state="'.$state.'")[^>]*'.$retry.'/s',
-                $src,
-                "DashboardPage.vue must keep the `{$retry}` retry hook on its shared section-error component (T5)."
+                "DashboardPage.vue must not keep the retired hook {$retired} (U2)."
             );
         }
 
         // The page-level stats error reports only the summary in its own
-        // space (#388): a failure there no longer unmounts the data sections,
-        // so the block stays as its own distinct role.
+        // space (#388): a failure there never unmounts the destinations.
         $this->assertSame(
             1,
             substr_count($src, 'data-state="error-stats"'),
-            'DashboardPage.vue must keep exactly one page-level stats error block (T5).'
+            'DashboardPage.vue must keep exactly one page-level stats error block.'
         );
     }
 
     /**
-     * WU3 / D9 — the empty states render through the SHARED compact
-     * DashboardSectionEmpty pattern: one reduced padding token, one icon
-     * size, one title + one sentence, and at most three usages (agenda,
-     * upcoming, unified pending). The pending empty copy is the single
-     * unified sentence, not the retired per-column pair.
+     * WU3 / D9 + U2 — the shared compact empty pattern survives in the
+     * primitive, but the dashboard no longer renders it: its lists are gone
+     * and the destination cards are static links.
      */
     public function test_dashboard_uses_shared_section_empty_component(): void
     {
@@ -812,17 +736,6 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $componentPath = self::projectRootPath().'/resources/js/modules/dashboard/DashboardSectionEmpty.vue';
-        $this->assertFileExists(
-            $componentPath,
-            'DashboardSectionEmpty.vue must exist (shared empty-state pattern).'
-        );
-        $componentSrc = (string) self::readFile($componentPath);
-
-        // Re-anchored (patients redesign): the empty-state panel markup now
-        // lives in the shared UiSectionEmpty primitive, so the structural
-        // tokens are pinned where they live and the dashboard wrapper is
-        // pinned to delegate instead of keeping its own copy.
         $primitivePath = self::projectRootPath().'/resources/js/components/ui/UiSectionEmpty.vue';
         $this->assertFileExists(
             $primitivePath,
@@ -831,14 +744,9 @@ class DashboardAppShellTest extends TestCase
         $primitiveSrc = (string) self::readFile($primitivePath);
 
         $this->assertStringContainsString(
-            '<UiSectionEmpty',
-            $componentSrc,
-            'DashboardSectionEmpty.vue must delegate to the shared UiSectionEmpty primitive (patients redesign: one empty-state anatomy).'
-        );
-        $this->assertStringContainsString(
             'data-section-empty',
             $primitiveSrc,
-            'UiSectionEmpty.vue must expose the data-section-empty hook (T5); DashboardSectionEmpty renders the block through the primitive.'
+            'UiSectionEmpty.vue must expose the data-section-empty hook (T5).'
         );
         $this->assertStringContainsString(
             'p-6',
@@ -857,103 +765,65 @@ class DashboardAppShellTest extends TestCase
         );
 
         $this->assertSame(
-            3,
+            0,
             preg_match_all('/<DashboardSectionEmpty\b/', $src),
-            'DashboardPage.vue must render at most three empty states (agenda, upcoming, unified pending) (WU3 / D9).'
-        );
-
-        foreach (['empty-appointments', 'empty-upcoming', 'empty-pending'] as $state) {
-            $this->assertMatchesRegularExpression(
-                '/<DashboardSectionEmpty\b[^>]*data-state="'.$state.'"/s',
-                $src,
-                "DashboardPage.vue must render the shared <DashboardSectionEmpty /> with the `{$state}` hook (WU3 / D9)."
-            );
-        }
-
-        $pending = $this->sectionRegion($src, 'Requiere tu atención');
-        $this->assertStringContainsString(
-            'title="Sin pendientes"',
-            $pending,
-            'Unified pending empty copy must read "Sin pendientes" (WU3 / D6 / D9).'
-        );
-        $this->assertStringNotContainsString(
-            'title="Sin presupuestos pendientes"',
-            $pending,
-            'Pending must drop the per-column quotations empty copy (WU3 / D6).'
-        );
-        $this->assertStringNotContainsString(
-            'title="Sin planes por aceptar"',
-            $pending,
-            'Pending must drop the per-column treatment-plans empty copy (WU3 / D6).'
+            'DashboardPage.vue must render zero shared empty states: its lists are retired (U2).'
         );
     }
 
     /**
-     * WU3 / D6 — the merged pending rows keep the per-type amount fields
-     * (quotations: total_amount, plans: final_cost) through formatPENLabel,
-     * with a muted "N/D" fallback that never paints an em dash.
+     * U2 — "Dónde seguir" is the replacement contract: three link cards, one
+     * line of what each resolves, each gated by the permission its own screen
+     * demands and carrying no counter.
      */
-    public function test_dashboard_plan_rows_render_final_cost(): void
+    public function test_dashboard_destinations_are_gated_links(): void
     {
         $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $pending = $this->sectionRegion($src, 'Requiere tu atención');
-
         $this->assertStringContainsString(
-            '{{ row.amountLabel }}',
-            $pending,
-            'Merged pending rows must render their amount through the row model (WU3 / D6).'
+            'data-dashboard-block="destinations"',
+            $src,
+            'DashboardPage.vue must render the destinations block.'
         );
         $this->assertStringContainsString(
-            'readAmount: item => item?.total_amount',
+            '<RouterLink',
             $src,
-            'Quotation amounts must keep reading the per-type total_amount field (merged presentation).'
-        );
-        $this->assertStringContainsString(
-            'readAmount: item => item?.final_cost',
-            $src,
-            'Plan rows must keep reading the backend final_cost field (WU3 / D6).'
-        );
-        $this->assertStringContainsString(
-            'formatPENLabel(amount)',
-            $src,
-            'Pending amounts must render through formatPENLabel (WU3 / D6).'
-        );
-        $this->assertStringContainsString(
-            "'N/D'",
-            $src,
-            'Plan rows must render a muted "N/D" fallback when final_cost is null (WU3 / D6).'
-        );
-        $this->assertStringNotContainsString(
-            "\u{2014}",
-            $pending,
-            'Pending rows must never fall back to an em dash (HOTFIX-DASH-011).'
-        );
-    }
-
-    /**
-     * T2a (ops IA) - the agenda is the page's protagonist, so the today
-     * list renders EVERY appointment the endpoint returns. The previous
-     * slice(0, 3) cap was removed by the ops-redesign IA pass; this guard
-     * pins the removal and the uncapped v-for over todayAppointments.
-     */
-    public function test_dashboard_renders_every_today_appointment_without_cap(): void
-    {
-        $src = (string) self::readFile(self::projectRootPath().self::DASHBOARD_FILE);
-        $this->assertNotNull($src);
-
-        $this->assertStringNotContainsString(
-            'slice(0, 3)',
-            $src,
-            "DashboardPage.vue must not cap today's appointments; the agenda renders every appointment returned."
+            'The destination cards must be real links (RouterLink), never clickable divs.'
         );
 
-        $this->assertMatchesRegularExpression(
-            '/v-for="appointment in todayAppointments"/',
+        foreach (["'viewCalendar'", "'viewMyDay'"] as $permission) {
+            $this->assertStringContainsString(
+                'permission: '.$permission,
+                $src,
+                "Each single-grant destination must declare the read permission of its screen ({$permission})."
+            );
+        }
+
+        // S15: Pendientes answers two grants. The queue desks reach it through
+        // `view.continuity`; finance reaches its commercial answers through
+        // `view.quotation`.
+        $this->assertStringContainsString(
+            "anyPermissions: ['viewContinuity', 'viewQuotation']",
             $src,
-            'DashboardPage.vue agenda must iterate the full todayAppointments list (no slice cap).'
+            'The Pendientes destination must accept either grant.'
+        );
+
+        $this->assertStringContainsString(
+            'DESTINATIONS.filter',
+            $src,
+            'The destinations must be filtered by the permissions the session holds.'
+        );
+        $this->assertStringContainsString(
+            '{{ destination.title }}',
+            $src,
+            'Each destination card renders its title from the declared list.'
+        );
+        $this->assertStringContainsString(
+            '{{ destination.description }}',
+            $src,
+            'Each destination card renders the line of what it resolves.'
         );
     }
 
@@ -1021,9 +891,9 @@ class DashboardAppShellTest extends TestCase
         );
         $cards = $matches[0] ?? [];
         $this->assertSame(
-            4,
+            2,
             count($cards),
-            'DashboardPage.vue must render exactly 4 stat cards carrying data-stat-card (D1).'
+            'DashboardPage.vue must render exactly 2 stat cards carrying data-stat-card (U2).'
         );
 
         foreach ($cards as $idx => $card) {
@@ -1090,24 +960,18 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * 4.1.5 — each stat card carries a `data-stat-card` attribute whose value
-     * equals the stat key (`appointments-today`, `completed-today`,
-     * `pending-today`, `cash-balance`) plus the `data-stat` hook on the value
-     * element (WU1 / D1). These are the handles the JS smoke suite and the
-     * Playwright run use to assert the numbers.
+     * 4.1.5 / U2 — each stat card carries a `data-stat-card` attribute whose
+     * value equals the stat key (`appointments-today`, `cash-balance`) plus the
+     * `data-stat` hook on the value element. These are the handles the JS smoke
+     * suite uses to assert the numbers.
      */
-    public function test_dashboard_four_stat_cards_carry_data_stat_card_attribute(): void
+    public function test_dashboard_stat_cards_carry_data_stat_card_attribute(): void
     {
         $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $expectedKeys = [
-            'appointments-today',
-            'completed-today',
-            'pending-today',
-            'cash-balance',
-        ];
+        $expectedKeys = ['appointments-today', 'cash-balance'];
         foreach ($expectedKeys as $key) {
             $this->assertStringContainsString(
                 'data-stat-card="'.$key.'"',
@@ -1129,40 +993,44 @@ class DashboardAppShellTest extends TestCase
      * band's headline (WU4 / D6). The topbar keeps owning the heading
      * hierarchy; the hero band stays typographic.
      */
-    public function test_dashboard_greeting_not_h2_or_h1_uses_display_typography(): void
+    public function test_dashboard_greeting_is_the_page_header_title(): void
     {
         $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // The greeting must be a <p> carrying the login display anatomy.
-        // We assert on the class binding the template emits.
+        // The greeting is the shared header's title: the anatomy (36px/600 on
+        // the label token) lives in PageHeader, so the page only feeds it.
         $this->assertMatchesRegularExpression(
-            '/<p[^>]*class="[^"]*text-4xl[^"]*font-semibold[^"]*text-label[^"]*"[^>]*>\s*\{\{\s*getGreeting\(\)\s*\}\}/',
+            '/<PageHeader\b[\s\S]{0,400}?:title="`\$\{getGreeting\(\)\}, \$\{firstName\}`"/',
             $src,
-            'DashboardPage.vue greeting must be a <p class="text-4xl font-semibold text-label">{{ getGreeting() }}, ... (WU4 hero band, login display step).'
+            'DashboardPage.vue must pass the greeting to <PageHeader :title> (one header anatomy, no local hero).'
+        );
+        $this->assertStringContainsString(
+            'kicker="HOY"',
+            $src,
+            'DashboardPage.vue must declare the HOY kicker.'
         );
 
-        // The retired compact greeting size is forbidden (defect 7 — two
-        // competing headings; WU4 re-anchors it to the hero display step).
+        // The retired compact greeting size is forbidden, and the page no
+        // longer declares display typography of its own.
         $this->assertDoesNotMatchRegularExpression(
             '/text-lg[^"]*font-medium[^"]*text-theme-secondary[^"]*"[^>]*>\s*\{\{\s*getGreeting\(\)\s*\}\}/',
             $src,
-            'DashboardPage.vue greeting must not keep the retired text-lg font-medium compact sizing (WU4 hero band).'
+            'DashboardPage.vue greeting must not keep the retired text-lg font-medium compact sizing.'
+        );
+        $this->assertStringNotContainsString(
+            'text-4xl',
+            $src,
+            'DashboardPage.vue must not carry display typography: the only 36px title is PageHeader\'s.'
         );
 
-        // Only one h1 in the dashboard page source — the dashboard route's
-        // <h1> lives in AppLayout.vue, but the page source itself must
-        // not contain any other h1 to keep the page heading hierarchy
-        // unambiguous.
-        $h1Count = preg_match_all('/<h1\b/i', $src);
+        // The page declares no heading element of its own (PageHeader owns it).
         $this->assertSame(
             0,
-            (int) $h1Count,
-            'DashboardPage.vue must not declare its own <h1> (the page <h1> lives in AppLayout.vue).'
+            (int) preg_match_all('/<h1\b/i', $src),
+            'DashboardPage.vue must not declare its own <h1>: PageHeader renders it.'
         );
-
-        // No h2 carrying the greeting either.
         $this->assertDoesNotMatchRegularExpression(
             '/<h2[^>]*>\s*\{\{\s*getGreeting\(\)\s*\}\}/',
             $src,
@@ -1227,44 +1095,31 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * 4.5.1 (revised in correction round) — The today-appointments
-     * `<EmptyState>` for the empty case must NOT carry a remote
-     * illustration. The previous Picsum-seeded URL resolved to an
-     * unrelated stock photo (a sunset over a pier), and clinical
-     * products must not leak requests to third-party hosts. The
-     * empty state is composed from what is already in the design
-     * system: the EmptyState primitive with its default icon, a
-     * one-line Spanish message, and a real call-to-action.
-     *
-     * The previous `illustration="https://picsum.photos/..."` binding
-     * was the wrong tool here: the design-taste-frontend skill
-     * explicitly scopes Picsum to landing pages and portfolios and
-     * lists dashboards as OUT OF SCOPE.
+     * 4.5.1 (revised for U2) — the dashboard no longer renders an empty state,
+     * and the page never reaches a third-party image host. The project-wide
+     * host ban is pinned by the next test; this one keeps the page-level gate
+     * on the surface that used to own the retired illustration.
      */
-    public function test_dashboard_empty_state_picsum_illustration(): void
+    public function test_dashboard_drops_the_retired_empty_state_illustration(): void
     {
         $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // The empty state for today-appointments renders through the shared
-        // DashboardSectionEmpty component (T5) and keeps the
-        // data-state="empty-appointments" hook. It MUST NOT carry an
-        // illustration attribute pointing to a third-party host.
-        $this->assertMatchesRegularExpression(
-            '/<DashboardSectionEmpty\b[^>]*data-state="empty-appointments"/s',
+        $this->assertStringNotContainsString(
+            'data-state="empty-appointments"',
             $src,
-            'DashboardPage.vue must render <DashboardSectionEmpty data-state="empty-appointments"> for the today-appointments empty case (T5, HOTFIX-DASH-007 icon through the icon slot).'
+            'DashboardPage.vue must not keep the retired empty state hook (U2).'
         );
         $this->assertDoesNotMatchRegularExpression(
-            '/<EmptyState\b[^>]*\billustration="[^"]*picsum\.photos/i',
+            '/\billustration="https?:\/\//i',
             $src,
-            'DashboardPage.vue <EmptyState> must NOT carry a Picsum illustration (correction round; clinical products cannot reach out to third-party image hosts).'
+            'DashboardPage.vue must not bind a remote illustration (air-gapped deployments would render broken images).'
         );
-        $this->assertDoesNotMatchRegularExpression(
-            '/<EmptyState\b[^>]*\billustration="https?:\/\//i',
+        $this->assertStringNotContainsString(
+            'picsum.photos',
             $src,
-            'DashboardPage.vue <EmptyState> must NOT carry a remote illustration (correction round; air-gapped deployments would render broken images).'
+            'DashboardPage.vue must not reference a third-party image host.'
         );
     }
 
@@ -1308,10 +1163,9 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * D8 / R1 — the daily appointment count lives ONLY in the KPI. The
-     * Agenda de hoy header must not render `todayAppointments.length` (nor
-     * its singular/plural suffix), and the KPI strip binds the very same
-     * array.
+     * D8 / R1 + U2 — the daily appointment count lives only in the KPI, and
+     * the only source left is the summary the page fetches. No list, no
+     * singular/plural suffix, no second endpoint.
      */
     public function test_dashboard_agenda_header_renders_no_appointment_count(): void
     {
@@ -1319,24 +1173,24 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $agenda = $this->sectionRegion($src, 'Agenda de hoy');
-
-        $this->assertDoesNotMatchRegularExpression(
-            '/\{\{\s*todayAppointments\.length\s*\}\}/',
-            $agenda,
-            'DashboardPage.vue agenda header must not render the appointment count (D8: the KPI owns it).'
-        );
-        $this->assertDoesNotMatchRegularExpression(
-            "/\?\s*'cita'\s*:\s*'citas'/",
-            $agenda,
-            'DashboardPage.vue agenda header must not render the singular/plural count suffix (D8).'
-        );
+        foreach (['todayAppointments', "?'cita':'citas'", 'appointments-today\''] as $retired) {
+            $this->assertStringNotContainsString(
+                $retired,
+                $src,
+                "DashboardPage.vue must not keep \"{$retired}\" once the appointment list is retired (U2)."
+            );
+        }
 
         $kpi = $this->statCardRegion($src, 'appointments-today');
         $this->assertStringContainsString(
             'data-stat="appointments-today"',
             $kpi,
             'The daily count must render in the KPI strip (single source, R1).'
+        );
+        $this->assertStringContainsString(
+            'summary.value?.appointments_today',
+            $src,
+            'The daily count must read the summary count the page already fetches.'
         );
     }
 
@@ -1352,8 +1206,8 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // All four labels must be present and rendered with text-xs.
-        $expectedLabels = ['Citas Hoy', 'Atendidas Hoy', 'Por Atender', 'Saldo de Caja'];
+        // Both labels must be present and rendered with text-xs.
+        $expectedLabels = ['Citas Hoy', 'Saldo de Caja'];
         foreach ($expectedLabels as $label) {
             // The eyebrow pattern: <p class="text-xs ... uppercase ... whitespace-nowrap">{{ label }}</p>
             $pattern = '/<p[^>]*\btext-xs\b[^>]*\buppercase\b[^>]*\bwhitespace-nowrap\b[^>]*>\s*'.preg_quote($label, '/').'\s*<\/p>/';
@@ -1374,9 +1228,9 @@ class DashboardAppShellTest extends TestCase
         );
         $cards = $matches[0] ?? [];
         $this->assertSame(
-            4,
+            2,
             count($cards),
-            'DashboardPage.vue must render exactly 4 data-stat-card elements for the eyebrow uniformity check (D1).'
+            'DashboardPage.vue must render exactly 2 data-stat-card elements for the eyebrow uniformity check (U2).'
         );
         foreach ($cards as $idx => $card) {
             $this->assertDoesNotMatchRegularExpression(
@@ -1388,10 +1242,9 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * T4 / WU4 — block heading. The KPI strip lives inside block "Hoy"
-     * under its h2 (the retired "Resumen del día" footer heading is gone):
-     * the block heading sits at the top, above the card grid, and the
-     * agenda follows the strip as the block's h3 subsection (D7).
+     * T4 / WU4 + U2 — block heading. The KPI strip lives inside block "Hoy"
+     * under its h2 (the retired "Resumen del día" footer heading is gone) and
+     * the block heading sits at the top, above the card grid.
      */
     public function test_dashboard_hoy_block_heading_sits_above_the_kpi_strip(): void
     {
@@ -1418,19 +1271,17 @@ class DashboardAppShellTest extends TestCase
             'DashboardPage.vue block heading must sit at the top of the block, above the card grid (T4).'
         );
 
-        // The strip leads the agenda inside the same block (D7).
-        $this->assertLessThan(
-            strpos($src, 'aria-label="Agenda de hoy"'),
-            strpos($src, 'data-reveal="kpi"'),
-            'The KPI strip must render before the agenda inside block "Hoy" (WU4 / D7).'
+        // The block owns no list anymore: the strip is its only content (U2).
+        $this->assertStringNotContainsString(
+            'aria-label="Agenda de hoy"',
+            $src,
+            'Block "Hoy" must not contain the retired agenda (U2).'
         );
     }
 
     /**
-     * T4 / WU4 — one heading ladder: block headings are h2 tiered
-     * strongest -> quietest (D7) and the agenda is the h3 subsection of
-     * block "Hoy". Sentence case everywhere, and the retired
-     * "Resumen del día" heading is gone with its section.
+     * T4 / WU4 + U2 — one heading ladder: both blocks own an h2, sentence case
+     * everywhere, and the retired headings are gone with their sections.
      */
     public function test_dashboard_section_headings_use_sentence_case(): void
     {
@@ -1451,9 +1302,7 @@ class DashboardAppShellTest extends TestCase
 
         $ladder = [
             '<h2 class="text-2xl font-semibold text-label">Hoy</h2>',
-            '<h2 class="text-xl font-semibold text-label">Requiere tu atención</h2>',
-            '<h2 class="text-base font-medium text-theme-secondary">Próximos días</h2>',
-            '<h3 class="text-base font-semibold text-label">Agenda de hoy</h3>',
+            '<h2 class="text-2xl font-semibold text-label">Dónde seguir</h2>',
         ];
         foreach ($ladder as $anatomy) {
             $this->assertStringContainsString(
@@ -1463,11 +1312,13 @@ class DashboardAppShellTest extends TestCase
             );
         }
 
-        $this->assertStringNotContainsString(
-            '>Resumen del día<',
-            $src,
-            'DashboardPage.vue must keep no "Resumen del día" heading (WU4 / D7: its content lives in block "Hoy").'
-        );
+        foreach (['>Resumen del día<', '>Requiere tu atención<', '>Próximos días<', '>Agenda de hoy<'] as $retiredHeading) {
+            $this->assertStringNotContainsString(
+                $retiredHeading,
+                $src,
+                "DashboardPage.vue must keep no retired heading {$retiredHeading} (U2)."
+            );
+        }
     }
 
     /**
@@ -1492,12 +1343,7 @@ class DashboardAppShellTest extends TestCase
             'DashboardPage.vue must not keep the hand-rolled pill span class signature (D3: chips out).'
         );
 
-        $expectedKeys = [
-            'appointments-today',
-            'completed-today',
-            'pending-today',
-            'cash-balance',
-        ];
+        $expectedKeys = ['appointments-today', 'cash-balance'];
         foreach ($expectedKeys as $key) {
             $card = $this->statCardRegion($src, $key);
             $this->assertStringNotContainsString(
@@ -1526,9 +1372,9 @@ class DashboardAppShellTest extends TestCase
         );
         $cards = $matches[0] ?? [];
         $this->assertSame(
-            4,
+            2,
             count($cards),
-            'DashboardPage.vue must render exactly 4 stat cards for the decorative-dot check (D1).'
+            'DashboardPage.vue must render exactly 2 stat cards for the decorative-dot check (U2).'
         );
 
         foreach ($cards as $idx => $card) {
@@ -1586,41 +1432,41 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * WU1 / D1 — the three day counts derive from the SAME source the agenda
-     * renders: the `todayAppointments` array, bucketed through the shared
-     * status map. No second counter, no second endpoint.
+     * D1 / U2 — the day count derives from the summary the page already
+     * fetches (`appointments_today`, branch-scoped server side). There is no
+     * second list and no second endpoint to disagree with.
      */
-    public function test_dashboard_day_kpis_derive_from_the_today_appointment_list(): void
+    public function test_dashboard_day_kpi_reads_the_summary_count(): void
     {
         $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
         $this->assertMatchesRegularExpression(
-            '/const todayCounts = computed\([\s\S]*?for \(const appointment of todayAppointments\.value\)/',
+            '/const citasHoy = computed\(\(\) => \{[\s\S]*?summary\.value\?\.appointments_today/',
             $src,
-            'DashboardPage.vue must derive the day KPI counts from todayAppointments (single source, R1).'
+            'DashboardPage.vue must read the day count from the summary payload.'
         );
-
-        foreach (['todayKpiDisplay', 'completedKpiDisplay', 'pendingKpiDisplay'] as $binding) {
-            $this->assertStringContainsString(
-                '{{ '.$binding.' }}',
-                $src,
-                "DashboardPage.vue KPI value must render through {$binding} (derived from the agenda array)."
-            );
-        }
-
-        $this->assertStringNotContainsString(
-            'backendStats.appointments_today',
+        $this->assertStringContainsString(
+            '{{ citasHoyDisplay }}',
             $src,
-            'DashboardPage.vue must not feed a KPI from the backend appointments_today counter (D1: the agenda array is the only source).'
+            'DashboardPage.vue must render the day count through citasHoyDisplay.'
+        );
+        $this->assertStringNotContainsString(
+            'todayAppointments',
+            $src,
+            'DashboardPage.vue must not keep the retired appointment list as a KPI source (U2).'
+        );
+        $this->assertStringNotContainsString(
+            '/api/dashboard/appointments-today',
+            $src,
+            'DashboardPage.vue must not request the retired today endpoint.'
         );
     }
 
     /**
-     * WU1 — caption grammar. Each caption states the scope of its number in
-     * ONE line: Citas Hoy counts the day's agenda, Atendidas Hoy the
-     * completed ones, Por Atender the ones neither completed nor cancelled.
+     * WU1 — caption grammar. The day caption states the scope of its number in
+     * ONE line: the day's agenda.
      */
     public function test_dashboard_scope_captions_state_number_scope(): void
     {
@@ -1630,8 +1476,6 @@ class DashboardAppShellTest extends TestCase
 
         $expectedCaptions = [
             'appointments-today' => 'Agenda del día',
-            'completed-today' => 'Completadas',
-            'pending-today' => 'Sin completar ni cancelar',
         ];
         foreach ($expectedCaptions as $statKey => $captionText) {
             $card = $this->statCardRegion($src, $statKey);
@@ -1699,9 +1543,9 @@ class DashboardAppShellTest extends TestCase
         );
         $cards = $matches[0] ?? [];
         $this->assertSame(
-            4,
+            2,
             count($cards),
-            'DashboardPage.vue must render exactly 4 data-stat-card elements for the KPI hairline/elevation check (D1).'
+            'DashboardPage.vue must render exactly 2 data-stat-card elements for the KPI hairline/elevation check (U2).'
         );
 
         foreach ($cards as $idx => $card) {
@@ -1746,9 +1590,9 @@ class DashboardAppShellTest extends TestCase
         );
         $cards = $matches[0] ?? [];
         $this->assertSame(
-            4,
+            2,
             count($cards),
-            'DashboardPage.vue must render exactly 4 data-stat-card elements for the icon-plate removal check (D1).'
+            'DashboardPage.vue must render exactly 2 data-stat-card elements for the icon-plate removal check (U2).'
         );
 
         $bannedPlateTints = [
@@ -1786,11 +1630,17 @@ class DashboardAppShellTest extends TestCase
             'DashboardPage.vue must render zero data-action tiles (WU3 / D5 removed the heroicons tile surface).'
         );
 
-        $inlineIcons = preg_match_all('/<svg\b[^>]*stroke-width="1\.5"/', $src);
-        $this->assertGreaterThanOrEqual(
-            1,
-            (int) $inlineIcons,
-            'DashboardPage.vue must keep at least 1 inline SVG with stroke-width="1.5" (the HOTFIX-DASH-007 empty-state line-art icon).'
+        // The brand lockup is out of the page header, so the page keeps no
+        // inline glyph at all: every icon comes from heroicons.
+        $this->assertStringNotContainsString(
+            'stroke-width="1.75"',
+            $src,
+            'DashboardPage.vue must not keep an inline brand glyph inside the page header.'
+        );
+        $this->assertStringNotContainsString(
+            'DentalMotifLayer',
+            $src,
+            'DashboardPage.vue must not mount the dental motif inside the header.'
         );
     }
 
@@ -1813,7 +1663,7 @@ class DashboardAppShellTest extends TestCase
         $source = (string) self::readFile(self::projectRootPath().self::APP_LAYOUT_FILE);
         // T6 — the payment-methods entry carries the accent every sibling
         // label already had. Route path and permission keys stay ASCII.
-        $labels = ['Dashboard', 'Calendario', 'Pacientes', 'Profesionales', 'Ambientes', 'Tipos de Cita', 'Sucursales', 'Métodos de Pago', 'Catálogo de Procedimientos', 'Mis Procedimientos', 'Business Intelligence', 'Caja', 'Planes de Tratamiento', 'Presupuestos', 'Historias Clínicas', 'Registros de Especialidad', 'Análisis IA'];
+        $labels = ['Dashboard', 'Calendario', 'Pacientes', 'Profesionales', 'Ambientes', 'Tipos de cita', 'Sucursales', 'Métodos de pago', 'Catálogo de procedimientos', 'Mis procedimientos', 'Business Intelligence', 'Caja', 'Planes de tratamiento', 'Presupuestos', 'Historias clínicas', 'Registros de especialidad', 'Análisis de IA'];
         $positions = array_map(fn (string $label): int => strpos($source, "name: '{$label}'"), $labels);
         $this->assertCount(17, array_filter($positions, fn (int|false $position): bool => $position !== false));
         $sorted = $positions;
@@ -1823,7 +1673,7 @@ class DashboardAppShellTest extends TestCase
 
     /**
      * T6 — one accented name for the payment-methods destination. The sidebar
-     * entry and the module heading both read "Métodos de Pago"; the ASCII
+     * entry and the module heading both read "Métodos de pago"; the ASCII
      * spelling is retired from user-visible copy (identifiers, route paths
      * and permission keys keep it by design).
      */
@@ -1831,9 +1681,9 @@ class DashboardAppShellTest extends TestCase
     {
         $layout = (string) self::readFile(self::projectRootPath().self::APP_LAYOUT_FILE);
         $this->assertStringContainsString(
-            "name: 'Métodos de Pago'",
+            "name: 'Métodos de pago'",
             $layout,
-            'AppLayout.vue sidebar entry must read "Métodos de Pago" (T6 naming coherence with every sibling label).'
+            'AppLayout.vue sidebar entry must read "Métodos de pago" (T6 naming coherence with every sibling label).'
         );
         $this->assertStringNotContainsString(
             "name: 'Metodos de Pago'",
@@ -1847,9 +1697,9 @@ class DashboardAppShellTest extends TestCase
         $page = (string) self::readFile($pagePath);
 
         $this->assertMatchesRegularExpression(
-            '/data-hero-title[^>]*>\s*Métodos de Pago\s*</',
+            '/data-hero-title[^>]*>\s*Métodos de pago\s*</',
             $page,
-            'PaymentMethodsPage.vue hero heading must read "Métodos de Pago" (T6).'
+            'PaymentMethodsPage.vue hero heading must read "Métodos de pago" (T6).'
         );
 
         // Byte-safe pin: the accented form holds a 2-byte "é", so this ASCII
@@ -1863,10 +1713,10 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * T6 — every dashboard action is a real control. The quick-action tiles
-     * are gone (WU3 / D5), and the remaining actions (header CTA, refresh,
-     * cash CTA, merged pending row action) render through real buttons:
-     * no clickable card surfaces and no role="button" divs.
+     * T6 / U2 — every dashboard action is a real control. The remaining
+     * actions (refresh, cash CTA) render through real buttons and the three
+     * destination cards are real links: no clickable card surfaces, no
+     * role="button" divs and no fake button rows.
      */
     public function test_t6_dashboard_actions_stay_real_buttons(): void
     {
@@ -1884,9 +1734,14 @@ class DashboardAppShellTest extends TestCase
             'DashboardPage.vue must not bind the UiCard clickable prop (T6: the button owns the action).'
         );
         $this->assertStringContainsString(
-            '@click="goToPendingEntity(row.entityType)"',
+            '<RouterLink',
             $src,
-            'The merged pending row action must render as a real button binding (WU3 / D6 / T6).'
+            'The destination cards must be real links (U2: navigation belongs to an anchor).'
+        );
+        $this->assertStringContainsString(
+            '@click="goToCashRegister"',
+            $src,
+            'The cash CTA must stay a real button binding (D4).'
         );
     }
 

@@ -1,63 +1,30 @@
 <template>
   <AppLayout>
     <div class="space-y-6">
-      <!-- Hero band: the login surface vocabulary + the page's single primary CTA. -->
-      <header
-        ref="heroSection"
-        data-patients-hero
-        data-reveal="hero"
-        class="relative overflow-hidden p-6 md:p-8"
-        style="
-          background: var(--color-canvas);
-          border: 1px solid var(--color-hairline);
-          border-radius: var(--radius-panel);
-          box-shadow: var(--elevation-2);
-        "
-        :style="revealStyle('--spring-patients-hero-o')"
-      >
-        <DentalMotifLayer variant="hero" data-hero-motif />
-        <div class="relative flex flex-wrap items-center justify-between gap-3">
-          <!-- Brand lockup: tooth glyph + wordmark on accent-500. -->
-          <p class="inline-flex items-center gap-2">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.75"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              style="color: var(--color-accent-500)"
-              aria-hidden="true"
-            >
-              <path
-                d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
-              />
-            </svg>
-            <span class="text-sm font-semibold tracking-tight text-label">OdontoSuite</span>
-          </p>
-          <div
-            class="flex flex-wrap w-full sm:w-auto items-center justify-end gap-2 sm:gap-3"
-            data-hero-actions
-          >
+      <!-- Canonical page header: one component, one anatomy. The primary CTA
+           and the shared update action live on the right, and the wrapper only
+           carries the entrance spring. -->
+      <div ref="heroSection" data-reveal="hero" :style="revealStyle('--spring-patients-hero-o')">
+        <PageHeader
+          kicker="Pacientes"
+          title="Pacientes"
+          subtitle="Fichas de pacientes de la clínica"
+        >
+          <template #actions>
             <UiButton
-              variant="ghost"
-              size="sm"
-              class="flex-none whitespace-nowrap"
-              data-back-button
-              @click="goBack"
+              variant="secondary"
+              data-refresh-patients
+              :disabled="loading"
+              @click="loadPatients(page)"
             >
               <template #icon-left>
-                <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+                <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
               </template>
-              Volver
+              Actualizar
             </UiButton>
             <UiButton
               v-if="can.createPatient?.value"
               variant="primary"
-              size="sm"
-              class="flex-none whitespace-nowrap"
               data-new-patient-button
               @click="openPatientForm('create')"
             >
@@ -66,13 +33,9 @@
               </template>
               Nuevo paciente
             </UiButton>
-          </div>
-        </div>
-        <h1 class="page-title relative mt-3 text-4xl font-semibold text-label">Pacientes</h1>
-        <p class="relative mt-2 text-base leading-relaxed text-theme-secondary">
-          Gestiona la información de tus pacientes
-        </p>
-      </header>
+          </template>
+        </PageHeader>
+      </div>
 
       <!-- Summary block: dashboard KPI anatomy (non-interactive). -->
       <section
@@ -244,7 +207,7 @@
             <div class="flex-1">
               <UiInput
                 v-model="searchQuery"
-                placeholder="Buscar por nombre, DNI, teléfono o email..."
+                placeholder="Buscar por nombre, DNI o email"
                 class="w-full"
                 @input="searchPatients"
               >
@@ -253,37 +216,72 @@
                 </template>
               </UiInput>
             </div>
-            <div class="flex flex-wrap gap-3">
-              <UiSelect
-                v-if="branchOptions.length > 0"
-                v-model="branchFilter"
-                :options="branchOptions"
-                placeholder="Todas las sucursales"
-                size="sm"
-                class="min-w-[160px]"
-                @update:model-value="loadPatients(1)"
-              />
-              <UiSelect
-                v-model="statusFilter"
-                :options="statusFilterOptions"
-                size="sm"
-                class="min-w-[140px]"
-                @update:model-value="loadPatients(1)"
-              />
-              <UiSelect
-                v-model="sortFilter"
-                :options="sortFilterOptions"
-                size="sm"
-                class="min-w-[170px]"
-                @update:model-value="loadPatients(1)"
-              />
-              <UiSelect
-                v-model="perPageFilter"
-                :options="perPageOptions"
-                size="sm"
-                class="min-w-[120px]"
-                @update:model-value="loadPatients(1)"
-              />
+            <div class="flex flex-wrap items-end gap-3">
+              <div v-if="branchOptions.length > 0">
+                <label
+                  for="patients-filter-branch"
+                  class="mb-1 block text-xs font-medium text-theme-secondary"
+                >
+                  Sucursal
+                </label>
+                <UiSelect
+                  id="patients-filter-branch"
+                  v-model="branchFilter"
+                  :options="branchOptions"
+                  placeholder="Todas las sucursales"
+                  size="sm"
+                  class="min-w-[160px]"
+                  @update:model-value="loadPatients(1)"
+                />
+              </div>
+              <div>
+                <label
+                  for="patients-filter-status"
+                  class="mb-1 block text-xs font-medium text-theme-secondary"
+                >
+                  Estado
+                </label>
+                <UiSelect
+                  id="patients-filter-status"
+                  v-model="statusFilter"
+                  :options="statusFilterOptions"
+                  size="sm"
+                  class="min-w-[140px]"
+                  @update:model-value="loadPatients(1)"
+                />
+              </div>
+              <div>
+                <label
+                  for="patients-filter-sort"
+                  class="mb-1 block text-xs font-medium text-theme-secondary"
+                >
+                  Orden
+                </label>
+                <UiSelect
+                  id="patients-filter-sort"
+                  v-model="sortFilter"
+                  :options="sortFilterOptions"
+                  size="sm"
+                  class="min-w-[170px]"
+                  @update:model-value="loadPatients(1)"
+                />
+              </div>
+              <div>
+                <label
+                  for="patients-filter-per-page"
+                  class="mb-1 block text-xs font-medium text-theme-secondary"
+                >
+                  Por página
+                </label>
+                <UiSelect
+                  id="patients-filter-per-page"
+                  v-model="perPageFilter"
+                  :options="perPageOptions"
+                  size="sm"
+                  class="min-w-[120px]"
+                  @update:model-value="loadPatients(1)"
+                />
+              </div>
               <UiButton
                 variant="secondary"
                 class="px-3"
@@ -304,23 +302,25 @@
           <LoadingSpinner v-if="loading" class="p-12" size="lg" text="Cargando pacientes..." />
 
           <!-- Error State -->
-          <UiSectionEmpty
+          <UiEmptyState
             v-else-if="loadError"
             data-state="error-patients"
             title="No pudimos cargar los pacientes"
             description="Revisa tu conexión e inténtalo de nuevo."
           >
-            <UiButton variant="secondary" size="sm" data-retry-patients @click="loadPatients(1)">
-              Reintentar
-            </UiButton>
-          </UiSectionEmpty>
+            <template #action>
+              <UiButton variant="secondary" size="sm" data-retry-patients @click="loadPatients(1)">
+                Reintentar
+              </UiButton>
+            </template>
+          </UiEmptyState>
 
-          <!-- Empty State -->
-          <UiSectionEmpty
+          <!-- Empty State: the table's own empty, not a section inside it. -->
+          <UiEmptyState
             v-else-if="filteredPatients.length === 0"
             data-state="empty-patients"
             title="No se encontraron pacientes"
-            description="Intenta ajustar los filtros de búsqueda"
+            description="Ajusta los filtros de búsqueda para ver otros resultados."
           />
 
           <!--
@@ -344,21 +344,12 @@
             >
               <template #cell-patient="{ row }">
                 <div class="flex items-center">
-                  <div class="flex-shrink-0 h-12 w-12">
-                    <div
-                      class="h-12 w-12 rounded-xl bg-gradient-accent flex items-center justify-center"
-                    >
-                      <span class="text-sm font-semibold text-white">
-                        {{ patientInitials(row) }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="ml-4">
-                    <div class="text-sm font-semibold text-theme-primary">
+                  <div class="min-w-0">
+                    <div class="truncate text-sm font-medium text-theme-primary">
                       {{ patientDisplayName(row) }}
                     </div>
                     <div
-                      class="text-sm text-theme-secondary"
+                      class="text-xs text-theme-secondary"
                       style="font-feature-settings: var(--font-features-tabular-nums)"
                     >
                       ID: {{ row.id }}
@@ -368,7 +359,9 @@
               </template>
               <template #cell-contact="{ row }">
                 <div class="whitespace-nowrap text-sm text-theme-primary">{{ row.phone }}</div>
-                <div class="whitespace-nowrap text-sm text-theme-secondary">{{ row.email }}</div>
+                <div class="max-w-[200px] truncate text-xs text-theme-secondary">
+                  {{ row.email }}
+                </div>
               </template>
               <template #cell-birth_date="{ row }">
                 <span class="whitespace-nowrap text-sm text-theme-primary">
@@ -384,25 +377,27 @@
                 </span>
               </template>
               <template #cell-status="{ row }">
-                <UiBadge :variant="patientStatusVariant(row)" size="sm" shape="pill">
-                  {{ patientStatusLabel(row) }}
-                </UiBadge>
+                <UiStatusBadge
+                  :variant="patientStatusVariant(row)"
+                  :label="patientStatusLabel(row)"
+                  size="sm"
+                />
               </template>
               <template #actions="{ row }">
                 <div class="flex space-x-2">
                   <UiButton
                     variant="ghost"
                     size="sm"
-                    class="text-systemBlue-600 hover:text-systemBlue-700"
+                    :class="ROW_ACTION_PALETTE.view.classes"
                     @click="viewPatient(row)"
                   >
-                    Ver
+                    Ver ficha
                   </UiButton>
                   <UiButton
                     v-if="can.editPatient?.value"
                     variant="ghost"
                     size="sm"
-                    class="text-systemGreen-700 hover:opacity-80"
+                    :class="ROW_ACTION_PALETTE.edit.classes"
                     @click="editPatient(row)"
                   >
                     Editar
@@ -411,7 +406,7 @@
                     v-if="can.deletePatient?.value"
                     variant="ghost"
                     size="sm"
-                    class="text-systemRed-700 hover:opacity-80"
+                    :class="ROW_ACTION_PALETTE.delete.classes"
                     @click="deletePatient(row)"
                   >
                     Eliminar
@@ -470,12 +465,7 @@
 <script>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  ArrowLeftIcon,
-  ArrowPathIcon,
-  MagnifyingGlassIcon,
-  PlusIcon
-} from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, MagnifyingGlassIcon, PlusIcon } from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
 import { formatDate as formatCanonicalDate } from '../../composables/useFormatters'
@@ -485,16 +475,17 @@ import { useEcho } from '../../composables/useEcho'
 import { useSpring } from '../../composables/useSpring'
 import { prefersReducedMotion } from '../../composables/useSpringMath'
 import AppLayout from '../../components/layout/AppLayout.vue'
-import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
+import PageHeader from '../../components/layout/PageHeader.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
-import UiBadge from '../../components/ui/Badge.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
 import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
-import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
+import UiEmptyState from '../../components/ui/EmptyState.vue'
 import Pagination from '../../components/ui/Pagination.vue'
+import { ROW_ACTION_PALETTE, ROW_STATUS_VARIANT } from '../../design-system/rowActionPalette'
 import PatientFormModal from './PatientFormModal.vue'
 import PatientListRow from './PatientListRow.vue'
 
@@ -502,19 +493,18 @@ export default {
   name: 'PatientsPage',
   components: {
     AppLayout,
-    ArrowLeftIcon,
+    PageHeader,
     ArrowPathIcon,
     MagnifyingGlassIcon,
     PlusIcon,
-    DentalMotifLayer,
+    UiEmptyState,
     UiCard,
     UiButton,
-    UiBadge,
+    UiStatusBadge,
     UiDataTable,
     UiFilterBar,
     UiInput,
     UiSelect,
-    UiSectionEmpty,
     Pagination,
     PatientFormModal,
     PatientListRow
@@ -969,13 +959,10 @@ export default {
 
     const patientAgeLabel = patient => (patient.age != null ? `${patient.age} años` : '—')
 
-    const patientStatusVariant = patient => (patient.is_active ? 'success' : 'error')
+    const patientStatusVariant = patient =>
+      patient.is_active ? ROW_STATUS_VARIANT.active : ROW_STATUS_VARIANT.inactive
 
     const patientStatusLabel = patient => (patient.is_active ? 'Activo' : 'Inactivo')
-
-    const goBack = () => {
-      router.back()
-    }
 
     // One-shot staggered entrance (60ms) per section, mirroring the
     // dashboard pattern. revealStyle() renders the FINAL state whenever no
@@ -1093,6 +1080,7 @@ export default {
       patientAgeLabel,
       patientStatusVariant,
       patientStatusLabel,
+      ROW_ACTION_PALETTE,
       searchQuery,
       statusFilter,
       statusFilterOptions,
@@ -1124,8 +1112,7 @@ export default {
       editPatient,
       viewPatient,
       deletePatient,
-      formatDate,
-      goBack
+      formatDate
     }
   }
 }

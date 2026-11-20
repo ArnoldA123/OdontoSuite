@@ -2,19 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// D5 / R4 regression coverage: single CTA per destination. The
-// "Acciones rápidas" block that re-listed sidebar navigation is gone, the
-// agenda empty state carries NO appointment CTA (the header owns the only
-// "Nueva cita"), and the KPI strip stays a static reference surface. The
-// only navigational dashboard affordances left are contextual (cash card
-// "Ir a Caja", pending row actions), never sidebar duplicates.
+// D5 / R4 regression coverage adapted to the three destinations: the
+// "Acciones rápidas" block that re-listed the whole sidebar is gone, the page
+// now owns exactly three link cards (Agenda, Mi jornada, Pendientes), the KPI
+// strip stays a static reference surface and the cash card keeps its single
+// contextual CTA. No other sidebar destination is duplicated in the content.
 const { getMock, installPayload } = vi.hoisted(() => {
   const getMock = vi.fn()
 
-  const installPayload = ({ stats = {}, today = [] } = {}) => {
+  const installPayload = (stats = {}) => {
     getMock.mockImplementation(async url => {
       if (url === '/api/dashboard/stats') return { data: stats }
-      if (url === '/api/dashboard/appointments-today') return { data: today }
       return { data: [] }
     })
   }
@@ -47,7 +45,6 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/dashboard/DashboardPage.vue'
-import NewAppointmentModal from '../../../resources/js/components/appointments/NewAppointmentModal.vue'
 
 const signInAs = role => {
   localStorage.setItem('auth_token', 'test-token')
@@ -73,7 +70,7 @@ const mountDashboard = async () => {
 const buttonsWithText = (wrapper, text) =>
   wrapper.findAll('button').filter(button => button.text().includes(text))
 
-describe('dashboard single CTA per destination (D5/R4)', () => {
+describe('dashboard destinations and single CTA per surface (D5/R4)', () => {
   beforeEach(() => {
     signInAs('administrador')
     getMock.mockReset()
@@ -87,10 +84,8 @@ describe('dashboard single CTA per destination (D5/R4)', () => {
     expect(wrapper.text()).not.toContain('Acciones rápidas')
     expect(wrapper.findAll('[data-action]')).toHaveLength(0)
 
-    // No calendar CTA anywhere on the page: the calendar lives in the sidebar.
-    expect(buttonsWithText(wrapper, 'Ver calendario')).toHaveLength(0)
-
-    // The dashboard content renders no link to a sidebar destination.
+    // The only content links are the three destinations of the new block: the
+    // page never re-lists the sidebar.
     const content = wrapper.find('[data-dashboard-content]')
     expect(content.exists()).toBe(true)
     for (const href of [
@@ -98,7 +93,9 @@ describe('dashboard single CTA per destination (D5/R4)', () => {
       '/professionals',
       '/environments',
       '/business-intelligence',
-      '/calendar'
+      '/cash-register',
+      '/quotations',
+      '/treatment-plans'
     ]) {
       expect(content.find(`a[href="${href}"]`).exists()).toBe(false)
     }
@@ -106,40 +103,11 @@ describe('dashboard single CTA per destination (D5/R4)', () => {
     wrapper.unmount()
   })
 
-  it('keeps the agenda header Nueva cita CTA and opens the appointment modal', async () => {
-    const { wrapper } = await mountDashboard()
-
-    const headerCta = wrapper
-      .findAll('button')
-      .find(button => button.text().trim() === 'Nueva cita')
-    expect(headerCta).toBeTruthy()
-    expect(buttonsWithText(wrapper, 'Nueva cita')).toHaveLength(1)
-
-    await headerCta.trigger('click')
-    await flushPromises()
-
-    expect(wrapper.findComponent(NewAppointmentModal).props('modelValue')).toBe(true)
-
-    wrapper.unmount()
-  })
-
-  it('renders the agenda empty state without a second appointment CTA (R4)', async () => {
-    const { wrapper } = await mountDashboard()
-
-    const empty = wrapper.find('[data-state="empty-appointments"]')
-    expect(empty.exists()).toBe(true)
-    expect(empty.find('[data-cta="empty-create-appointment"]').exists()).toBe(false)
-    expect(empty.find('button').exists()).toBe(false)
-    expect(buttonsWithText(wrapper, 'Crear nueva cita')).toHaveLength(0)
-
-    wrapper.unmount()
-  })
-
-  it('renders all four KPI cards without a click affordance', async () => {
+  it('renders the two KPI cards without a click affordance', async () => {
     const { wrapper, router } = await mountDashboard()
 
     const cards = wrapper.findAll('[data-stat-card]')
-    expect(cards).toHaveLength(4)
+    expect(cards).toHaveLength(2)
 
     for (const card of cards) {
       expect(card.attributes('data-clickable')).not.toBe('true')
@@ -183,17 +151,19 @@ describe('dashboard action naming and button semantics (T6)', () => {
     installPayload()
   })
 
-  it('renders the accented Métodos de Pago sidebar entry', async () => {
+  it('renders the Métodos de pago sidebar entry', async () => {
     const { wrapper } = await mountDashboard()
 
     const sidebar = wrapper.find('[data-app-chrome="sidebar"]')
     expect(sidebar.exists()).toBe(true)
-    expect(sidebar.text()).toContain('Métodos de Pago')
+    expect(sidebar.text()).toContain('Métodos de pago')
     expect(sidebar.text()).not.toContain('Metodos de Pago')
+    expect(sidebar.text()).toContain('Pendientes')
+    expect(sidebar.text()).not.toContain('Continuidad')
 
     const link = sidebar.find('a[href="/settings/payment-methods"]')
     expect(link.exists()).toBe(true)
-    expect(link.text()).toContain('Métodos de Pago')
+    expect(link.text()).toContain('Métodos de pago')
 
     wrapper.unmount()
   })
@@ -214,7 +184,7 @@ describe('dashboard action naming and button semantics (T6)', () => {
   })
 
   it('renders every remaining dashboard action as a real button control', async () => {
-    const { wrapper, router } = await mountDashboard()
+    const { wrapper } = await mountDashboard()
 
     const content = wrapper.find('[data-dashboard-content]')
     const buttons = content.findAll('button')
@@ -226,9 +196,12 @@ describe('dashboard action naming and button semantics (T6)', () => {
       expect(button.attributes('role')).not.toBe('button')
     }
 
-    // None of them is a sidebar-navigation duplicate.
+    // The destination cards are links, not fake buttons.
+    for (const link of content.findAll('[data-dashboard-destination]')) {
+      expect(link.element.tagName.toLowerCase()).toBe('a')
+    }
+
     expect(content.find('[data-action]').exists()).toBe(false)
-    expect(router.currentRoute.value.path).toBe('/dashboard')
 
     wrapper.unmount()
   })
@@ -237,10 +210,9 @@ describe('dashboard action naming and button semantics (T6)', () => {
     const { wrapper } = await mountDashboard()
 
     const content = wrapper.find('[data-dashboard-content]')
-    expect(content.findAll('svg').length).toBeGreaterThanOrEqual(2)
+    expect(content.findAll('svg').length).toBeGreaterThanOrEqual(1)
 
-    // The 2.0 default is retired: the empty-state line art rides
-    // stroke-width="1.5" (apple-design §16 baseline).
+    // The 2.0 default is retired (apple-design §16 baseline).
     expect(content.findAll('[stroke-width="2"]')).toHaveLength(0)
 
     wrapper.unmount()

@@ -133,7 +133,7 @@ database/
                            #   ToothSurfaceSeeder, SpecialtyRecordSeeder, MedicalRecordSeeder)
 
 routes/
-  api.php                  # 263 rutas API (medido con php artisan route:list --json: uris api/…; 276 totales con web)
+  api.php                  # 261 rutas API (medido con php artisan route:list --json: uris api/…; 274 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -607,6 +607,97 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-30 (tres destinos: Pendientes absorbe lo comercial y el Dashboard
+  deja de listar citas)** — El escritorio de continuidad pasa a llamarse
+  «Pendientes» (misma URL `/continuity`, misma cola) y gana la sección
+  «Esperando respuesta», alimentada por `GET /api/dashboard/pending`: filas
+  fusionadas de presupuestos y planes con tipo, importe, estado y una acción
+  «Ver» por fila. La sección y la cola cargan por separado, así que un fallo de
+  una no desmonta la otra; sin `view.continuity` la cola no se pide (finanzas
+  entra por `view.quotation`) y el ítem de menú se muestra con cualquiera de los
+  dos permisos. El Dashboard retira «Agenda de hoy», «Requiere tu atención» y
+  «Próximos días» con su estado, fetches y reintentos, y monta «Dónde seguir»
+  con tres tarjetas-enlace (Agenda, Mi jornada, Pendientes) sin contadores; su
+  tira queda en Citas hoy (desde `dashboard/stats`) y Saldo de caja. Se eliminan
+  `dashboard/appointments-today` y `dashboard/upcoming` con
+  `DashboardController@today/upcoming`, y `DashboardSectionEmpty.vue` con sus
+  guards; `DashboardSectionError.vue` sigue en uso en BI. Sin migraciones ni
+  permisos nuevos: **261 rutas API (274 con web)**. Tests: Vitest de foco
+  dashboard/continuidad/navegación **203 pruebas en 25 archivos**;
+  `phpunit --filter 'Dashboard|Continuity|RoutePermissionMatrix'` **166 pruebas,
+  2481 aserciones** (44 saltadas por SQLite); Pint, ESLint y Prettier limpios;
+  `doc-drift` en verde.
+
+- **2026-10-29 (login: el artboard `28-login.html` medido contra la página, no
+  recordado)** — El acceso se alinea con el artboard ejecutándolo al lado de la
+  página y comparando valores computados; la primera pasada sólo cambió la
+  superficie y la sombra, y las siete diferencias restantes se cerraron después.
+  **Campo** (`DentalParallaxBackground`): superficie única `--color-accent-50`
+  (se retira el gradiente `canvas → accent-50`) y los dos PNG del set
+  —`tooth-1.png` y `toothbrush.png`— como máscara de alfa pintada en la rampa
+  del acento, así que la forma es el archivo y el color no necesita un export
+  por plano: lejano `accent-100`, medio y cercano `accent-200`, cepillo un paso
+  más arriba (`accent-300`) en el medio y el cercano porque su trazo es fino.
+  Tres planos en deriva vertical infinita sobre una loseta de 1440 × 900 px
+  repetida dos veces: cuando el recorrido la sube completa, la de reemplazo
+  ocupa su lugar y el bucle cierra sin costura a cualquier alto de ventana
+  (`--drift-tile-h: max(900px, 100lvh)`). Relojes 200 s / 135 s / 90 s (lejos →
+  cerca), lineales; bajo `prefers-reduced-motion: reduce` el bucle no arranca y
+  el bloque CSS lo neutraliza también en un cambio de preferencia vivo. El
+  puntero deja de gobernar el campo: se retira `usePointerParallax` (45
+  composables) con su guard. **Tarjeta** (`LoginPage.vue`): 404 px de ancho con
+  32/32/30 de relleno (antes 416 con 36), titular `text-3xl` 30/36 y subtítulo
+  13/18 (antes 36/40 y 16/26), `gap` de la columna 20 y de los campos 16 (antes
+  28 y 20), y separación por sombra apilada —`elevation-1` sobre `elevation-3`,
+  `elevation-2` sobre `elevation-4` con el foco dentro— en lugar del rung único.
+  **Campos**: blancos con borde `system-gray-500` y radio `--radius-ios` de 10
+  px (antes rellenos en `canvas`, borde transparente y 12 px), 52 px de alto.
+  **Envío**: 52 px, 14 px/600 y el degradado `accent → accent-hover` con su paso
+  oscuro al pasar el puntero (antes plano, 54 px y 18 px); su etapa inactiva
+  dice «Entrar», como el artboard, porque el titular ya dice «Iniciar sesión» y
+  repetirlo en el botón era redundante. **Composición**: la marca sube al campo,
+  centrada sobre la tarjeta y sin glifo —la palabra sola a 20 px/600, como el
+  artboard—; la tarjeta conserva el bloque de contacto («¿Aún no tienes cuenta?»
+  con su enlace en línea propia) y el campo recibe las dos líneas legales
+  —Términos y soporte técnico— a 11,5/17 y centradas, en vez de una fila de
+  enlaces dentro del card. Se retira «Recordarme»: el artboard no lo tiene y
+  ningún lector usaba la marca (`useAuth.login` publica las credenciales y nada
+  más), así que era un control inerte; la fila queda con el enlace a la derecha
+  y 11 px por encima del envío. **Rechazo**: el aviso `role="alert"` se mueve al
+  inicio del formulario, como en el artboard, y sigue apareciendo al enviar.
+  **Acceso federado**: la tarjeta monta el separador «o usa una cuenta externa»
+  y las dos puertas de marca —Google y Microsoft, 48 px, radio 10 y borde
+  hairline— desde `resources/js/components/login/SsoProviderMark.vue`, que es
+  donde viven los colores de marca, fuera del módulo de auth y de su guard de
+  hex. Los botones declaran `data-sso` y todavía no ejecutan ninguna puerta; su
+  interacción sí es la del primitivo: las cinco propiedades animadas con las
+  duraciones y curvas de `Button.vue`, el levantamiento de −1 px al pasar el
+  puntero y la pulsación de `translateY(1px)` al presionar, así que no son
+  controles inertes al lado del envío. Con ese bloque la tarjeta mide 591 px
+  contra 577 del artboard. **Sin magnet**: el botón de envío deja de seguir al
+  puntero; se retira `useMagneticHover` de esta pantalla (el composable sigue
+  vivo para el resto del producto), el submit conserva solo el temblor de fallo
+  y su transform queda en `none` con el puntero encima. La copy sigue al
+  artboard: «Correo electrónico», «Contacta con el administrador», «Términos del
+  servicio», «Política de privacidad» y «soporte@odontosuite.pe». **Icono del
+  ojo**: el glifo de «ocultar» traía el `path` de otra versión del set dentro de
+  una caja de 24 y sólo dibujaba media forma —una arcada, un fragmento de pupila
+  y el tajo cortado a hueso—; se sustituye por el trazado completo, que llena la
+  caja (1,93–22,06 × 3–21) y conserva sus dos cortes de diseño. Guards
+  actualizados al contrato nuevo: `dental-parallax-background.test.js` mide
+  superficie, planos, relojes, cierre del bucle, máscaras, rampa de tinta (sin
+  opacidad ni `brightness`) y ausencia de oyentes de puntero;
+  `login-motion-budget.test.js` mide la deriva ambiente en vez de
+  `is-parallax-active`; `auth.test.js` espera el titular nuevo;
+  `login-validation-a11y.test.js` fija que la marca vive fuera del card, que el
+  contacto vive dentro y que la nota legal vive en el campo;
+  `LoginPageRenderTest` fija la sombra apilada en vez del literal de un solo
+  rung. Conteos: 45 composables; sin rutas, modelos, migraciones ni permisos
+  nuevos. Verificación: `vitest` 175 archivos / 1542 pruebas,
+  `LoginPageRenderTest` (41), `doc-drift` 14/14, Pint, ESLint, Prettier y
+  `vite build` en verde, más medición en navegador a 1440 y 390 px (sin
+  desborde) y el rechazo al enviar.
 
 - **2026-10-29 (arnés de auditoría: estado entre sesiones y expectativas viejas,
   #501)** — Las seis causas del follow-up del cierre quedan corregidas en

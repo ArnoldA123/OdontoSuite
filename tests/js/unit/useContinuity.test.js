@@ -12,8 +12,19 @@ const toastMock = vi.hoisted(() => ({
   info: vi.fn()
 }))
 
+// S15 - the queue is gated on `view.continuity`. Finance reaches this desk for
+// its commercial answers without that grant, so the composable must skip both
+// queue calls instead of collecting a 403.
+const permissions = vi.hoisted(() => ({ viewContinuity: true }))
+
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({ get: api.get, post: api.post })
+}))
+
+vi.mock('../../../resources/js/composables/usePermissions', () => ({
+  usePermissions: () => ({
+    can: { viewContinuity: { value: permissions.viewContinuity } }
+  })
 }))
 
 vi.mock('../../../resources/js/composables/useToast', () => ({
@@ -82,6 +93,7 @@ const mockGet = (queueResponse = queuePayload()) => {
 }
 
 beforeEach(() => {
+  permissions.viewContinuity = true
   api.get.mockReset()
   api.post.mockReset()
   toastMock.success.mockReset()
@@ -90,6 +102,24 @@ beforeEach(() => {
 })
 
 describe('useContinuity load', () => {
+  it('skips the queue calls without view.continuity and reports no error', async () => {
+    permissions.viewContinuity = false
+    mockGet()
+
+    const { queue, metrics, loading, error, load } = useContinuity()
+    await load()
+
+    expect(api.get).not.toHaveBeenCalled()
+    expect(queue.value).toEqual({
+      recalls: [],
+      requests: [],
+      counts: { recalls: 0, requests: 0, total: 0 }
+    })
+    expect(metrics.value).toBeNull()
+    expect(loading.value).toBe(false)
+    expect(error.value).toBeNull()
+  })
+
   it('requests both endpoints and maps the buckets and counts', async () => {
     mockGet()
 

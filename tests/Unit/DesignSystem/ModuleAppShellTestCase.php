@@ -30,7 +30,10 @@ use PHPUnit\Framework\TestCase;
  *
  * Rule assertions (each fires against every file in `polishedFiles()`):
  *
- *   - DLR-R-001  canvas surface:    file references `bg-canvas` OR `var(--color-canvas)` OR `rgb(242, 242, 247)`.
+ *   - DLR-R-001  canvas surface:    file references `bg-canvas` OR `var(--color-canvas)` OR
+ *                                   `rgb(242, 242, 247)` OR mounts the shared `<PageHeader>` (the
+ *                                   component paints the canvas panel, so the page declares the
+ *                                   surface by composing it instead of repeating the token).
  *   - DLR-R-002  hairline:          file does NOT contain `border-theme` literal (modifier variants
  *                                   like `border-theme-light` are excluded from PR0 — they will be
  *                                   added per-category as AppLayout/Card/Sidebar/Topbar migrate).
@@ -154,12 +157,12 @@ abstract class ModuleAppShellTestCase extends TestCase
         $this->assertNotNull($src, sprintf('%s must exist and be readable.', $path));
 
         $cleaned = self::stripStringsAndComments($src);
-        $pattern = '/(?:bg-canvas|var\(--color-canvas\)|rgb\(\s*242\s*,\s*242\s*,\s*247\s*\))/';
+        $pattern = '/(?:bg-canvas|var\(--color-canvas\)|rgb\(\s*242\s*,\s*242\s*,\s*247\s*\)|<PageHeader\b)/';
         $this->assertMatchesRegularExpression(
             $pattern,
             $cleaned,
             sprintf(
-                '%s must reference the canvas token (bg-canvas, var(--color-canvas), or rgb(242, 242, 247)) per DLR-R-001.',
+                '%s must reference the canvas surface (bg-canvas, var(--color-canvas), rgb(242, 242, 247)) or mount the shared <PageHeader>, which paints it, per DLR-R-001.',
                 $path
             )
         );

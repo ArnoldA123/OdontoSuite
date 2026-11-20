@@ -250,7 +250,7 @@ describe('professionals smoke', () => {
     wrapper.unmount()
   })
 
-  it('shows license, branch and role cells with the N/D and Sin sucursal fallbacks', async () => {
+  it('keeps the team list to the four columns that vary, leaving license and branch to the detail', async () => {
     const team = [
       makeUser(1, {
         name: 'Ana Torres',
@@ -261,28 +261,18 @@ describe('professionals smoke', () => {
       makeUser(2, {
         name: 'Beto Salas',
         professional_license: '',
-        branch_id: 99
-      }),
-      makeUser(3, {
-        name: 'Carla Díaz',
-        professional_license: null,
-        branch_id: null
+        branch_id: 7
       })
     ]
     installTeam(team, [{ id: 7, name: 'Sede Miraflores' }])
     const wrapper = await mountPage()
 
     const rows = wrapper.findAll('[data-team-row]')
-    expect(rows).toHaveLength(3)
+    expect(rows).toHaveLength(2)
 
-    expect(rows[0].text()).toContain('CMP-12345')
-    expect(rows[0].text()).toContain('Sede Miraflores')
     expect(rows[0].text()).toContain('Técnico Dental')
-
-    expect(rows[1].text()).toContain('N/D')
-
-    expect(rows[2].text()).toContain('N/D')
-    expect(rows[2].text()).toContain('Sin sucursal')
+    expect(rows[0].text()).not.toContain('CMP-12345')
+    expect(rows[0].text()).not.toContain('Sede Miraflores')
 
     wrapper.unmount()
   })
@@ -303,14 +293,14 @@ describe('professionals smoke', () => {
   it('submits the selected role in the create payload', async () => {
     const wrapper = await mountPage({ stubs: { teleport: true } })
 
-    await findButtonByText(wrapper, 'Nuevo Profesional').trigger('click')
+    await findButtonByText(wrapper, 'Nuevo profesional').trigger('click')
     await flushPromises()
 
     await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
     await wrapper.find('[data-professionals-form-email] input').setValue('nuevo@test.com')
     await chooseSelectOption(wrapper.find('[data-professionals-role]'), 'Técnico Dental')
 
-    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
+    await wrapper.find('[data-professionals-save-create]').trigger('click')
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
@@ -324,12 +314,12 @@ describe('professionals smoke', () => {
   it('does not call the API on invalid submit and shows inline validation', async () => {
     const wrapper = await mountPage({ stubs: { teleport: true } })
 
-    await findButtonByText(wrapper, 'Nuevo Profesional').trigger('click')
+    await findButtonByText(wrapper, 'Nuevo profesional').trigger('click')
     await flushPromises()
 
     await wrapper.find('[data-professionals-form-email] input').setValue('nuevo@test.com')
 
-    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
+    await wrapper.find('[data-professionals-save-create]').trigger('click')
     await flushPromises()
 
     expect(postMock).not.toHaveBeenCalled()
@@ -429,7 +419,7 @@ describe('professionals smoke', () => {
     expect(wrapper.text()).toContain('Ana Torres')
     expect(wrapper.text()).not.toContain('Beto Salas')
 
-    await findButtonByText(wrapper, 'Nuevo Profesional').trigger('click')
+    await findButtonByText(wrapper, 'Nuevo profesional').trigger('click')
     await flushPromises()
 
     const modalSpecialtySelect = findSelectByPlaceholder(wrapper, 'Seleccionar especialidad')
@@ -443,7 +433,7 @@ describe('professionals smoke', () => {
 
     await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
     await wrapper.find('[data-professionals-form-email] input').setValue('nuevo@test.com')
-    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
+    await wrapper.find('[data-professionals-save-create]').trigger('click')
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
@@ -503,7 +493,7 @@ describe('professionals smoke', () => {
     await wrapper.find('[data-professionals-edit-name] input').setValue('Ana Torres Editada')
     await chooseSelectOption(wrapper.find('[data-professionals-role-edit]'), 'Asistente')
 
-    await findButtonByText(wrapper, 'Actualizar').trigger('click')
+    await wrapper.find('[data-professionals-save-edit]').trigger('click')
     await flushPromises()
 
     expect(putMock).toHaveBeenCalledTimes(1)
@@ -522,7 +512,7 @@ describe('professionals smoke', () => {
     const row = wrapper.findAll('[data-team-row]')[1]
     await row
       .findAll('button')
-      .find(button => button.text().includes('Ver Detalle'))
+      .find(button => button.text().includes('Ver ficha'))
       .trigger('click')
     await flushPromises()
 
@@ -539,13 +529,13 @@ describe('professionals smoke', () => {
     const wrapper = await mountPage()
 
     expect(wrapper.findAll('[data-team-row]')).toHaveLength(3)
-    expect(findButtonByText(wrapper, 'Nuevo Profesional')).toBeUndefined()
+    expect(findButtonByText(wrapper, 'Nuevo profesional')).toBeUndefined()
 
     const labels = wrapper
       .findAll('[data-team-row]')[0]
       .findAll('button')
       .map(button => button.text().trim())
-    expect(labels).toContain('Ver Detalle')
+    expect(labels).toContain('Ver ficha')
     expect(labels).not.toContain('Editar')
     expect(labels).not.toContain('Eliminar')
 
@@ -686,7 +676,7 @@ describe('professionals smoke', () => {
     installTeam(TEAM, [{ id: 7, name: 'Sede Miraflores' }])
     const wrapper = await mountPage({ stubs: { teleport: true } })
 
-    await findButtonByText(wrapper, 'Nuevo Profesional').trigger('click')
+    await findButtonByText(wrapper, 'Nuevo profesional').trigger('click')
     await flushPromises()
 
     await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
@@ -695,7 +685,7 @@ describe('professionals smoke', () => {
     await chooseSelectOption(wrapper.find('[data-professionals-form-branch]'), 'Sede Miraflores')
     await chooseSelectOption(wrapper.find('[data-professionals-form-status]'), 'Inactivo')
 
-    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
+    await wrapper.find('[data-professionals-save-create]').trigger('click')
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
@@ -733,7 +723,7 @@ describe('professionals smoke', () => {
     expect(wrapper.find('[data-professionals-edit-status]').text()).toContain('Inactivo')
 
     await wrapper.find('[data-professionals-edit-license] input').setValue('CMP-1000')
-    await findButtonByText(wrapper, 'Actualizar').trigger('click')
+    await wrapper.find('[data-professionals-save-edit]').trigger('click')
     await flushPromises()
 
     expect(putMock).toHaveBeenCalledTimes(1)
@@ -757,12 +747,12 @@ describe('professionals smoke', () => {
     })
     const wrapper = await mountPage({ stubs: { teleport: true } })
 
-    await findButtonByText(wrapper, 'Nuevo Profesional').trigger('click')
+    await findButtonByText(wrapper, 'Nuevo profesional').trigger('click')
     await flushPromises()
 
     await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
     await wrapper.find('[data-professionals-form-email] input').setValue('repetido@test.com')
-    await findButtonByText(wrapper, 'Guardar profesional').trigger('click')
+    await wrapper.find('[data-professionals-save-create]').trigger('click')
     await flushPromises()
 
     expect(postMock).toHaveBeenCalledTimes(1)
@@ -774,7 +764,7 @@ describe('professionals smoke', () => {
   it('submits the create form when Enter is pressed in a field', async () => {
     const wrapper = await mountPage({ stubs: { teleport: true } })
 
-    await findButtonByText(wrapper, 'Nuevo Profesional').trigger('click')
+    await findButtonByText(wrapper, 'Nuevo profesional').trigger('click')
     await flushPromises()
 
     await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
@@ -865,7 +855,7 @@ describe('professionals list inherits UiDataTable (#453)', () => {
 
     // The primitive renders the same columns the page owned before.
     const header = wrapper.get('[data-team-table] thead').text()
-    for (const label of ['Profesional', 'Especialidad', 'Rol', 'Matrícula', 'Sucursal']) {
+    for (const label of ['Profesional', 'Especialidad', 'Rol', 'Estado']) {
       expect(header).toContain(label)
     }
     expect(header).toContain('Estado')
@@ -884,7 +874,7 @@ describe('professionals list inherits UiDataTable (#453)', () => {
     expect(row.text()).toContain('Odontólogo')
 
     const labels = row.findAll('button').map(button => button.text().trim())
-    expect(labels).toEqual(['Ver Detalle', 'Editar', 'Eliminar'])
+    expect(labels).toEqual(['Ver ficha', 'Editar', 'Eliminar'])
 
     wrapper.unmount()
   })

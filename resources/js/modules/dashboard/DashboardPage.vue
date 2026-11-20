@@ -1,15 +1,13 @@
-﻿<template>
+<template>
   <AppLayout>
-    <!-- Loading State: Skeleton placeholders that match the final layout's
-         shape so the page does not jump when data lands. -->
+    <!-- Loading State: the first frame is the skeleton, never an empty
+         surface. It mirrors the two-card strip so the page does not jump. -->
     <template v-if="loading">
       <div class="space-y-12" aria-busy="true" aria-live="polite">
-        <!-- Day-operations skeletons: the loading shape mirrors the block
-             order (KPI strip -> agenda) so the page does not jump. -->
         <section aria-label="Cargando resumen">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <UiSkeleton
-              v-for="i in 4"
+              v-for="i in 2"
               :key="`stat-skel-${i}`"
               variant="card"
               animation="wave"
@@ -17,115 +15,39 @@
             />
           </div>
         </section>
-        <section aria-label="Cargando agenda de hoy">
-          <UiSkeleton
-            v-for="i in 3"
-            :key="`apt-skel-${i}`"
-            variant="list"
-            animation="wave"
-            :aria-label="`Cargando cita ${i}`"
-          />
-        </section>
-        <!-- Pending skeletons (WU3): same single-list shape as the merged
-             pending rows so the section does not jump when data lands. -->
-        <section aria-label="Cargando pendientes">
-          <div class="grid gap-2">
-            <UiSkeleton
-              v-for="i in 3"
-              :key="`pending-skel-${i}`"
-              variant="list"
-              animation="wave"
-              :aria-label="`Cargando pendientes ${i}`"
-            />
-          </div>
-        </section>
-        <!-- Upcoming-week skeletons: same list shape as the strip rows so
-             the section does not jump when data lands. -->
-        <section aria-label="Cargando próximas citas">
-          <UiSkeleton
-            v-for="i in 2"
-            :key="`upcoming-skel-${i}`"
-            variant="list"
-            animation="wave"
-            :aria-label="`Cargando próxima cita ${i}`"
-          />
-        </section>
       </div>
     </template>
 
     <!-- Main Content -->
     <div v-else data-dashboard-content class="space-y-12" :aria-busy="refreshing">
       <!--
-        Hero band (WU4 / D6) - the login's visual language reaches the
-        dashboard. Surface vocabulary traced to the login card (hairline +
-        --radius-panel + elevation rung) over the login scene's neutral
-        backdrop base (--color-canvas; user direction: no mint tint); the
-        greeting rides the login display step
-        (text-4xl = 36/40/-0.022em from the shared type scale). The brand
-        lockup (tooth glyph + wordmark on accent-500) is the login's own
-        header anatomy, reused verbatim as the sparingly used green accent.
-        The topbar keeps owning the single h1; this band stays typographic.
+        Canonical page header: the shared PageHeader component, kicker `HOY`,
+        the greeting as the page title and the date as its description. The
+        refresh rides the shared secondary action, so every destination opens
+        with the same control. The wrapper only carries the entrance spring;
+        the header itself owns no anatomy of its own.
       -->
-      <!--
-        HOTFIX-DASH-008 - Greeting date uses tabular-nums.
-        apple-design §15 typography: "tabular nums pin number alignment
-        across changing values". The date string contains day + year
-        numeric components; align them via the literal CSS feature tag
-        'tnum' so the rule is auditable in source.
-
-        Source-order note: getTodayDate() reference appears ABOVE the
-        font-feature-settings declaration because the regression rule
-        in HotfixDashboardDateTabularTest anchors on getTodayDate()
-        followed within 400 chars by the declaration.
-      -->
-      <header
+      <div
         ref="greetingSection"
         data-dashboard-header
-        data-dashboard-hero
         data-reveal="greeting"
-        class="relative overflow-hidden p-6 md:p-8"
-        style="
-          background: var(--color-canvas);
-          border: 1px solid var(--color-hairline);
-          border-radius: var(--radius-panel);
-          box-shadow: var(--elevation-2);
-        "
         :style="revealStyle('--spring-dash-greeting-o')"
       >
-        <DentalMotifLayer variant="hero" data-hero-motif />
-        <div class="relative flex items-center justify-between gap-3">
-          <!-- Brand lockup: tooth glyph + wordmark, no chip chrome. -->
-          <p class="inline-flex items-center gap-2">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.75"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              style="color: var(--color-accent-500)"
-              aria-hidden="true"
-            >
-              <path
-                d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
-              />
-            </svg>
-            <span class="text-sm font-semibold tracking-tight text-label">OdontoSuite</span>
-          </p>
-          <div class="flex items-center gap-3" data-hero-actions>
-            <!--
-            T3 manual refresh. Ghost icon-button in the compact header so a
-            stale view can be re-fetched without a page reload. While the
-            request is in flight the icon spins (gated by reduced-motion) and
-            the page root reports aria-busy; the current content stays mounted
-            and is replaced only when the new payload lands.
-          -->
+        <PageHeader
+          kicker="HOY"
+          :title="`${getGreeting()}, ${firstName}`"
+          :subtitle="getTodayDate()"
+          style="
+            font-feature-settings:
+              'tnum' 1,
+              'lnum' 1;
+          "
+        >
+          <template #actions>
+            <!-- T3 manual refresh. The header keeps the current content
+                 mounted while the request is in flight and reports aria-busy. -->
             <UiButton
-              variant="ghost"
-              size="sm"
-              aria-label="Actualizar"
+              variant="secondary"
               data-refresh-button
               :disabled="refreshing"
               @click="loadDashboardData"
@@ -137,32 +59,17 @@
                   aria-hidden="true"
                 />
               </template>
+              Actualizar
             </UiButton>
-          </div>
-        </div>
-        <p class="relative mt-3 text-4xl font-semibold text-label">
-          {{ getGreeting() }}, {{ firstName }}
-        </p>
-        <!-- date interpolation marker for HOTFIX-DASH-008 anchor: {{ getTodayDate() }} -->
-        <p
-          style="
-            font-feature-settings:
-              'tnum' 1,
-              'lnum' 1;
-          "
-          class="relative mt-2 text-base leading-relaxed text-theme-secondary"
-        >
-          {{ getTodayDate() }}
-        </p>
-      </header>
+          </template>
+        </PageHeader>
+      </div>
 
       <!--
         Stats error state (T3). A non-401 failure of dashboard/stats reports
-        HERE, in its own space under the hero band, and nowhere else: the data
-        sections below render from their own sources (#388), so a failed
-        summary never unmounts the agenda, the pending rows or the week
-        preview. Reintentar re-fetches ONLY the summary through retryStats();
-        the 401 case still redirects to /login.
+        HERE, in its own space under the hero band: the destinations below
+        are static and stay mounted, and Reintentar re-fetches ONLY the
+        summary through retryStats(); the 401 case still redirects to /login.
       -->
       <div
         v-if="statsError"
@@ -188,48 +95,31 @@
       </div>
 
       <!--
-        Block "Hoy" (WU4 / D7) - the day's protagonists under ONE strong
-        heading: the KPI strip leads (its numbers summarize the very list
-        the agenda renders) and the agenda follows it. The retired
-        "Resumen del día" footer section is gone: its content lives here.
+        Block "Hoy" - the dashboard no longer lists appointments: it publishes
+        the day count the summary owns plus the drawer balance. Both cards are
+        static reference surfaces (no click affordance); the cash card keeps
+        its single contextual action.
       -->
-      <section aria-label="Hoy" data-dashboard-block="hoy" class="space-y-6">
+      <section
+        v-if="canViewAppointments || canViewCashRegister"
+        aria-label="Hoy"
+        data-dashboard-block="hoy"
+        class="space-y-6"
+      >
         <div class="flex items-baseline gap-3">
           <h2 class="text-2xl font-semibold text-label">Hoy</h2>
           <p class="text-sm text-theme-secondary">Lo que ocurre hoy en la clínica</p>
         </div>
 
-        <!--
-          Daily-operations KPI strip (WU1). Four cards (D1): Citas Hoy,
-          Atendidas Hoy, Por Atender, Saldo de Caja. Card anatomy: small
-          uppercase eyebrow, big tabular number, ONE scope caption (D3).
-
-          Single source (R1): the three day counts derive from the SAME
-          appointment list the agenda renders, bucketed through the shared
-          status map the rows label with, so rows and KPIs can never
-          disagree. While that source is down the three cards render "N/D"
-          instead of a fabricated zero.
-
-          No comparison chips and no reserved blank slots (D3): the backend
-          comparison labels are broken ("-100" for patients), so each card
-          is exactly eyebrow + number + caption. The cash card (WU2 / D4) is
-          the single cash surface: state line + session balance + caption +
-          its contextual CTA, all fed by useCashRegister.
-
-          T3 - the strip is a static reference surface: no card carries a
-          click affordance (no clickable/hover props, no @click). The cash
-          card's "Ir a Caja" button is its contextual action, not a
-          card-level affordance.
-        -->
         <div
           ref="kpiSection"
           data-reveal="kpi"
-          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+          class="grid grid-cols-1 md:grid-cols-2 gap-4"
           :style="revealStyle('--spring-dash-kpi-o')"
         >
-          <!-- Citas Hoy: the day's agenda total (same list the agenda renders). -->
+          <!-- Citas Hoy: today's appointment count, published by the summary. -->
           <UiCard
-            v-if="can.viewAppointment?.value"
+            v-if="canViewAppointments"
             variant="glass"
             padding="sm"
             data-stat-card="appointments-today"
@@ -252,7 +142,7 @@
                   aria-live="polite"
                   data-stat="appointments-today"
                 >
-                  {{ todayKpiDisplay }}
+                  {{ citasHoyDisplay }}
                 </p>
                 <p
                   class="mt-1 text-xs text-theme-secondary truncate"
@@ -264,85 +154,10 @@
             </div>
           </UiCard>
 
-          <!-- Atendidas Hoy: completed statuses of the same list. -->
-          <UiCard
-            v-if="can.viewAppointment?.value"
-            variant="glass"
-            padding="sm"
-            data-stat-card="completed-today"
-            class="relative h-full flex flex-col"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                  Atendidas Hoy
-                </p>
-                <p
-                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  style="
-                    font-feature-settings:
-                      'tnum' 1,
-                      'lnum' 1;
-                  "
-                  data-stat="completed-today"
-                >
-                  {{ completedKpiDisplay }}
-                </p>
-                <p
-                  class="mt-1 text-xs text-theme-secondary truncate"
-                  data-kpi-caption="completed-today"
-                >
-                  Completadas
-                </p>
-              </div>
-            </div>
-          </UiCard>
-
-          <!--
-            Por Atender: the honest remainder of the same list. The real
-            status enum has no pending-confirmation state, so the bucket is
-            "neither completed nor cancelled".
-          -->
-          <UiCard
-            v-if="can.viewAppointment?.value"
-            variant="glass"
-            padding="sm"
-            data-stat-card="pending-today"
-            class="relative h-full flex flex-col"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                  Por Atender
-                </p>
-                <p
-                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  style="
-                    font-feature-settings:
-                      'tnum' 1,
-                      'lnum' 1;
-                  "
-                  data-stat="pending-today"
-                >
-                  {{ pendingKpiDisplay }}
-                </p>
-                <p
-                  class="mt-1 text-xs text-theme-secondary truncate"
-                  data-kpi-caption="pending-today"
-                >
-                  Sin completar ni cancelar
-                </p>
-              </div>
-            </div>
-          </UiCard>
-
           <!--
             Saldo de Caja: the single cash surface (WU2 / D4). State line,
-            session balance and the one cash CTA live here; the header keeps
-            only greeting, date and refresh. Everything cash-visible reads
-            the useCashRegister state.
+            session balance and the one cash CTA live here; everything
+            cash-visible reads the useCashRegister state.
           -->
           <UiCard
             v-if="canViewCashRegister"
@@ -389,337 +204,51 @@
             </div>
           </UiCard>
         </div>
-
-        <!--
-          Agenda de hoy - the day's detail list (WU4 / D7: under the block
-          heading, after the KPI strip). Rows render EVERY appointment
-          returned by the canonical GET /api/dashboard/appointments-today
-          endpoint (no slice cap). Row anatomy: time (tabular) / patient /
-          type / professional / status. The empty state keeps the
-          HOTFIX-DASH-007 line-art SVG through the shared
-          DashboardSectionEmpty pattern (T5).
-        -->
-        <section v-if="can.viewAppointment?.value" aria-label="Agenda de hoy">
-          <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
-            <h3 class="text-base font-semibold text-label">Agenda de hoy</h3>
-            <div class="flex items-center gap-2">
-              <UiButton
-                v-if="can.createAppointment?.value"
-                variant="primary"
-                size="sm"
-                @click="goToNewAppointment"
-              >
-                Nueva cita
-              </UiButton>
-            </div>
-          </div>
-
-          <!--
-          Agenda inline error (T5). Only the today resource failed: the
-          section keeps its header and the rest of the page stays usable, so
-          the retry affordance lives here and re-fetches ONLY
-          /api/dashboard/appointments-today through the shared section-error
-          component.
-        -->
-          <DashboardSectionError
-            v-if="todayError"
-            data-state="error-appointments"
-            role="alert"
-            title="No pudimos cargar la agenda de hoy"
-            description="Reintenta para ver las citas programadas para el día."
-            :retry-attrs="{ 'data-retry-appointments': '' }"
-            @retry="retryTodayAppointments"
-          />
-
-          <!--
-          Empty state for the today-appointments case, rendered through the
-          shared compact DashboardSectionEmpty pattern (T5, WU3 / D9).
-
-          HOTFIX-DASH-007 - line-art calendar SVG. The calendar SVG
-          stays inline in this template, passed through the component's icon
-          slot, so the stroke-width="1.5" rule stays auditable in source
-          (apple-design §16 baseline, NOT the previous 2.0 default).
-
-          WU3 / R4 - single CTA per destination: the empty state carries NO
-          button. The header owns the only "Nueva cita" CTA and it opens the
-          appointment modal, so the copy stays informational and never points
-          users at the calendar section.
-        -->
-          <DashboardSectionEmpty
-            v-else-if="todayAppointments.length === 0"
-            ref="emptyStateSection"
-            data-state="empty-appointments"
-            data-reveal="empty-state"
-            title="Sin citas para hoy"
-            description="Cuando registres citas, aparecerán aquí."
-            :style="revealStyle('--spring-dash-empty-o')"
-          >
-            <template #icon>
-              <!--
-              HOTFIX-DASH-007 - inline line-art calendar SVG.
-              stroke-width="1.5" (apple-design §16 baseline).
-              Color: var(--color-label-tertiary-label) - the iOS
-              tertiaryLabel token so the icon recedes.
-            -->
-              <svg
-                class="mx-auto h-8 w-8 mb-3"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                style="color: var(--color-label-tertiary-label)"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-            </template>
-          </DashboardSectionEmpty>
-
-          <div v-else class="grid gap-3">
-            <UiCard
-              v-for="appointment in todayAppointments"
-              :key="appointment.id"
-              variant="flat"
-              hover
-              data-appointment-row
-            >
-              <div class="flex items-center gap-4">
-                <!--
-                Time column: tabular numerals so the minute column stays
-                aligned down the agenda (apple-design §15).
-              -->
-                <div class="flex-shrink-0 w-14">
-                  <p
-                    class="text-sm font-semibold text-label tabular-nums"
-                    style="
-                      font-feature-settings:
-                        'tnum' 1,
-                        'lnum' 1;
-                    "
-                  >
-                    {{ formatTime(appointment.scheduled_at) }}
-                  </p>
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p class="font-medium text-label truncate">
-                    {{ getPatientName(appointment) }}
-                  </p>
-                  <p class="text-sm text-theme-secondary truncate">
-                    {{ appointment.appointment_type?.name || 'Consulta' }}
-                    <span v-if="appointment.user?.name">· {{ appointment.user.name }}</span>
-                  </p>
-                </div>
-                <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
-                  {{ getStatusText(appointment.status) }}
-                </UiBadge>
-              </div>
-            </UiCard>
-          </div>
-        </section>
       </section>
 
       <!--
-        Block "Requiere tu atención" (WU4 / D7) - quotations and treatment
-        plans waiting on a patient decision, fed by GET /api/dashboard/pending,
-        rendered as ONE merged list (WU3 / D6): actionable work before the
-        reference preview. The backend omits the subsets the current role
-        cannot read, so rows render only for payload keys that are present;
-        when neither key is present the whole block stays hidden. The fetch
-        is tolerant: this resource alone can fail without blocking the rest
-        of the page.
+        Block "Dónde seguir" - the three destinations of the daily work. Each
+        card is a link, carries one line of what it resolves and no counter:
+        the page points at the desks instead of duplicating their content.
       -->
       <section
-        v-if="hasPendingGroups || pendingError"
-        aria-label="Requiere tu atención"
-        data-dashboard-block="attention"
-        class="space-y-4"
-      >
-        <h2 class="text-xl font-semibold text-label">Requiere tu atención</h2>
-
-        <!--
-          Pending inline error (T7b). Only this resource failed: the rest
-          of the page stays usable, and the retry re-fetches ONLY
-          /api/dashboard/pending through the shared section-error component.
-        -->
-        <DashboardSectionError
-          v-if="pendingError"
-          data-state="error-pending"
-          role="alert"
-          title="No pudimos cargar los pendientes"
-          description="Reintenta para ver presupuestos y planes en espera de respuesta."
-          :retry-attrs="{ 'data-retry-pending': '' }"
-          @retry="retryPending"
-        />
-
-        <DashboardSectionEmpty
-          v-else-if="pendingRows.length === 0"
-          data-state="empty-pending"
-          title="Sin pendientes"
-          description="Los presupuestos y planes que esperen respuesta aparecerán aquí."
-        />
-        <!--
-          WU3 / D6 - ONE merged list: quotations and treatment plans are
-          rows of a single dataset (patient, amount, type badge, status
-          badge, date) sorted by their pending date ascending. Each row
-          carries the single action into its module list; no section-level
-          link duplicates those destinations.
-        -->
-        <div v-else class="grid gap-2">
-          <UiCard
-            v-for="row in pendingRows"
-            :key="row.key"
-            variant="flat"
-            padding="sm"
-            hover
-            :data-pending-row="row.rowHook"
-          >
-            <div class="flex items-center gap-3">
-              <p class="min-w-0 flex-1 text-sm font-medium text-label truncate">
-                {{ row.patientName }}
-              </p>
-              <span
-                class="flex-shrink-0 text-sm font-semibold text-label tabular-nums"
-                :data-pending-amount="row.rowHook"
-              >
-                {{ row.amountLabel }}
-              </span>
-              <UiBadge variant="neutral" size="sm" data-pending-type>
-                {{ row.typeLabel }}
-              </UiBadge>
-              <UiBadge :variant="pendingStatusVariant(row.status)" size="sm">
-                {{ pendingStatusLabel(row.status) }}
-              </UiBadge>
-              <span
-                v-if="row.dateLabel"
-                class="flex-shrink-0 text-xs text-theme-secondary tabular-nums"
-              >
-                {{ row.dateLabel }}
-              </span>
-              <UiButton
-                variant="ghost"
-                size="sm"
-                :aria-label="row.actionAria"
-                @click="goToPendingEntity(row.entityType)"
-              >
-                Ver
-              </UiButton>
-            </div>
-          </UiCard>
-        </div>
-      </section>
-
-      <!--
-        Block "Próximos días" (WU4 / D7) - the week preview, kept visually
-        secondary: quiet heading plus a recessed tray around the rows.
-        Compact feed from GET /api/dashboard/upcoming (now -> end of week,
-        limit 10), grouped by LOCAL calendar day (the same timezone
-        formatTime renders in) with a short Spanish day header. The fetch
-        is tolerant: if this resource alone fails, the block carries its
-        own inline error plus a scoped retry and the rest of the page
-        stays usable.
-      -->
-      <section
-        v-if="can.viewAppointment?.value"
-        aria-label="Próximos días"
-        data-dashboard-block="upcoming"
+        v-if="destinations.length > 0"
+        aria-label="Dónde seguir"
+        data-dashboard-block="destinations"
         class="space-y-4"
       >
         <div class="flex items-baseline gap-3">
-          <h2 class="text-base font-medium text-theme-secondary">Próximos días</h2>
-          <span
-            v-if="!upcomingError && upcomingAppointments.length > 0"
-            class="text-sm text-theme-secondary tabular-nums"
-          >
-            {{ upcomingAppointments.length }}
-            {{ upcomingAppointments.length === 1 ? 'cita' : 'citas' }}
-          </span>
+          <h2 class="text-2xl font-semibold text-label">Dónde seguir</h2>
+          <p class="text-sm text-theme-secondary">Los destinos del trabajo diario</p>
         </div>
 
-        <!--
-          Upcoming inline error (T5). Only the upcoming resource failed:
-          the header stays, the rest of the page stays usable, and the retry
-          affordance re-fetches ONLY /api/dashboard/upcoming through the
-          shared section-error component.
-        -->
-        <DashboardSectionError
-          v-if="upcomingError"
-          data-state="error-upcoming"
-          role="alert"
-          title="No pudimos cargar las próximas citas"
-          description="Reintenta para ver lo que queda de la semana."
-          :retry-attrs="{ 'data-retry-upcoming': '' }"
-          @retry="retryUpcomingAppointments"
-        />
-
-        <!--
-          Compact empty state for the upcoming-week case (WU3 / D9): one
-          short title plus one precise sentence instead of the previous
-          redundant two-sentence pair.
-        -->
-        <DashboardSectionEmpty
-          v-else-if="upcomingAppointments.length === 0"
-          data-state="empty-upcoming"
-          title="Sin citas esta semana"
-          description="No hay citas registradas de mañana en adelante."
-        />
-
-        <div
-          v-else
-          data-upcoming-surface
-          class="space-y-4 p-4"
-          style="
-            background: var(--color-system-gray-100);
-            border: 1px solid var(--color-hairline);
-            border-radius: var(--radius-panel);
-          "
-        >
-          <div
-            v-for="group in upcomingGroups"
-            :key="group.key"
-            data-upcoming-group
-            class="space-y-2"
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <RouterLink
+            v-for="destination in destinations"
+            :key="destination.key"
+            :to="destination.to"
+            :data-dashboard-destination="destination.key"
+            class="block rounded-ios focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2"
           >
-            <p data-upcoming-day class="text-xs font-medium text-theme-secondary tabular-nums">
-              {{ group.label }}
-            </p>
-            <div class="grid gap-3">
-              <UiCard
-                v-for="appointment in group.appointments"
-                :key="appointment.id"
-                variant="flat"
-                hover
-                data-upcoming-row
-              >
-                <div class="flex items-center gap-4">
-                  <div class="flex-shrink-0 w-14">
-                    <p data-upcoming-time class="text-sm font-semibold text-label tabular-nums">
-                      {{ formatTime(appointment.scheduled_at) }}
-                    </p>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <p class="font-medium text-label truncate">
-                      {{ getPatientName(appointment) }}
-                    </p>
-                    <p class="text-sm text-theme-secondary truncate">
-                      {{ appointment.appointment_type?.name || 'Consulta' }}
-                    </p>
-                  </div>
-                  <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
-                    {{ getStatusText(appointment.status) }}
-                  </UiBadge>
-                </div>
-              </UiCard>
-            </div>
-          </div>
+            <UiCard
+              variant="flat"
+              hover
+              padding="sm"
+              class="h-full"
+              :style="{
+                border: '1px solid var(--color-hairline)',
+                boxShadow: 'var(--elevation-2)'
+              }"
+            >
+              <p class="text-base font-semibold text-label">{{ destination.title }}</p>
+              <p class="mt-1 text-sm text-theme-secondary">{{ destination.description }}</p>
+            </UiCard>
+          </RouterLink>
         </div>
       </section>
     </div>
 
-    <!-- New Appointment Modal -->
+    <!-- New Appointment Modal: /appointments/new redirects here. -->
     <NewAppointmentModal v-model="showNewAppointmentModal" @created="handleAppointmentCreated" />
   </AppLayout>
 </template>
@@ -729,20 +258,12 @@ import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
-import DashboardSectionError from './DashboardSectionError.vue'
-import DashboardSectionEmpty from './DashboardSectionEmpty.vue'
-import DentalMotifLayer from '@/components/ui/DentalMotifLayer.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import { useApi } from '../../composables/useApi'
 import { useAuth } from '@/composables/useAuth'
 // HOTFIX-DASH-009 / T4 - per-section staggered springs, consumed.
-// apple-design §4 "behavior over animation - use springs" + §8 "hint
-// in direction of gesture" (intermediate frames telegraph direction).
-// Each of the 3 visible sections gets its own useSpring with a distinct
-// cssVar so the entrance animations cannot collide on the same CSS
-// custom property. Stagger: 0ms / 60ms / 120ms on the first
-// successful content render. Critically damped (damping 1.0) by default -
-// no overshoot on a non-momentum entrance. The templates consume each var
-// through revealStyle(); before T4 the vars were written but unconsumed.
+// Each visible section gets its own useSpring with a distinct cssVar so the
+// entrance animations cannot collide on the same CSS custom property.
 import { useSpring } from '../../composables/useSpring'
 import { prefersReducedMotion } from '../../composables/useSpringMath'
 import { usePermissions } from '../../composables/usePermissions'
@@ -770,38 +291,15 @@ const canViewAppointments = computed(() => can.viewAppointment?.value === true)
 
 // State
 // #387 - the first frame is the skeleton. Starting `false` painted the
-// content branch with empty arrays before the sources resolved, so the page
-// published its empty states on load.
+// content branch before the summary resolved.
 const loading = ref(true)
-const todayAppointments = ref([])
-// T5 week preview. Kept separate from the agenda so a failing upcoming
-// request never blocks the day's protagonists.
-const upcomingAppointments = ref([])
-const upcomingError = ref(false)
-// T7b pending-and-action block. `pending` stores the subsets the backend
-// returned for this role (an absent key means the role cannot read that
-// module). Kept separate from stats so a failing pending request never
-// blocks the rest of the page.
-const pending = ref({})
-const pendingError = ref(false)
-
-// T3 load-state flags. `hasLoaded` separates the first load (skeleton) from
-// later loads (silent in-flight refresh) so a manual refresh or a WebSocket
-// burst never blanks the page. The two error flags drive the page-level
-// stats error state and the agenda inline error state.
 const hasLoaded = ref(false)
 const refreshing = ref(false)
 const statsError = ref(false)
-const todayError = ref(false)
+const summary = ref({})
 
-// HOTFIX-DASH-009 / T4 - per-section staggered springs (3 sections,
-// 60ms stagger). apple-design §4 (springs for entrance, critically
-// damped), §8 (intermediate frames telegraph direction via stagger).
-// Each spring targets a distinct CSS custom property on its bound
-// element so the entrance animations never collide. useSpring() honors
-// prefers-reduced-motion internally - the springs collapse to instant
-// settle when the OS preference is on (see composables/useSpring.js
-// contract, item 6).
+// T4 - per-section staggered springs (2 sections, 60ms stagger). Each spring
+// targets a distinct CSS custom property so the entrances never collide.
 const greetingSpring = useSpring({
   damping: 1.0,
   response: 0.35,
@@ -812,30 +310,22 @@ const kpiSpring = useSpring({
   response: 0.35,
   cssVar: '--spring-dash-kpi-o'
 })
-const emptyStateSpring = useSpring({
-  damping: 1.0,
-  response: 0.35,
-  cssVar: '--spring-dash-empty-o'
-})
 
 const greetingSection = ref(null)
 const kpiSection = ref(null)
-const emptyStateSection = ref(null)
 
 // T4 - section reveal rule. The spring writes a 0..1 progress into its
 // cssVar and this binding turns it into the entrance: opacity 0 -> 1 plus
 // an 8px translate-up. The `, 1` fallback renders every section in its
-// FINAL state whenever no spring is attached - reduced motion, or a
-// section that mounts after the one-shot entrance already ran.
+// FINAL state whenever no spring is attached - reduced motion, or a section
+// that mounts after the one-shot entrance already ran.
 const revealStyle = cssVar => ({
   opacity: `var(${cssVar}, 1)`,
   transform: `translateY(calc((1 - var(${cssVar}, 1)) * 8px))`
 })
 
-// One-shot entrance for the first successful content render. Reduced
-// motion never attaches: the fallback above already holds the final state
-// (same pattern as LoginPage.vue), so the stagger would only flash content
-// that is supposed to stay still.
+// One-shot entrance for the first successful content render. Reduced motion
+// never attaches: the fallback above already holds the final state.
 let entrancePlayed = false
 const playEntrance = () => {
   if (entrancePlayed) return
@@ -844,25 +334,14 @@ const playEntrance = () => {
 
   if (greetingSection.value) greetingSpring.attach(greetingSection.value)
   if (kpiSection.value) kpiSpring.attach(kpiSection.value)
-  // The empty state renders through a child component, so the template ref
-  // yields the component instance; the spring binds to its root element.
-  if (emptyStateSection.value) {
-    emptyStateSpring.attach(emptyStateSection.value.$el || emptyStateSection.value)
-  }
 
   setTimeout(() => greetingSpring.set(1), 0)
   setTimeout(() => kpiSpring.set(1), 60)
-  setTimeout(() => emptyStateSpring.set(1), 120)
 }
 
-// T4 - KPI count-up springs. Each headline number counts 0 -> value on the
-// first data payload, then hands the display back to the canonical source
-// value, so refreshes update instantly instead of replaying the entrance.
-// useSpring re-checks prefers-reduced-motion on every set();
-// countUpAllowed() additionally requires an explicit
-// `(prefers-reduced-motion: no-preference)` match so environments that
-// never resolve the query (for example jsdom in the smoke suite) show the
-// final value straight away instead of freezing at 0.
+// T4 - KPI count-up. The headline number counts 0 -> value on the first data
+// payload, then hands the display back to the canonical source value, so
+// refreshes update instantly instead of replaying the entrance.
 const countUpAllowed = () => {
   if (prefersReducedMotion()) return false
   try {
@@ -891,66 +370,25 @@ const createCountUp = (readTarget, format = value => Math.round(value)) => {
   return { display, start }
 }
 
-/**
- * WU1 / D1 - one status map for the whole page. The agenda rows render
- * their Spanish label and badge variant from it, and the day KPIs bucket
- * the same statuses through `outcome`, so rows and KPIs can never
- * disagree. Real enum (appointments.status): scheduled, confirmed,
- * in_consultation, in_progress, completed, cancelled, no_show,
- * rescheduled. There is no pending-confirmation state, so the third KPI
- * bucket is the honest remainder: not completed and not cancelled
- * (unknown statuses fall in it too). Outcome buckets use `pending` /
- * `completed` / `cancelled` so no raw cash key can ride this map.
- */
-const APPOINTMENT_STATUS = {
-  scheduled: { text: 'Programada', variant: 'neutral', outcome: 'pending' },
-  confirmed: { text: 'Confirmada', variant: 'success', outcome: 'pending' },
-  in_consultation: { text: 'En Consulta', variant: 'warning', outcome: 'pending' },
-  completed: { text: 'Completada', variant: 'primary', outcome: 'completed' },
-  cancelled: { text: 'Cancelada', variant: 'error', outcome: 'cancelled' },
-  no_show: { text: 'No se presentó', variant: 'warning', outcome: 'pending' }
-}
-
-const appointmentStatusMeta = status =>
-  APPOINTMENT_STATUS[status] || { text: status, variant: 'neutral', outcome: 'pending' }
-
-/**
- * WU1 - the three day counts, derived from the SAME list the agenda
- * renders (single source, R1). `pending` is the honest remainder:
- * not completed, not cancelled.
- */
-const todayCounts = computed(() => {
-  const counts = { total: 0, completed: 0, pending: 0 }
-  for (const appointment of todayAppointments.value) {
-    counts.total += 1
-    const { outcome } = appointmentStatusMeta(appointment?.status)
-    if (outcome === 'completed') {
-      counts.completed += 1
-    } else if (outcome !== 'cancelled') {
-      counts.pending += 1
-    }
-  }
-  return counts
+// The day count comes from the summary endpoint, which already applies the
+// effective branch scope. There is no second list to disagree with.
+const citasHoy = computed(() => {
+  const value = Number(summary.value?.appointments_today)
+  return Number.isFinite(value) ? value : 0
 })
 
-const todayKpi = createCountUp(() => todayCounts.value.total)
-const completedKpi = createCountUp(() => todayCounts.value.completed)
-const pendingKpi = createCountUp(() => todayCounts.value.pending)
+const citasHoyKpi = createCountUp(() => citasHoy.value)
 
-// WU1 - while the today source is down the day KPIs report "N/D" instead
-// of a fabricated zero, bypassing the count-up display.
-const todayKpiDisplay = computed(() => (todayError.value ? 'N/D' : todayKpi.display.value))
-const completedKpiDisplay = computed(() => (todayError.value ? 'N/D' : completedKpi.display.value))
-const pendingKpiDisplay = computed(() => (todayError.value ? 'N/D' : pendingKpi.display.value))
+// While the summary is down the card reports "N/D" instead of a fabricated
+// zero, bypassing the count-up display.
+const citasHoyDisplay = computed(() => (statsError.value ? 'N/D' : citasHoyKpi.display.value))
 
-let countUpsPlayed = false
-const startKpiCountUps = () => {
-  if (countUpsPlayed) return
-  countUpsPlayed = true
+let countUpPlayed = false
+const startCitasCountUp = () => {
+  if (countUpPlayed) return
+  countUpPlayed = true
   if (!countUpAllowed()) return
-  todayKpi.start()
-  completedKpi.start()
-  pendingKpi.start()
+  citasHoyKpi.start()
 }
 
 // Utility functions
@@ -976,186 +414,49 @@ const getTodayDate = () => {
 }
 
 /**
- * T7b - short local date for a pending row, e.g. "3 oct.". The canonical
- * helper renders the same fields the row always carried; `year: undefined`
- * drops the year its defaults would otherwise add. Empty for an unparseable
- * value, so the row simply omits the date.
+ * The three destinations of the daily work. Each card declares the read
+ * permission its own screen demands, so the dashboard never offers a desk
+ * the session cannot open. Pendientes answers two grants: the continuity desk
+ * reaches it through `view.continuity` and finance through `view.quotation`.
  */
-const formatPendingDate = dateTime =>
-  formatDate(dateTime, { day: 'numeric', month: 'short', year: undefined })
-
-/**
- * Patient display name for the today list. AppointmentResource emits
- * `patient.full_name`; older/raw payloads may only carry the split
- * first/last fields (or the legacy `name` accessor). Fall back in that
- * order so the row never loses the patient identity.
- */
-const getPatientName = appointment => {
-  const patient = appointment?.patient
-  if (!patient) return 'Paciente'
-  if (patient.full_name) return patient.full_name
-  const composed = [patient.first_name, patient.last_name].filter(Boolean).join(' ').trim()
-  return composed || patient.name || 'Paciente'
-}
-
-/**
- * WU1 - the rows and the day KPIs share ONE status map (APPOINTMENT_STATUS
- * above): the label and badge variant the rows render and the outcome
- * bucket the counts derive from can never disagree.
- */
-const getStatusText = status => appointmentStatusMeta(status).text
-
-const getStatusVariant = status => appointmentStatusMeta(status).variant
-
-/**
- * T5 - local calendar-day key for the week preview. Uses the same local
- * timezone formatTime() renders in, so a late-evening appointment never
- * lands in the wrong day header.
- */
-const upcomingDayKey = dateTime => {
-  const date = new Date(dateTime)
-  if (Number.isNaN(date.getTime())) return 'sin-fecha'
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
-    date.getDate()
-  ).padStart(2, '0')}`
-}
-
-/** Short Spanish day header, e.g. "Lun 6". */
-const upcomingDayLabel = dateTime => {
-  const date = new Date(dateTime)
-  if (Number.isNaN(date.getTime())) return ''
-  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-  return `${dayNames[date.getDay()]} ${date.getDate()}`
-}
-
-/**
- * T5 - group the week preview by local day. The endpoint returns rows
- * ordered by scheduled_at, so insertion order is already chronological and
- * no client-side sort is applied.
- */
-const upcomingGroups = computed(() => {
-  const groups = []
-  const byKey = new Map()
-  for (const appointment of upcomingAppointments.value) {
-    const key = upcomingDayKey(appointment?.scheduled_at)
-    let group = byKey.get(key)
-    if (!group) {
-      group = {
-        key,
-        label: upcomingDayLabel(appointment?.scheduled_at),
-        appointments: []
-      }
-      byKey.set(key, group)
-      groups.push(group)
-    }
-    group.appointments.push(appointment)
+const DESTINATIONS = [
+  {
+    key: 'agenda',
+    to: '/calendar',
+    title: 'Agenda',
+    description: 'Citas, horarios y sillones del día.',
+    permission: 'viewCalendar'
+  },
+  {
+    key: 'my-day',
+    to: '/my-day',
+    title: 'Mi jornada',
+    description: 'Tu cola de atención del día.',
+    permission: 'viewMyDay'
+  },
+  {
+    key: 'pending',
+    to: '/continuity',
+    title: 'Pendientes',
+    description: 'Recalls vencidos, solicitudes de continuidad y respuestas comerciales.',
+    anyPermissions: ['viewContinuity', 'viewQuotation']
   }
-  return groups
-})
+]
 
-/**
- * WU3 / D6 - pending subsets. The backend omits the keys the role cannot
- * read, so the payload key itself is the visibility contract: an absent
- * key hides that type's rows, and no key at all hides the whole section.
- */
-const pendingQuotations = computed(() => pending.value?.quotations || null)
-const pendingTreatmentPlans = computed(() => pending.value?.treatment_plans || null)
-const hasPendingGroups = computed(() =>
-  Boolean(pendingQuotations.value || pendingTreatmentPlans.value)
+const destinations = computed(() =>
+  DESTINATIONS.filter(destination =>
+    destination.anyPermissions
+      ? destination.anyPermissions.some(key => can[key]?.value === true)
+      : can[destination.permission]?.value === true
+  )
 )
 
-/**
- * WU3 / D6 - ONE merged dataset for the Pendientes list. The per-type
- * payload gating above stays intact; only the presentation merges. Each
- * row keeps the per-type amount field (quotations: total_amount, plans:
- * final_cost with a muted "N/D" fallback) and its own module destination,
- * and the merged rows sort by their pending date ascending.
- */
-const PENDING_TYPE_META = {
-  quotations: {
-    typeLabel: 'Presupuesto',
-    rowHook: 'quotations',
-    route: '/quotations',
-    actionLabel: 'Ver presupuesto',
-    readAmount: item => item?.total_amount
-  },
-  treatment_plans: {
-    typeLabel: 'Plan de tratamiento',
-    rowHook: 'treatment-plans',
-    route: '/treatment-plans',
-    actionLabel: 'Ver plan de tratamiento',
-    readAmount: item => item?.final_cost
-  }
-}
-
-// Unparseable or missing dates sort last instead of poisoning the merge.
-const pendingSortTime = dateTime => {
-  const time = new Date(dateTime).getTime()
-  return Number.isNaN(time) ? Number.MAX_SAFE_INTEGER : time
-}
-
-const pendingRows = computed(() => {
-  const rows = []
-  const collect = (entityType, group) => {
-    if (!group) return
-    const meta = PENDING_TYPE_META[entityType]
-    for (const item of group.items || []) {
-      const amount = meta.readAmount(item)
-      const patientName = item.patient_name || 'Paciente'
-      rows.push({
-        key: `${entityType}-${item.id}`,
-        entityType,
-        rowHook: meta.rowHook,
-        typeLabel: meta.typeLabel,
-        patientName,
-        amountLabel: amount === null || amount === undefined ? 'N/D' : formatPENLabel(amount),
-        status: item.status,
-        dateLabel: formatPendingDate(item.created_at),
-        actionAria: `${meta.actionLabel}: ${patientName}`,
-        sortTime: pendingSortTime(item.created_at)
-      })
-    }
-  }
-  collect('quotations', pendingQuotations.value)
-  collect('treatment_plans', pendingTreatmentPlans.value)
-  rows.sort((a, b) => a.sortTime - b.sortTime)
-  return rows
-})
-
-/**
- * T7b - Spanish copy for the pending statuses, mirroring the module badges
- * (QuotationStatusBadge / PlanStatusBadge). `viewed` has no badge copy in
- * the quotations module yet, so it reads "Visto" here.
- */
-const pendingStatusLabels = {
-  sent: 'Enviado',
-  viewed: 'Visto',
-  proposed: 'Propuesto'
-}
-const pendingStatusVariants = {
-  sent: 'info',
-  viewed: 'warning',
-  proposed: 'neutral'
-}
-const pendingStatusLabel = status => pendingStatusLabels[status] || status
-const pendingStatusVariant = status => pendingStatusVariants[status] || 'neutral'
-
 // Navigation functions
-const goToPendingEntity = entityType => {
-  const destination = PENDING_TYPE_META[entityType]?.route
-  if (destination) router.push(destination)
-}
-
 const showNewAppointmentModal = ref(false)
 
-const goToNewAppointment = () => {
-  showNewAppointmentModal.value = true
-}
-
 const handleAppointmentCreated = async () => {
-  // Slice 08 / FF-015: refresh data after the user creates an appointment
-  // from the agenda header CTA. Single fetch rather than a fan-out - the
-  // WebSocket path will catch subsequent edits.
+  // The new appointment changes today's count; the summary is the only
+  // visible reader, so a single refresh is enough.
   await loadDashboardData()
 }
 
@@ -1189,98 +490,43 @@ const cashStateToneClass = computed(() => {
 })
 
 // WU2 - the balance and the caption read the SAME useCashRegister state as
-// the state line (single source, R2). The number is the session's real-time
-// balance; the caption names the opening time while the session is open.
-// No session summary means "N/D", never a fabricated S/ 0.00.
+// the state line (single source, R2). No session summary means "N/D", never
+// a fabricated S/ 0.00.
 const cashKpiBalance = computed(() =>
   realTimeTotals.value ? formatPENLabel(realTimeTotals.value.currentBalance) : 'N/D'
 )
 
 const cashKpiCaption = computed(() => {
   const openedAt = currentSession.value?.opened_at
-  return isOpen.value && openedAt ? `Apertura ${formatTime(openedAt)}` : 'N/D'
+  return isOpen.value && openedAt ? `Apertura ${formatTime(openedAt)}` : 'Sin sesión abierta'
 })
 
 // Data loading
 
 /**
- * T3 - fetch the stats resource without throwing. WU2: nothing visible
- * reads the payload anymore (cash state comes from useCashRegister), but
- * the call stays as a load-flow gate: it owns the page-level stats error
- * state and the KPI count-up timing. A 401 is surfaced as `unauthorized`
- * so the caller keeps the /login redirect; any other failure is surfaced
- * as `ok: false` so the page can render its own error state instead of
- * swallowing the failure and painting zeros as real data.
+ * T3 - fetch the summary resource without throwing. A 401 is surfaced as
+ * `unauthorized` so the caller keeps the /login redirect; any other failure
+ * is surfaced as `ok: false` so the page renders its own error state instead
+ * of swallowing the failure and painting zeros as real data.
  */
-const fetchStats = async () => {
+const fetchSummary = async () => {
   try {
     const response = await get('/api/dashboard/stats')
-    return { ok: true, unauthorized: false, data: response?.data || {} }
-  } catch (error) {
-    return { ok: false, unauthorized: error?.status === 401, data: null }
-  }
-}
-
-/**
- * T3 - fetch today's agenda without throwing. 401/404 keep degrading to an
- * empty agenda (T1 tolerance contract); any other failure surfaces
- * `ok: false` so the agenda section can offer its own retry while the rest
- * of the page stays usable.
- */
-const fetchTodayAppointments = async () => {
-  try {
-    const response = await get('/api/dashboard/appointments-today')
-    return { ok: true, data: Array.isArray(response?.data) ? response.data : [] }
-  } catch (error) {
-    if (error?.status === 401 || error?.status === 404) {
-      return { ok: true, data: [] }
-    }
-    return { ok: false, data: [] }
-  }
-}
-
-/**
- * T5 - fetch the upcoming-week preview without throwing. A 401 surfaces
- * `unauthorized` so the caller keeps the /login redirect; any other
- * failure surfaces `ok: false` so the strip renders its own inline error
- * instead of the page swallowing the failure.
- */
-const fetchUpcomingAppointments = async () => {
-  try {
-    const response = await get('/api/dashboard/upcoming')
+    const data = response?.data
     return {
       ok: true,
       unauthorized: false,
-      data: Array.isArray(response?.data) ? response.data : []
+      data: data && typeof data === 'object' && !Array.isArray(data) ? data : {}
     }
-  } catch (error) {
-    return { ok: false, unauthorized: error?.status === 401, data: [] }
-  }
-}
-
-/**
- * T7b - fetch the pending subsets without throwing. The backend omits the
- * subsets the current role cannot read, so a non-object payload collapses
- * to an empty map. A 401 surfaces `unauthorized` so the caller keeps the
- * /login redirect; any other failure surfaces `ok: false` so the section
- * renders its own inline error instead of silently rendering nothing.
- */
-const fetchPending = async () => {
-  try {
-    const response = await get('/api/dashboard/pending')
-    const data = response?.data
-    const payload = data && typeof data === 'object' && !Array.isArray(data) ? data : {}
-    return { ok: true, unauthorized: false, data: payload }
   } catch (error) {
     return { ok: false, unauthorized: error?.status === 401, data: {} }
   }
 }
 
 /**
- * #387 - the cash session joins the load batch instead of gating it: the
- * dashboard's four day sources never wait on the register. Already-loaded
- * sessions are not re-fetched, and the permission gate of #345 stays: a role
- * without `view.cash_register` never asks for it.
+ * #387 - the cash session joins the load batch instead of gating it.
+ * Already-loaded sessions are not re-fetched, and the permission gate of
+ * #345 stays: a role without `view.cash_register` never asks for it.
  */
 const loadCashSession = () => {
   if (!canViewCashRegister.value || currentSession.value) return Promise.resolve()
@@ -1303,59 +549,16 @@ const loadDashboardData = async () => {
   }
 
   try {
-    const [statsResult, appointmentsResult, upcomingResult, pendingResult] = await Promise.all([
-      fetchStats(),
-      fetchTodayAppointments(),
-      fetchUpcomingAppointments(),
-      fetchPending(),
-      loadCashSession()
-    ])
+    const [summaryResult] = await Promise.all([fetchSummary(), loadCashSession()])
 
-    if (statsResult.unauthorized) {
+    if (summaryResult.unauthorized) {
       router.push('/login')
-    } else if (statsResult.ok) {
+    } else if (summaryResult.ok) {
+      summary.value = summaryResult.data
       statsError.value = false
+      startCitasCountUp()
     } else {
       statsError.value = true
-    }
-
-    if (appointmentsResult.ok) {
-      todayAppointments.value = appointmentsResult.data
-      todayError.value = false
-    } else {
-      todayError.value = true
-    }
-
-    // WU1 - the KPI count-ups start once the day counts can read their
-    // final source values; starting earlier would animate to a stale zero.
-    // #388 - the agenda is their only source: a failed summary no longer
-    // gates the day numbers.
-    if (appointmentsResult.ok) {
-      startKpiCountUps()
-    }
-
-    // T5 - the week preview is tolerant: its failure shows the section's
-    // inline error and never blocks stats, agenda, or the KPI grid. A 401
-    // keeps the page's /login redirect behavior.
-    if (upcomingResult.unauthorized) {
-      router.push('/login')
-    } else if (upcomingResult.ok) {
-      upcomingAppointments.value = upcomingResult.data
-      upcomingError.value = false
-    } else {
-      upcomingError.value = true
-    }
-
-    // T7b - the pending block is tolerant: its failure shows the section's
-    // inline error and never blocks stats, agenda, upcoming, or the KPI
-    // grid. A 401 keeps the page's /login redirect behavior.
-    if (pendingResult.unauthorized) {
-      router.push('/login')
-    } else if (pendingResult.ok) {
-      pending.value = pendingResult.data
-      pendingError.value = false
-    } else {
-      pendingError.value = true
     }
   } finally {
     loading.value = false
@@ -1364,8 +567,7 @@ const loadDashboardData = async () => {
   }
 
   // T4 - the section reveals play only on the first successful content
-  // render. #388: the content no longer depends on the summary, so the
-  // entrance is armed by the render itself, not by the summary's outcome.
+  // render, armed by the render itself and not by the summary's outcome.
   if (!entrancePlayed) {
     await nextTick()
     playEntrance()
@@ -1375,67 +577,19 @@ const loadDashboardData = async () => {
 /**
  * #388 - summary-only retry. Re-fetches just /api/dashboard/stats so a failed
  * summary recovers its own block without re-fetching or unmounting the
- * agenda, the pending rows or the week preview. 401 keeps the standard
- * /login redirect.
+ * destinations. 401 keeps the standard /login redirect.
  */
 const retryStats = async () => {
-  const result = await fetchStats()
-  if (result.unauthorized) {
-    router.push('/login')
-    return
-  }
-  statsError.value = !result.ok
-}
-
-/**
- * T3 - agenda-only retry. Re-fetches just the today resource so a failing
- * agenda never forces a full page reload.
- */
-const retryTodayAppointments = async () => {
-  const result = await fetchTodayAppointments()
-  if (result.ok) {
-    todayAppointments.value = result.data
-    todayError.value = false
-  } else {
-    todayError.value = true
-  }
-}
-
-/**
- * T5 - week-preview-only retry. Re-fetches just the upcoming resource so a
- * failing strip never forces a full page reload. 401 keeps the standard
- * /login redirect.
- */
-const retryUpcomingAppointments = async () => {
-  const result = await fetchUpcomingAppointments()
+  const result = await fetchSummary()
   if (result.unauthorized) {
     router.push('/login')
     return
   }
   if (result.ok) {
-    upcomingAppointments.value = result.data
-    upcomingError.value = false
+    summary.value = result.data
+    statsError.value = false
   } else {
-    upcomingError.value = true
-  }
-}
-
-/**
- * T7b - pending-only retry. Re-fetches just the pending resource so a
- * failing block never forces a full page reload. 401 keeps the standard
- * /login redirect.
- */
-const retryPending = async () => {
-  const result = await fetchPending()
-  if (result.unauthorized) {
-    router.push('/login')
-    return
-  }
-  if (result.ok) {
-    pending.value = result.data
-    pendingError.value = false
-  } else {
-    pendingError.value = true
+    statsError.value = true
   }
 }
 
@@ -1445,12 +599,10 @@ let patientsChannel = null
 let appointmentsChannel = null
 let cashRegisterChannel = null
 
-// Slice 08 / FF-015: the legacy version had 14 WS listeners that all
-// called loadDashboardData() directly. A burst (e.g. 5 events within 50 ms
-// after a payment + a patient update) hit the API 5 times. Coalesce them
-// into a single trailing-edge debounced fetch. This 300ms debounce is
-// load-bearing - do not change the timing without updating the
-// apply-progress evidence.
+// A burst of events (a payment plus its appointment update) must not hit the
+// API once per event: coalesce them into a single trailing-edge fetch. This
+// 300ms debounce is load-bearing - do not change the timing without updating
+// the apply-progress evidence.
 let dashboardDebounceTimer = null
 const debouncedLoadDashboardData = () => {
   if (dashboardDebounceTimer !== null) {
@@ -1462,15 +614,6 @@ const debouncedLoadDashboardData = () => {
   }, 300)
 }
 
-onUnmounted(() => {
-  // Clear any pending debounced fetch on unmount so we don't fire
-  // against a torn-down component.
-  if (dashboardDebounceTimer !== null) {
-    clearTimeout(dashboardDebounceTimer)
-    dashboardDebounceTimer = null
-  }
-})
-
 // Lifecycle
 onMounted(async () => {
   // Verificar si se debe abrir el modal de nueva cita (desde redirección)
@@ -1480,7 +623,7 @@ onMounted(async () => {
   }
 
   // Cargar los datos del dashboard. #387: la caja ya viaja dentro del lote
-  // paralelo, así que no se pide antes ni bloquea a las cuatro fuentes.
+  // paralelo, así que no se pide antes ni bloquea al resumen.
   await loadDashboardData()
 
   // Suscribirse a canales WebSocket (Reverb is often not running locally;
@@ -1513,29 +656,9 @@ onMounted(async () => {
     appointmentsChannel = canViewAppointments.value ? privateChannel('appointments') : null
     if (appointmentsChannel) {
       appointmentsChannel
-        .listen('.appointment.created', e => {
-          if (e.appointment?.scheduled_at) {
-            const appointmentDate = new Date(e.appointment.scheduled_at)
-            const today = new Date()
-            if (appointmentDate.toDateString() === today.toDateString()) {
-              debouncedLoadDashboardData()
-            }
-          }
-        })
-        .listen('.appointment.updated', async e => {
-          const index = todayAppointments.value.findIndex(apt => apt.id === e.appointment.id)
-          if (index !== -1) {
-            todayAppointments.value[index] = e.appointment
-          } else {
-            debouncedLoadDashboardData()
-          }
-        })
-        .listen('.appointment.deleted', async e => {
-          todayAppointments.value = todayAppointments.value.filter(
-            apt => apt.id !== e.appointment_id
-          )
-          debouncedLoadDashboardData()
-        })
+        .listen('.appointment.created', () => debouncedLoadDashboardData())
+        .listen('.appointment.updated', () => debouncedLoadDashboardData())
+        .listen('.appointment.deleted', () => debouncedLoadDashboardData())
     }
 
     // #345 - the channel publishes the desk's money, so a role without
@@ -1568,6 +691,13 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  // Clear any pending debounced fetch on unmount so we don't fire against a
+  // torn-down component.
+  if (dashboardDebounceTimer !== null) {
+    clearTimeout(dashboardDebounceTimer)
+    dashboardDebounceTimer = null
+  }
+
   if (echo) {
     try {
       // Private channels are registered with the `private-` prefix on the wire,

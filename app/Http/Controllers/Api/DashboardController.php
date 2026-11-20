@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Authorization\BranchAccess;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
 use App\Models\CashRegisterSession;
 use App\Models\Patient;
@@ -255,68 +254,11 @@ class DashboardController extends Controller
         return '+0';
     }
 
-    public function today(Request $request): JsonResponse
-    {
-        $today = Carbon::today();
-        $branchId = BranchAccess::effectiveFilter(
-            $request->user(),
-            $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
-        );
-        $cacheKey = 'dashboard_today_'.Auth::id().'_'.$today->toDateString().'_'.($branchId ?? 'all');
-
-        $appointments = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($today, $branchId) {
-            return Appointment::with(['patient', 'appointmentType', 'user'])
-                ->whereDate('scheduled_at', $today)
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->orderBy('scheduled_at')
-                ->get();
-        });
-
-        return response()->json([
-            'data' => AppointmentResource::collection($appointments),
-            'meta' => [
-                'message' => 'Citas de hoy cargadas exitosamente',
-                'date' => $today->toDateString(),
-                'count' => $appointments->count(),
-                'cached' => true,
-            ],
-        ]);
-    }
-
-    public function upcoming(Request $request): JsonResponse
-    {
-        $now = Carbon::now();
-        // Today belongs to the agenda; the upcoming strip starts tomorrow at 00:00.
-        $startsAt = $now->copy()->addDay()->startOfDay();
-        $endOfWeek = $now->copy()->endOfWeek();
-        $branchId = BranchAccess::effectiveFilter(
-            $request->user(),
-            $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
-        );
-        $cacheKey = 'dashboard_upcoming_'.Auth::id().'_'.$now->format('Y-W').'_'.($branchId ?? 'all');
-
-        $appointments = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($startsAt, $endOfWeek, $branchId) {
-            return Appointment::with(['patient', 'appointmentType', 'user'])
-                ->whereBetween('scheduled_at', [$startsAt, $endOfWeek])
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->orderBy('scheduled_at')
-                ->limit(10)
-                ->get();
-        });
-
-        return response()->json([
-            'data' => AppointmentResource::collection($appointments),
-            'meta' => [
-                'message' => 'Próximas citas cargadas exitosamente',
-                'period' => 'this_week',
-                'count' => $appointments->count(),
-                'cached' => true,
-            ],
-        ]);
-    }
-
     /**
-     * Pendientes del dashboard: quotations and treatment plans waiting on a decision.
+     * Pendientes comerciales: quotations and treatment plans waiting on a decision.
+     *
+     * The Pendientes desk consumes this payload; the dashboard points at it
+     * instead of publishing the rows.
      *
      * "Awaiting action" is anchored on the real status enums:
      * - quotations: `sent` and `viewed` (issued to the patient, decision still pending).

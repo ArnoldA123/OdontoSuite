@@ -171,32 +171,34 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      *
      * NEGATIVE rule: zero `bg-primary-100` matches + zero `text-accent` matches.
      */
-    public function test_row_avatar_uses_system_blue(): void
+    public function test_row_cell_uses_the_canonical_anatomy(): void
     {
         $path = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // POSITIVE: `bg-systemBlue-50` reference present on the row avatar
-        // background (replaces `bg-primary-100`).
-        $this->assertTrue(
-            (bool) preg_match('#(?<![\w-])bg-systemBlue-50(?![\w-])#', $src),
+        // NEGATIVE: the list row carries no avatar; the first column is the
+        // shared anatomy (name + identifier), like the other four tables.
+        $this->assertSame(
+            0,
+            preg_match('#(?<![\w-])bg-systemBlue-50(?![\w-])#', $src),
             sprintf(
-                '%s MUST consume `bg-systemBlue-50` on the row avatar background '
-                .'(AMB-01-004). Replace `bg-primary-100`.',
+                '%s MUST NOT paint a row avatar: the first column follows the canonical '
+                .'anatomy (name + identifier).',
                 $path
             )
         );
 
-        // POSITIVE: `text-systemBlue-700` reference present on the row avatar
-        // initial text (replaces `text-accent`).
-        $this->assertTrue(
-            (bool) preg_match('#(?<![\w-])text-systemBlue-700(?![\w-])#', $src),
-            sprintf(
-                '%s MUST consume `text-systemBlue-700` on the row avatar initial '
-                .'(AMB-01-004). Replace `text-accent`.',
-                $path
-            )
+        // POSITIVE: the code is the secondary line of the first column.
+        $this->assertStringContainsString(
+            'font-mono text-xs text-theme-secondary',
+            $src,
+            sprintf('%s MUST render the environment code as the secondary line.', $path)
+        );
+        $this->assertStringContainsString(
+            '{{ row.code }}',
+            $src,
+            sprintf('%s MUST publish the code inside the first column.', $path)
         );
 
         // NEGATIVE: zero `bg-primary-100` matches anywhere in the file.
@@ -240,8 +242,13 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      * `variant="link"` becomes forbidden outright. `components/ui/*` is out
      * of T3 scope, so the call site adapts to the primitive's real contract.
      *
-     * POSITIVE rule: at least 3 `variant="ghost"` references (Ver detalle +
-     * Editar + Eliminar) + at least 1 `text-systemRed-700` reference.
+     * POSITIVE rule: at least 5 `variant="ghost"` references (Ver ficha +
+     * Editar + Archivar/Reactivar + Eliminar) + the five actions painted from
+     * the shared `design-system/rowActionPalette.js` (view/edit/archive or
+     * reactivate/delete). The colour itself is owned by `RowActionPaletteTest`;
+     * scanning this page for one hard-coded red string stopped proving anything
+     * once the button read its class from the palette (the string survived in
+     * the error banner).
      *
      * NEGATIVE rule: zero `variant="link"` references (illegal variant) +
      * zero `text-accent` + zero `hover:text-accent-hover` +
@@ -253,8 +260,9 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // POSITIVE: ≥3 `variant="ghost"` references (Ver detalle + Editar +
-        // Eliminar): `ghost` is the text-button rung of `components/ui/Button.vue`.
+        // POSITIVE: ≥5 `variant="ghost"` references (Ver ficha + Editar +
+        // Archivar/Reactivar + Eliminar): `ghost` is the text-button rung of
+        // `components/ui/Button.vue`.
         $ghostCount = preg_match_all('#variant=["\']ghost["\']#', $src);
         $this->assertGreaterThanOrEqual(
             3,
@@ -285,15 +293,20 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             )
         );
 
-        // POSITIVE: ≥1 `text-systemRed-700` reference on the Eliminar button body.
-        $this->assertTrue(
-            (bool) preg_match('#(?<![\w-])text-systemRed-700(?![\w-])#', $src),
-            sprintf(
-                '%s MUST consume `text-systemRed-700` on the Eliminar button body '
-                .'(AMB-01-005). Replace `text-red-600`.',
-                $path
-            )
-        );
+        // POSITIVE: every row action is painted from the shared palette, so
+        // the destructive red cannot be lost in a refactor of this page.
+        foreach (['view', 'edit', 'archive', 'reactivate', 'delete'] as $action) {
+            $this->assertStringContainsString(
+                'ROW_ACTION_PALETTE.'.$action.'.classes',
+                $src,
+                sprintf(
+                    '%s MUST paint the `%s` row action from `design-system/rowActionPalette.js` '
+                        .'(row-action palette contract).',
+                    $path,
+                    $action
+                )
+            );
+        }
 
         // NEGATIVE: zero legacy `text-accent` matches (covered already by
         // test_row_avatar_uses_system_blue; repeated here for paired error

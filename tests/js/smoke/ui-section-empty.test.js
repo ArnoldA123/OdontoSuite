@@ -5,7 +5,6 @@ import { mount } from '@vue/test-utils'
 // dashboard's empty-state anatomy (canvas panel + hairline, dental motif
 // behind, one icon, one title + one sentence) as a reusable ui primitive.
 import UiSectionEmpty from '../../../resources/js/components/ui/UiSectionEmpty.vue'
-import DashboardSectionEmpty from '../../../resources/js/modules/dashboard/DashboardSectionEmpty.vue'
 
 const normalize = text => text.replace(/\s+/g, ' ').trim()
 
@@ -97,39 +96,5 @@ describe('UiSectionEmpty primitive', () => {
     const action = withAction.get('[data-empty-action]')
     expect(action.classes()).toHaveLength(0)
     expect(action.element.parentElement.classList.contains('mt-4')).toBe(true)
-  })
-
-  it('keeps the dashboard wrapper anatomy identical while forwarding its props', () => {
-    const wrapper = mount(DashboardSectionEmpty, {
-      attrs: { 'data-state': 'empty-pending' },
-      props: { title: 'Sin pendientes', description: 'Aún no hay pendientes.' }
-    })
-
-    const panel = wrapper.get('[data-section-empty]')
-    expect(panel.attributes('data-state')).toBe('empty-pending')
-    expect(panel.classes()).toContain('p-6')
-    expect(panel.find('[data-empty-motif]').exists()).toBe(true)
-    expect(panel.findAll('p')).toHaveLength(2)
-    // No icon slot given: the primitive's default icon renders and no
-    // empty action wrapper is emitted.
-    expect(panel.find('svg').exists()).toBe(true)
-    expect(panel.find('.mt-4').exists()).toBe(false)
-  })
-
-  it('forwards the dashboard wrapper icon and default slots to the primitive', () => {
-    const wrapper = mount(DashboardSectionEmpty, {
-      props: { title: 'Sin citas para hoy' },
-      slots: {
-        icon: '<svg data-custom-icon class="mx-auto h-8 w-8 mb-3" />',
-        default: '<button data-empty-action>Ver agenda</button>'
-      }
-    })
-
-    const panel = wrapper.get('[data-section-empty]')
-    expect(panel.findAll('svg')).toHaveLength(1)
-    expect(panel.find('[data-custom-icon]').exists()).toBe(true)
-    expect(panel.find('[data-empty-action]').exists()).toBe(true)
-    expect(panel.find('.mt-4').exists()).toBe(true)
-    expect(panel.findAll('p')).toHaveLength(1)
   })
 })

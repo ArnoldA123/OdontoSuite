@@ -34,7 +34,13 @@ class SqliteMigrateFreshDeclarationTest extends TestCase
         $output = implode("\n", $lines);
         $this->assertNotSame(0, $status, 'migrate:fresh on SQLite must fail (known limitation, issue #79)');
         $this->assertStringContainsString('idx_transactions_patient_type_status', $output);
-        $this->assertStringContainsString('no such column: type', $output);
+        // El texto exacto depende de la versión de SQLite: el mensaje puede
+        // nombrar la columna con o sin tabla. Lo que se fija es el fallo por la
+        // columna indexada, no la redacción del motor.
+        $this->assertMatchesRegularExpression(
+            '/no such column:[^\n]{0,40}type/',
+            $output
+        );
     }
 
     #[Test]

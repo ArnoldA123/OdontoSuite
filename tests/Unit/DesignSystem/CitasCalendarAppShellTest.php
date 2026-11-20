@@ -50,6 +50,13 @@ namespace Tests\Unit\DesignSystem;
  * Implementation note: regex delimiters are `#` (NOT `/`) because the path
  * patterns contain forward slashes; using `/` as delimiter would force
  * every `/` in the path to be escaped `\/`, which is brittle and error-prone.
+ *
+ * Contract-change note (U3): the calendar no longer opens the clinical
+ * consultation. Starting or continuing an attention belongs to `/my-day`,
+ * the professional's only clinical door; the calendar keeps reception's
+ * custody doors (check-in, announce) and publishes a bridge to My Day for
+ * sessions that hold `view.my_day`. The three guards below fail if the
+ * wizard entry comes back or if the check-in door disappears.
  */
 class CitasCalendarAppShellTest extends ModuleAppShellTestCase
 {
@@ -219,12 +226,12 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * T3 shell contract — the hero band carries the stable `data-calendar-*`
-     * hooks on a real landmark and uses the dashboard hero surface grammar
-     * (canvas + hairline + --radius-panel + --elevation-2 + decorative
-     * DentalMotifLayer hero variant behind the content).
+     * T3 shell contract — the page opener is the shared `PageHeader` (one
+     * header anatomy for the nine surfaces); the calendar keeps its own
+     * `data-calendar-*` hooks on the toolbar and the grid. The header carries
+     * no illustration: the dental motif survives only in the empty state.
      */
-    public function test_calendar_shell_hero_landmarks(): void
+    public function test_calendar_shell_header_landmarks(): void
     {
         $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
@@ -232,30 +239,41 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
 
         $this->assertSame(
             1,
-            preg_match('#<(header|section|main)\b[^>]*data-calendar-shell\s*=\s*"hero"#', $src),
+            preg_match('#<PageHeader\b#', $src),
             sprintf(
-                '%s MUST expose `data-calendar-shell="hero"` on a real landmark element (T3 shell contract).',
+                '%s MUST mount the shared `<PageHeader>` as the page opener (T3 shell contract).',
                 $path
             )
         );
-
-        foreach (['--color-canvas', '--color-hairline', '--radius-panel', '--elevation-2'] as $token) {
-            $this->assertSame(
-                1,
-                preg_match('#var\('.preg_quote($token, '#').'\)#', $src),
-                sprintf(
-                    '%s hero MUST consume the %s token (dashboard hero grammar).',
-                    $path,
-                    $token
-                )
-            );
-        }
-
+        $this->assertSame(
+            0,
+            preg_match('#<(header|section|main)\b[^>]*data-calendar-shell\s*=\s*"hero"#', $src),
+            sprintf(
+                '%s MUST NOT keep a hand-built hero landmark: the header is the shared component.',
+                $path
+            )
+        );
         $this->assertSame(
             1,
+            preg_match('#<UiFilterBar\b[\s\S]*?data-calendar-filters#', $src),
+            sprintf(
+                '%s filters MUST live outside the header, on the page body (T3 shell contract).',
+                $path
+            )
+        );
+        $this->assertSame(
+            0,
+            preg_match('#<DentalMotifLayer\b#', $src),
+            sprintf(
+                '%s MUST NOT paint the dental motif: empty states match the shared primitive.',
+                $path
+            )
+        );
+        $this->assertSame(
+            0,
             preg_match('#<DentalMotifLayer\b[^>]*variant\s*=\s*"hero"#', $src),
             sprintf(
-                '%s hero MUST carry the decorative `<DentalMotifLayer variant="hero">` layer (T3 shell contract).',
+                '%s MUST NOT paint the hero motif inside the header (T3 shell contract).',
                 $path
             )
         );
@@ -718,6 +736,101 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
                 $path
             )
         );
+    }
+
+    /**
+     * U3 clinical boundary — the calendar MUST NOT open the consultation
+     * wizard nor start the attention. The only clinical door is `/my-day`;
+     * a calendar action that calls `startAttention`/`openForAppointment` (or
+     * mounts `ConsultationWizard`) duplicates it and can start an act from
+     * the scheduling desk.
+     */
+    public function test_calendar_does_not_open_the_clinical_consultation(): void
+    {
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        $forbidden = [
+            'startAttention',
+            'start-attention',
+            'openForAppointment',
+            'openConsultationWizard',
+            'ConsultationWizard',
+            'wizardAppointment',
+            'complete-consultation',
+        ];
+
+        foreach ($forbidden as $token) {
+            $this->assertSame(
+                0,
+                preg_match('#'.preg_quote($token, '#').'#', $src),
+                sprintf(
+                    '%s MUST NOT reference `%s`: the consultation wizard belongs to `/my-day` (U3). '
+                    .'The calendar schedules, reschedules, cancels, checks in and announces; it never starts the act.',
+                    $path,
+                    $token
+                )
+            );
+        }
+    }
+
+    /**
+     * U3 bridge — the details surface offers `Ir a mi jornada` as a real
+     * router link to `/my-day`, visible only to sessions holding
+     * `view.my_day` (the permission `/api/my-day` demands). Reception holds
+     * check-in but not My Day, so the link must not render for it and must
+     * leave no empty slot.
+     */
+    public function test_calendar_details_offer_the_my_day_bridge(): void
+    {
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        $start = strpos($src, '<!-- Appointment Details Modal -->');
+        $end = strpos($src, '<!-- New Appointment Modal -->');
+        $this->assertNotFalse($start, sprintf('%s MUST keep the details modal marker.', $path));
+        $this->assertNotFalse($end, sprintf('%s MUST keep the new appointment modal marker.', $path));
+        $this->assertGreaterThan($start, $end, 'Details slice must precede the new appointment modal.');
+
+        $slice = substr($src, $start, $end - $start);
+        $pattern = '#<RouterLink\b(?=[^>]*data-calendar-action="my-day")([^>]*)>\s*Ir a mi jornada\s*</RouterLink>#s';
+        $this->assertSame(
+            1,
+            preg_match($pattern, $slice, $matches),
+            sprintf(
+                '%s details MUST publish one `<RouterLink data-calendar-action="my-day">Ir a mi jornada</RouterLink>` (U3).',
+                $path
+            )
+        );
+
+        $tag = $matches[1];
+        $this->assertStringContainsString('v-if="can.viewMyDay?.value"', $tag, sprintf('%s My Day bridge MUST gate on `can.viewMyDay?.value` (U3: the same permission `/api/my-day` demands).', $path));
+        $this->assertStringContainsString('to="/my-day"', $tag, sprintf('%s My Day bridge MUST navigate to `/my-day` (U3).', $path));
+    }
+
+    /**
+     * U3 + #281 — reception has no My Day, so the calendar MUST keep the
+     * check-in door it owns: one `check-in` action gated by
+     * `can.checkInAppointment` and wired to `markArrival`.
+     */
+    public function test_calendar_details_keep_the_check_in_door(): void
+    {
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        $pattern = '#<UiButton\b(?=[^>]*data-calendar-action="check-in")([^>]*)>#s';
+        $this->assertSame(
+            1,
+            preg_match($pattern, $src, $matches),
+            sprintf('%s MUST keep exactly one `<UiButton data-calendar-action="check-in">` (U3/#281: reception has no My Day).', $path)
+        );
+
+        $tag = $matches[1];
+        $this->assertStringContainsString('can.checkInAppointment?.value', $tag, sprintf('%s check-in MUST stay gated on `can.checkInAppointment?.value` (U3/#281).', $path));
+        $this->assertStringContainsString('@click="markArrival(selectedAppointment)"', $tag, sprintf('%s check-in MUST stay wired to `markArrival(selectedAppointment)` (U3/#281).', $path));
     }
 
     private static function readSource(string $path): ?string

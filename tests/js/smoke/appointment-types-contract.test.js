@@ -102,7 +102,7 @@ const buttonByText = text =>
   [...document.body.querySelectorAll('button')].find(b => b.textContent.trim() === text)
 
 const openNewModal = async wrapper => {
-  await wrapper.find('[data-hero-action]').trigger('click')
+  await wrapper.find('[data-page-action="new-type"]').trigger('click')
   await flushPromises()
 }
 

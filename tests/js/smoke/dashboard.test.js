@@ -54,10 +54,12 @@ const router = createRouter({
   routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
 })
 describe('dashboard smoke', () => {
-  it('mounts DashboardPage.vue and renders content without the quick-actions block (D5)', async () => {
+  it('mounts the hero, the day summary and the three destinations without the quick-actions block (D5)', async () => {
     const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
     await flushPromises()
-    expect(wrapper.text()).toContain('Agenda de hoy')
+    expect(wrapper.find('[data-dashboard-header]').exists()).toBe(true)
+    expect(wrapper.find('[data-dashboard-block="hoy"]').exists()).toBe(true)
+    expect(wrapper.find('[data-dashboard-block="destinations"]').exists()).toBe(true)
     expect(wrapper.text()).not.toContain('Acciones rápidas')
     wrapper.unmount()
   })

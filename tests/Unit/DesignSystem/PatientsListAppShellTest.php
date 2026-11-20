@@ -67,7 +67,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * source-inspection pins mirror `DashboardHierarchyContractTest`:
  *
  *   - `test_patients_blocks_render_in_reading_order`
- *   - `test_hero_band_carries_the_login_surface_vocabulary`
+ *   - `test_page_header_is_the_shared_component`
  *
  * Two genuinely-conflicting structural pins were re-anchored to the new
  * contract (both were pins of the retired markup, not of a behavior):
@@ -458,14 +458,14 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        $hero = strpos($src, 'data-patients-hero');
+        $hero = strpos($src, '<PageHeader');
         $summary = strpos($src, 'data-patients-block="summary"');
         $directory = strpos($src, 'data-patients-block="directory"');
 
-        $this->assertNotFalse($hero, 'PatientsPage.vue must render the hero band hook.');
+        $this->assertNotFalse($hero, 'PatientsPage.vue must mount the shared <PageHeader>.');
         $this->assertNotFalse($summary, 'PatientsPage.vue must render block "summary".');
         $this->assertNotFalse($directory, 'PatientsPage.vue must render block "directory".');
-        $this->assertLessThan($summary, $hero, 'The hero band must render before block "summary".');
+        $this->assertLessThan($summary, $hero, 'The page header must render before block "summary".');
         $this->assertLessThan($directory, $summary, 'Block "summary" must render before block "directory".');
 
         $this->assertStringContainsString(
@@ -480,76 +480,65 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
         );
 
         $this->assertSame(
-            1,
+            0,
             preg_match_all('/<h1\b/', $src),
-            'The page must own exactly one h1: the hero title is the document heading '
-                .'and the app-shell topbar (AppLayout.vue) renders none on this route (#405).'
+            'The page must declare no h1 of its own: <PageHeader> renders the single page heading '
+                .'(#405; the app-shell topbar renders none on this route).'
         );
     }
 
     /**
-     * Patients redesign — the hero band carries the login's surface
-     * vocabulary (canvas backdrop, hairline, panel radius, elevation rung),
-     * the brand lockup wordmark, and the page's single primary CTA. The
-     * retired `<PageHeader>` is gone from this page.
+     * Patients redesign — the page header is the shared component: it paints
+     * the canonical panel (canvas backdrop, hairline, panel radius, elevation-2
+     * rung) and carries the page's single primary CTA. The hero band, the
+     * brand lockup and the back button are gone.
      */
-    public function test_hero_band_carries_the_login_surface_vocabulary(): void
+    public function test_page_header_is_the_shared_component(): void
     {
         $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        $this->assertStringContainsString(
-            'data-patients-hero',
+        $this->assertMatchesRegularExpression(
+            "/import\s+PageHeader\s+from\s+['\"][^'\"]*components\/layout\/PageHeader\.vue['\"]/",
             $src,
-            'PatientsPage.vue must render the hero band hook.'
-        );
-        $this->assertStringContainsString(
-            'background: var(--color-canvas)',
-            $src,
-            'The hero band must paint the login backdrop base.'
-        );
-        $this->assertStringContainsString(
-            'border: 1px solid var(--color-hairline)',
-            $src,
-            'The hero band must carry the hairline vocabulary.'
-        );
-        $this->assertStringContainsString(
-            'border-radius: var(--radius-panel)',
-            $src,
-            'The hero band must ride the panel radius.'
-        );
-        $this->assertStringContainsString(
-            'box-shadow: var(--elevation-2)',
-            $src,
-            'The hero band must ride the elevation-2 rung.'
+            'PatientsPage.vue must import the shared PageHeader.'
         );
         $this->assertMatchesRegularExpression(
-            '/<h1[^>]*class="page-title[^"]*"[^>]*>\s*Pacientes\s*<\/h1>/',
+            '/<PageHeader\b[\s\S]{0,200}?kicker="Pacientes"[\s\S]{0,200}?title="Pacientes"/',
             $src,
-            'The hero band must render the page title "Pacientes" as the page h1 '
-                .'(#405; the app-shell topbar renders no heading on this route).'
-        );
-        $this->assertStringContainsString(
-            'OdontoSuite',
-            $src,
-            'The hero band must carry the login brand lockup wordmark.'
+            'PatientsPage.vue must mount the shared header with its kicker and title.'
         );
         $this->assertStringNotContainsString(
-            '<PageHeader',
+            'data-patients-hero',
             $src,
-            'The hero band replaces <PageHeader> on the patients list page.'
+            'The retired hero hook must be gone.'
+        );
+        $this->assertStringNotContainsString(
+            'OdontoSuite',
+            $src,
+            'The page header must not carry the brand lockup.'
+        );
+        $this->assertStringNotContainsString(
+            'DentalMotifLayer',
+            $src,
+            'The page header must not mount the dental motif.'
+        );
+        $this->assertStringNotContainsString(
+            'Volver',
+            $src,
+            'No top-level surface offers a back action: none of the nine is a child of another.'
         );
 
         $this->assertSame(
             1,
             preg_match_all('/variant="primary"/', $src),
-            'The page\'s single primary button must be the hero CTA.'
+            'The page\'s single primary button must be the header CTA.'
         );
         $this->assertStringContainsString(
             'Nuevo paciente',
             $src,
-            'The hero CTA must read "Nuevo paciente".'
+            'The header CTA must read "Nuevo paciente".'
         );
     }
 
@@ -583,10 +572,13 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      * Apple-language form uses `text-systemGreen-700` /
      * `text-systemRed-700` to match the desktop pills' color logic.
      *
-     * The desktop "Ver" link button uses `text-systemBlue-600`; the
-     * "Editar" / "Eliminar" buttons in BOTH desktop and mobile views use
-     * the systemGreen/systemRed ramps. This rule pins the absence of the
-     * raw 600-step colour classes.
+     * The desktop row actions read their colour from the shared
+     * `design-system/rowActionPalette.js` (row-action palette contract):
+     * `systemSteel` for the read action, the brand accent for edit and the
+     * system red for delete. `text-systemBlue-600` is no longer used there — it
+     * is a deprecated alias of `accent`, so it painted the read action the same
+     * green as edit. This rule still pins the absence of the raw 600-step
+     * colour classes.
      */
     public function test_list_no_text_green_red_600_action_buttons(): void
     {

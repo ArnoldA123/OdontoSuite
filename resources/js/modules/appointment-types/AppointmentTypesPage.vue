@@ -1,50 +1,34 @@
 <template>
   <AppLayout>
-    <!-- Hero band (D1): the dashboard's surface recipe (hairline + radius-panel
-         + elevation rung over the canvas base) with eyebrow, display headline,
-         caption and the primary action right-aligned in the band. -->
-    <header
-      data-appointment-types-hero
-      class="mb-6 p-6 md:p-8"
-      style="
-        background: var(--color-canvas);
-        border: 1px solid var(--color-hairline);
-        border-radius: var(--radius-panel);
-        box-shadow: var(--elevation-2);
-      "
+    <!-- Canonical page header: one component, one anatomy. -->
+    <PageHeader
+      kicker="Catálogo"
+      title="Tipos de cita"
+      subtitle="Duración, precio y color de cada tipo"
+      class="mb-6"
     >
-      <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div class="min-w-0">
-          <p
-            class="text-xs font-medium uppercase tracking-wide text-theme-secondary"
-            data-hero-eyebrow
-          >
-            Catálogo
-          </p>
-          <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Tipos de Cita</h2>
-          <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
-            Configura duración, precio y color de cada tipo de cita
-          </p>
-        </div>
-        <div class="flex flex-shrink-0 items-center gap-3">
-          <UiButton variant="secondary" @click="goBack">
-            <template #icon-left>
-              <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
-            </template>
-            Volver
-          </UiButton>
-          <!-- #439: the write doors are the ones the route guards with
-               `manage.appointment_type`; a reader keeps list, filters, KPIs
-               and tabs. -->
-          <UiButton v-if="canManageAppointmentTypes" data-hero-action @click="openNewTypeModal">
-            <template #icon-left>
-              <PlusIcon class="w-4 h-4" aria-hidden="true" />
-            </template>
-            Nuevo tipo
-          </UiButton>
-        </div>
-      </div>
-    </header>
+      <template #actions>
+        <UiButton variant="secondary" data-refresh-types :disabled="loading" @click="loadTypes">
+          <template #icon-left>
+            <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+          Actualizar
+        </UiButton>
+        <!-- #439: the write doors are the ones the route guards with
+             `manage.appointment_type`; a reader keeps list, filters, KPIs
+             and tabs. -->
+        <UiButton
+          v-if="canManageAppointmentTypes"
+          data-page-action="new-type"
+          @click="openNewTypeModal"
+        >
+          <template #icon-left>
+            <PlusIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+          Nuevo tipo de cita
+        </UiButton>
+      </template>
+    </PageHeader>
 
     <!-- KPI strip (D2): four cards over the SAME full catalog the table
          renders, so the numbers cannot drift from the list. While the load
@@ -135,14 +119,23 @@
             </template>
           </UiInput>
         </div>
-        <div class="flex items-center gap-3">
-          <UiSelect
-            v-model="statusFilter"
-            :options="statusFilterOptions"
-            placeholder="Todos los estados"
-            class="w-48"
-            data-status-filter
-          />
+        <div class="flex items-end gap-3">
+          <div>
+            <label
+              for="types-filter-status"
+              class="mb-1 block text-xs font-medium text-theme-secondary"
+            >
+              Estado
+            </label>
+            <UiSelect
+              id="types-filter-status"
+              v-model="statusFilter"
+              :options="statusFilterOptions"
+              placeholder="Todos los estados"
+              class="w-48"
+              data-status-filter
+            />
+          </div>
           <p class="whitespace-nowrap text-xs text-theme-secondary" data-filter-count>
             {{ filterCountText }}
           </p>
@@ -212,21 +205,13 @@
           data-types-table
         >
           <template #cell-name="{ row }">
-            <div class="flex min-w-0 items-center gap-2">
-              <span
-                class="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                data-type-swatch
-                :style="{ backgroundColor: row.color }"
-                aria-hidden="true"
-              />
-              <span class="truncate text-sm font-medium text-theme-primary" :title="row.name">
-                {{ row.name }}
-              </span>
-            </div>
+            <span class="block truncate text-sm font-medium text-theme-primary" :title="row.name">
+              {{ row.name }}
+            </span>
           </template>
           <template #cell-description="{ row }">
             <div
-              class="w-full truncate text-sm text-theme-secondary"
+              class="max-w-[240px] truncate text-sm text-theme-secondary"
               :title="row.description || 'Sin descripción'"
             >
               {{ row.description || 'Sin descripción' }}
@@ -257,35 +242,31 @@
               <UiButton
                 variant="ghost"
                 size="sm"
-                class="text-systemBlue-600 hover:text-systemBlue-700"
+                :class="ROW_ACTION_PALETTE.view.classes"
                 data-row-action="detail"
                 @click="viewDetail(row)"
               >
-                Ver Detalle
+                Ver ficha
               </UiButton>
               <UiButton
                 v-if="canManageAppointmentTypes"
                 variant="ghost"
                 size="sm"
-                class="text-systemBlue-600 hover:text-systemBlue-700"
+                :class="ROW_ACTION_PALETTE.edit.classes"
                 data-row-action="edit"
-                title="Editar tipo"
-                aria-label="Editar tipo"
                 @click="editType(row)"
               >
-                <PencilIcon class="h-4 w-4" aria-hidden="true" />
+                Editar
               </UiButton>
               <UiButton
                 v-if="canManageAppointmentTypes"
                 variant="ghost"
                 size="sm"
-                class="text-systemRed-600 hover:text-systemRed-700"
+                :class="ROW_ACTION_PALETTE.delete.classes"
                 data-row-action="delete"
-                title="Eliminar tipo"
-                aria-label="Eliminar tipo"
                 @click="deleteType(row)"
               >
-                <TrashIcon class="h-4 w-4" aria-hidden="true" />
+                Eliminar
               </UiButton>
             </div>
           </template>
@@ -295,7 +276,7 @@
   </AppLayout>
 
   <!-- New Type Modal -->
-  <UiModal v-model="showNewTypeModal" title="Nuevo Tipo de Cita" size="md">
+  <UiModal v-model="showNewTypeModal" title="Nuevo tipo de cita" size="md">
     <!-- #440: `novalidate` hands the rejection to the page, so the empty
          submit paints its field messages instead of a native bubble. -->
     <form id="form-new-type" class="space-y-4" novalidate @submit.prevent="createType">
@@ -364,7 +345,7 @@
   </UiModal>
 
   <!-- Edit Type Modal -->
-  <UiModal v-model="showEditTypeModal" title="Editar Tipo de Cita" size="md">
+  <UiModal v-model="showEditTypeModal" title="Editar tipo de cita" size="md">
     <form
       v-if="editingType"
       id="form-edit-type"
@@ -464,12 +445,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  ArrowLeftIcon,
+  ArrowPathIcon,
   ExclamationTriangleIcon,
   MagnifyingGlassIcon,
-  PencilIcon,
-  PlusIcon,
-  TrashIcon
+  PlusIcon
 } from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
@@ -479,6 +458,7 @@ import { usePermissions } from '../../composables/usePermissions'
 import { normalizeValidationErrors } from '../../composables/validationErrors'
 import { formatCurrency } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
+import PageHeader from '../../components/layout/PageHeader.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
@@ -489,6 +469,7 @@ import UiEmptyState from '../../components/ui/EmptyState.vue'
 // A new appointment type starts on the brand accent, read from the token so
 // the next palette move carries it along.
 import { colors } from '../../design-system/tokens.js'
+import { ROW_ACTION_PALETTE } from '../../design-system/rowActionPalette'
 
 const DEFAULT_TYPE_COLOR = colors.accent[500]
 import UiTextarea from '../../components/ui/UiTextarea.vue'
@@ -498,12 +479,11 @@ export default {
   name: 'AppointmentTypesPage',
   components: {
     AppLayout,
-    ArrowLeftIcon,
+    PageHeader,
+    ArrowPathIcon,
     ExclamationTriangleIcon,
     MagnifyingGlassIcon,
-    PencilIcon,
     PlusIcon,
-    TrashIcon,
     UiDataTable,
     UiButton,
     UiInput,
@@ -856,7 +836,8 @@ export default {
       deleteType,
       goBack,
       formatCurrency,
-      formatTypePrice
+      formatTypePrice,
+      ROW_ACTION_PALETTE
     }
   }
 }
