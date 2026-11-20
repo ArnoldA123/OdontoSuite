@@ -18,7 +18,7 @@
       >
         <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">Sedes</p>
         <h2 class="mt-2 text-4xl font-semibold text-label" data-branch-transfers-title>
-          Traslados de Sede
+          Traslados de sede
         </h2>
         <p class="mt-2 text-sm text-theme-secondary">
           Pide tu cambio de sede y sigue la decisión de gerencia.

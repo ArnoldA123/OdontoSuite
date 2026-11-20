@@ -49,9 +49,9 @@ class PaymentMethodsRedesignContractTest extends TestCase
             'The redesigned page MUST NOT render <PageHeader>; the hero band owns the title.'
         );
         $this->assertMatchesRegularExpression(
-            '/<header\b[^>]*data-pm-hero[^>]*>[\s\S]*?data-hero-title[^>]*>\s*Métodos de Pago\s*</',
+            '/<header\b[^>]*data-pm-hero[^>]*>[\s\S]*?data-hero-title[^>]*>\s*Métodos de pago\s*</',
             $page,
-            'The hero band MUST expose data-pm-hero and the exact title "Métodos de Pago".'
+            'The hero band MUST expose data-pm-hero and the exact title "Métodos de pago".'
         );
     }
 

@@ -62,7 +62,7 @@ describe('appointmentStatus registry', () => {
     expect(statusLabel('scheduled')).toBe('Programada')
     expect(statusLabel('confirmed')).toBe('Confirmada')
     expect(statusLabel('arrived')).toBe('En espera')
-    expect(statusLabel('in_consultation')).toBe('En Consulta')
+    expect(statusLabel('in_consultation')).toBe('En consulta')
     expect(statusLabel('completed')).toBe('Completada')
     expect(statusLabel('cancelled')).toBe('Cancelada')
     expect(statusLabel('no_show')).toBe('No se presentó')

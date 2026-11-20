@@ -96,9 +96,7 @@
                     </svg>
                   </div>
                 </th>
-                <th v-if="$slots.actions" scope="col" class="data-table-header-cell w-32">
-                  Acciones
-                </th>
+                <th v-if="$slots.actions" scope="col" class="data-table-header-cell">Acciones</th>
               </tr>
             </thead>
 
@@ -614,7 +612,7 @@ onBeforeUnmount(() => {
 }
 
 .data-table-header-cell {
-  @apply px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider border-b border-theme;
+  @apply px-4 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider border-b border-theme;
 }
 
 .data-table-body {
@@ -626,7 +624,7 @@ onBeforeUnmount(() => {
 }
 
 .data-table-cell {
-  @apply px-6 py-4 text-sm text-theme-primary;
+  @apply px-4 py-4 text-sm text-theme-primary;
 }
 
 .data-table-cell-select {
@@ -634,7 +632,8 @@ onBeforeUnmount(() => {
 }
 
 .data-table-cell-actions {
-  @apply w-32 px-6 py-4;
+  @apply whitespace-nowrap px-4 py-4;
+  min-width: 17rem;
 }
 
 .data-table-cell-loading {
@@ -657,7 +656,8 @@ onBeforeUnmount(() => {
   }
 
   .data-table-cell-actions {
-    @apply w-24;
+    @apply px-4;
+    min-width: 0;
   }
 }
 </style>

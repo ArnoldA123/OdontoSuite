@@ -2,59 +2,45 @@
   <AppLayout>
     <div class="space-y-8" data-my-day>
       <!--
-        Hero band in the dashboard's surface vocabulary: canvas fill, hairline,
-        panel radius and the elevation-2 rung. The page owns its visible title
-        (h2, not h1), so the topbar keeps its heading for the outline only.
+        Canonical page header: one component, one anatomy. The greeting is the
+        page title and the date its description; the queue counts moved to the
+        strip below, so the header keeps kicker, title, description and actions
+        only.
       -->
-      <header
-        data-my-day-hero
-        class="p-6 md:p-8"
-        style="
-          background: var(--color-canvas);
-          border: 1px solid var(--color-hairline);
-          border-radius: var(--radius-panel);
-          box-shadow: var(--elevation-2);
-        "
-      >
-        <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-          <div class="min-w-0">
-            <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">Mi día</p>
-            <h2 class="mt-2 text-4xl font-semibold text-label" data-my-day-title>
-              {{ getGreeting() }}, {{ firstName }}
-            </h2>
-            <p
-              class="mt-2 text-sm text-theme-secondary"
-              style="font-feature-settings: var(--font-features-tabular-nums)"
-              data-my-day-date
-            >
-              {{ todayLabel }}
-            </p>
-          </div>
+      <PageHeader kicker="Mi día" :title="`${getGreeting()}, ${firstName}`" :subtitle="todayLabel">
+        <template #actions>
+          <UiButton variant="secondary" data-my-day-refresh :disabled="loading" @click="load">
+            <template #icon-left>
+              <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
+            </template>
+            Actualizar
+          </UiButton>
+        </template>
+      </PageHeader>
 
-          <!-- The queue counts summarize the sections below. -->
-          <dl class="grid grid-cols-2 gap-3 md:grid-cols-4" data-my-day-counts>
-            <div
-              v-for="stat in statCards"
-              :key="stat.key"
-              class="min-w-[5.5rem] px-4 py-3 text-center"
-              style="
-                background: var(--color-system-gray-100);
-                border: 1px solid var(--color-hairline);
-                border-radius: var(--radius-panel);
-              "
-              :data-my-day-count="stat.key"
-            >
-              <dt class="text-xs font-medium uppercase text-theme-secondary">{{ stat.label }}</dt>
-              <dd
-                class="mt-1 text-2xl font-semibold text-label tabular-nums"
-                style="font-feature-settings: var(--font-features-tabular-nums)"
-              >
-                {{ countValue(stat.key) }}
-              </dd>
-            </div>
-          </dl>
+      <!-- The queue counts summarize the sections below. -->
+      <dl class="grid grid-cols-2 gap-4 md:grid-cols-4" data-my-day-counts>
+        <div
+          v-for="stat in statCards"
+          :key="stat.key"
+          class="p-4"
+          style="
+            background: var(--color-canvas);
+            border: 1px solid var(--color-hairline);
+            border-radius: var(--radius-panel);
+            box-shadow: var(--elevation-2);
+          "
+          :data-my-day-count="stat.key"
+        >
+          <dt class="text-xs font-medium uppercase text-theme-secondary">{{ stat.label }}</dt>
+          <dd
+            class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+            style="font-feature-settings: var(--font-features-tabular-nums)"
+          >
+            {{ countValue(stat.key) }}
+          </dd>
         </div>
-      </header>
+      </dl>
 
       <!--
         Refresh failure. The composable keeps the last queue mounted, so this
@@ -109,6 +95,7 @@
 
           <UiSectionEmpty
             v-if="section.rows.length === 0"
+            :motif="false"
             :data-my-day-empty="section.key"
             :title="section.emptyTitle"
             :description="section.emptyDescription"
@@ -231,8 +218,9 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import AppLayout from '../../components/layout/AppLayout.vue'
+import PageHeader from '../../components/layout/PageHeader.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'

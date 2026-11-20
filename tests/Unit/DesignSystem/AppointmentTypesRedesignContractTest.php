@@ -54,30 +54,33 @@ class AppointmentTypesRedesignContractTest extends TestCase
      * Hero band recipe - the list hero paints the canvas base under a
      * hairline border, the panel radius and the elevation-2 rung.
      */
-    public function test_list_page_keeps_hero_band_recipe(): void
+    public function test_list_page_mounts_the_shared_header_recipe(): void
     {
         $src = $this->listSource();
 
-        $this->assertStringContainsString(
-            'background: var(--color-canvas)',
+        $this->assertMatchesRegularExpression(
+            "/import\\s+PageHeader\\s+from\\s+['\"][^'\"]*components\\/layout\\/PageHeader\\.vue['\"]/",
             $src,
-            'AppointmentTypesPage.vue must paint the hero band on the canvas base (redesign 2026-10-10).'
+            'AppointmentTypesPage.vue must mount the shared PageHeader (one header anatomy).'
         );
-        $this->assertStringContainsString(
-            'border: 1px solid var(--color-hairline)',
-            $src,
-            'The list hero band must carry the hairline vocabulary (redesign 2026-10-10).'
+
+        // The surface recipe (canvas base, hairline, panel radius, elevation-2)
+        // now has a single home: the component.
+        $component = (string) file_get_contents(
+            dirname(__DIR__, 3).'/resources/js/components/layout/PageHeader.vue'
         );
-        $this->assertStringContainsString(
-            'border-radius: var(--radius-panel)',
-            $src,
-            'The list hero band must ride the panel radius (redesign 2026-10-10).'
-        );
-        $this->assertStringContainsString(
-            'box-shadow: var(--elevation-2)',
-            $src,
-            'The list hero band must sit on the elevation-2 rung (redesign 2026-10-10).'
-        );
+        foreach ([
+            'var(--color-canvas)' => 'canvas base',
+            '1px solid var(--color-hairline)' => 'hairline',
+            'var(--radius-panel)' => 'panel radius',
+            'var(--elevation-2)' => 'elevation-2 rung',
+        ] as $token => $label) {
+            $this->assertStringContainsString(
+                $token,
+                $component,
+                "PageHeader.vue must keep the {$label} of the list header recipe."
+            );
+        }
     }
 
     /**

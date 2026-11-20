@@ -6,20 +6,26 @@
     uses the same anchor for the same reason.
   -->
   <AppLayout>
-    <!-- Header Section -->
+    <!-- Canonical page header: one component, one anatomy. -->
     <PageHeader
+      kicker="Ambientes"
       title="Ambientes"
-      subtitle="Gestiona los ambientes y consultorios"
-      class="bg-canvas mb-6"
+      subtitle="Sillones y consultorios por sede"
+      class="mb-6"
     >
       <template #actions>
-        <UiButton variant="secondary" @click="goBack">
+        <UiButton
+          variant="secondary"
+          data-refresh-environments
+          :disabled="loading"
+          @click="retryLoad"
+        >
           <template #icon-left>
-            <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+            <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
           </template>
-          Volver
+          Actualizar
         </UiButton>
-        <UiButton v-if="canManageEnvironments" @click="openCreateModal">
+        <UiButton v-if="canManageEnvironments" data-new-environment @click="openCreateModal">
           <template #icon-left>
             <PlusIcon class="w-4 h-4" aria-hidden="true" />
           </template>
@@ -43,22 +49,22 @@
         </UiInput>
       </div>
       <div class="flex items-end">
-        <UiSelect
-          v-model="statusFilter"
-          :options="statusOptions"
-          class="w-full"
-          data-status-filter
-          @change="filterEnvironments"
-        />
-      </div>
-      <div class="flex items-end">
-        <UiSelect
-          v-model="archivedFilter"
-          :options="archivedOptions"
-          class="w-full"
-          data-archived-filter
-          @change="filterArchived"
-        />
+        <div class="w-full">
+          <label
+            for="environments-filter-state"
+            class="mb-1 block text-xs font-medium text-theme-secondary"
+          >
+            Estado
+          </label>
+          <UiSelect
+            id="environments-filter-state"
+            v-model="stateFilter"
+            :options="stateOptions"
+            class="w-full"
+            data-status-filter
+            @change="filterEnvironments"
+          />
+        </div>
       </div>
       <div v-if="hasActiveFilters" class="flex items-end">
         <UiButton variant="secondary" class="w-full" data-filters-clear @click="clearFilters">
@@ -122,18 +128,12 @@
         data-environments-table
       >
         <template #cell-name="{ row }">
-          <div class="flex items-center">
-            <div class="flex-shrink-0 h-10 w-10">
-              <div class="h-10 w-10 rounded-full bg-systemBlue-50 flex items-center justify-center">
-                <span class="text-sm font-medium text-systemBlue-700">
-                  {{ row.name.charAt(0) }}
-                </span>
-              </div>
-            </div>
-            <div class="ml-4 flex items-center gap-2">
-              <div class="text-sm font-medium text-theme-primary">{{ row.name }}</div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="whitespace-nowrap text-sm font-medium text-theme-primary">{{ row.name }}</p>
               <UiBadge v-if="!row.is_active" variant="neutral" size="sm">Archivado</UiBadge>
             </div>
+            <p class="font-mono text-xs text-theme-secondary">{{ row.code }}</p>
           </div>
         </template>
         <template #cell-equipment="{ row }">
@@ -143,58 +143,52 @@
           <UiStatusBadge
             :variant="getStatusVariant(row.status)"
             :label="getStatusText(row.status)"
+            size="sm"
           />
         </template>
         <template #actions="{ row }">
-          <UiButton variant="ghost" size="sm" @click="viewDetail(row)">
-            <template #icon-left>
-              <EyeIcon class="w-4 h-4" aria-hidden="true" />
-            </template>
-            Ver detalle
+          <UiButton
+            variant="ghost"
+            size="sm"
+            :class="ROW_ACTION_PALETTE.view.classes"
+            @click="viewDetail(row)"
+          >
+            Ver ficha
           </UiButton>
           <UiButton
             v-if="canManageEnvironments"
             variant="ghost"
             size="sm"
+            :class="ROW_ACTION_PALETTE.edit.classes"
             @click="editEnvironment(row)"
           >
-            <template #icon-left>
-              <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
-            </template>
             Editar
           </UiButton>
           <UiButton
             v-if="canManageEnvironments && row.is_active"
             variant="ghost"
             size="sm"
+            :class="ROW_ACTION_PALETTE.archive.classes"
             @click="archiveEnvironment(row)"
           >
-            <template #icon-left>
-              <ArchiveBoxIcon class="w-4 h-4" aria-hidden="true" />
-            </template>
             Archivar
           </UiButton>
           <UiButton
             v-else-if="canManageEnvironments"
             variant="ghost"
             size="sm"
+            :class="ROW_ACTION_PALETTE.reactivate.classes"
             @click="reactivateEnvironment(row)"
           >
-            <template #icon-left>
-              <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
-            </template>
             Reactivar
           </UiButton>
           <UiButton
             v-if="canManageEnvironments"
             variant="ghost"
             size="sm"
-            class="text-systemRed-700"
+            :class="ROW_ACTION_PALETTE.delete.classes"
             @click="deleteEnvironment(row)"
           >
-            <template #icon-left>
-              <TrashIcon class="w-4 h-4" aria-hidden="true" />
-            </template>
             Eliminar
           </UiButton>
         </template>
@@ -401,16 +395,11 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  ArchiveBoxIcon,
-  ArrowLeftIcon,
   ArrowPathIcon,
   BuildingOffice2Icon,
   ExclamationTriangleIcon,
-  EyeIcon,
   MagnifyingGlassIcon,
-  PencilSquareIcon,
-  PlusIcon,
-  TrashIcon
+  PlusIcon
 } from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
 import { useConfirm } from '../../composables/useConfirm'
@@ -418,7 +407,9 @@ import { useErrorHandler } from '../../composables/useErrorHandler'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { getStatusText, getStatusVariant } from './environmentStatus'
+import { ROW_ACTION_PALETTE } from '../../design-system/rowActionPalette'
 import AppLayout from '../../components/layout/AppLayout.vue'
+import PageHeader from '../../components/layout/PageHeader.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiBadge from '../../components/ui/Badge.vue'
@@ -450,8 +441,10 @@ const loadError = ref(false)
 const loadErrorMessage = ref('')
 const sourceRows = ref([])
 const searchQuery = ref('')
-const statusFilter = ref('')
-const archivedFilter = ref('exclude')
+// One select for one axis: the operational status and the archive visibility
+// used to be two selects whose defaults read as the same "nothing filtered"
+// state (contract: no duplicated filter).
+const stateFilter = ref('all')
 const showNewEnvironmentModal = ref(false)
 const showEditEnvironmentModal = ref(false)
 const editingEnvironment = ref(null)
@@ -465,24 +458,27 @@ const newEnvironment = ref({
   status: 'active'
 })
 
-// PR-ambientes-01 (AMB-01-002) status filter options consumed by
-// `<UiSelect :options="statusOptions" v-model="statusFilter" />`.
-// Values match the legacy `<option value="...">` attributes byte-for-byte.
-const statusOptions = [
-  { value: '', label: 'Todos los estados' },
+// The list reads one state select: the operational status values and the
+// archived visibility share the control because they are one question for the
+// reader ("which chairs do I want to see").
+const stateOptions = [
+  { value: 'all', label: 'Todos los estados' },
   { value: 'active', label: 'Activos' },
   { value: 'inactive', label: 'Inactivos' },
-  { value: 'maintenance', label: 'Mantenimiento' }
+  { value: 'maintenance', label: 'Mantenimiento' },
+  { value: 'archived', label: 'Archivados' }
 ]
 
-// Archive visibility is a separate axis from the operational status: a chair
-// can be in maintenance while still visible, or archived (is_active=false) and
-// only reachable through this filter.
-const archivedOptions = [
-  { value: 'exclude', label: 'Sin archivados' },
-  { value: 'include', label: 'Incluir archivados' },
-  { value: 'only', label: 'Solo archivados' }
-]
+// The server still receives two parameters; the select derives both.
+const statusFilter = computed(() =>
+  ['active', 'inactive', 'maintenance'].includes(stateFilter.value) ? stateFilter.value : ''
+)
+const archivedFilter = computed(() => (stateFilter.value === 'archived' ? 'only' : 'exclude'))
+
+// The status axis is applied client-side over the rows the read returned (the
+// search endpoint has no status parameter); only crossing the archive axis
+// needs a new read.
+const fetchedArchived = ref('exclude')
 
 // Form-state options for the create/edit modals: only the operational
 // statuses (the filter's "Todos los estados" entry is not a valid form value).
@@ -493,7 +489,6 @@ const statusFieldOptions = ['active', 'inactive', 'maintenance'].map(value => ({
 }))
 
 const columns = [
-  { key: 'code', label: 'Código' },
   { key: 'name', label: 'Nombre' },
   { key: 'equipment', label: 'Equipamiento' },
   { key: 'status', label: 'Estado' }
@@ -512,10 +507,7 @@ const environments = computed(() =>
 )
 
 const hasActiveFilters = computed(
-  () =>
-    searchQuery.value.trim() !== '' ||
-    statusFilter.value !== '' ||
-    archivedFilter.value !== 'exclude'
+  () => searchQuery.value.trim() !== '' || stateFilter.value !== 'all'
 )
 
 const emptyTitle = computed(() =>
@@ -575,6 +567,7 @@ const fetchEnvironments = async url => {
 }
 
 const loadEnvironments = () => {
+  fetchedArchived.value = archivedFilter.value
   const params = new URLSearchParams()
   if (statusFilter.value) params.set('status', statusFilter.value)
   if (archivedFilter.value !== 'exclude') params.set('archived', archivedFilter.value)
@@ -585,6 +578,7 @@ const loadEnvironments = () => {
 
 const searchEnvironments = () => {
   clearPendingSearch()
+  fetchedArchived.value = archivedFilter.value
   const params = new URLSearchParams({ q: searchQuery.value.trim() })
   if (archivedFilter.value !== 'exclude') params.set('archived', archivedFilter.value)
 
@@ -607,14 +601,11 @@ const handleSearchInput = () => {
 
 const filterEnvironments = () => {
   clearPendingSearch()
-  if (searchQuery.value.trim().length >= 2) return
-  loadEnvironments()
-}
-
-const filterArchived = () => {
-  clearPendingSearch()
   if (searchQuery.value.trim().length >= 2) {
-    searchEnvironments()
+    // The search endpoint has no status parameter: with a live query a status
+    // change is a client-side filter over the rows already read, and only
+    // crossing the archive axis needs a new read.
+    if (archivedFilter.value !== fetchedArchived.value) searchEnvironments()
     return
   }
   loadEnvironments()
@@ -636,8 +627,7 @@ const retryLoad = () => {
 const clearFilters = () => {
   clearPendingSearch()
   searchQuery.value = ''
-  statusFilter.value = ''
-  archivedFilter.value = 'exclude'
+  stateFilter.value = 'all'
   loadEnvironments()
 }
 
@@ -744,9 +734,6 @@ const deleteEnvironment = async environment => {
   }
 }
 
-const goBack = () => {
-  router.back()
-}
 const archiveEnvironment = async environment => {
   const ok = await confirm({
     title: 'Archivar ambiente',

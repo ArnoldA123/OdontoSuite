@@ -1184,6 +1184,105 @@ describe('F1 custody actions smoke (#281)', () => {
   })
 })
 
+// U3 — the calendar stages the day but does not start the act. Starting or
+// continuing a consultation belongs to `/my-day`; the details surface keeps
+// reception's check-in door and publishes a bridge to My Day only for
+// sessions that hold `view.my_day`.
+describe('U3 calendar clinical boundary', () => {
+  const appointment = status => ({
+    id: 1,
+    scheduled_at: '2026-05-13T10:00:00',
+    ends_at: '2026-05-13T10:30:00',
+    duration_minutes: 30,
+    status,
+    notes: null,
+    patient: { id: 7, first_name: 'Ana', last_name: 'Pérez' },
+    user: { id: 2, name: 'Dra. Ruiz' },
+    dental_chair: null,
+    appointment_type: { id: 3, name: 'Limpieza' }
+  })
+
+  const defaultAppointments = apiAppointments.value
+
+  const mounted = []
+  const mountPage = () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const wrapper = mount(Page, { attachTo: host, global: { plugins: [router, uiComponents] } })
+    mounted.push({ wrapper, host })
+    return wrapper
+  }
+
+  const openDetails = async wrapper => {
+    await wrapper.find('[data-calendar-appointment="1"]').trigger('click')
+    await nextTick()
+  }
+
+  beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    globalToasts.value.splice(0, globalToasts.value.length)
+    apiAppointments.value = [appointment('arrived')]
+    authRole.ref.value = 'administrador'
+    await router.push('/calendar')
+  })
+
+  afterEach(() => {
+    while (mounted.length) {
+      const { wrapper, host } = mounted.pop()
+      try {
+        wrapper.unmount()
+      } catch {
+        // already unmounted
+      }
+      host.remove()
+    }
+    apiAppointments.value = defaultAppointments
+    authRole.ref.value = 'administrador'
+    vi.useRealTimers()
+    localStorage.removeItem('user')
+  })
+
+  it('never offers the clinical start, even to a clinical session', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    await openDetails(wrapper)
+
+    expect(document.querySelector('[data-calendar-action="start-attention"]')).toBeNull()
+    expect(document.querySelector('[data-calendar-action="complete-consultation"]')).toBeNull()
+    expect(document.querySelector('[data-calendar-action="check-in"]')).toBeNull()
+  })
+
+  it('bridges a clinical session to My Day and navigates there', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    await openDetails(wrapper)
+
+    const bridge = document.querySelector('[data-calendar-action="my-day"]')
+    expect(bridge).not.toBeNull()
+    expect(bridge.textContent.trim()).toBe('Ir a mi jornada')
+    expect(bridge.getAttribute('href')).toBe('/my-day')
+
+    bridge.click()
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/my-day')
+  })
+
+  it('keeps reception check-in and hides the My Day bridge it cannot open', async () => {
+    authRole.ref.value = 'recepcionista'
+    apiAppointments.value = [appointment('confirmed')]
+    const wrapper = mountPage()
+    await flushPromises()
+    await openDetails(wrapper)
+
+    const checkIn = document.querySelector('[data-calendar-action="check-in"]')
+    expect(checkIn).not.toBeNull()
+    expect(checkIn.textContent).toContain('Marcar llegada')
+    expect(document.querySelector('[data-calendar-action="my-day"]')).toBeNull()
+    expect(document.querySelector('[data-calendar-action="start-attention"]')).toBeNull()
+  })
+})
+
 // The two doors reception does not own are pinned at the composable contract:
 // can.announcePatient / can.startConsultation are the flags that reveal their
 // buttons, so the endpoint + toast contract is exercised here (the page wiring
@@ -1280,17 +1379,16 @@ describe('T7 empty range smoke', () => {
     localStorage.removeItem('user')
   })
 
-  it('shows the motif empty block and hides the grids on an empty range (T7/D1)', async () => {
+  it('shows the quiet empty block and hides the grids on an empty range (T7/D1)', async () => {
     const wrapper = mountPage()
     await flushPromises()
 
     const empty = wrapper.find('[data-calendar-empty]')
     expect(empty.exists()).toBe(true)
 
-    // shared dental motif (box variant — the hero keeps the only other layer)
-    expect(empty.find('[data-calendar-empty-motif]').exists()).toBe(true)
-    const motifs = wrapper.findAllComponents(DentalMotifLayer)
-    expect(motifs.filter(m => m.props('variant') === 'box')).toHaveLength(1)
+    // Empty states match the shared primitive: icon, title and copy, no motif.
+    expect(empty.find('[data-calendar-empty-motif]').exists()).toBe(false)
+    expect(wrapper.findAllComponents(DentalMotifLayer)).toHaveLength(0)
 
     // per-view copy: starts on the week view
     expect(empty.text()).toContain('Sin citas esta semana')

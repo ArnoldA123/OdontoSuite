@@ -25,9 +25,9 @@ class SpecialtiesNavigationDisambiguationTest extends TestCase
 
     private const CATALOG_ROUTE = '/specialties';
 
-    private const CLINICAL_LABEL = 'Registros de Especialidad';
+    private const CLINICAL_LABEL = 'Registros de especialidad';
 
-    private const CATALOG_LABEL = 'Catálogo de Especialidades';
+    private const CATALOG_LABEL = 'Catálogo de especialidades';
 
     private const AMBIGUOUS_LABEL = 'Especialidades';
 

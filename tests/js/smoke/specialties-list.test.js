@@ -121,19 +121,19 @@ afterEach(async () => {
 })
 
 describe('specialties list smoke', () => {
-  it('renders the hero band with the page title and its actions', async () => {
+  it('renders the canonical page header with the page title and its actions', async () => {
     const wrapper = await mountPage()
 
-    const hero = wrapper.find('[data-specialties-hero]')
-    expect(hero.exists()).toBe(true)
-    expect(hero.find('h2').text()).toBe('Especialidades')
-    expect(hero.text()).toContain('Catálogo clínico')
-    expect(hero.text()).toContain(
-      'Administra la taxonomía que ordena procedimientos y profesionales'
-    )
-    expect(hero.text()).toContain('Volver')
-    expect(hero.text()).toContain('Nueva especialidad')
-    expect(wrapper.findComponent({ name: 'PageHeader' }).exists()).toBe(false)
+    const header = wrapper.find('[data-page-header]')
+    expect(header.exists()).toBe(true)
+    expect(header.find('h1').text()).toBe('Especialidades')
+    expect(header.find('[data-page-header-kicker]').text()).toBe('Catálogo')
+    expect(header.text()).toContain('Taxonomía de procedimientos y profesionales')
+    expect(header.text()).toContain('Actualizar')
+    expect(header.text()).toContain('Nueva especialidad')
+    // None of the nine surfaces is a child of another: no back action.
+    expect(header.text()).not.toContain('Volver')
+    expect(wrapper.findComponent({ name: 'PageHeader' }).exists()).toBe(true)
 
     wrapper.unmount()
   })
@@ -209,7 +209,7 @@ describe('specialties list smoke', () => {
     getMock.mockResolvedValue({ data: SPECIALTIES, meta: { kpis: KPI_POPULATION } })
     const wrapper = await mountPage()
 
-    expect(wrapper.find('[data-specialties-hero]').text()).not.toContain('Nueva especialidad')
+    expect(wrapper.find('[data-page-header]').text()).not.toContain('Nueva especialidad')
     expect(rowByText(wrapper, 'Odontología general').text()).toContain('Odontología general')
     expect(wrapper.find('[data-row-action="edit"]').exists()).toBe(false)
     expect(wrapper.find('[data-row-action="toggle"]').exists()).toBe(false)

@@ -1,43 +1,32 @@
 <template>
   <AppLayout>
-    <header
-      data-specialties-hero
-      class="mb-6 border border-hairline p-6 md:p-8"
-      style="
-        background: var(--color-canvas);
-        border-radius: var(--radius-panel);
-        box-shadow: var(--elevation-2);
-      "
+    <!-- Canonical page header: one component, one anatomy. -->
+    <PageHeader
+      kicker="Catálogo"
+      title="Especialidades"
+      subtitle="Taxonomía de procedimientos y profesionales"
+      class="mb-6"
     >
-      <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div class="min-w-0">
-          <p
-            class="text-xs font-medium uppercase tracking-wide text-theme-secondary"
-            data-hero-eyebrow
-          >
-            Catálogo clínico
-          </p>
-          <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Especialidades</h2>
-          <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
-            Administra la taxonomía que ordena procedimientos y profesionales
-          </p>
-        </div>
-        <div class="flex flex-shrink-0 items-center gap-3">
-          <UiButton variant="secondary" @click="goBack">
-            <template #icon-left>
-              <ArrowLeftIcon class="h-4 w-4" aria-hidden="true" />
-            </template>
-            Volver
-          </UiButton>
-          <UiButton v-if="can.manageSpecialties?.value" variant="primary" @click="openCreate">
-            <template #icon-left>
-              <PlusIcon class="h-4 w-4" aria-hidden="true" />
-            </template>
-            Nueva especialidad
-          </UiButton>
-        </div>
-      </div>
-    </header>
+      <template #actions>
+        <UiButton
+          variant="secondary"
+          data-refresh-specialties
+          :disabled="loading"
+          @click="loadSpecialties"
+        >
+          <template #icon-left>
+            <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
+          </template>
+          Actualizar
+        </UiButton>
+        <UiButton v-if="can.manageSpecialties?.value" data-new-specialty @click="openCreate">
+          <template #icon-left>
+            <PlusIcon class="h-4 w-4" aria-hidden="true" />
+          </template>
+          Nueva especialidad
+        </UiButton>
+      </template>
+    </PageHeader>
 
     <section
       aria-label="Resumen de especialidades"
@@ -122,14 +111,25 @@
           </template>
         </UiInput>
       </div>
-      <UiSelect
-        v-model="statusFilter"
-        :options="STATUS_FILTER_OPTIONS"
-        placeholder="Todos los estados"
-        class="w-full"
-        data-status-filter
-        @change="loadSpecialties"
-      />
+      <div class="flex items-end">
+        <div class="w-full">
+          <label
+            for="specialties-filter-status"
+            class="mb-1 block text-xs font-medium text-theme-secondary"
+          >
+            Estado
+          </label>
+          <UiSelect
+            id="specialties-filter-status"
+            v-model="statusFilter"
+            :options="STATUS_FILTER_OPTIONS"
+            placeholder="Todos los estados"
+            class="w-full"
+            data-status-filter
+            @change="loadSpecialties"
+          />
+        </div>
+      </div>
       <div v-if="hasActiveFilters" class="flex items-end">
         <UiButton variant="secondary" class="w-full" data-filters-clear @click="clearFilters">
           Limpiar filtros
@@ -140,7 +140,7 @@
     <section aria-label="Especialidades" class="space-y-4">
       <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
         <h2 class="text-2xl font-semibold text-label">Todas las especialidades</h2>
-        <p class="text-sm text-theme-secondary">Busca, filtra y administra cada especialidad</p>
+        <p class="text-sm text-theme-secondary">Código, uso y estado de cada especialidad</p>
       </div>
 
       <div data-specialties-list>
@@ -205,13 +205,6 @@
               <p class="font-mono text-xs text-theme-secondary" data-row-specialty-code>
                 {{ row.code }}
               </p>
-              <p
-                v-if="row.description"
-                class="mt-1 max-w-md truncate text-xs text-theme-secondary"
-                :title="row.description"
-              >
-                {{ row.description }}
-              </p>
             </div>
           </template>
 
@@ -247,10 +240,19 @@
 
           <template #actions="{ row }">
             <UiButton
+              variant="ghost"
+              size="sm"
+              :class="ROW_ACTION_PALETTE.view.classes"
+              data-row-action="view"
+              @click="openDetail(row)"
+            >
+              Ver ficha
+            </UiButton>
+            <UiButton
               v-if="can.manageSpecialties?.value"
               variant="ghost"
               size="sm"
-              class="text-systemBlue-600 hover:text-systemBlue-700"
+              :class="ROW_ACTION_PALETTE.edit.classes"
               data-row-action="edit"
               @click="openEdit(row)"
             >
@@ -260,7 +262,11 @@
               v-if="can.manageSpecialties?.value"
               variant="ghost"
               size="sm"
-              :class="row.is_active ? 'text-systemRed-700' : 'text-systemGreen-700'"
+              :class="
+                row.is_active
+                  ? ROW_ACTION_PALETTE.archive.classes
+                  : ROW_ACTION_PALETTE.reactivate.classes
+              "
               data-row-action="toggle"
               @click="toggleSpecialty(row)"
             >
@@ -272,6 +278,52 @@
     </section>
   </AppLayout>
 
+  <UiModal v-model="showDetail" title="Ficha de la especialidad" size="md" data-specialty-detail>
+    <div v-if="detailSpecialty" class="space-y-4">
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">Especialidad</p>
+        <p class="mt-1 text-lg font-semibold text-label" data-specialty-detail-name>
+          {{ detailSpecialty.name }}
+        </p>
+        <p class="font-mono text-xs text-theme-secondary" data-specialty-detail-code>
+          {{ detailSpecialty.code }}
+        </p>
+      </div>
+      <p v-if="detailSpecialty.description" class="text-sm text-theme-secondary">
+        {{ detailSpecialty.description }}
+      </p>
+      <dl class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div>
+          <dt class="text-xs font-medium uppercase text-theme-secondary">Procedimientos</dt>
+          <dd class="mt-1 text-lg font-semibold text-label tabular-nums">
+            {{ countProcedures(detailSpecialty) }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase text-theme-secondary">Profesionales</dt>
+          <dd class="mt-1 text-lg font-semibold text-label tabular-nums">
+            {{ countProfessionals(detailSpecialty) }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase text-theme-secondary">Estado</dt>
+          <dd class="mt-1">
+            <UiStatusBadge
+              :variant="getStatusVariant(detailSpecialty.is_active)"
+              :label="getStatusLabel(detailSpecialty.is_active)"
+              size="sm"
+            />
+          </dd>
+        </div>
+      </dl>
+    </div>
+    <template #footer>
+      <UiButton variant="secondary" data-specialty-detail-close @click="showDetail = false">
+        Cerrar
+      </UiButton>
+    </template>
+  </UiModal>
+
   <SpecialtyFormModal
     v-if="showForm"
     :specialty="editingSpecialty"
@@ -282,10 +334,9 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import {
   AcademicCapIcon,
-  ArrowLeftIcon,
+  ArrowPathIcon,
   ExclamationTriangleIcon,
   MagnifyingGlassIcon,
   PlusIcon
@@ -295,13 +346,16 @@ import { useConfirm } from '../../composables/useConfirm'
 import { useErrorHandler } from '../../composables/useErrorHandler'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
+import { ROW_ACTION_PALETTE } from '../../design-system/rowActionPalette'
 import AppLayout from '../../components/layout/AppLayout.vue'
+import PageHeader from '../../components/layout/PageHeader.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiInput from '../../components/ui/Input.vue'
+import UiModal from '../../components/ui/Modal.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
@@ -314,7 +368,6 @@ import {
   getStatusVariant
 } from './specialtyMeta'
 
-const router = useRouter()
 const { get, put } = useApi()
 const { confirm } = useConfirm()
 const toast = useToast()
@@ -331,6 +384,8 @@ const searchQuery = ref('')
 const statusFilter = ref('')
 const showForm = ref(false)
 const editingSpecialty = ref(null)
+const showDetail = ref(false)
+const detailSpecialty = ref(null)
 
 let searchTimer = null
 
@@ -406,6 +461,11 @@ const openCreate = () => {
   showForm.value = true
 }
 
+const openDetail = specialty => {
+  detailSpecialty.value = { ...specialty }
+  showDetail.value = true
+}
+
 const openEdit = specialty => {
   editingSpecialty.value = { ...specialty }
   showForm.value = true
@@ -443,10 +503,6 @@ const toggleSpecialty = async specialty => {
   } catch (error) {
     handleError(error, `No pudimos ${nextActive ? 'activar' : 'desactivar'} la especialidad`)
   }
-}
-
-const goBack = () => {
-  router.back()
 }
 
 onMounted(() => {

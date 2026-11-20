@@ -8,7 +8,7 @@ import { nextTick } from 'vue'
 // primary CTA, the ordered data-patients-block hierarchy, the dashboard
 // KPI anatomy (eyebrow + number + one data-kpi-caption, non-interactive),
 // the page-owned UiDataTable feeding the desktop table, the PatientListRow
-// mobile card, and the unified UiSectionEmpty states (empty without CTA, error
+// mobile card, and the unified UiEmptyState states (empty without CTA, error
 // with retry). #499: the card component renders no table row — the desktop row
 // belongs to the page and its primitive.
 const harness = vi.hoisted(() => ({ apiGet: vi.fn() }))
@@ -42,7 +42,7 @@ import uiComponents from '../../../resources/js/plugins/ui-components'
 import PageHeader from '../../../resources/js/components/layout/PageHeader.vue'
 import LoadingSpinner from '../../../resources/js/components/ui/LoadingSpinner.vue'
 import UiDataTable from '../../../resources/js/components/ui/DataTable.vue'
-import UiSectionEmpty from '../../../resources/js/components/ui/UiSectionEmpty.vue'
+import UiEmptyState from '../../../resources/js/components/ui/EmptyState.vue'
 import Page from '../../../resources/js/modules/patients/PatientsPage.vue'
 import pageSource from '../../../resources/js/modules/patients/PatientsPage.vue?raw'
 import rowSource from '../../../resources/js/modules/patients/PatientListRow.vue?raw'
@@ -120,11 +120,11 @@ describe('patients hero band (login language)', () => {
     localStorage.clear()
   })
 
-  it('renders the hero panel recipe with the page title and the brand lockup', async () => {
+  it('renders the canonical page header with the page title and no brand lockup', async () => {
     const wrapper = await mountPage()
 
-    const hero = wrapper.find('[data-patients-hero]')
-    expect(hero.exists()).toBe(true)
+    const header = wrapper.find('[data-page-header]')
+    expect(header.exists()).toBe(true)
 
     for (const token of [
       'var(--color-canvas)',
@@ -132,24 +132,25 @@ describe('patients hero band (login language)', () => {
       'var(--radius-panel)',
       'var(--elevation-2)'
     ]) {
-      expect(hero.attributes('style')).toContain(token)
+      expect(header.attributes('style')).toContain(token)
     }
 
-    const heroTitle = hero.get('.page-title')
-    expect(heroTitle.element.tagName).toBe('H1')
-    expect(heroTitle.text()).toBe('Pacientes')
-    expect(heroTitle.classes()).toEqual(
+    const headerTitle = header.get('.page-title')
+    expect(headerTitle.element.tagName).toBe('H1')
+    expect(headerTitle.text()).toBe('Pacientes')
+    expect(headerTitle.classes()).toEqual(
       expect.arrayContaining(['page-title', 'text-4xl', 'font-semibold', 'text-label'])
     )
-    // #405: the hero title is the document's heading and the topbar yields it,
+    expect(header.find('[data-page-header-kicker]').text()).toBe('Pacientes')
+    // #405: the page title is the document's heading and the topbar yields it,
     // so the page paints one visible <h1> and no second one above it.
     expect(wrapper.findAll('h1')).toHaveLength(1)
 
-    expect(hero.text()).toContain('OdontoSuite')
-    expect(hero.text()).toContain('Gestiona la información de tus pacientes')
+    // The brand and the dental motif live outside the page headers.
+    expect(header.text()).not.toContain('OdontoSuite')
+    expect(header.find('[data-hero-motif]').exists()).toBe(false)
 
-    // The hero band owns the title now; PageHeader is gone from this page.
-    expect(wrapper.findComponent(PageHeader).exists()).toBe(false)
+    expect(wrapper.findComponent(PageHeader).exists()).toBe(true)
 
     wrapper.unmount()
   })
@@ -157,8 +158,8 @@ describe('patients hero band (login language)', () => {
   it('owns the document heading: one visible h1 and no heading in the topbar', async () => {
     const wrapper = await mountPage()
 
-    const hero = wrapper.get('[data-patients-hero]')
-    const title = hero.get('.page-title')
+    const header = wrapper.get('[data-page-header]')
+    const title = header.get('.page-title')
     expect(title.element.tagName).toBe('H1')
     expect(title.text()).toBe('Pacientes')
     expect(title.classes()).toEqual(
@@ -182,19 +183,15 @@ describe('patients hero band (login language)', () => {
   it('keeps exactly one primary CTA on the page: "Nuevo paciente" in the hero', async () => {
     const wrapper = await mountPage()
 
-    const hero = wrapper.find('[data-patients-hero]')
-    const heroPrimaries = hero.findAll('button[data-variant="primary"]')
-    expect(heroPrimaries).toHaveLength(1)
-    expect(heroPrimaries[0].text().trim()).toBe('Nuevo paciente')
+    const header = wrapper.find('[data-page-header]')
+    const headerPrimaries = header.findAll('button[data-variant="primary"]')
+    expect(headerPrimaries).toHaveLength(1)
+    expect(headerPrimaries[0].text().trim()).toBe('Nuevo paciente')
 
-    // Hero action buttons keep their natural width with unwrappable labels
-    // at xs; the row wraps instead of squeezing the CTA into two lines.
-    const actions = hero.get('[data-hero-actions]')
-    expect(actions.classes()).toContain('flex-wrap')
-    for (const button of actions.findAll('button')) {
-      expect(button.classes()).toEqual(expect.arrayContaining(['flex-none', 'whitespace-nowrap']))
-      expect(button.classes()).not.toContain('flex-1')
-    }
+    // The actions row is PageHeader's own cluster (it wraps instead of
+    // squeezing the CTA into two lines; the rule lives in the component).
+    const actions = header.get('[data-page-header-actions]')
+    expect(actions.classes()).toContain('page-actions')
 
     expect(wrapper.findAll('button[data-variant="primary"]')).toHaveLength(1)
 
@@ -237,8 +234,8 @@ describe('patients block hierarchy', () => {
       expect.arrayContaining(['text-2xl', 'font-semibold', 'text-label'])
     )
 
-    // Reading order: hero leads, then the summary block, then the directory.
-    const hero = wrapper.find('[data-patients-hero]').element
+    // Reading order: the header leads, then the summary block, then the directory.
+    const hero = wrapper.find('[data-page-header]').element
     const summary = blocks[0].element
     const directory = blocks[1].element
     expect(hero.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -380,6 +377,9 @@ describe('patients row surfaces (DataTable on desktop, card on mobile)', () => {
     expect(card.text()).toContain('Activo')
 
     const labels = card.findAll('button').map(button => button.text().trim())
+    // Declared deviation: the mobile card label lives in PatientListRow.vue,
+    // outside this refactor's edit surface, so it still reads "Ver". The table
+    // (the surface this contract governs) already reads "Ver ficha".
     expect(labels).toEqual(['Ver', 'Editar', 'Eliminar'])
 
     wrapper.unmount()
@@ -398,7 +398,7 @@ describe('patients row surfaces (DataTable on desktop, card on mobile)', () => {
     expect(row.text()).toContain('Activo')
 
     const labels = row.findAll('button').map(button => button.text().trim())
-    expect(labels).toEqual(['Ver', 'Editar', 'Eliminar'])
+    expect(labels).toEqual(['Ver ficha', 'Editar', 'Eliminar'])
 
     wrapper.unmount()
   })
@@ -450,7 +450,7 @@ describe('patients unified states', () => {
     wrapper.unmount()
   })
 
-  it('renders the empty state through UiSectionEmpty with no CTA', async () => {
+  it('renders the table empty through UiEmptyState with no CTA', async () => {
     installList({
       data: [],
       meta: { ...defaultMeta, total: 0, active_count: 0, inactive_count: 0 }
@@ -458,20 +458,19 @@ describe('patients unified states', () => {
 
     const wrapper = await mountPage()
 
-    const empties = wrapper.findAllComponents(UiSectionEmpty)
+    const empties = wrapper.findAllComponents(UiEmptyState)
     expect(empties).toHaveLength(1)
 
-    const panel = empties[0].get('[data-section-empty]')
-    expect(panel.attributes('data-state')).toBe('empty-patients')
+    const panel = empties[0].get('[data-state="empty-patients"]')
     expect(panel.text()).toContain('No se encontraron pacientes')
-    expect(panel.text()).toContain('Intenta ajustar los filtros de búsqueda')
-    // The hero owns the only CTA for this destination.
+    expect(panel.text()).toContain('Ajusta los filtros de búsqueda')
+    // The header owns the only CTA for this destination.
     expect(panel.find('button').exists()).toBe(false)
 
     wrapper.unmount()
   })
 
-  it('renders the inline error state through UiSectionEmpty with a retry action', async () => {
+  it('renders the inline error state through UiEmptyState with a retry action', async () => {
     harness.apiGet.mockImplementation(async url => {
       if (url.includes('/api/branches/active')) {
         return { data: [] }
@@ -481,11 +480,10 @@ describe('patients unified states', () => {
 
     const wrapper = await mountPage()
 
-    const empties = wrapper.findAllComponents(UiSectionEmpty)
+    const empties = wrapper.findAllComponents(UiEmptyState)
     expect(empties).toHaveLength(1)
 
-    const panel = empties[0].get('[data-section-empty]')
-    expect(panel.attributes('data-state')).toBe('error-patients')
+    const panel = empties[0].get('[data-state="error-patients"]')
     expect(panel.text()).toContain('No pudimos cargar los pacientes')
 
     const retry = panel.get('[data-retry-patients]')
@@ -533,20 +531,21 @@ describe('patients motion + icon budget', () => {
     wrapper.unmount()
   })
 
-  it('consumes heroicons and keeps only the brand tooth glyph inline', async () => {
+  it('consumes heroicons and keeps no inline svg of its own', async () => {
     expect(pageSource).toContain("'@heroicons/vue/24/outline'")
-    expect(pageSource.match(/<svg/g) || []).toHaveLength(1)
+    // The brand glyph is gone from the page: the header paints no icon.
+    expect(pageSource.match(/<svg/g) || []).toHaveLength(0)
 
     expect(rowSource).toContain("'@heroicons/vue/24/outline'")
     expect(rowSource.match(/<svg/g) || []).toHaveLength(0)
 
     // The icons must actually render (imported components get registered).
     const wrapper = await mountPage()
-    const hero = wrapper.find('[data-patients-hero]')
-    expect(hero.find('[data-new-patient-button] svg').exists()).toBe(true)
-    expect(hero.find('[data-back-button] svg').exists()).toBe(true)
+    const header = wrapper.find('[data-page-header]')
+    expect(header.find('[data-new-patient-button] svg').exists()).toBe(true)
+    expect(header.find('[data-refresh-patients] svg').exists()).toBe(true)
     const searchInput = wrapper.find(
-      'input[placeholder="Buscar por nombre, DNI, teléfono o email..."]'
+      'input[placeholder="Buscar por nombre, DNI o email"]'
     )
     expect(searchInput.exists()).toBe(true)
     expect(wrapper.find('[data-patient-surface="cards"] [data-patient-row] svg').exists()).toBe(

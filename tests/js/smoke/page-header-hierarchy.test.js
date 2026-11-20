@@ -154,16 +154,24 @@ beforeEach(() => {
 })
 
 describe('PageHeader heading hierarchy (issue #164)', () => {
-  it('keeps the topbar h1 as the only document heading and renders the page title as h2', async () => {
+  it('renders the page title as the single visible h1 and keeps the topbar heading hidden', async () => {
     const wrapper = await mountPage()
 
-    expect(wrapper.findAll('[data-app-chrome="topbar"] h1')).toHaveLength(1)
-    expect(wrapper.findAll('h1')).toHaveLength(1)
+    const topbarHeading = wrapper.find('[data-app-chrome="topbar"] h1')
+    expect(topbarHeading.exists()).toBe(true)
+    expect(topbarHeading.classes()).toContain('sr-only')
 
     const pageTitle = wrapper.find('.page-header .page-title')
     expect(pageTitle.exists(), 'PageHeader must keep its .page-title element').toBe(true)
-    expect(pageTitle.element.tagName).toBe('H2')
+    expect(pageTitle.element.tagName).toBe('H1')
     expect(pageTitle.text()).toBe('Ambientes')
+
+    // One visible document heading: the shared page header's.
+    const visibleHeadings = wrapper
+      .findAll('h1')
+      .filter(heading => !heading.classes().includes('sr-only'))
+    expect(visibleHeadings).toHaveLength(1)
+    expect(visibleHeadings[0].element).toBe(pageTitle.element)
 
     wrapper.unmount()
   })
@@ -199,12 +207,17 @@ describe('detail route heading hierarchy (issue #243)', () => {
     }
   )
 
-  it('keeps the single topbar h1 on a shell-owned route', async () => {
+  it('keeps the page header as the visible heading on a titled route', async () => {
     const wrapper = await mountPage()
 
     expect(topbar(wrapper).attributes('data-topbar-title-owner')).toBe('page')
-    expect(wrapper.findAll('h1')).toHaveLength(1)
     expect(topbar(wrapper).find('h1').classes()).toContain('sr-only')
+
+    const visibleHeadings = wrapper
+      .findAll('h1')
+      .filter(heading => !heading.classes().includes('sr-only'))
+    expect(visibleHeadings).toHaveLength(1)
+    expect(visibleHeadings[0].text()).toBe('Ambientes')
 
     wrapper.unmount()
   })

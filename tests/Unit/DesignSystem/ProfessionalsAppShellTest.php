@@ -274,29 +274,40 @@ class ProfessionalsAppShellTest extends TestCase
     }
 
     /**
-     * T3 (D4) — hero band: data-professionals-hero hook, neutral canvas
-     * surface, no mint/green wash anywhere in the page.
+     * T3 (D4) — the page header is the shared component: the canonical palette
+     * rule (canvas panel, no mint wash) lives in PageHeader, so the page mounts
+     * it instead of painting a hero band of its own.
      */
-    public function test_hero_band_hook_uses_canvas_surface_without_mint(): void
+    public function test_page_header_is_the_shared_component(): void
     {
         $src = self::readSource(self::projectRootPath().self::PAGE_FILES[0]);
 
-        self::assertStringContainsString(
+        $this->assertMatchesRegularExpression(
+            "/import\s+PageHeader\s+from\s+['\"][^'\"]*components\/layout\/PageHeader\.vue['\"]/",
+            $src,
+            'ProfessionalsPage.vue must import the shared PageHeader.'
+        );
+        $this->assertStringContainsString(
+            '<PageHeader',
+            $src,
+            'ProfessionalsPage.vue must mount the shared PageHeader.'
+        );
+        $this->assertStringContainsString(
+            'kicker="Profesionales"',
+            $src,
+            'ProfessionalsPage.vue must declare its kicker.'
+        );
+        $this->assertStringNotContainsString(
             'data-professionals-hero',
             $src,
-            'ProfessionalsPage.vue must expose the data-professionals-hero hook (D4 hero band).'
+            'ProfessionalsPage.vue must not keep the retired hero hook.'
         );
-        self::assertStringContainsString(
-            'var(--color-canvas)',
-            $src,
-            'ProfessionalsPage.vue hero must sit on var(--color-canvas) (D4: neutral surface, user direction: no mint tint).'
-        );
-        self::assertStringNotContainsString(
+        $this->assertStringNotContainsString(
             'bg-accent-50',
             $src,
             'ProfessionalsPage.vue must not use bg-accent-50 (D4: neutral canvas, no mint surfaces).'
         );
-        self::assertStringNotContainsString(
+        $this->assertStringNotContainsString(
             'mint',
             $src,
             'ProfessionalsPage.vue must not introduce mint surfaces (D4: neutral canvas only).'
@@ -449,27 +460,33 @@ class ProfessionalsAppShellTest extends TestCase
     }
 
     /**
-     * T4 (D7) — one empty-state pattern: UiSectionEmpty imported and
-     * used; the bare inline-SVG empty state is gone.
+     * T4 (D7) — one empty-state pattern for the table: `UiEmptyState` owns the
+     * list's empty (and its filtered variant), and the bare inline-SVG empty
+     * state stays dead.
      */
-    public function test_professionals_page_uses_dashboard_section_empty(): void
+    public function test_professionals_page_uses_the_shared_empty_state(): void
     {
         $src = self::readSource(self::projectRootPath().self::PAGE_FILES[0]);
 
         self::assertMatchesRegularExpression(
-            "/from\\s*['\"]\\.\\.\\/\\.\\.\\/components\\/ui\\/UiSectionEmpty\\.vue['\"]/",
+            "/from\s*['\"]\.\.\/\.\.\/components\/ui\/EmptyState\.vue['\"]/",
             $src,
-            'ProfessionalsPage.vue must import UiSectionEmpty (D7: one empty-state pattern, reuse by import only; quote style is irrelevant).'
+            'ProfessionalsPage.vue must import UiEmptyState (D7: one empty-state pattern, reuse by import only; quote style is irrelevant).'
         );
         self::assertStringContainsString(
+            '<UiEmptyState',
+            $src,
+            'ProfessionalsPage.vue must render UiEmptyState for the table empties (D7).'
+        );
+        self::assertStringNotContainsString(
             '<UiSectionEmpty',
             $src,
-            'ProfessionalsPage.vue must render UiSectionEmpty for its empty states (D7).'
+            'The table empty is not a section empty: UiSectionEmpty is reserved for sections inside a page.'
         );
         self::assertStringNotContainsString(
             'M16 7a4 4 0 11-8 0',
             $src,
-            'ProfessionalsPage.vue must drop the bare inline-SVG empty state (D7: UiSectionEmpty owns the dental motif).'
+            'ProfessionalsPage.vue must drop the bare inline-SVG empty state (D7).'
         );
     }
 

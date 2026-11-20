@@ -76,7 +76,7 @@ const mountPage = async () => {
 }
 
 const searchInput = wrapper =>
-  wrapper.find('input[placeholder="Buscar por nombre, DNI, teléfono o email..."]')
+  wrapper.find('input[placeholder="Buscar por nombre, DNI o email"]')
 
 const selectByOptionValue = (wrapper, value) =>
   wrapper

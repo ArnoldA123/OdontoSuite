@@ -39,14 +39,14 @@ export const APPOINTMENT_STATUSES = {
     tone: 'bg-systemGreen-50 text-systemGreen-700'
   },
   in_consultation: {
-    label: 'En Consulta',
+    label: 'En consulta',
     badgeVariant: 'warning',
     showDot: true,
     chip: 'border-systemYellow-200 bg-systemYellow-50',
     tone: 'bg-systemYellow-50 text-systemYellow-700'
   },
   in_progress: {
-    label: 'En Consulta',
+    label: 'En consulta',
     badgeVariant: 'warning',
     showDot: true,
     chip: 'border-systemYellow-200 bg-systemYellow-50',

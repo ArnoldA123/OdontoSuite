@@ -36,13 +36,13 @@ namespace Tests\Unit\DesignSystem;
  *     relations guarded by `?.`;
  *   - actions — one `data-calendar-action` hook per action:
  *     `edit`, `delete`, `status-confirmed`, `status-cancelled`, `check-in`,
- *     `announce`, `start-attention`, `complete-consultation`, each wired to
- *     its existing handler on the SAME button tag, permission gates verbatim
- *     (custody split, #281: `check-in` marks the arrival, `announce` notifies
- *     the professional, `start-attention` hands the act over to the clinic);
+ *     `announce`, `my-day`, each wired to its existing handler on the SAME
+ *     tag, permission gates verbatim (custody split, #281: `check-in` marks
+ *     the arrival, `announce` notifies the professional; U3: `my-day` is the
+ *     bridge to the clinical desk);
  *   - behaviour pins — `selectAppointment` → selection, `changeStatus` →
  *     PATCH `/status`, `deleteAppointment` → `useConfirm` before `del(...)`,
- *     and the consultation wizard entry points stay untouched.
+ *     and the consultation wizard stays out of the calendar (U3).
  *
  * The behaviour itself is exercised end-to-end by the smoke suite
  * (tests/js/smoke/appointments.test.js — "T7 details modal smoke").
@@ -268,8 +268,8 @@ class CitasCalendarDetailsModalTest extends ModuleAppShellTestCase
         $cancelled = self::actionTagAttributes($slice, 'status-cancelled');
         $this->assertStringContainsString('@click="changeStatus(selectedAppointment, \'cancelled\')"', $cancelled, sprintf('%s "Cancelar Cita" MUST call `changeStatus(..., \'cancelled\')` (behaviour contract preserved).', self::CALENDAR_PATH));
 
-        // Custody actions (#281): arrival, announcement and attention start
-        // are three separate doors, each with its own permission gate.
+        // Custody actions (#281): arrival and announcement stay on the
+        // scheduling desk, each with its own permission gate.
         $checkIn = self::actionTagAttributes($slice, 'check-in');
         $this->assertStringContainsString('can.checkInAppointment?.value', $checkIn, sprintf('%s "Marcar llegada" MUST gate on `can.checkInAppointment?.value` (S1).', self::CALENDAR_PATH));
         $this->assertStringContainsString('@click="markArrival(selectedAppointment)"', $checkIn, sprintf('%s "Marcar llegada" MUST call `markArrival(selectedAppointment)` — POST /appointments/{id}/check-in (S1).', self::CALENDAR_PATH));
@@ -278,12 +278,18 @@ class CitasCalendarDetailsModalTest extends ModuleAppShellTestCase
         $this->assertStringContainsString('can.announcePatient?.value', $announce, sprintf('%s "Anunciar paciente" MUST gate on `can.announcePatient?.value` (S2).', self::CALENDAR_PATH));
         $this->assertStringContainsString('@click="announcePatient(selectedAppointment)"', $announce, sprintf('%s "Anunciar paciente" MUST call `announcePatient(selectedAppointment)` — POST /appointments/{id}/announce (S2).', self::CALENDAR_PATH));
 
-        $startAttention = self::actionTagAttributes($slice, 'start-attention');
-        $this->assertStringContainsString('can.startConsultation?.value', $startAttention, sprintf('%s "Iniciar atención" MUST gate on `can.startConsultation?.value` (clinical roles only, S5).', self::CALENDAR_PATH));
-        $this->assertStringContainsString('@click="startAttention(selectedAppointment)"', $startAttention, sprintf('%s "Iniciar atención" MUST call `startAttention(selectedAppointment)` — POST /appointments/{id}/start-attention (S5).', self::CALENDAR_PATH));
-
-        $complete = self::actionTagAttributes($slice, 'complete-consultation');
-        $this->assertStringContainsString('@click="openConsultationWizard(selectedAppointment)"', $complete, sprintf('%s "Completar Consulta" MUST stay wired to `openConsultationWizard(selectedAppointment)` (T7: wizard entry untouched).', self::CALENDAR_PATH));
+        // U3: the clinical act moved to /my-day. The details surface never
+        // starts or continues a consultation; it bridges a session that can
+        // read My Day to the desk that owns the attention.
+        $bridgePattern = '#<RouterLink\b(?=[^>]*data-calendar-action="my-day")([^>]*)>\s*Ir a mi jornada\s*</RouterLink>#s';
+        $this->assertSame(
+            1,
+            preg_match($bridgePattern, $slice, $matches),
+            sprintf('%s details MUST publish one `<RouterLink data-calendar-action="my-day">Ir a mi jornada</RouterLink>` (U3).', self::CALENDAR_PATH)
+        );
+        $bridge = $matches[1];
+        $this->assertStringContainsString('v-if="can.viewMyDay?.value"', $bridge, sprintf('%s "Ir a mi jornada" MUST gate on `can.viewMyDay?.value` (U3: the permission `/api/my-day` demands).', self::CALENDAR_PATH));
+        $this->assertStringContainsString('to="/my-day"', $bridge, sprintf('%s "Ir a mi jornada" MUST navigate to `/my-day` (U3).', self::CALENDAR_PATH));
     }
 
     /**

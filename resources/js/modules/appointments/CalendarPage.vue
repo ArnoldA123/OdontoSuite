@@ -1,196 +1,173 @@
 <template>
   <AppLayout>
-    <!-- Hero band: dashboard hero grammar (canvas + hairline + radius-panel + elevation-2) -->
-    <header
-      data-calendar-shell="hero"
-      class="relative overflow-hidden p-6 md:p-8"
-      style="
-        background: var(--color-canvas);
-        border: 1px solid var(--color-hairline);
-        border-radius: var(--radius-panel);
-        box-shadow: var(--elevation-2);
-      "
-    >
-      <DentalMotifLayer variant="hero" data-calendar-motif />
-      <div class="relative flex items-start justify-between gap-3">
-        <p class="text-xs font-semibold uppercase tracking-widest text-theme-secondary">Agenda</p>
-        <span
-          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-systemGreen-50 text-systemGreen-700 text-xs font-medium"
-          aria-label="Actualizaciones en tiempo real activas"
-          title="Actualizaciones en tiempo real activas"
+    <!-- Canonical page header: kicker, period title, caption and the page
+         actions on the right. The calendar toolbar (view switcher and period
+         navigation) lives on its own row below, outside the header. -->
+    <PageHeader kicker="Agenda" :title="currentPeriodTitle" :subtitle="loadedAppointmentsCaption">
+      <template #actions>
+        <UiButton
+          variant="secondary"
+          data-calendar-action="refresh"
+          :disabled="loading"
+          @click="loadAppointments"
         >
-          <span
-            class="w-2 h-2 rounded-full bg-systemGreen-500 animate-pulse-subtle"
-            aria-hidden="true"
-          />
-          En vivo
-        </span>
-      </div>
-      <p class="relative mt-3 text-4xl font-semibold text-label">
-        {{ currentPeriodTitle }}
-      </p>
-      <p
-        class="relative mt-2 text-base leading-relaxed text-theme-secondary"
-        style="
-          font-feature-settings:
-            'tnum' 1,
-            'lnum' 1;
-        "
-      >
-        {{ loadedAppointmentsCaption }}
-      </p>
-      <div class="relative mt-6 flex flex-wrap items-center gap-3">
-        <div
-          class="inline-flex items-center gap-1 rounded-full border border-hairline bg-theme-surface-elevated p-1"
-          role="group"
-          aria-label="Vista del calendario"
-          data-calendar-view-switcher
+          <template #icon-left>
+            <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+          Actualizar
+        </UiButton>
+        <UiButton
+          v-if="can.createAppointment?.value"
+          data-calendar-action="new-appointment"
+          @click="openNewAppointmentModal"
         >
-          <UiButton
-            size="sm"
-            :variant="currentView === 'day' ? 'primary' : 'ghost'"
-            :aria-pressed="currentView === 'day'"
-            data-calendar-view="day"
-            @click="changeView('day')"
-          >
-            Día
-          </UiButton>
-          <UiButton
-            size="sm"
-            :variant="currentView === 'week' ? 'primary' : 'ghost'"
-            :aria-pressed="currentView === 'week'"
-            data-calendar-view="week"
-            @click="changeView('week')"
-          >
-            Semana
-          </UiButton>
-          <UiButton
-            size="sm"
-            :variant="currentView === 'month' ? 'primary' : 'ghost'"
-            :aria-pressed="currentView === 'month'"
-            data-calendar-view="month"
-            @click="changeView('month')"
-          >
-            Mes
-          </UiButton>
-        </div>
-        <div class="inline-flex items-center gap-1">
-          <UiButton
-            variant="ghost"
-            size="sm"
-            aria-label="Periodo anterior"
-            data-calendar-nav="prev"
-            @click="previousPeriod"
-          >
-            <template #icon-left>
-              <ChevronLeftIcon class="w-4 h-4" aria-hidden="true" />
-            </template>
-          </UiButton>
-          <UiButton variant="ghost" size="sm" data-calendar-nav="today" @click="goToToday">
-            Hoy
-          </UiButton>
-          <UiButton
-            variant="ghost"
-            size="sm"
-            aria-label="Periodo siguiente"
-            data-calendar-nav="next"
-            @click="nextPeriod"
-          >
-            <template #icon-left>
-              <ChevronRightIcon class="w-4 h-4" aria-hidden="true" />
-            </template>
-          </UiButton>
-        </div>
-        <div class="flex items-center gap-3 sm:ml-auto">
-          <UiButton variant="secondary" size="sm" data-calendar-action="back" @click="goBack">
-            <template #icon-left>
-              <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
-            </template>
-            Volver
-          </UiButton>
-          <UiButton
-            v-if="can.createAppointment?.value"
-            data-calendar-action="new-appointment"
-            @click="openNewAppointmentModal"
-          >
-            <template #icon-left>
-              <PlusIcon class="w-4 h-4" aria-hidden="true" />
-            </template>
-            Nueva cita
-          </UiButton>
-        </div>
-      </div>
+          <template #icon-left>
+            <PlusIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+          Nueva cita
+        </UiButton>
+      </template>
+    </PageHeader>
 
-      <!-- #395 S5: la agenda acota por profesional, sillón y sede sobre la
+    <div class="mt-4 flex flex-wrap items-center gap-3" data-calendar-toolbar>
+      <div
+        class="inline-flex items-center gap-1 rounded-full border border-hairline bg-theme-surface-elevated p-1"
+        role="group"
+        aria-label="Vista del calendario"
+        data-calendar-view-switcher
+      >
+        <UiButton
+          size="sm"
+          :variant="currentView === 'day' ? 'primary' : 'ghost'"
+          :aria-pressed="currentView === 'day'"
+          data-calendar-view="day"
+          @click="changeView('day')"
+        >
+          Día
+        </UiButton>
+        <UiButton
+          size="sm"
+          :variant="currentView === 'week' ? 'primary' : 'ghost'"
+          :aria-pressed="currentView === 'week'"
+          data-calendar-view="week"
+          @click="changeView('week')"
+        >
+          Semana
+        </UiButton>
+        <UiButton
+          size="sm"
+          :variant="currentView === 'month' ? 'primary' : 'ghost'"
+          :aria-pressed="currentView === 'month'"
+          data-calendar-view="month"
+          @click="changeView('month')"
+        >
+          Mes
+        </UiButton>
+      </div>
+      <div class="inline-flex items-center gap-1">
+        <UiButton
+          variant="secondary"
+          size="sm"
+          aria-label="Periodo anterior"
+          data-calendar-nav="prev"
+          @click="previousPeriod"
+        >
+          <template #icon-left>
+            <ChevronLeftIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+        </UiButton>
+        <UiButton variant="secondary" size="sm" data-calendar-nav="today" @click="goToToday">
+          Hoy
+        </UiButton>
+        <UiButton
+          variant="secondary"
+          size="sm"
+          aria-label="Periodo siguiente"
+          data-calendar-nav="next"
+          @click="nextPeriod"
+        >
+          <template #icon-left>
+            <ChevronRightIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+        </UiButton>
+      </div>
+      <span
+        class="inline-flex items-center gap-2 rounded-full bg-systemGreen-50 px-3 py-1.5 text-xs font-medium text-systemGreen-700 sm:ml-auto"
+        aria-label="Actualizaciones en tiempo real activas"
+        title="Actualizaciones en tiempo real activas"
+      >
+        <span
+          class="w-2 h-2 rounded-full bg-systemGreen-500 animate-pulse-subtle"
+          aria-hidden="true"
+        />
+        En vivo
+      </span>
+    </div>
+
+    <!-- #395 S5: la agenda acota por profesional, sillón y sede sobre la
            misma lectura del rango. Cada filtro sólo aparece si su población se
            puede leer: un lookup caído oculta su filtro, nunca rompe la página. -->
-      <UiFilterBar
-        v-if="hasVisibleFilters"
-        :columns="4"
-        data-calendar-filters
-        class="relative mt-4"
-      >
-        <div v-if="showProfessionalFilter">
-          <label
-            for="calendar-filter-professional"
-            class="mb-1 block text-xs font-medium text-theme-secondary"
-          >
-            Profesional
-          </label>
-          <UiSelect
-            id="calendar-filter-professional"
-            data-calendar-filter="professional"
-            size="sm"
-            placeholder="Todos los profesionales"
-            :model-value="filters.user_id"
-            :options="professionalOptions"
-            @update:model-value="value => setFilter('user_id', value)"
-          />
-        </div>
-        <div v-if="showChairFilter">
-          <label
-            for="calendar-filter-chair"
-            class="mb-1 block text-xs font-medium text-theme-secondary"
-          >
-            Sillón
-          </label>
-          <UiSelect
-            id="calendar-filter-chair"
-            data-calendar-filter="chair"
-            size="sm"
-            placeholder="Todos los sillones"
-            :model-value="filters.dental_chair_id"
-            :options="chairOptions"
-            @update:model-value="value => setFilter('dental_chair_id', value)"
-          />
-        </div>
-        <div v-if="showBranchFilter">
-          <label
-            for="calendar-filter-branch"
-            class="mb-1 block text-xs font-medium text-theme-secondary"
-          >
-            Sede
-          </label>
-          <UiSelect
-            id="calendar-filter-branch"
-            data-calendar-filter="branch"
-            size="sm"
-            placeholder="Todas las sedes"
-            :model-value="filters.branch_id"
-            :options="branchOptions"
-            @update:model-value="value => setFilter('branch_id', value)"
-          />
-        </div>
-        <div v-if="hasActiveFilters" class="flex items-end">
-          <UiButton variant="ghost" size="sm" data-calendar-clear-filters @click="clearFilters">
-            <template #icon-left>
-              <XMarkIcon class="w-4 h-4" aria-hidden="true" />
-            </template>
-            Limpiar filtros
-          </UiButton>
-        </div>
-      </UiFilterBar>
-    </header>
+    <UiFilterBar v-if="hasVisibleFilters" :columns="4" data-calendar-filters class="mt-4">
+      <div v-if="showProfessionalFilter">
+        <label
+          for="calendar-filter-professional"
+          class="mb-1 block text-xs font-medium text-theme-secondary"
+        >
+          Profesional
+        </label>
+        <UiSelect
+          id="calendar-filter-professional"
+          data-calendar-filter="professional"
+          size="sm"
+          placeholder="Todos los profesionales"
+          :model-value="filters.user_id"
+          :options="professionalOptions"
+          @update:model-value="value => setFilter('user_id', value)"
+        />
+      </div>
+      <div v-if="showChairFilter">
+        <label
+          for="calendar-filter-chair"
+          class="mb-1 block text-xs font-medium text-theme-secondary"
+        >
+          Sillón
+        </label>
+        <UiSelect
+          id="calendar-filter-chair"
+          data-calendar-filter="chair"
+          size="sm"
+          placeholder="Todos los sillones"
+          :model-value="filters.dental_chair_id"
+          :options="chairOptions"
+          @update:model-value="value => setFilter('dental_chair_id', value)"
+        />
+      </div>
+      <div v-if="showBranchFilter">
+        <label
+          for="calendar-filter-branch"
+          class="mb-1 block text-xs font-medium text-theme-secondary"
+        >
+          Sede
+        </label>
+        <UiSelect
+          id="calendar-filter-branch"
+          data-calendar-filter="branch"
+          size="sm"
+          placeholder="Todas las sedes"
+          :model-value="filters.branch_id"
+          :options="branchOptions"
+          @update:model-value="value => setFilter('branch_id', value)"
+        />
+      </div>
+      <div v-if="hasActiveFilters" class="flex items-end">
+        <UiButton variant="ghost" size="sm" data-calendar-clear-filters @click="clearFilters">
+          <template #icon-left>
+            <XMarkIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+          Limpiar filtros
+        </UiButton>
+      </div>
+    </UiFilterBar>
 
     <!-- Calendar Content: quiet surface (canvas + hairline + radius-panel + elevation-2) -->
     <section
@@ -257,7 +234,6 @@
           border-radius: var(--radius-panel);
         "
       >
-        <DentalMotifLayer variant="box" data-calendar-empty-motif />
         <div class="relative">
           <CalendarDaysIcon class="mx-auto mb-3 h-8 w-8 text-theme-secondary" aria-hidden="true" />
           <p class="text-sm font-medium text-theme-primary">{{ emptyStateCopy.title }}</p>
@@ -692,26 +668,14 @@
           >
             Anunciar paciente
           </UiButton>
-          <UiButton
-            v-if="can.startConsultation?.value && selectedAppointment.status === 'arrived'"
-            size="sm"
-            variant="secondary"
-            data-calendar-action="start-attention"
-            @click="startAttention(selectedAppointment)"
+          <RouterLink
+            v-if="can.viewMyDay?.value"
+            to="/my-day"
+            data-calendar-action="my-day"
+            class="inline-flex items-center rounded-ios px-3 py-2 text-sm font-medium text-systemBlue-600 transition-colors hover:text-systemBlue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2"
           >
-            Iniciar atención
-          </UiButton>
-          <UiButton
-            v-if="
-              can.completeConsultation?.value && selectedAppointment.status === 'in_consultation'
-            "
-            size="sm"
-            variant="primary"
-            data-calendar-action="complete-consultation"
-            @click="openConsultationWizard(selectedAppointment)"
-          >
-            Completar Consulta
-          </UiButton>
+            Ir a mi jornada
+          </RouterLink>
           <UiButton
             v-if="!['cancelled', 'completed'].includes(selectedAppointment.status)"
             size="sm"
@@ -811,24 +775,18 @@
       @created="handleAppointmentSaved"
       @updated="handleAppointmentSaved"
     />
-
-    <ConsultationWizard
-      :appointment="wizardAppointment"
-      @completed="onConsultationCompleted"
-      @close="wizardAppointment = null"
-    />
   </AppLayout>
 </template>
 
 <script>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import AppLayout from '../../components/layout/AppLayout.vue'
+import PageHeader from '../../components/layout/PageHeader.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
@@ -836,9 +794,8 @@ import UiModal from '../../components/ui/Modal.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiFilterBar from '../../components/ui/FilterBar.vue'
-import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import {
-  ArrowLeftIcon,
+  ArrowPathIcon,
   CalendarDaysIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -847,7 +804,6 @@ import {
   XMarkIcon
 } from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
-import ConsultationWizard from './ConsultationWizard.vue'
 import { useConsultation } from '../../composables/useConsultation'
 import { useConfirm } from '../../composables/useConfirm'
 import {
@@ -888,6 +844,7 @@ export default {
   name: 'CalendarPage',
   components: {
     AppLayout,
+    PageHeader,
     UiButton,
     UiBadge,
     UiStatusBadge,
@@ -895,19 +852,16 @@ export default {
     UiInput,
     UiSelect,
     UiFilterBar,
-    DentalMotifLayer,
-    ArrowLeftIcon,
+    ArrowPathIcon,
     CalendarDaysIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
     ExclamationTriangleIcon,
     PlusIcon,
     XMarkIcon,
-    NewAppointmentModal,
-    ConsultationWizard
+    NewAppointmentModal
   },
   setup() {
-    const router = useRouter()
     const { get, del, patch, normalizeError } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
@@ -938,13 +892,7 @@ export default {
     const filterAvailability = ref({ professional: false, chair: false, branch: false })
     const selectedAppointment = ref(null)
     const showNewAppointmentModal = ref(false)
-    const wizardAppointment = ref(null)
-    const {
-      markArrival: requestArrival,
-      announcePatient: requestAnnouncement,
-      startAttention: requestAttention,
-      openForAppointment
-    } = useConsultation()
+    const { markArrival: requestArrival, announcePatient: requestAnnouncement } = useConsultation()
 
     const runCustodyAction = async (request, appointment) => {
       try {
@@ -958,27 +906,7 @@ export default {
 
     const markArrival = appointment => runCustodyAction(requestArrival, appointment)
     const announcePatient = appointment => runCustodyAction(requestAnnouncement, appointment)
-    const startAttention = appointment => runCustodyAction(requestAttention, appointment)
 
-    const openConsultationWizard = async appointment => {
-      // #280: closing a consultation writes clinical records. The backend
-      // answers 403 without `complete.appointment`; do not offer the flow.
-      if (!can.completeConsultation?.value) {
-        toast.error('No tienes permisos para completar la consulta')
-        return
-      }
-      wizardAppointment.value = appointment
-      selectedAppointment.value = null
-      await openForAppointment(appointment)
-    }
-
-    const onConsultationCompleted = async payload => {
-      wizardAppointment.value = null
-      if (payload?.quotation_generated && payload?.quotation) {
-        toast.info(`Cotización ${payload.quotation.quotation_number} lista en /quotations`, 6000)
-      }
-      await loadAppointments()
-    }
     const editingAppointment = ref(null)
     const newAppointmentPrefill = ref(null)
 
@@ -1721,10 +1649,6 @@ export default {
       })
     }
 
-    const goBack = () => {
-      router.back()
-    }
-
     // Método para manejar evento de cita creada
     // WebSocket subscriptions
     let appointmentsChannel = null
@@ -1802,14 +1726,10 @@ export default {
       appointments,
       selectedAppointment,
       showNewAppointmentModal,
-      wizardAppointment,
       editingAppointment,
       openNewAppointmentModal,
       markArrival,
       announcePatient,
-      startAttention,
-      openConsultationWizard,
-      onConsultationCompleted,
       dayHours,
       weekHours,
       weekDayNames,
@@ -1878,7 +1798,6 @@ export default {
       getAppointmentLabel,
       formatHour,
       formatDateTime,
-      goBack,
       getInitialDateForModal,
       handleAppointmentSaved,
       toLocalDateString,

@@ -187,8 +187,8 @@ describe('ui manifest · navigation and shell', () => {
       expect(item.unresolvedPermissions).toEqual([])
     }
 
-    expect(manifest.navigation.find(item => item.name === 'Bloqueo Contable')).toEqual({
-      name: 'Bloqueo Contable',
+    expect(manifest.navigation.find(item => item.name === 'Bloqueo contable')).toEqual({
+      name: 'Bloqueo contable',
       to: '/settings/accounting-locks',
       roles: ['administrador'],
       permissions: ['manageAccountingLock'],

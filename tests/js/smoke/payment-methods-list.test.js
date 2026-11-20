@@ -167,7 +167,7 @@ describe('payment methods list smoke', () => {
 
     const hero = wrapper.find('[data-pm-hero]')
     expect(hero.exists()).toBe(true)
-    expect(hero.find('h2').text()).toBe('Métodos de Pago')
+    expect(hero.find('h2').text()).toBe('Métodos de pago')
     expect(hero.text()).toContain('Configuración')
     expect(hero.text()).toContain('Gestiona los métodos con los que la clínica registra cobros')
     expect(hero.text()).toContain('Volver')

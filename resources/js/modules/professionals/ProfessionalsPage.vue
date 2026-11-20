@@ -1,63 +1,35 @@
 <template>
   <AppLayout>
     <!--
-      Hero band (D4): same anatomy as the dashboard hero (brand lockup +
-      DentalMotifLayer variant="hero" + canvas surface with hairline and
-      elevation rung). One primary CTA lives here; the caption "Gestión de
-      profesionales" stays owned by AppLayout and is never repeated below.
+      Canonical page header: one component, one anatomy. Kicker names the
+      surface, the primary CTA and the shared update action sit on the right.
     -->
-    <header
-      data-professionals-hero
-      class="relative overflow-hidden p-6 md:p-8 mb-6"
-      style="
-        background: var(--color-canvas);
-        border: 1px solid var(--color-hairline);
-        border-radius: var(--radius-panel);
-        box-shadow: var(--elevation-2);
-      "
+    <PageHeader
+      kicker="Profesionales"
+      title="Profesionales"
+      subtitle="Odontólogos, implantólogos, técnicos y asistentes"
+      class="mb-6"
     >
-      <DentalMotifLayer variant="hero" />
-      <div class="relative flex items-center justify-between gap-3">
-        <p class="inline-flex items-center gap-2">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.75"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            style="color: var(--color-accent-500)"
-            aria-hidden="true"
-          >
-            <path
-              d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
-            />
-          </svg>
-          <span class="text-sm font-semibold tracking-tight text-label">OdontoSuite</span>
-        </p>
-        <div v-if="can.manageUsers.value" class="flex items-center gap-3">
-          <UiButton @click="openCreateModal">
-            <template #icon-left>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-            </template>
-            Nuevo Profesional
-          </UiButton>
-        </div>
-      </div>
-      <p class="relative mt-3 text-4xl font-semibold text-label">Profesionales</p>
-      <p class="relative mt-2 text-base leading-relaxed text-theme-secondary">
-        Odontólogos, implantólogos, técnicos dentales y asistentes del equipo clínico.
-      </p>
-    </header>
+      <template #actions>
+        <UiButton
+          variant="secondary"
+          data-refresh-professionals
+          :disabled="loading"
+          @click="loadProfessionals"
+        >
+          <template #icon-left>
+            <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+          Actualizar
+        </UiButton>
+        <UiButton v-if="can.manageUsers.value" data-new-professional @click="openCreateModal">
+          <template #icon-left>
+            <PlusIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+          Nuevo profesional
+        </UiButton>
+      </template>
+    </PageHeader>
 
     <!--
       Team KPI strip (D3): four counters derived from the same collection the
@@ -200,8 +172,15 @@
             </template>
           </UiInput>
         </div>
-        <div class="flex items-end">
+        <div>
+          <label
+            for="professionals-filter-specialty"
+            class="mb-1 block text-xs font-medium text-theme-secondary"
+          >
+            Especialidad
+          </label>
           <UiSelect
+            id="professionals-filter-specialty"
             v-model="specialtyFilter"
             data-professionals-specialty-filter
             :options="specialtyFilterOptions"
@@ -262,21 +241,23 @@
         </div>
 
         <div v-else-if="showEmptyTeam" class="p-8">
-          <UiSectionEmpty
+          <UiEmptyState
             title="Sin profesionales registrados"
             description="Aún no hay nadie en el equipo clínico."
           />
         </div>
 
         <div v-else-if="showEmptyResults" class="p-8">
-          <UiSectionEmpty
+          <UiEmptyState
             title="Sin resultados"
             description="Ningún profesional coincide con los filtros activos."
           >
-            <UiButton variant="secondary" size="sm" data-team-clear-filters @click="clearFilters">
-              Limpiar filtros
-            </UiButton>
-          </UiSectionEmpty>
+            <template #action>
+              <UiButton variant="secondary" size="sm" data-team-clear-filters @click="clearFilters">
+                Limpiar filtros
+              </UiButton>
+            </template>
+          </UiEmptyState>
         </div>
 
         <!--
@@ -299,21 +280,11 @@
         >
           <template #cell-name="{ row }">
             <div class="flex items-center">
-              <div class="flex-shrink-0 h-10 w-10">
-                <div
-                  class="h-10 w-10 rounded-full bg-theme-surface flex items-center justify-center"
-                  style="border: 1px solid var(--color-hairline)"
-                >
-                  <span class="text-sm font-medium text-accent">
-                    {{ row.name.charAt(0) }}
-                  </span>
-                </div>
-              </div>
-              <div class="ml-4 min-w-0 w-[220px]">
+              <div class="min-w-0">
                 <div class="text-sm font-medium text-[color:var(--color-text-primary)] truncate">
                   {{ row.name }}
                 </div>
-                <div class="text-sm text-theme-secondary truncate">
+                <div class="text-xs text-theme-secondary truncate">
                   {{ secondaryLine(row) }}
                 </div>
               </div>
@@ -340,25 +311,27 @@
             </span>
           </template>
           <template #cell-status="{ row }">
-            <UiBadge :variant="row.is_active ? 'success' : 'error'" size="sm" shape="pill">
-              {{ row.is_active ? 'Activo' : 'Inactivo' }}
-            </UiBadge>
+            <UiStatusBadge
+              :variant="rowStatusVariant(row.is_active)"
+              :label="row.is_active ? 'Activo' : 'Inactivo'"
+              size="sm"
+            />
           </template>
           <template #actions="{ row }">
-            <div class="flex flex-wrap gap-1.5">
+            <div class="flex flex-nowrap items-center gap-1.5">
               <UiButton
                 variant="ghost"
                 size="sm"
-                class="text-accent hover:text-accent-hover"
+                :class="ROW_ACTION_PALETTE.view.classes"
                 @click="viewDetail(row)"
               >
-                Ver Detalle
+                Ver ficha
               </UiButton>
               <UiButton
                 v-if="can.manageUsers.value"
                 variant="ghost"
                 size="sm"
-                class="text-accent hover:text-primary-800"
+                :class="ROW_ACTION_PALETTE.edit.classes"
                 @click="editProfessional(row)"
               >
                 Editar
@@ -367,7 +340,7 @@
                 v-if="can.manageUsers.value"
                 variant="ghost"
                 size="sm"
-                class="text-red-600 hover:text-red-900"
+                :class="ROW_ACTION_PALETTE.delete.classes"
                 @click="deleteProfessional(row)"
               >
                 Eliminar
@@ -380,7 +353,7 @@
   </AppLayout>
 
   <!-- New Professional Modal -->
-  <UiModal v-model="showNewProfessionalModal" title="Nuevo Profesional" size="md">
+  <UiModal v-model="showNewProfessionalModal" title="Nuevo profesional" size="md">
     <form
       id="form-new-prof"
       class="space-y-4"
@@ -449,14 +422,19 @@
       <UiButton variant="secondary" :disabled="creating" @click="showNewProfessionalModal = false">
         Cancelar
       </UiButton>
-      <UiButton type="button" :loading="creating" @click="createProfessional">
+      <UiButton
+        type="button"
+        data-professionals-save-create
+        :loading="creating"
+        @click="createProfessional"
+      >
         Guardar profesional
       </UiButton>
     </template>
   </UiModal>
 
   <!-- Edit Professional Modal -->
-  <UiModal v-model="showEditProfessionalModal" title="Editar Profesional" size="md">
+  <UiModal v-model="showEditProfessionalModal" title="Editar profesional" size="md">
     <form
       v-if="editingProfessional"
       id="form-edit-prof"
@@ -524,7 +502,14 @@
       <UiButton variant="secondary" :disabled="updating" @click="showEditProfessionalModal = false">
         Cancelar
       </UiButton>
-      <UiButton type="button" :loading="updating" @click="updateProfessional">Actualizar</UiButton>
+      <UiButton
+        type="button"
+        data-professionals-save-edit
+        :loading="updating"
+        @click="updateProfessional"
+      >
+        Actualizar
+      </UiButton>
     </template>
   </UiModal>
 </template>
@@ -532,22 +517,25 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ArrowPathIcon, PlusIcon } from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import { useErrorHandler } from '../../composables/useErrorHandler'
 import { useConfirm } from '../../composables/useConfirm'
 import { usePermissions } from '../../composables/usePermissions'
+import { ROW_ACTION_PALETTE, rowStatusVariant } from '../../design-system/rowActionPalette'
 import AppLayout from '../../components/layout/AppLayout.vue'
+import PageHeader from '../../components/layout/PageHeader.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiBadge from '../../components/ui/Badge.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
 import UiFilterBar from '../../components/ui/FilterBar.vue'
 import UiModal from '../../components/ui/Modal.vue'
-import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
-import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
+import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'
 import {
   SPECIALTY_LABELS,
@@ -690,13 +678,13 @@ const professionals = computed(() => {
 })
 
 // #453: the columns of the team list. The API returns the whole clinical team
-// in one read (no pagination), so the primitive renders it as-is.
+// in one read (no pagination), so the primitive renders it as-is. Matrícula and
+// Sucursal left the list: every row rendered the same "N/D" and "Sin sucursal",
+// and the two columns pushed the row actions out of the viewport.
 const teamColumns = [
   { key: 'name', label: 'Profesional' },
   { key: 'specialty', label: 'Especialidad' },
   { key: 'role', label: 'Rol' },
-  { key: 'license', label: 'Matrícula' },
-  { key: 'branch', label: 'Sucursal' },
   { key: 'status', label: 'Estado' }
 ]
 

@@ -105,6 +105,9 @@ afterEach(() => {
 
 describe('topbar title ownership (issue #208)', () => {
   const pageOwnedRoutes = [
+    '/calendar',
+    '/dashboard',
+    '/professionals',
     '/specialties',
     '/appointment-types',
     '/settings/payment-methods',
@@ -140,7 +143,7 @@ describe('topbar title ownership (issue #208)', () => {
     wrapper.unmount()
   })
 
-  const shellOwnedRoutes = ['/calendar', '/dashboard', '/professionals', '/medical-records']
+  const shellOwnedRoutes = ['/medical-records']
 
   it.each(shellOwnedRoutes)('keeps the topbar title visible on %s', async path => {
     const wrapper = await mountShell(path)
@@ -225,17 +228,22 @@ describe('topbar title ownership (issue #208)', () => {
     wrapper.unmount()
   })
 
-  it('renders no competing title on a real hero page and keeps one h1', async () => {
+  it('renders no competing title on a real page and keeps one visible h1', async () => {
     const wrapper = await mountSpecialties()
 
-    expect(wrapper.findAll('h1')).toHaveLength(1)
     expect(topbarHeading(wrapper).classes()).toContain('sr-only')
 
-    const heroTitle = wrapper.find('[data-hero-title]')
-    expect(heroTitle.exists()).toBe(true)
-    expect(heroTitle.element.tagName).toBe('H2')
-    expect(heroTitle.text()).toBe('Especialidades')
-    expect(heroTitle.classes()).not.toContain('sr-only')
+    const pageTitle = wrapper.find('[data-page-header-title]')
+    expect(pageTitle.exists()).toBe(true)
+    expect(pageTitle.element.tagName).toBe('H1')
+    expect(pageTitle.text()).toBe('Especialidades')
+    expect(pageTitle.classes()).not.toContain('sr-only')
+
+    const visibleHeadings = wrapper
+      .findAll('h1')
+      .filter(heading => !heading.classes().includes('sr-only'))
+    expect(visibleHeadings).toHaveLength(1)
+    expect(visibleHeadings[0].element).toBe(pageTitle.element)
 
     wrapper.unmount()
   })

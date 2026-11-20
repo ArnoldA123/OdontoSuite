@@ -19,9 +19,8 @@ namespace Tests\Unit\DesignSystem;
  *      `v-else-if="appointments.length === 0"`, then the view bodies: the
  *      empty state can never render during a load (including the first
  *      paint, where `loading` now starts true);
- *   3) motif — the shared `<DentalMotifLayer variant="box">` (the same
- *      layer DashboardSectionEmpty renders) behind the copy, exposed for
- *      tests through `data-calendar-empty-motif`;
+ *   3) motif — the shared `<DentalMotifLayer variant="box">` behind the
+ *      copy, exposed for tests through `data-calendar-empty-motif`;
  *   4) copy — per-view (day/week/month) through the `emptyStateCopy`
  *      computed in the dashboard's D9 language: one short title + one
  *      precise sentence;
@@ -148,10 +147,10 @@ class CitasCalendarEmptyStateTest extends ModuleAppShellTestCase
 
     /**
      * T7 motif + copy — the block reuses the shared
-     * `<DentalMotifLayer variant="box">` behind the copy (the same layer
-     * DashboardSectionEmpty renders), and the copy is per-view through the
-     * `emptyStateCopy` computed in the dashboard's D9 language: one short
-     * title + one precise sentence for day, week and month.
+     * `<DentalMotifLayer variant="box">` behind the copy, and the copy is
+     * per-view through the `emptyStateCopy` computed in the dashboard's D9
+     * language: one short title + one precise sentence for day, week and
+     * month.
      */
     public function test_empty_block_motif_and_per_view_copy(): void
     {
@@ -159,14 +158,9 @@ class CitasCalendarEmptyStateTest extends ModuleAppShellTestCase
         $slice = self::emptySlice($src);
 
         $this->assertSame(
-            1,
-            preg_match('#<DentalMotifLayer\b[^>]*variant="box"#', $slice),
-            sprintf('%s empty block MUST carry the shared `<DentalMotifLayer variant="box">` (T7/D1: same motif as the dashboard empty states).', self::CALENDAR_PATH)
-        );
-        $this->assertSame(
-            1,
-            preg_match('#data-calendar-empty-motif#', $slice),
-            sprintf('%s empty motif MUST expose `data-calendar-empty-motif` (T7 hook).', self::CALENDAR_PATH)
+            0,
+            preg_match('#<DentalMotifLayer\b#', $slice),
+            sprintf('%s empty block MUST NOT paint the dental motif: it matches the shared empty primitive.', self::CALENDAR_PATH)
         );
 
         $this->assertSame(

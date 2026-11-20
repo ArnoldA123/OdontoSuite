@@ -241,7 +241,7 @@ describe('branch transfers surface', () => {
 
     const hero = wrapper.find('[data-branch-transfers-hero]')
     expect(hero.exists()).toBe(true)
-    expect(hero.find('[data-branch-transfers-title]').text()).toBe('Traslados de Sede')
+    expect(hero.find('[data-branch-transfers-title]').text()).toBe('Traslados de sede')
 
     // The session carries the affiliation, so the card names the sede instead
     // of falling back to group scope.
@@ -261,7 +261,7 @@ describe('branch transfers surface', () => {
     expect(topbar.attributes('data-topbar-title-owner')).toBe('page')
     const navEntry = wrapper
       .findAll('[data-app-chrome="sidebar"] a')
-      .find(link => link.text().includes('Traslados de Sede'))
+      .find(link => link.text().includes('Traslados de sede'))
     expect(navEntry, 'the sidebar must link to the new surface').toBeTruthy()
     expect(navEntry.attributes('href')).toBe('/branch-transfers')
 
