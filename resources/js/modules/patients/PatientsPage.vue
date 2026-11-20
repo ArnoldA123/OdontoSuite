@@ -478,7 +478,6 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 import PageHeader from '../../components/layout/PageHeader.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
-import UiBadge from '../../components/ui/Badge.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
 import UiFilterBar from '../../components/ui/FilterBar.vue'
@@ -501,7 +500,6 @@ export default {
     UiEmptyState,
     UiCard,
     UiButton,
-    UiBadge,
     UiStatusBadge,
     UiDataTable,
     UiFilterBar,
