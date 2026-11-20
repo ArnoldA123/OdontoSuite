@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "chosen": "28-login.html",
+  "handoffs": {
+    "28-login.html": {
+      "status": "implemented",
+      "queued": false,
+      "sentAt": "2026-11-19T15:59:52.130Z",
+      "startedAt": "2026-11-19T15:59:59.700Z",
+      "implementedAt": "2026-11-19T16:37:30.205Z",
+      "note": "Corregido el glifo de ocultar contraseña: traía el path de otra versión del set y dibujaba media forma; ahora el trazado de 24 llena la caja y conserva sus dos cortes de diseño.",
+      "previewUrl": "http://127.0.0.1:8000/login"
+    }
+  }
+}

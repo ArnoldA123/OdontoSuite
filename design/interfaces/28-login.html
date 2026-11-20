@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=1440" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>OdontoSuite · Iniciar sesión</title>
     <style>
       /* ============================================================
@@ -72,16 +72,19 @@
         box-sizing: border-box;
       }
 
-      html,
-      body {
-        overflow: hidden;
+      html {
+        overflow-x: hidden;
         background: var(--color-accent-50);
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
       }
 
       body {
         margin: 0;
-        width: 1440px;
-        height: 900px;
+        width: 100%;
+        min-height: 100vh;
+        min-height: 100svh;
+        background: var(--color-accent-50);
         font-family: var(--font-sans);
         font-size: var(--text-base);
         line-height: var(--text-base-line);
@@ -153,7 +156,10 @@
          ============================================================ */
       .login {
         position: relative;
-        height: 900px;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        min-height: 100svh;
         overflow: hidden;
         background: var(--color-accent-50);
       }
@@ -164,6 +170,11 @@
         z-index: 0;
         overflow: hidden;
         pointer-events: none;
+
+        /* Alto de una loseta = recorrido del bucle. Nunca es menor que la
+           ventana, así el campo cubre cualquier alto y cierra sin costura. */
+        --tile-h: 900px;
+        --tile-h: max(900px, 100lvh);
       }
 
       .field__drift {
@@ -176,13 +187,14 @@
       .field__tile {
         position: absolute;
         top: 0;
-        left: 0;
+        left: 50%;
         width: 1440px;
-        height: 900px;
+        height: var(--tile-h);
+        transform: translateX(-50%);
       }
 
       .field__tile--next {
-        top: 900px;
+        top: var(--tile-h);
       }
 
       /* Los dos recursos del set se usan como máscara de alfa: la forma es el
@@ -229,7 +241,7 @@
           transform: translate3d(0, 0, 0);
         }
         to {
-          transform: translate3d(0, -900px, 0);
+          transform: translate3d(0, calc(-1 * var(--tile-h)), 0);
         }
       }
 
@@ -242,63 +254,30 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding-top: 220px;
+        width: 100%;
+        margin-block: auto;
+        padding: clamp(28px, 6vh, 56px) clamp(16px, 5vw, 24px) clamp(44px, 7vh, 64px);
       }
 
       .brand {
         display: flex;
-        align-items: center;
-        gap: 11px;
+        justify-content: center;
         animation: rise var(--motion-slow) var(--motion-easing-decel) backwards;
         animation-delay: 40ms;
       }
 
-      .brand__mark {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 34px;
-        height: 34px;
-        flex: 0 0 auto;
-        border-radius: 9px;
-        background: linear-gradient(180deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
-        color: #ffffff;
-        box-shadow:
-          0 0 0 1px rgba(0, 0, 0, 0.04),
-          var(--elevation-2),
-          inset 0 1px 0 rgba(255, 255, 255, 0.32);
-      }
-
-      .brand__mark .icon {
-        width: 20px;
-        height: 20px;
-        stroke-width: 1.5;
-      }
-
       .brand__name {
-        font-size: 17px;
-        line-height: 22px;
+        font-size: 20px;
+        line-height: 26px;
         font-weight: 600;
-        letter-spacing: -0.014em;
-      }
-
-      .brand__dot {
-        width: 3px;
-        height: 3px;
-        border-radius: var(--radius-full);
-        background: var(--color-text-tertiary);
-      }
-
-      .brand__clinic {
-        font-size: var(--text-sm);
-        line-height: var(--text-sm-line);
-        color: var(--color-text-secondary);
+        letter-spacing: -0.019em;
       }
 
       .card {
-        width: 404px;
-        margin-top: 28px;
-        padding: 32px 32px 30px;
+        width: min(404px, 100%);
+        max-width: 404px;
+        margin-top: clamp(18px, 3.2vh, 28px);
+        padding: clamp(24px, 4vw, 32px) clamp(20px, 4vw, 32px) clamp(22px, 3.4vw, 30px);
         background: var(--color-surface-elevated);
         border: 1px solid var(--color-hairline);
         border-radius: var(--radius-panel);
@@ -325,9 +304,81 @@
         letter-spacing: -0.022em;
       }
 
+      .card__subtitle {
+        margin-top: 6px;
+        font-size: var(--text-sm);
+        line-height: var(--text-sm-line);
+        color: var(--color-text-secondary);
+      }
+
+      /* ---- Accesos federados ---- */
+      .sso {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .sso__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        height: 48px;
+        padding: 0 10px;
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-ios);
+        background: transparent;
+        font-family: var(--font-sans);
+        font-size: var(--text-sm);
+        line-height: var(--text-sm-line);
+        font-weight: 600;
+        letter-spacing: -0.001em;
+        white-space: nowrap;
+        color: var(--color-text-primary);
+        cursor: pointer;
+        transition:
+          border-color var(--motion-normal) var(--motion-easing-standard),
+          background-color var(--motion-normal) var(--motion-easing-standard),
+          transform var(--motion-fast) var(--motion-easing-ios);
+      }
+
+      .sso__btn:hover {
+        border-color: var(--color-system-gray-500);
+        background: var(--color-canvas);
+      }
+
+      .sso__btn:active {
+        transform: scale(0.985);
+      }
+
+      .brand-icon {
+        display: block;
+        width: 17px;
+        height: 17px;
+        flex: 0 0 auto;
+      }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 22px 0 16px;
+        font-size: 12px;
+        line-height: 18px;
+        color: var(--color-text-secondary);
+      }
+
+      .divider::before,
+      .divider::after {
+        content: '';
+        flex: 1 1 0;
+        height: 1px;
+        background: var(--color-hairline);
+      }
+
       /* ---- Formulario ---- */
       .form {
-        margin-top: 24px;
+        margin-top: 22px;
       }
 
       .field-row + .field-row {
@@ -492,6 +543,37 @@
         text-decoration-color: var(--color-accent);
       }
 
+      /* ---- Ayuda y pie legal ---- */
+      .contact {
+        margin-top: 18px;
+        font-size: 12.5px;
+        line-height: 18px;
+        text-align: center;
+        text-wrap: balance;
+        color: var(--color-text-secondary);
+      }
+
+      .legal {
+        width: min(404px, 100%);
+        margin-top: 16px;
+        font-size: 11.5px;
+        line-height: 17px;
+        text-align: center;
+        text-wrap: balance;
+        color: var(--color-text-secondary);
+      }
+
+      .legal + .legal {
+        margin-top: 6px;
+      }
+
+      .contact .link,
+      .legal .link {
+        font-size: inherit;
+        line-height: inherit;
+        font-weight: 600;
+      }
+
       /* ---- Rechazo del contrato ---- */
       .alert {
         display: flex;
@@ -627,6 +709,7 @@
         font-feature-settings: var(--font-features-tabular-nums);
       }
 
+      .sso__btn:focus-visible,
       .btn:focus-visible,
       .input:focus-visible,
       .reveal:focus-visible,
@@ -658,6 +741,89 @@
         to {
           opacity: 1;
           transform: none;
+        }
+      }
+
+      /* ============================================================
+         Adaptación — ventana estrecha y ventana baja. El escritorio de
+         1440 × 900 conserva la composición original; por debajo, la
+         tarjeta ocupa el ancho disponible y el campo se recorta solo.
+         ============================================================ */
+      @media (max-width: 720px) {
+        .input {
+          font-size: 16px; /* iOS no amplía el campo al enfocarlo */
+        }
+
+        .divider {
+          margin: 18px 0 15px;
+        }
+
+        .artboard-meta {
+          left: 16px;
+          right: 16px;
+          bottom: 10px;
+          text-align: center;
+        }
+      }
+
+      @media (max-width: 460px) {
+        .card {
+          padding: 24px 20px 22px;
+          border-radius: 16px;
+        }
+
+        .card__title {
+          font-size: clamp(23px, 6.6vw, 27px);
+          line-height: 1.24;
+        }
+
+        .input,
+        .btn {
+          height: 50px;
+        }
+
+        .reveal {
+          top: 7px;
+        }
+
+        .link {
+          font-size: 12px;
+        }
+
+        .sso__btn {
+          padding: 0 8px;
+          font-size: 12.5px;
+        }
+
+        .contact {
+          font-size: 12px;
+          line-height: 17px;
+        }
+
+        .legal {
+          font-size: 11px;
+          line-height: 16px;
+        }
+
+        .artboard-meta {
+          font-size: 10px;
+          line-height: 14px;
+          white-space: nowrap;
+        }
+      }
+
+      @media (max-height: 800px) {
+        .access {
+          padding-top: 18px;
+          padding-bottom: 30px;
+        }
+
+        .card {
+          margin-top: 16px;
+        }
+
+        .divider {
+          margin: 17px 0 14px;
         }
       }
 
@@ -1468,21 +1634,15 @@
       </div>
 
       <div class="access">
+        <!-- El nombre de la clínica es un dato configurable de la
+             organización: el acceso no fija uno. -->
         <div class="brand">
-          <span class="brand__mark" aria-hidden="true">
-            <svg class="icon" viewBox="0 0 24 24">
-              <path
-                d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
-              />
-            </svg>
-          </span>
           <span class="brand__name">OdontoSuite</span>
-          <span class="brand__dot" aria-hidden="true"></span>
-          <span class="brand__clinic">Clínica San Isidro</span>
         </div>
 
         <section class="card" aria-labelledby="login-title">
           <h1 class="card__title" id="login-title">Iniciar sesión</h1>
+          <p class="card__subtitle">Ingresa con la cuenta que te asignó tu clínica.</p>
 
           <form class="form" novalidate data-login-form>
             <div class="alert" role="alert" tabindex="-1" data-auth-error hidden>
@@ -1555,7 +1715,69 @@
               <span data-submit-label>Entrar</span>
             </button>
           </form>
+
+          <div class="divider"><span>o usa una cuenta externa</span></div>
+          <div class="sso" role="group" aria-label="Acceso con cuentas externas">
+            <button
+              class="sso__btn"
+              type="button"
+              data-sso="google"
+              aria-label="Continuar con Google"
+            >
+              <svg class="brand-icon" viewBox="0 0 48 48" aria-hidden="true">
+                <path
+                  fill="#EA4335"
+                  d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                />
+              </svg>
+              <span>Google</span>
+            </button>
+
+            <button
+              class="sso__btn"
+              type="button"
+              data-sso="microsoft"
+              aria-label="Continuar con Microsoft"
+            >
+              <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#F25022" d="M2 2h9.4v9.4H2z" />
+                <path fill="#7FBA00" d="M12.6 2H22v9.4h-9.4z" />
+                <path fill="#00A4EF" d="M2 12.6h9.4V22H2z" />
+                <path fill="#FFB900" d="M12.6 12.6H22V22h-9.4z" />
+              </svg>
+              <span>Microsoft</span>
+            </button>
+          </div>
+
+          <p class="contact">
+            ¿Aún no tienes cuenta?
+            <a class="link" href="#administrador">Contacta con el administrador</a>
+          </p>
         </section>
+
+        <p class="legal">
+          Al entrar aceptas los
+          <a class="link" href="#terminos">Términos del servicio</a>
+          y la
+          <a class="link" href="#privacidad">Política de privacidad</a>
+          vigentes.
+        </p>
+        <p class="legal">
+          Soporte técnico:
+          <a class="link" href="mailto:soporte@odontosuite.pe">soporte@odontosuite.pe</a>
+        </p>
       </div>
 
       <p class="artboard-meta">design/interfaces/28-login.html · 1440 px · 2026-10-29</p>
