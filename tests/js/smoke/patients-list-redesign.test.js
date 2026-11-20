@@ -544,9 +544,7 @@ describe('patients motion + icon budget', () => {
     const header = wrapper.find('[data-page-header]')
     expect(header.find('[data-new-patient-button] svg').exists()).toBe(true)
     expect(header.find('[data-refresh-patients] svg').exists()).toBe(true)
-    const searchInput = wrapper.find(
-      'input[placeholder="Buscar por nombre, DNI o email"]'
-    )
+    const searchInput = wrapper.find('input[placeholder="Buscar por nombre, DNI o email"]')
     expect(searchInput.exists()).toBe(true)
     expect(wrapper.find('[data-patient-surface="cards"] [data-patient-row] svg').exists()).toBe(
       true
