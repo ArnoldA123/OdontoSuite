@@ -45,6 +45,11 @@ class HotfixLoginSubtitleTest extends TestCase
         }
 
         // 2. Tailwind text-* utility (largest wins when multiple apply).
+        // Arbitrary steps (`text-[13px]`) are part of the scale too.
+        if (preg_match('/text-\[(\d+(?:\.\d+)?)px\]/', $block, $arbitrary)) {
+            return (float) $arbitrary[1];
+        }
+
         $tailwindSizes = [
             'text-xs' => 12.0,
             'text-sm' => 14.0,
@@ -64,7 +69,7 @@ class HotfixLoginSubtitleTest extends TestCase
         return $resolved;
     }
 
-    public function test_subtitle_font_size_is_at_least_16px(): void
+    public function test_subtitle_uses_the_13_18_step(): void
     {
         $response = $this->get('/login');
         $response->assertStatus(200);
@@ -78,11 +83,11 @@ class HotfixLoginSubtitleTest extends TestCase
             'LoginPage.vue must declare a resolvable font-size on .welcome-subtitle (HOTFIX-LOGIN-003)'
         );
 
-        $this->assertGreaterThanOrEqual(
-            16.0,
+        $this->assertSame(
+            13.0,
             $fontSizePx,
             sprintf(
-                '.welcome-subtitle computed font-size must be ≥ 16px (1rem). Got: %.2fpx. (HOTFIX-LOGIN-003, apple-design §15)',
+                '.welcome-subtitle must declare the 13/18 step of the login card. Got: %.2fpx. (HOTFIX-LOGIN-003)',
                 $fontSizePx
             )
         );

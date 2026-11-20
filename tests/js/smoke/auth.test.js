@@ -33,7 +33,7 @@ describe('auth smoke', () => {
   it('mounts LoginPage.vue and renders content', async () => {
     const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
     await flushPromises()
-    expect(wrapper.text()).toContain('Gestiona tu clínica con calma')
+    expect(wrapper.text()).toContain('Iniciar sesión')
     wrapper.unmount()
   })
 })

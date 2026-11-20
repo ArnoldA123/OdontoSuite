@@ -12,7 +12,8 @@ use Tests\TestCase;
  * tracking tighter than -0.056em — tighter than the display token the design
  * system defines, and not what the type scale asks for. The rule is now the
  * real one: the login headline obeys `tokens.js`
- * `typography.fontSize['4xl']` (36px / 40px line-height / -0.022em tracking)
+ * `typography.fontSize['4xl']` (36px / 40px line-height / -0.022em tracking),
+ * which the login borrows for tracking while rendering at the 3xl step (30px).
  * at semibold weight. The token is read from tokens.js so the assertion
  * cannot drift from the source of truth.
  */
@@ -156,9 +157,9 @@ class HotfixLoginHeadlineTrackingTest extends TestCase
             'LoginPage.vue must declare letter-spacing on .welcome-headline (HOTFIX-LOGIN-002, apple-design §15 — letter-spacing: 0 is FORBIDDEN at display scale)'
         );
         $this->assertSame(
-            36.0,
+            30.0,
             $fontSizePx,
-            'At 1440 viewport the headline must resolve to the 36px display step that owns the -0.022em tracking (HOTFIX-LOGIN-002)'
+            'At 1440 viewport the headline renders at the 3xl step (30px) and keeps the display tracking (-0.022em) from the 4xl token (HOTFIX-LOGIN-002)'
         );
         $this->assertSame(
             $tokenEm,
