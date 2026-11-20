@@ -462,10 +462,19 @@ class LoginPageRenderTest extends TestCase
             $source,
             'LoginPage.vue must give the floating card the panel radius rung, by token reference or by value'
         );
-        $this->assertStringContainsString(
-            'box-shadow: var(--elevation-4)',
+        // The card separates from the pastel field through the shadow, and the
+        // shadow is a STACK of two elevation rungs rather than one soft drop.
+        // Pinning the single-rung literal described the value that happened to
+        // be there, not the rule: a layered shadow is what reads as lift.
+        $this->assertMatchesRegularExpression(
+            '/\.login-card\s*\{[^}]*box-shadow:\s*var\(--elevation-\d\),\s*var\(--elevation-\d\)/s',
             $source,
-            'LoginPage.vue must float the card on the elevation-4 token'
+            'the floating login card must stack two elevation rungs instead of one soft drop'
+        );
+        $this->assertMatchesRegularExpression(
+            '/\.login-card:focus-within\s*\{[^}]*var\(--elevation-4\)/s',
+            $source,
+            'the focused login card must ride to the top elevation rung (elevation-4)'
         );
     }
 
@@ -475,12 +484,12 @@ class LoginPageRenderTest extends TestCase
         $source = (string) file_get_contents(self::loginPagePath());
 
         $this->assertStringContainsString(
-            'Términos y Condiciones',
+            'Términos del servicio',
             $source,
-            'LoginPage.vue must render the Términos y Condiciones link in the footer row (Phase 2.1)'
+            'LoginPage.vue must render the Términos del servicio link in the legal block (Phase 2.1)'
         );
         $this->assertStringContainsString(
-            'Contacta al administrador',
+            'Contacta con el administrador',
             $source,
             'LoginPage.vue must render the ¿No tienes cuenta? Contacta al administrador link in the footer row (Phase 2.1)'
         );

@@ -113,7 +113,7 @@ app/
 
 resources/js/
   app.js                   # entry + router (guards en router/auth.js)
-  composables/             # 46 composables singleton
+  composables/             # 45 composables singleton
   components/
     ui/                    # 34 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton

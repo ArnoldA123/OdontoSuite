@@ -193,16 +193,22 @@ describe('login card scroll region', () => {
     }
   })
 
-  it('keeps the terms and contact links inside the scrollable card', () => {
+  it('splits the doors as the artboard does: contact in the card, legal on the field', () => {
     const wrapper = mountPage()
     try {
-      const footer = wrapper.find('section.login-card').find('.login-footer')
+      // The card owns the door that belongs to the form ("no tienes cuenta");
+      // the fine print rides the pastel field below it. Neither register is
+      // inside the other, so the scroll region holds the form alone.
+      const card = wrapper.find('section.login-card')
+      expect(card.find('.login-contact').exists()).toBe(true)
+      expect(card.find('.login-contact').text()).toContain('Contacta con el administrador')
 
-      expect(footer.exists()).toBe(true)
-      expect(footer.findAll('a').map(a => a.text())).toEqual([
-        'Términos y Condiciones',
-        'Contacta al administrador'
-      ])
+      const legal = wrapper.findAll('.login-legal')
+      expect(legal.length).toBeGreaterThanOrEqual(2)
+      expect(legal[0].text()).toContain('Términos del servicio')
+      expect(legal[1].text()).toContain('Soporte técnico')
+      expect(wrapper.find('.login-header').exists()).toBe(true)
+      expect(card.find('.login-header').exists()).toBe(false)
     } finally {
       wrapper.unmount()
     }

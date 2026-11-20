@@ -118,7 +118,7 @@ describe('login motion budget under prefers-reduced-motion: reduce', () => {
 
       dispatchPointerMove()
       await flushPromises()
-      expect(wrapper.find('.dental-parallax').classes()).not.toContain('is-parallax-active')
+      expect(wrapper.find('.dental-parallax').classes()).not.toContain('has-drift')
     } finally {
       wrapper.unmount()
     }
@@ -144,7 +144,7 @@ describe('login motion budget under prefers-reduced-motion: reduce', () => {
 })
 
 describe('login motion budget when motion is allowed', () => {
-  it('attaches the magnet and the pointer parallax', async () => {
+  it('runs the ambient drift and binds nothing to the pointer', async () => {
     mockMedia({ reducedMotion: false })
     const motionListeners = trackMotionListeners()
 
@@ -153,15 +153,16 @@ describe('login motion budget when motion is allowed', () => {
       await flushPromises()
       await new Promise(resolve => setTimeout(resolve, 80))
 
-      expect(motionListeners()).toContain('pointermove')
-      expect(wrapper.find('button[type="submit"]').attributes('data-magnetic')).toBe('true')
+      // Neither the backdrop nor the submit follow the pointer.
+      expect(motionListeners()).not.toContain('pointermove')
+      expect(wrapper.find('button[type="submit"]').attributes('data-magnetic')).toBeUndefined()
       expect(
         wrapper.find('.login-submit-wrap').element.style.getPropertyValue('--spring-magnet-x')
-      ).toBe('0')
+      ).toBe('')
 
       dispatchPointerMove()
       await flushPromises()
-      expect(wrapper.find('.dental-parallax').classes()).toContain('is-parallax-active')
+      expect(wrapper.find('.dental-parallax').classes()).toContain('has-drift')
     } finally {
       wrapper.unmount()
     }
