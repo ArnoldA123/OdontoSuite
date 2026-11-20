@@ -23,6 +23,9 @@ export default defineConfig({
   use: {
     baseURL: process.env.BROWSER_PASS_BASE || 'http://localhost:8000',
     headless: true,
+    // Keep the Chromium sandbox on: the library default is off, which turns any
+    // page exploit into code execution with the current user's privileges.
+    chromiumSandbox: true,
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure'
   },

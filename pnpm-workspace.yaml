@@ -1,3 +1,7 @@
 allowBuilds:
   core-js: true
   esbuild: true
+# Pinned alpha used to get a Chromium build with the Oct 27/29 Chrome fixes.
+minimumReleaseAgeExclude:
+  - playwright@1.65.0-alpha-2026-11-03
+  - playwright-core@1.65.0-alpha-2026-11-03
