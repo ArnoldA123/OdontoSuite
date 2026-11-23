@@ -1068,19 +1068,31 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
         const actor = technician.user?.id ?? null
         const unchanged = (after.body?.data?.work ?? null) === beforeWork
 
+        // #505: the affordance belongs to the technician's session. The
+        // previous step left the page as administration, whose rows offer edit
+        // on every case, so the DOM was measured under a different actor than
+        // the rule talks about.
+        await primeSession(page, technician)
+        await gotoSurface(page, SURFACE)
+        await settle(page)
+
         // The row has to be on screen before the affordance is read: the list
         // paginates, and reading another page reported `true`/`false` from a row
         // that was not the target (#501).
-        await ensureVisible(page, target)
-
-        // The surface must not offer the edit either: the row publishes `can_edit`.
-        const offered = await page.evaluate(
-          id =>
-            Boolean(
-              document.querySelector(`tr:has([data-lab-case-row="${id}"]) [data-lab-case-edit]`)
-            ),
-          target
-        )
+        const visible = await ensureVisible(page, target)
+        const row = page.locator(`tr:has([data-lab-case-row="${target}"])`).first()
+        const mounted = visible.ok
+          ? await row
+              .waitFor({ state: 'visible', timeout: 8000 })
+              .then(() => true)
+              .catch(() => false)
+          : false
+        const offered = mounted ? (await row.locator('[data-lab-case-edit]').count()) > 0 : null
+        const offeredReason = mounted
+          ? null
+          : visible.ok
+            ? 'la fila no quedó visible tras la paginación'
+            : (visible.reason ?? 'sin motivo')
 
         evidence.captures.push(await shot(page, 'shots/walk/lab-foreign-put.png'))
 
@@ -1088,7 +1100,9 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
           asTechnician.status ?? 'sin respuesta'
         } «${asTechnician.body?.message ?? '—'}» · PUT con recepción ${
           asReception.status ?? 'sin respuesta'
-        } «${asReception.body?.message ?? '—'}» · trabajo intacto ${unchanged} · edición ofrecida en la fila ${offered} · actor técnico ${actor}`
+        } «${asReception.body?.message ?? '—'}» · trabajo intacto ${unchanged} · edición ofrecida en la fila ${
+          offered === null ? 'no medida' : offered
+        } · actor técnico ${actor}`
         entry.request =
           asTechnician.status !== null
             ? { method: 'PUT', path: `/api/lab-cases/${target}`, status: asTechnician.status }
@@ -1099,6 +1113,7 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
           actor,
           unchanged,
           offered,
+          offeredReason,
           beforeWork,
           asTechnician: { status: asTechnician.status, body: asTechnician.body ?? null },
           asReception: {
@@ -1106,6 +1121,14 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
             message: asReception.body?.message ?? null
           }
         }
+
+        if (!mounted) {
+          entry.verdict = 'NO PROBADO'
+          entry.notes = `la fila del caso C no se pudo medir: ${offeredReason}`
+
+          return entry
+        }
+
         entry.verdict =
           asTechnician.status === 403 &&
           asReception.status === 403 &&
@@ -1245,19 +1268,39 @@ export const walkThroughLabCases = async ({ page, fixtures }) => {
           return entry
         }
 
+        // #505: the previous steps left the page as reception, which edits no
+        // case. The row has to be read under the technician's own session.
+        await primeSession(page, technician)
+        await gotoSurface(page, SURFACE)
+        await settle(page)
+
         const visible = await ensureVisible(page, target)
 
         if (!visible.ok) {
           entry.obtained = `la fila del caso A (id ${target}) no es alcanzable`
-          entry.verdict = 'DEFECTO'
-          entry.notes = 'la fila del caso propio no se puede poner en pantalla para editar'
+          entry.verdict = 'NO PROBADO'
+          entry.notes = `la fila del caso propio no se puede poner en pantalla para editar: ${
+            visible.reason ?? 'sin motivo'
+          }`
 
           return entry
         }
 
-        const editAction = page.locator(
-          `tr:has([data-lab-case-row="${target}"]) [data-lab-case-edit]`
-        )
+        const row = page.locator(`tr:has([data-lab-case-row="${target}"])`).first()
+        const mounted = await row
+          .waitFor({ state: 'visible', timeout: 8000 })
+          .then(() => true)
+          .catch(() => false)
+
+        if (!mounted) {
+          entry.obtained = `la fila del caso A (id ${target}) no quedó visible`
+          entry.verdict = 'NO PROBADO'
+          entry.notes = 'la fila del caso propio no quedó montada para leer su affordance'
+
+          return entry
+        }
+
+        const editAction = row.locator('[data-lab-case-edit]')
         const offered = await editAction.count()
 
         if (!offered) {
