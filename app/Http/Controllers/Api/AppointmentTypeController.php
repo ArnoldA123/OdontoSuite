@@ -21,14 +21,16 @@ class AppointmentTypeController extends Controller
      *
      * `duration_minutes` is the write alias of the `default_duration_minutes`
      * column, and every catalog rule the domain consumes
-     * (`requires_confirmation`, `requires_materials`, `is_consultation_mode`,
-     * `default_procedure_catalog_id`) is part of the contract: a flag that no
-     * write path accepts is a rule the operator cannot set.
+     * (`specialty_id`, `requires_confirmation`, `requires_materials`,
+     * `is_consultation_mode`, `default_procedure_catalog_id`) is part of the
+     * contract: a flag that no write path accepts is a rule the operator
+     * cannot set.
      */
     protected function storeRules(): array
     {
         return [
             'name' => 'required|string|max:255',
+            'specialty_id' => 'nullable|integer|exists:specialties,id',
             'description' => 'nullable|string',
             'duration_minutes' => 'required|integer|min:15|max:480',
             'price' => 'nullable|numeric|min:0',
@@ -69,7 +71,18 @@ class AppointmentTypeController extends Controller
         try {
             $status = $request->query('status', 'active');
 
-            $query = AppointmentType::with('defaultProcedureCatalog.materialRecipe');
+            $query = AppointmentType::with([
+                'specialty:id,code,name',
+                'defaultProcedureCatalog.materialRecipe',
+            ]);
+
+            $specialtyFilter = $request->query('specialty_id');
+
+            if ($specialtyFilter === 'none') {
+                $query->whereNull('specialty_id');
+            } elseif (is_string($specialtyFilter) && ctype_digit($specialtyFilter)) {
+                $query->where('specialty_id', (int) $specialtyFilter);
+            }
 
             if ($status === 'inactive') {
                 $query->where('is_active', false);
@@ -117,6 +130,7 @@ class AppointmentTypeController extends Controller
             // The response is the persisted resource: fields omitted by the
             // caller (the flags) carry their schema default, not null.
             $type->refresh();
+            $type->load('specialty:id,code,name');
 
             // Log audit
             if (Auth::check()) {
@@ -127,6 +141,7 @@ class AppointmentTypeController extends Controller
                     [],
                     [
                         'name' => $type->name,
+                        'specialty_id' => $type->specialty_id,
                         'description' => $type->description,
                         'default_duration_minutes' => $type->default_duration_minutes,
                         'price' => $type->price,
@@ -165,6 +180,7 @@ class AppointmentTypeController extends Controller
     public function show(string $id): JsonResponse
     {
         $type = AppointmentType::with([
+            'specialty:id,code,name',
             'defaultProcedureCatalog.materialRecipe',
             'auditLogs' => function ($query) {
                 $query->with('user:id,name,email')
@@ -207,6 +223,7 @@ class AppointmentTypeController extends Controller
             // Capture old values for audit (only relevant fields)
             $oldValues = [
                 'name' => $type->name,
+                'specialty_id' => $type->specialty_id,
                 'description' => $type->description,
                 'default_duration_minutes' => $type->default_duration_minutes,
                 'price' => $type->price,
@@ -220,10 +237,12 @@ class AppointmentTypeController extends Controller
 
             $type->update($validated);
             $type->refresh();
+            $type->load('specialty:id,code,name');
 
             // Capture new values for audit (only relevant fields)
             $newValues = [
                 'name' => $type->name,
+                'specialty_id' => $type->specialty_id,
                 'description' => $type->description,
                 'default_duration_minutes' => $type->default_duration_minutes,
                 'price' => $type->price,
@@ -298,6 +317,7 @@ class AppointmentTypeController extends Controller
             // Capture values for audit before deletion
             $typeData = [
                 'name' => $type->name,
+                'specialty_id' => $type->specialty_id,
                 'description' => $type->description,
                 'default_duration_minutes' => $type->default_duration_minutes,
                 'price' => $type->price,
@@ -351,8 +371,9 @@ class AppointmentTypeController extends Controller
     public function active(): JsonResponse
     {
         try {
-            $types = AppointmentType::where('is_active', true)
-                ->select('id', 'name', 'default_duration_minutes', 'price', 'color')
+            $types = AppointmentType::with('specialty:id,code,name')
+                ->where('is_active', true)
+                ->select('id', 'name', 'specialty_id', 'default_duration_minutes', 'price', 'color')
                 ->get();
 
             return response()->json([
