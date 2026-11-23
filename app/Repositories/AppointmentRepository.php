@@ -154,25 +154,6 @@ class AppointmentRepository
     }
 
     /**
-     * The same rule for the paths that decide over rows already in memory.
-     * A row without a start or an end is not a reservable interval and does
-     * not block; the SQL rule above derives the end from `duration_minutes`
-     * before it gets there.
-     */
-    public static function slotsOverlap(
-        Carbon $start,
-        Carbon $end,
-        ?Carbon $existingStart,
-        ?Carbon $existingEnd
-    ): bool {
-        if ($existingStart === null || $existingEnd === null) {
-            return false;
-        }
-
-        return $existingStart->lt($end) && $existingEnd->gt($start);
-    }
-
-    /**
      * Find appointments for a user within a date range.
      */
     public function findByUserAndDateRange(

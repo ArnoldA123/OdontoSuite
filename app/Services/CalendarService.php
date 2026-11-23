@@ -9,8 +9,6 @@ use Illuminate\Support\Collection;
 
 class CalendarService
 {
-    public function __construct(private readonly AppointmentService $appointmentService) {}
-
     /**
      * Get appointments for a specific day.
      */
@@ -198,14 +196,6 @@ class CalendarService
                 'title' => $appointment->patient->full_name,
             ];
         })->toArray();
-    }
-
-    /**
-     * Get available time slots for a specific date and user.
-     */
-    public function getAvailableSlots(Carbon $date, int $userId, int $duration = 60): array
-    {
-        return $this->appointmentService->getAvailableTimeSlots($userId, $date, $duration);
     }
 
     /**

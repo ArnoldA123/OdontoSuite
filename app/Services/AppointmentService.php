@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\AppointmentSlotConflictException;
 use App\Http\Requests\StoreAppointmentRequest;
 use App\Http\Requests\UpdateAppointmentRequest;
 use App\Models\Appointment;
@@ -91,9 +92,7 @@ class AppointmentService
                 ]);
 
                 if ($conflicts->isNotEmpty()) {
-                    throw ValidationException::withMessages([
-                        'scheduled_at' => ['Conflicto de horario detectado. Ya existe una cita en ese horario.'],
-                    ]);
+                    throw AppointmentSlotConflictException::forConflicts($conflicts, (int) $data['user_id']);
                 }
 
                 $endsAt = $scheduledAt->copy()->addMinutes($duration);
@@ -204,14 +203,24 @@ class AppointmentService
         $previousTypeId = (int) $appointment->appointment_type_id;
         $previousStatus = $appointment->status;
 
+        // #517: the slot is defined by the four fields below, so moving only
+        // the professional or the chair has to clear the same check as moving
+        // the clock. Comparing against the stored values keeps a no-op field
+        // in the payload from acquiring the lock.
+        $slotChanged = isset($data['scheduled_at'])
+            || isset($data['duration_minutes'])
+            || (array_key_exists('user_id', $data) && (int) $data['user_id'] !== (int) $appointment->user_id)
+            || (array_key_exists('dental_chair_id', $data)
+                && (int) ($data['dental_chair_id'] ?? 0) !== (int) ($appointment->dental_chair_id ?? 0));
+
         DB::beginTransaction();
 
         try {
-            // Check for conflicts if time is being changed. The read runs under
+            // Check for conflicts when the slot changes. The read runs under
             // the lock of the professional and the chair, inside the
             // transaction that writes, so two concurrent edits cannot both
             // clear it.
-            if (isset($data['scheduled_at']) || isset($data['duration_minutes'])) {
+            if ($slotChanged) {
                 $scheduledAt = Carbon::parse($data['scheduled_at'] ?? $appointment->scheduled_at)->setTimezone(config('app.timezone'));
                 $duration = $data['duration_minutes'] ?? $appointment->duration_minutes ?? 60;
                 $userId = $data['user_id'] ?? $appointment->user_id;
@@ -220,9 +229,7 @@ class AppointmentService
                 $conflicts = $this->repository->findConflictsForWrite($userId, $chairId, $scheduledAt, $duration, $appointment->id);
 
                 if ($conflicts->isNotEmpty()) {
-                    throw ValidationException::withMessages([
-                        'scheduled_at' => ['Conflicto de horario detectado. Ya existe una cita en ese horario.'],
-                    ]);
+                    throw AppointmentSlotConflictException::forConflicts($conflicts, (int) $userId);
                 }
 
                 // Check work schedule - Deshabilitado: profesionales trabajan 24/7
@@ -371,9 +378,7 @@ class AppointmentService
             );
 
             if ($conflicts->isNotEmpty()) {
-                throw ValidationException::withMessages([
-                    'scheduled_at' => ['Conflicto de horario detectado. Ya existe una cita en ese horario.'],
-                ]);
+                throw AppointmentSlotConflictException::forConflicts($conflicts, (int) $appointment->user_id);
             }
 
             $appointment->update([
@@ -581,76 +586,6 @@ class AppointmentService
             $entry->markAsNotified();
             // Here you would typically send an email or SMS notification
         }
-    }
-
-    /**
-     * Get available time slots for a given date and user.
-     */
-    public function getAvailableTimeSlots(int $userId, Carbon $date, int $duration = 60): array
-    {
-        $slots = [];
-        $workSchedule = WorkSchedule::where('user_id', $userId)
-            ->where('day_of_week', $date->dayOfWeek)
-            ->where('is_active', true)
-            ->first();
-
-        if (! $workSchedule) {
-            return $slots;
-        }
-
-        $startTime = $date->copy()->setTimeFromTimeString($workSchedule->start_time->format('H:i'));
-        $endTime = $date->copy()->setTimeFromTimeString($workSchedule->end_time->format('H:i'));
-
-        // Get existing appointments for the day
-        $existingAppointments = Appointment::where('user_id', $userId)
-            ->whereDate('scheduled_at', $date)
-            ->where('status', '!=', AppointmentRepository::SLOT_RELEASED_STATUS)
-            ->orderBy('scheduled_at')
-            ->get();
-
-        $dayStart = $date->copy()->startOfDay();
-        $dayEnd = $date->copy()->endOfDay();
-
-        $blocks = AppointmentBlock::where('user_id', $userId)
-            ->where('is_active', true)
-            ->where('starts_at', '<=', $dayEnd)
-            ->where('ends_at', '>=', $dayStart)
-            ->get();
-
-        $currentTime = $startTime->copy();
-        while ($currentTime->addMinutes($duration)->lte($endTime)) {
-            $slotEnd = $currentTime->copy();
-            $slotStart = $slotEnd->copy()->subMinutes($duration);
-
-            // Check if slot conflicts with existing appointments. The rule is the
-            // repository's half-open `[inicio, fin)` comparison, so a slot that
-            // opens exactly when an appointment ends is free.
-            $hasConflict = $existingAppointments->contains(
-                fn (Appointment $appointment) => AppointmentRepository::slotsOverlap(
-                    $slotStart,
-                    $slotEnd,
-                    $appointment->scheduled_at,
-                    $appointment->end_time
-                )
-            );
-
-            // Check if slot conflicts with blocks
-            $hasBlock = $blocks->contains(
-                fn (AppointmentBlock $block) => $block->conflictsWith($slotStart, $slotEnd)
-            );
-
-            if (! $hasConflict && ! $hasBlock) {
-                $slots[] = [
-                    'start' => $slotStart->toISOString(),
-                    'end' => $slotEnd->toISOString(),
-                    'formatted' => $slotStart->format('H:i').' - '.$slotEnd->format('H:i'),
-                ];
-            }
-
-            $currentTime->addMinutes(15); // 15-minute intervals
-        }
-
-        return $slots;
     }
 
     /**

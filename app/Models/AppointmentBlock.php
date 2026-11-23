@@ -64,9 +64,4 @@ class AppointmentBlock extends Model
                 });
         });
     }
-
-    public function conflictsWith(Carbon $startTime, Carbon $endTime): bool
-    {
-        return $startTime->lt($this->ends_at) && $endTime->gt($this->starts_at);
-    }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ScheduleContinuityRequest;
 use App\Models\ContinuityRequest;
 use App\Services\ContinuityService;
+use App\Support\SlotConflict;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -60,6 +61,12 @@ class ContinuityController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
+            // #504 — the agenda's unique slot key can reject the insert after
+            // the pre-check passed. That is the agenda's 422, not a 500.
+            if (($slotConflict = SlotConflict::response($e)) !== null) {
+                return $slotConflict;
+            }
+
             Log::error('ContinuityController@schedule: '.$e->getMessage());
 
             return response()->json(['message' => 'Error al agendar la cita de continuidad'], 500);
