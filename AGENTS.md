@@ -528,6 +528,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 | `vite.config.js` no resuelve `@/`                       | Alias ya está configurado (M-3 fix). Si se rompe, revisar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Tests con BD fallan por DDL de SQLite                   | Por diseño (#79): migrate:fresh es solo-MySQL; con SQLite el esquema no se construye (ver §6) y, desde #170, esos tests se reportan como **skipped**, no como failed. Camino soportado: `vendor/bin/phpunit -c phpunit.mysql.xml` contra motor real; `php artisan test --configuration=phpunit.mysql.xml` no sirve para esto: con la ruta relativa artisan ejecuta `phpunit.xml` en vez del archivo indicado, PHPUnit avisa `Option --configuration cannot be used more than once` y sale con código 1 aunque todos los tests pasen. El MariaDB de XAMPP tiene `skip-networking`, así que el destino se fija por entorno: `DB_HOST=localhost DB_PORT=3306 DB_SOCKET=/opt/lampp/var/mysql/mysql.sock DB_USERNAME=root DB_PASSWORD=<from .env> DB_DATABASE=odontosuite_<worktree>_test vendor/bin/phpunit -c phpunit.mysql.xml`. Alternativo: `docker compose up -d mysql` + `php artisan test --group=mysql`. |
 | Varias sesiones o worktrees corren tests a la vez       | Cada worktree usa su propia base de test (`DB_DATABASE=odontosuite_<worktree>_test`) y nadie recrea una base compartida mientras otra suite corre: un `migrate:fresh` sobre la base de otro proceso la deja sin tablas y su suite falla en el bootstrap. CI conserva `odontosuite_test` porque su runner es aislado.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Una prueba commitea filas y ensucia la suite siguiente  | Una clase con `DatabaseTruncation` limpia al entrar, no al salir. Toda prueba que commitea (carreras con una segunda conexión) debe llamar `truncateDatabaseTables()` en `tearDown()`: la suite corre con `RefreshDatabase` y espera la base vacía. El guard `tests/Unit/Tooling/DatabaseTruncationTeardownTest.php` falla con archivo y línea si falta; medido en #519: 19 fallos ajenos por dos clases.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `git checkout-index failed`                             | **Windows + rutas largas.** El repo tiene rutas que superan los 260 caracteres (`openspec/changes/archive/<nombre-largo>/specs/...`). `LongPathsEnabled=1` en el registro **no basta**: git necesita su propio opt-in. Ejecutar `git config core.longpaths true` (local al repo).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Pusher TypeError en tests                               | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `composer dev` no levanta Vite                          | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
@@ -608,21 +609,67 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-11-23 (el turno de las diez issues abiertas: agenda, continuidad,
+  especialidad, guard de truncación, sondas y tableros)** — Cierra las issues
+  #504, #505, #506, #517, #518, #519, #520, #521, #522 y #523. **Agenda
+  (#517/#521)**: `AppointmentService::updateAppointment` calcula `$slotChanged`
+  con los cuatro campos del hueco (`scheduled_at`, `duration_minutes`, `user_id`
+  y `dental_chair_id` comparados contra la fila guardada), así que mover solo el
+  profesional o el sillón pasa por el mismo bloqueo y la misma consulta que
+  mover la hora; un `PUT` que solo cambia el tipo no toma el lock. El conflicto
+  del servicio nace tipado (`AppointmentSlotConflictException`, subclase de
+  `ValidationException` que viaja con `conflictType` y la cita bloqueante) y
+  `AppointmentController::conflictResponse` publica en create, update y
+  reschedule el mismo sobre `conflict { type, conflicting_appointment }` que el
+  pre-chequeo; perder la carrera en `PATCH …/reschedule` deja de responder un
+  422 genérico. **Continuidad (#504)**: `App\Support\SlotConflict` es la única
+  detección de la clave duplicada de los dos índices de horario (recorre la
+  cadena de excepciones) y las puertas de recall y continuidad responden 422
+  `slot_taken` en vez de 500; la prueba confirma que una cita borrada libera su
+  ventana por la migración de #515 y que una colisión real no escribe nada.
+  **Disponibilidad (#520)**: se retiran
+  `AppointmentService::getAvailableTimeSlots`,
+  `CalendarService::getAvailableSlots`, `AppointmentRepository::slotsOverlap` y
+  `AppointmentBlock::conflictsWith`, sin llamadores; la regla semiabierta queda
+  solo en `AppointmentRepository`. **Especialidad (#523/#518)**:
+  `App\Support\AppointmentTypeSpecialties` guarda el mapa nombre → código que
+  comparten el seeder y `appointment-types:backfill` (`--dry-run`, idempotente,
+  solo filas con `specialty_id` nulo); la pantalla de tipos gana el selector en
+  alta y edición, la columna en la lista y el campo en la ficha, con `''` →
+  `null` y el 422 en su campo. **Guard (#519)**:
+  `tests/Unit/Tooling/DatabaseTruncationTeardownTest` falla con archivo y línea
+  si una clase usa `DatabaseTruncation` sin `truncateDatabaseTables()` en
+  `tearDown()`, y AGENTS.md §8 declara la regla. **Sondas (#505/#506)**: U9
+  espera `[data-team-loading]` en vez de un texto que el skeleton nunca pinta;
+  U10 mide la fila de laboratorio bajo la sesión del técnico (los pasos previos
+  la dejaban como recepción/administración) y publica `NO PROBADO` con su motivo
+  si la fila no es alcanzable. **Tableros (#522)**: 05 y 04 se realinean al
+  contrato implementado (dos columnas, rejilla de 15 min, equipo independiente,
+  especialidad en los chips; 04 se marca superada), `design.json` declara
+  `status`/`contract` y `handoffs.json` lo refleja; `design/*/layout.json` pasa
+  a `.gitignore`. Verificación: suite MySQL **OK (3063 pruebas, 18746
+  aserciones)**, Vitest **178 archivos / 1610 pruebas**, Pint **946 archivos**,
+  ESLint 0 errores / 36 avisos, Prettier limpio y `doc-drift` 14/14; U9 midió el
+  skeleton (`loading.visible: true`) y U10 declaró `NO PROBADO` con su motivo
+  cuando la fila objetivo no fue alcanzable. Sin rutas, migraciones,
+  controllers, modelos ni composables nuevos: los conteos de §4/§5 no cambian.
+
 - **2026-11-02 (frontera de horarios semiabierta y dos agujeros cerrados)** —
   Una cita de 09:00–09:30 y otra de 09:30–10:00 se rechazaban como conflicto:
   `AppointmentRepository::findConflicts` comparaba con `whereBetween`, que
   **incluye los dos extremos**, así que el fin de una cita contaba como parte de
   ella. La regla pasa a **semiabierta `[inicio, fin)`** —hay solape sólo si
   `existente.inicio < nueva.fin AND existente.fin > nueva.inicio`— en una sola
-  definición (`overlapsSlot` en SQL, `slotsOverlap` en PHP) compartida por
-  profesional y sillón, y `getAvailableTimeSlots` la reutiliza. `ends_at` es
-  columna almacenada `NOT NULL` y la comparación la lee por `COALESCE` con
-  `scheduled_at + duration_minutes` como red para que una fila nula no escape
-  del control ni reserve para siempre. El frontend ya era semiabierto: ahora lo
-  fija con pruebas en ambas direcciones. **Carrera de mesa**: el pre-chequeo no
-  bloqueaba y dos recepcionistas podían pasar el mismo hueco parcial;
-  `findConflictsForWrite` toma `lockSlotOwners` en orden fijo (`users` →
-  `dental_chairs`) y lee los conflictos con `FOR UPDATE` dentro de la
+  definición (`overlapsSlot` en SQL, compartida por profesional y sillón). La
+  variante en memoria (`slotsOverlap`) y `getAvailableTimeSlots` se retiraron en
+  #520: la disponibilidad se calcula en el cliente y el servidor sólo valida al
+  escribir. `ends_at` es columna almacenada `NOT NULL` y la comparación la lee
+  por `COALESCE` con `scheduled_at + duration_minutes` como red para que una
+  fila nula no escape del control ni reserve para siempre. El frontend ya era
+  semiabierto: ahora lo fija con pruebas en ambas direcciones. **Carrera de
+  mesa**: el pre-chequeo no bloqueaba y dos recepcionistas podían pasar el mismo
+  hueco parcial; `findConflictsForWrite` toma `lockSlotOwners` en orden fijo
+  (`users` → `dental_chairs`) y lee los conflictos con `FOR UPDATE` dentro de la
   transacción de alta, edición y reprogramación. **Borrado suave**:
   `slot_reservation` valía `1` en una cita eliminada, así que el índice único
   seguía reservando su instante aunque el pre-chequeo ya no la viera; la
