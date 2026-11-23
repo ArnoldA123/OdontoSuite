@@ -314,6 +314,21 @@ describe('appointment-types detail smoke', () => {
     wrapper.unmount()
   })
 
+  it('declares the specialty from the API and falls back to Sin especialidad', async () => {
+    const withSpecialty = await mountPage({
+      type: makeType({
+        specialty_id: 3,
+        specialty: { id: 3, code: 'general', name: 'General' }
+      })
+    })
+    expect(withSpecialty.find('[data-detail-field="specialty"]').text()).toBe('General')
+    withSpecialty.unmount()
+
+    const without = await mountPage({ type: makeType({ specialty_id: null, specialty: null }) })
+    expect(without.find('[data-detail-field="specialty"]').text()).toBe('Sin especialidad')
+    without.unmount()
+  })
+
   it('hides Editar for a session without manage.appointment_type', async () => {
     seedSession('recepcionista')
     const wrapper = await mountPage()
