@@ -42,6 +42,18 @@ class AppointmentSoftDeletedSlotTest extends TestCase
 {
     use DatabaseTruncation;
 
+    /**
+     * `DatabaseTruncation` limpia al entrar, no al salir: sin este barrido la
+     * ultima prueba de la clase dejaria filas para el resto de la suite, que
+     * corre con `RefreshDatabase` y espera una base vacia. La carrera exige dos
+     * conexiones reales, asi que la transaccion no es una opcion.
+     */
+    protected function tearDown(): void
+    {
+        $this->truncateDatabaseTables();
+        parent::tearDown();
+    }
+
     private function actor(): User
     {
         return User::factory()->create([
