@@ -1,41 +1,43 @@
 {
   "title": "Alta de cita",
   "brief": "Rediseño del alta de una cita para recepción y clínicos: hoy el modal tiene nueve controles en una retícula plana, ofrece el estado del ciclo de vida en el alta y solo descubre el choque de horario al guardar. El objetivo es agendar en menos de treinta segundos, con el profesional y el sillón correctos y sin error tardío. Forma elegida: captura rápida con detalles plegables.",
+  "contract": {
+    "artboard": "05-captura-disponible.html",
+    "status": "implemented",
+    "implementedIn": "resources/js/components/appointments/NewAppointmentModal.vue",
+    "sections": ["patient", "when", "team", "type", "more", "summary"],
+    "notes": "El tablero 05 se realineó al contrato implementado (#522): dos columnas a 768 px, rejilla de 15 minutos en cuatro bloques, profesional y sillón como dos listas independientes con atajos de pares usados hoy, chips de tipo con la especialidad del catálogo y el resumen de la cita al pie. El alta no ofrece el estado; solo la edición."
+  },
   "artboards": [
     {
       "file": "01-captura-rapida.html",
       "title": "Captura rápida",
-      "tradeoff": "Velocidad máxima: una tarjeta de 560 px con paciente, cuándo y qué a la vista, el resto plegado y un resumen que se lee como la cita ya escrita. Pierde contexto de agenda: no se ve dónde cae el hueco.",
-      "width": 1440,
-      "height": 900
+      "status": "exploration",
+      "tradeoff": "Velocidad máxima: una tarjeta de 560 px con paciente, cuándo y qué a la vista, el resto plegado y un resumen que se lee como la cita ya escrita. Pierde contexto de agenda: no se ve dónde cae el hueco. Es la base de la dirección elegida, no el contrato final."
     },
     {
       "file": "02-panel-agenda.html",
       "title": "Panel sobre la agenda",
-      "tradeoff": "Máxima conciencia de contexto: la agenda sigue viva y el hueco elegido se pinta en su columna, el panel repite la cita como quedará. Consume 424 px de ancho y deja de ser un diálogo para volverse una vista.",
-      "width": 1440,
-      "height": 900
+      "status": "exploration",
+      "tradeoff": "Máxima conciencia de contexto: la agenda sigue viva y el hueco elegido se pinta en su columna, el panel repite la cita como quedará. Consume 424 px de ancho y deja de ser un diálogo para volverse una vista."
     },
     {
       "file": "03-disponibilidad-primero.html",
       "title": "Disponibilidad primero",
-      "tradeoff": "Elimina el choque por diseño: primero el horario, luego solo los profesionales libres con su sillón, y el paciente al final. Excelente cuando recepción llena huecos, incómodo cuando el paciente está delante esperando.",
-      "width": 1440,
-      "height": 900
+      "status": "exploration",
+      "tradeoff": "Elimina el choque por diseño: primero el horario, luego solo los profesionales libres con su sillón, y el paciente al final. Excelente cuando recepción llena huecos, incómodo cuando el paciente está delante esperando."
     },
     {
       "file": "04-movil-captura-rapida.html",
       "title": "Captura rápida en móvil",
-      "tradeoff": "Contrato de pantalla estrecha para la dirección 01: hoja inferior, controles de 48 px y resumen fijo al pie. Si gana otra dirección, este tablero se reescribe sobre ella.",
-      "width": 390,
-      "height": 844
+      "status": "superseded",
+      "tradeoff": "Exploración de hoja inferior para la dirección 01. No es el contrato implementado: la pantalla real usa el mismo diálogo responsive, sin hoja, con el bloque de equipo y la rejilla de 15 minutos también en pantalla estrecha. Se conserva como referencia y se marca como superada."
     },
     {
       "file": "05-captura-disponible.html",
       "title": "Captura rápida con disponibilidad (elegida)",
-      "tradeoff": "La tarjeta de 01 con el bloque de 03 en su paso «quién»: solo se ofrecen los profesionales libres a esa hora, cada uno con su sillón, y el ocupado se declara con su motivo. Gana el choque evitado; paga una lectura de agenda por selección.",
-      "width": 1440,
-      "height": 900
+      "status": "implemented",
+      "tradeoff": "La tarjeta de 01 con el bloque de 03 en su paso «quién»: dos columnas a 768 px, rejilla de hora de 15 minutos, profesional y sillón como dos listas independientes (cada una declara su ocupación) y chips de tipo con la especialidad del catálogo. Gana el choque evitado; paga una lectura de agenda por selección. El tablero se realineó al contrato implementado (#522)."
     }
   ]
 }

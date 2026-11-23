@@ -145,6 +145,91 @@
         display: grid;
         gap: 16px;
       }
+      .contract-note {
+        margin: 0;
+        padding: 10px 12px;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-ios);
+        background: var(--surface);
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 17px;
+      }
+      .contract-note b {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+      .hour-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 4px;
+      }
+      .hour {
+        min-height: 44px;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-ios);
+        background: var(--elevated);
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+      }
+      .hour[aria-pressed='true'] {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+      .hour[disabled] {
+        color: var(--text-secondary);
+        background: var(--surface);
+        text-decoration: line-through;
+      }
+      .team {
+        display: grid;
+        gap: 8px;
+      }
+      .team-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-ios);
+        background: var(--elevated);
+      }
+      .team-card .who {
+        flex: 1;
+        min-width: 0;
+      }
+      .team-card b {
+        display: block;
+        font-size: 14px;
+        line-height: 19px;
+        font-weight: 500;
+      }
+      .team-card span {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .team-card button {
+        border: 0;
+        background: transparent;
+        color: var(--accent-700);
+        font: inherit;
+        font-size: 12px;
+        text-decoration: underline;
+        padding: 8px;
+        min-height: 44px;
+      }
+      .chip .spec {
+        display: block;
+        margin-top: 1px;
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+      }
       .label {
         display: block;
         font-size: 13px;
@@ -446,6 +531,12 @@
         </div>
 
         <div class="body">
+          <p class="contract-note" data-artboard-status="superseded">
+            <b>Tablero superado.</b>
+            La pantalla implementada no usa hoja inferior: el diálogo responsive ocupa el ancho, la
+            hora es una rejilla de 15 minutos y el equipo es un bloque propio. Se conserva como
+            exploración, no como contrato.
+          </p>
           <div>
             <label class="label" for="p">Paciente</label>
             <div class="chosen">
@@ -465,12 +556,17 @@
                 <input id="f" type="date" value="2026-11-05" />
               </div>
               <div>
-                <label class="label" for="h">Hora</label>
-                <select id="h">
-                  <option>09:00</option>
-                  <option>09:30</option>
-                  <option>10:00</option>
-                </select>
+                <span class="label" id="h-label">Hora</span>
+                <div class="hour-grid" role="group" aria-labelledby="h-label">
+                  <button class="hour" aria-pressed="true">09:00</button>
+                  <button class="hour" aria-pressed="false">09:15</button>
+                  <button class="hour" aria-pressed="false">09:30</button>
+                  <button class="hour" aria-pressed="false">09:45</button>
+                  <button class="hour" aria-pressed="false">10:00</button>
+                  <button class="hour" aria-pressed="false">10:15</button>
+                  <button class="hour" disabled>10:30</button>
+                  <button class="hour" disabled>10:45</button>
+                </div>
               </div>
             </div>
             <p class="meta">
@@ -485,32 +581,52 @@
             <div class="chips" role="group" aria-labelledby="tipo">
               <button class="chip" aria-pressed="true">
                 Resina
+                <span class="spec">Rehabilitación</span>
                 <span>45’</span>
               </button>
               <button class="chip" aria-pressed="false">
                 Consulta
+                <span class="spec">General</span>
                 <span>30’</span>
               </button>
               <button class="chip" aria-pressed="false">
                 Control
+                <span class="spec">Ortodoncia</span>
                 <span>20’</span>
               </button>
               <button class="chip" aria-pressed="false">
                 Endodoncia
+                <span class="spec">Endodoncia</span>
                 <span>60’</span>
               </button>
             </div>
           </div>
 
-          <div class="where">
-            <span class="txt">
-              <b>Dra. Carmen Salazar · Sillón 2</b>
-              <span>
-                <i class="dot"></i>
-                Libre a esa hora
+          <div class="team">
+            <span class="label">Quién atiende y en qué sillón</span>
+            <div class="team-card">
+              <span class="avatar">CS</span>
+              <span class="who">
+                <b>Dra. Carmen Salazar</b>
+                <span>
+                  <i class="dot"></i>
+                  Profesional · Libre
+                </span>
               </span>
-            </span>
-            <button type="button">Cambiar</button>
+              <button type="button">Cambiar</button>
+            </div>
+            <div class="team-card">
+              <span class="avatar">S2</span>
+              <span class="who">
+                <b>Sillón 2</b>
+                <span>
+                  <i class="dot"></i>
+                  Sillón · Libre
+                </span>
+              </span>
+              <button type="button">Cambiar</button>
+            </div>
+            <p class="meta">Dos listas independientes; el par usado hoy queda como atajo.</p>
           </div>
 
           <details>

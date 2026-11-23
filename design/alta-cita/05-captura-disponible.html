@@ -157,7 +157,7 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 560px;
+        width: 768px;
         max-height: 800px;
         display: flex;
         flex-direction: column;
@@ -208,6 +208,91 @@
         display: flex;
         flex-direction: column;
         gap: 20px;
+      }
+
+      .contract-note {
+        margin: 0;
+        padding: 10px 12px;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-ios);
+        background: var(--surface);
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 17px;
+      }
+      .contract-note b {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+      .two-col {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 20px 24px;
+      }
+      .hour-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 4px;
+      }
+      .hour {
+        height: 36px;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-ios);
+        background: var(--elevated);
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        cursor: pointer;
+      }
+      .hour[aria-pressed='true'] {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+      .hour[disabled] {
+        color: var(--text-secondary);
+        background: var(--surface);
+        text-decoration: line-through;
+        cursor: not-allowed;
+      }
+      .team-lists {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 8px;
+      }
+      .mini-label {
+        margin: 0 0 4px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+      }
+      .pair-shortcuts {
+        margin: 8px 0 0;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .pair-shortcuts button {
+        height: 28px;
+        padding: 0 8px;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-full);
+        background: var(--surface);
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .chip .spec {
+        display: block;
+        margin-top: 1px;
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
       }
 
       .label {
@@ -675,6 +760,12 @@
         </div>
 
         <div class="modal-body">
+          <p class="contract-note" data-artboard-status="implemented">
+            <b>Contrato implementado.</b>
+            Este tablero refleja la pantalla real: dos columnas a 768 px, rejilla de hora de 15
+            minutos, profesional y sillón como dos listas independientes y chips de tipo con la
+            especialidad. El estado solo aparece al editar.
+          </p>
           <div class="field">
             <label class="label" for="q">
               Paciente
@@ -731,13 +822,20 @@
               <input id="d" type="date" value="2026-11-05" />
             </div>
             <div class="field">
-              <label class="label" for="h">Hora</label>
-              <select id="h">
-                <option>09:00</option>
-                <option>09:15</option>
-                <option>09:30</option>
-                <option>09:45</option>
-              </select>
+              <span class="label" id="h-label">
+                Hora
+                <span class="hint">rejilla de 15 min</span>
+              </span>
+              <div class="hour-grid" role="group" aria-labelledby="h-label">
+                <button class="hour" aria-pressed="true">09:00</button>
+                <button class="hour" aria-pressed="false">09:15</button>
+                <button class="hour" aria-pressed="false">09:30</button>
+                <button class="hour" aria-pressed="false">09:45</button>
+                <button class="hour" aria-pressed="false">10:00</button>
+                <button class="hour" aria-pressed="false">10:15</button>
+                <button class="hour" disabled>10:30</button>
+                <button class="hour" disabled>10:45</button>
+              </div>
             </div>
             <div class="field">
               <label class="label" for="dur">Duración</label>
@@ -750,87 +848,131 @@
             </div>
           </div>
 
-          <div class="field">
-            <label class="label" id="tipo-label">
-              Tipo de cita
-              <span class="hint">el más usado primero</span>
-            </label>
-            <div class="chips" role="group" aria-labelledby="tipo-label">
-              <button class="chip" aria-pressed="true">
-                Resina compuesta
-                <span>45’</span>
-              </button>
-              <button class="chip" aria-pressed="false">
-                Consulta general
-                <span>30’</span>
-              </button>
-              <button class="chip" aria-pressed="false">
-                Control ortodoncia
-                <span>20’</span>
-              </button>
-              <button class="chip" aria-pressed="false">
-                Endodoncia
-                <span>60’</span>
-              </button>
-              <button class="chip" aria-pressed="false">Otro…</button>
+          <div class="two-col">
+            <div class="field">
+              <label class="label" id="tipo-label">
+                Tipo de cita
+                <span class="hint">el más usado primero</span>
+              </label>
+              <div class="chips" role="group" aria-labelledby="tipo-label">
+                <button class="chip" aria-pressed="true">
+                  Resina compuesta
+                  <span class="spec">Rehabilitación</span>
+                  <span>45’</span>
+                </button>
+                <button class="chip" aria-pressed="false">
+                  Consulta general
+                  <span class="spec">General</span>
+                  <span>30’</span>
+                </button>
+                <button class="chip" aria-pressed="false">
+                  Control ortodoncia
+                  <span class="spec">Ortodoncia</span>
+                  <span>20’</span>
+                </button>
+                <button class="chip" aria-pressed="false">
+                  Endodoncia
+                  <span class="spec">Endodoncia</span>
+                  <span>60’</span>
+                </button>
+                <button class="chip" aria-pressed="false">Otro…</button>
+              </div>
             </div>
-          </div>
 
-          <div class="field">
-            <label class="label" id="quien-label">
-              Quién atiende y en qué sillón
-              <span class="hint">libres 09:00 – 09:45</span>
-            </label>
-            <div class="pick" role="group" aria-labelledby="quien-label">
-              <button class="who" aria-pressed="true">
-                <span class="avatar">CS</span>
-                <span class="txt">
-                  <b>Dra. Carmen Salazar</b>
-                  <span>Odontología · Sillón 2</span>
-                </span>
-                <span class="state">
-                  <i class="dot ok"></i>
-                  Libre
-                </span>
-              </button>
-              <button class="who" aria-pressed="false">
-                <span class="avatar">MP</span>
-                <span class="txt">
-                  <b>Dr. Marco Pinto</b>
-                  <span>Implantología · Sillón 1</span>
-                </span>
-                <span class="state">
-                  <i class="dot ok"></i>
-                  Libre
-                </span>
-              </button>
-              <button class="who" aria-pressed="false">
-                <span class="avatar">LF</span>
-                <span class="txt">
-                  <b>Dra. Lucía Ferrer</b>
-                  <span>Ortodoncia · Sillón 3</span>
-                </span>
-                <span class="state">
-                  <i class="dot ok"></i>
-                  Libre
-                </span>
-              </button>
-              <button class="who" disabled>
-                <span class="avatar">RT</span>
-                <span class="txt">
-                  <b>Dr. Raúl Tello</b>
-                  <span>Rehabilitación · Sillón 4</span>
-                </span>
-                <span class="state">
-                  <i class="dot busy"></i>
-                  Ocupado hasta 09:30
-                </span>
-              </button>
+            <div class="field">
+              <label class="label" id="quien-label">
+                Quién atiende y en qué sillón
+                <span class="hint">libres 09:00 – 09:45</span>
+              </label>
+              <div class="team-lists">
+                <div>
+                  <p class="mini-label">Profesional</p>
+                  <div class="pick" role="group" aria-labelledby="quien-label">
+                    <button class="who" aria-pressed="true">
+                      <span class="avatar">CS</span>
+                      <span class="txt">
+                        <b>Dra. Carmen Salazar</b>
+                        <span>Odontología</span>
+                      </span>
+                      <span class="state">
+                        <i class="dot ok"></i>
+                        Libre
+                      </span>
+                    </button>
+                    <button class="who" aria-pressed="false">
+                      <span class="avatar">MP</span>
+                      <span class="txt">
+                        <b>Dr. Marco Pinto</b>
+                        <span>Implantología</span>
+                      </span>
+                      <span class="state">
+                        <i class="dot ok"></i>
+                        Libre
+                      </span>
+                    </button>
+                    <button class="who" disabled>
+                      <span class="avatar">RT</span>
+                      <span class="txt">
+                        <b>Dr. Raúl Tello</b>
+                        <span>Rehabilitación</span>
+                      </span>
+                      <span class="state">
+                        <i class="dot busy"></i>
+                        Ocupado hasta 09:30
+                      </span>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <p class="mini-label">Sillón</p>
+                  <div class="pick" role="group" aria-label="Sillones">
+                    <button class="who" aria-pressed="true">
+                      <span class="avatar">S2</span>
+                      <span class="txt">
+                        <b>Sillón 2</b>
+                        <span>Consultorio A</span>
+                      </span>
+                      <span class="state">
+                        <i class="dot ok"></i>
+                        Libre
+                      </span>
+                    </button>
+                    <button class="who" aria-pressed="false">
+                      <span class="avatar">S1</span>
+                      <span class="txt">
+                        <b>Sillón 1</b>
+                        <span>Consultorio A</span>
+                      </span>
+                      <span class="state">
+                        <i class="dot ok"></i>
+                        Libre
+                      </span>
+                    </button>
+                    <button class="who" disabled>
+                      <span class="avatar">S4</span>
+                      <span class="txt">
+                        <b>Sillón 4</b>
+                        <span>Consultorio B</span>
+                      </span>
+                      <span class="state">
+                        <i class="dot busy"></i>
+                        Ocupado hasta 09:30
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <p class="pair-shortcuts">
+                Pares usados hoy:
+                <button type="button">Salazar · Sillón 2</button>
+                <button type="button">Pinto · Sillón 1</button>
+                <button type="button">Ferrer · Sillón 3</button>
+              </p>
+              <p class="escape">
+                ¿Ninguno sirve?
+                <button type="button">Ver los cuatro sillones y elegir a mano</button>
+              </p>
             </div>
-            <p class="escape">
-              ¿Ninguno sirve?
-              <button type="button">Ver los cuatro sillones y elegir a mano</button>
-            </p>
           </div>
 
           <details class="more">

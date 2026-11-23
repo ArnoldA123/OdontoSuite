@@ -163,6 +163,14 @@
               </div>
               <div>
                 <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                  Especialidad
+                </dt>
+                <dd class="mt-1 text-sm text-theme-primary" data-detail-field="specialty">
+                  {{ appointmentType?.specialty?.name || 'Sin especialidad' }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
                   Color
                 </dt>
                 <dd class="mt-2 flex items-center gap-2">

@@ -8,7 +8,7 @@
       "sentAt": "2026-11-20T23:14:25.407Z",
       "startedAt": "2026-11-20T23:14:33.731Z",
       "implementedAt": "2026-11-20T23:40:30.838Z",
-      "note": "Alta de cita en producción: paciente por búsqueda, cuándo con «Termina», chips de tipo, pares profesional·sillón con disponibilidad real y degradación honesta. Verificado en navegador.",
+      "note": "Alta de cita en producción: paciente por búsqueda, cuándo con «Termina» y rejilla de 15 minutos, chips de tipo con especialidad, pares profesional·sillón con disponibilidad real, dos columnas a 768 px y degradación honesta. Tablero realineado al contrato implementado en #522. Verificado en navegador.",
       "previewUrl": "http://127.0.0.1:8000/calendar"
     }
   }

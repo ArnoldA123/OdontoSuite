@@ -77,9 +77,10 @@ const router = createRouter({
   routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
 })
 
-const mountPage = async (catalog = []) => {
+const mountPage = async (catalog = [], specialties = []) => {
   getMock.mockImplementation(async url => {
     if (String(url).startsWith('/api/appointment-types')) return { data: catalog }
+    if (String(url).startsWith('/api/specialties/active')) return { data: specialties }
     return { data: [] }
   })
   const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
@@ -150,6 +151,25 @@ const setField = (labelText, value) => {
 const hasDerivedMaterialsFlag = () =>
   document.body.querySelector('[data-flag-select="requires_materials"]') !== null
 
+const specialtySelect = () => {
+  const container = document.body.querySelector('[data-field="specialty_id"]')
+  expect(container).toBeTruthy()
+  return container
+}
+
+const specialtyLabel = () => specialtySelect().querySelector('button').textContent.trim()
+
+const chooseSpecialty = async label => {
+  specialtySelect().querySelector('button').click()
+  await flushPromises()
+  const option = [...specialtySelect().querySelectorAll('button')].find(
+    b => b.textContent.trim() === label
+  )
+  expect(option).toBeTruthy()
+  option.click()
+  await flushPromises()
+}
+
 describe('appointment-types CRUD contract', () => {
   beforeEach(() => {
     seedSession('administrador')
@@ -165,6 +185,90 @@ describe('appointment-types CRUD contract', () => {
 
   afterEach(() => {
     globalToasts.value = []
+  })
+
+  it('renders the specialty in the list and falls back to Sin especialidad', async () => {
+    const wrapper = await mountPage([
+      makeType(1, {
+        name: 'Limpieza dental',
+        specialty_id: 7,
+        specialty: { id: 7, code: 'general', name: 'General' }
+      }),
+      makeType(2, { name: 'Ortodoncia' })
+    ])
+
+    const rows = wrapper.findAll('[data-type-row]')
+    expect(rows[0].find('[data-type-specialty]').text()).toBe('General')
+    expect(rows[1].find('[data-type-specialty]').text()).toBe('Sin especialidad')
+    wrapper.unmount()
+  })
+
+  it('offers the active catalog and submits the chosen specialty from the create modal', async () => {
+    const wrapper = await mountPage(
+      [makeType(1, { name: 'Limpieza dental' })],
+      [
+        { id: 7, code: 'general', name: 'General' },
+        { id: 8, code: 'ortodoncia', name: 'Ortodoncia' }
+      ]
+    )
+    await openNewModal(wrapper)
+
+    expect(specialtyLabel()).toBe('Sin especialidad')
+    await chooseSpecialty('Ortodoncia')
+    setField('Nombre del Tipo', 'Control de ortodoncia')
+    setField('Duración (minutos)', '45')
+    buttonByText('Guardar tipo de cita').click()
+    await flushPromises()
+
+    expect(postMock).toHaveBeenCalledTimes(1)
+    expect(postMock.mock.calls[0][1].specialty_id).toBe(8)
+    wrapper.unmount()
+  })
+
+  it('clears the specialty to null from the edit modal', async () => {
+    const wrapper = await mountPage(
+      [
+        makeType(1, {
+          name: 'Limpieza dental',
+          specialty_id: 8,
+          specialty: { id: 8, code: 'ortodoncia', name: 'Ortodoncia' }
+        })
+      ],
+      [{ id: 8, code: 'ortodoncia', name: 'Ortodoncia' }]
+    )
+    await openEditModal(wrapper)
+
+    expect(specialtyLabel()).toBe('Ortodoncia')
+    await chooseSpecialty('Sin especialidad')
+    buttonByText('Actualizar').click()
+    await flushPromises()
+
+    expect(putMock).toHaveBeenCalledTimes(1)
+    expect(putMock.mock.calls[0][1].specialty_id).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('binds a server 422 on specialty_id to the specialty field', async () => {
+    const message = 'La especialidad seleccionada no existe.'
+    postMock.mockRejectedValueOnce({
+      response: {
+        status: 422,
+        data: { message: 'Error de validación', errors: { specialty_id: [message] } }
+      },
+      status: 422
+    })
+
+    const wrapper = await mountPage([makeType(1, { name: 'Limpieza dental' })])
+    await openNewModal(wrapper)
+    setField('Nombre del Tipo', 'Control de ortodoncia')
+    setField('Duración (minutos)', '45')
+    buttonByText('Guardar tipo de cita').click()
+    await flushPromises()
+
+    expect(postMock).toHaveBeenCalledTimes(1)
+    expect(document.body.textContent).toContain(message)
+    expect(globalToasts.value.map(t => t.message)).not.toContain(message)
+    wrapper.unmount()
   })
 
   it('surfaces the API message when deletion is blocked by existing appointments', async () => {

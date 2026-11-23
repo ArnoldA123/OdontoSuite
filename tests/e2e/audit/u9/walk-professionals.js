@@ -785,7 +785,7 @@ test('@U9 walks profesionales', async ({ page }) => {
 
         const loading = await page
           .waitForFunction(
-            () => /Cargando profesionales/i.test(document.querySelector('main')?.innerText ?? ''),
+            () => Boolean(document.querySelector('main [data-team-loading]')),
             undefined,
             { timeout: 6000, polling: 100 }
           )
@@ -795,7 +795,7 @@ test('@U9 walks profesionales', async ({ page }) => {
         detail.loading = {
           visible: loading,
           shot: loading ? await shot(page, `shots/walk/${SLUG}/${entry.id}-loading.png`) : null,
-          text: loading ? (await listText(page)).slice(0, 160) : null
+          text: loading ? 'skeleton de la tabla (data-team-loading)' : null
         }
 
         await page.unroute('**/api/users*')
@@ -878,7 +878,7 @@ test('@U9 walks profesionales', async ({ page }) => {
         detail.error.rowsAfterRetry = await rowCount(page, ROWS)
         detail.error.kpisAfterRetry = await visibleTexts(page, '[data-stat]')
 
-        entry.obtained = `carga: ${detail.loading.visible ? 'muestra «Cargando profesionales...»' : 'sin placeholder observable'} · vacío: ${detail.empty.title && detail.empty.description ? '«Sin resultados» con su explicación' : 'sin texto de vacío'}${detail.empty.clearOffered ? ' y «Limpiar filtros»' : ' y sin acción'} · error 500: ${detail.error.painted ? `bloque «${detail.error.text.slice(0, 90)}»` : 'sin bloque de error'} · KPIs ${JSON.stringify(detail.error.kpis)} · «Sin profesionales registrados» ${detail.error.emptyShown ? 'pintado (vacío falso)' : 'no pintado'} · «Reintentar» ${detail.error.retryOffered ? 'ofrecido' : 'ausente'} · tras reintentar ${detail.error.rowsAfterRetry} fila(s) · KPIs ${JSON.stringify(detail.error.kpisAfterRetry)} · toast «${detail.error.toast}»`
+        entry.obtained = `carga: ${detail.loading.visible ? 'muestra el skeleton de carga' : 'sin placeholder observable'} · vacío: ${detail.empty.title && detail.empty.description ? '«Sin resultados» con su explicación' : 'sin texto de vacío'}${detail.empty.clearOffered ? ' y «Limpiar filtros»' : ' y sin acción'} · error 500: ${detail.error.painted ? `bloque «${detail.error.text.slice(0, 90)}»` : 'sin bloque de error'} · KPIs ${JSON.stringify(detail.error.kpis)} · «Sin profesionales registrados» ${detail.error.emptyShown ? 'pintado (vacío falso)' : 'no pintado'} · «Reintentar» ${detail.error.retryOffered ? 'ofrecido' : 'ausente'} · tras reintentar ${detail.error.rowsAfterRetry} fila(s) · KPIs ${JSON.stringify(detail.error.kpisAfterRetry)} · toast «${detail.error.toast}»`
         entry.detail = detail
         entry.verdict =
           detail.loading.visible &&

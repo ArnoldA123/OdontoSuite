@@ -9,6 +9,7 @@ use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -281,6 +282,107 @@ class AppointmentSlotBoundaryTest extends TestCase
         }
 
         $this->assertSame(4, Appointment::count());
+    }
+
+    public function test_moving_only_the_professional_onto_an_occupied_slot_is_a_conflict(): void
+    {
+        $actor = $this->actor();
+        $first = $this->dentist();
+        $second = $this->dentist();
+        $firstChair = DentalChair::factory()->create();
+        $secondChair = DentalChair::factory()->create();
+
+        $this->book($actor, $first, $firstChair, $this->at('09:00'))->assertCreated();
+
+        $moving = Appointment::factory()->create([
+            'patient_id' => Patient::factory()->create()->id,
+            'user_id' => $second->id,
+            'dental_chair_id' => $secondChair->id,
+            'appointment_type_id' => AppointmentType::factory()->create()->id,
+            'scheduled_at' => $this->at('09:00'),
+            'ends_at' => $this->at('09:30'),
+            'duration_minutes' => 30,
+        ]);
+
+        $blockingId = Appointment::where('user_id', $first->id)->value('id');
+
+        $response = $this->actingAs($actor, 'sanctum')
+            ->putJson("/api/appointments/{$moving->id}", [
+                'user_id' => $first->id,
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors('scheduled_at')
+            ->assertJsonPath('conflict.type', 'user_conflict')
+            ->assertJsonPath('conflict.conflicting_appointment.id', $blockingId);
+
+        $this->assertSame($second->id, (int) $moving->fresh()->user_id);
+    }
+
+    public function test_moving_only_the_chair_onto_an_occupied_slot_is_a_conflict(): void
+    {
+        $actor = $this->actor();
+        $first = $this->dentist();
+        $second = $this->dentist();
+        $firstChair = DentalChair::factory()->create();
+        $secondChair = DentalChair::factory()->create();
+
+        $this->book($actor, $first, $firstChair, $this->at('09:00'))->assertCreated();
+
+        $moving = Appointment::factory()->create([
+            'patient_id' => Patient::factory()->create()->id,
+            'user_id' => $second->id,
+            'dental_chair_id' => $secondChair->id,
+            'appointment_type_id' => AppointmentType::factory()->create()->id,
+            'scheduled_at' => $this->at('09:00'),
+            'ends_at' => $this->at('09:30'),
+            'duration_minutes' => 30,
+        ]);
+
+        $response = $this->actingAs($actor, 'sanctum')
+            ->putJson("/api/appointments/{$moving->id}", [
+                'dental_chair_id' => $firstChair->id,
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors('scheduled_at')
+            ->assertJsonPath('conflict.type', 'chair_conflict');
+
+        $this->assertSame($secondChair->id, (int) $moving->fresh()->dental_chair_id);
+    }
+
+    public function test_updating_only_the_appointment_type_does_not_check_the_slot(): void
+    {
+        $actor = $this->actor();
+        $dentist = $this->dentist();
+        $chair = DentalChair::factory()->create();
+
+        $moving = Appointment::factory()->create([
+            'patient_id' => Patient::factory()->create()->id,
+            'user_id' => $dentist->id,
+            'dental_chair_id' => $chair->id,
+            'appointment_type_id' => AppointmentType::factory()->create()->id,
+            'scheduled_at' => $this->at('09:00'),
+            'ends_at' => $this->at('09:30'),
+            'duration_minutes' => 30,
+        ]);
+
+        $newType = AppointmentType::factory()->create();
+
+        DB::enableQueryLog();
+        $response = $this->actingAs($actor, 'sanctum')
+            ->putJson("/api/appointments/{$moving->id}", [
+                'appointment_type_id' => $newType->id,
+            ]);
+        $queries = collect(DB::getQueryLog())->pluck('query');
+        DB::disableQueryLog();
+
+        $response->assertOk();
+        $this->assertSame($newType->id, (int) $moving->fresh()->appointment_type_id);
+        $this->assertFalse(
+            $queries->contains(fn ($query) => str_contains(strtolower((string) $query), 'for update')),
+            'A type-only edit must not take the slot locks.'
+        );
     }
 
     public function test_the_unique_indexes_key_on_the_exact_slot_so_adjacency_cannot_collide(): void

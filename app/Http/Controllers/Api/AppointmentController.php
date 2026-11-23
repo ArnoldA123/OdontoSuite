@@ -6,6 +6,7 @@ use App\Authorization\BranchAccess;
 use App\Events\AppointmentCreated;
 use App\Events\AppointmentDeleted;
 use App\Events\AppointmentUpdated;
+use App\Exceptions\AppointmentSlotConflictException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RescheduleAppointmentRequest;
 use App\Http\Resources\AppointmentResource;
@@ -14,8 +15,8 @@ use App\Models\Appointment;
 use App\Models\AuditLog;
 use App\Services\AppointmentService;
 use App\Services\ReminderService;
+use App\Support\SlotConflict;
 use Carbon\Carbon;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -225,6 +226,8 @@ class AppointmentController extends Controller
                     'message' => 'Cita creada exitosamente',
                 ],
             ], 201);
+        } catch (AppointmentSlotConflictException $e) {
+            return $this->conflictResponse($e);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::warning('Validation error creating appointment', [
                 'user_id' => Auth::id(),
@@ -323,6 +326,8 @@ class AppointmentController extends Controller
                     'message' => 'Cita actualizada exitosamente',
                 ],
             ]);
+        } catch (AppointmentSlotConflictException $e) {
+            return $this->conflictResponse($e);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
@@ -415,6 +420,8 @@ class AppointmentController extends Controller
                     'message' => 'Cita reprogramada exitosamente',
                 ],
             ]);
+        } catch (AppointmentSlotConflictException $e) {
+            return $this->conflictResponse($e);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
@@ -606,6 +613,29 @@ class AppointmentController extends Controller
     }
 
     /**
+     * Render the typed slot conflict with the same envelope as the pre-check,
+     * so losing the race and being seen by the pre-check are one shape.
+     */
+    private function conflictResponse(AppointmentSlotConflictException $exception): JsonResponse
+    {
+        $message = (string) ($exception->errors()['scheduled_at'][0]
+            ?? 'Conflicto de horario detectado. Ya existe una cita en ese horario.');
+
+        return response()->json([
+            'message' => $message,
+            'errors' => [
+                'scheduled_at' => [$message],
+            ],
+            'conflict' => [
+                'type' => $exception->conflictType,
+                'conflicting_appointment' => $exception->conflictingAppointment !== null
+                    ? $this->conflictSummary($exception->conflictingAppointment)
+                    : null,
+            ],
+        ], 422);
+    }
+
+    /**
      * Translate a slot uniqueness violation into a conflict response.
      *
      * #392: the pre-check normally answers first, so this is the backstop for
@@ -617,42 +647,9 @@ class AppointmentController extends Controller
      */
     private function slotConflictResponse(mixed $exception): ?JsonResponse
     {
-        if (! $exception instanceof QueryException || ! $this->isSlotDuplicate($exception)) {
-            return null;
-        }
-
-        $message = 'Ese horario ya está ocupado por otra cita activa. Actualiza la agenda y vuelve a intentarlo.';
-
-        return response()->json([
-            'message' => $message,
-            'errors' => [
-                'scheduled_at' => [$message],
-            ],
-            'conflict' => [
-                'type' => 'slot_taken',
-                'conflicting_appointment' => null,
-            ],
-        ], 422);
-    }
-
-    /**
-     * A duplicate key on one of the two slot indexes, and nothing else: the
-     * idempotency key is unique too and a collision there is not a slot
-     * conflict.
-     */
-    private function isSlotDuplicate(QueryException $exception): bool
-    {
-        $message = $exception->getMessage();
-
-        $duplicateKey = (int) ($exception->errorInfo[1] ?? 0) === 1062
-            || str_contains($message, 'Duplicate entry');
-
-        if (! $duplicateKey) {
-            return false;
-        }
-
-        return str_contains($message, 'unique_user_time_slot')
-            || str_contains($message, 'unique_chair_time_slot');
+        return $exception instanceof \Throwable
+            ? SlotConflict::response($exception)
+            : null;
     }
 
     /**

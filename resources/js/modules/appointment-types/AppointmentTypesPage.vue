@@ -217,6 +217,15 @@
               {{ row.description || 'Sin descripción' }}
             </div>
           </template>
+          <template #cell-specialty="{ row }">
+            <span
+              class="block truncate text-sm text-theme-primary"
+              data-type-specialty
+              :title="row.specialty?.name || 'Sin especialidad'"
+            >
+              {{ row.specialty?.name || 'Sin especialidad' }}
+            </span>
+          </template>
           <template #cell-duration="{ row }">
             <span class="whitespace-nowrap text-sm tabular-nums text-theme-primary">
               {{ row.default_duration_minutes }} min
@@ -288,6 +297,23 @@
         :error="createErrors.name"
       />
       <UiTextarea v-model="newType.description" label="Descripción" :rows="3" />
+      <div>
+        <label class="block text-sm font-medium text-theme-primary">Especialidad</label>
+        <UiSelect
+          v-model="newType.specialty_id"
+          :options="specialtyOptions"
+          :error="createErrors.specialty_id"
+          label="Especialidad"
+          data-field="specialty_id"
+        />
+        <p
+          v-if="createErrors.specialty_id"
+          class="mt-1 text-sm text-systemRed-600"
+          data-field-error="specialty_id"
+        >
+          {{ createErrors.specialty_id }}
+        </p>
+      </div>
       <UiInput
         v-model="newType.duration_minutes"
         label="Duración (minutos)"
@@ -361,6 +387,23 @@
         :error="editErrors.name"
       />
       <UiTextarea v-model="editingType.description" label="Descripción" :rows="3" />
+      <div>
+        <label class="block text-sm font-medium text-theme-primary">Especialidad</label>
+        <UiSelect
+          v-model="editingType.specialty_id"
+          :options="specialtyOptions"
+          :error="editErrors.specialty_id"
+          label="Especialidad"
+          data-field="specialty_id"
+        />
+        <p
+          v-if="editErrors.specialty_id"
+          class="mt-1 text-sm text-systemRed-600"
+          data-field-error="specialty_id"
+        >
+          {{ editErrors.specialty_id }}
+        </p>
+      </div>
       <UiInput
         v-model="editingType.duration_minutes"
         label="Duración (minutos)"
@@ -511,6 +554,7 @@ export default {
     const updating = ref(false)
     const loadError = ref(false)
     const types = ref([])
+    const specialties = ref([])
     const searchQuery = ref('')
     const statusFilter = ref('all')
     const showNewTypeModal = ref(false)
@@ -527,6 +571,7 @@ export default {
     const emptyNewType = () => ({
       name: '',
       description: '',
+      specialty_id: '',
       duration_minutes: 60,
       price: 0,
       requires_confirmation: true,
@@ -541,6 +586,13 @@ export default {
       { value: true, label: 'Sí' },
       { value: false, label: 'No' }
     ]
+
+    // #518: the catalog is the API's own active list; the empty value is the
+    // explicit "Sin especialidad" state, never a missing option.
+    const specialtyOptions = computed(() => [
+      { value: '', label: 'Sin especialidad' },
+      ...specialties.value.map(specialty => ({ value: specialty.id, label: specialty.name }))
+    ])
 
     const formatTypePrice = price =>
       price === null || price === undefined ? 'No especificado' : formatCurrency(price)
@@ -573,6 +625,7 @@ export default {
     const tableColumns = [
       { key: 'name', label: 'Nombre' },
       { key: 'description', label: 'Descripción' },
+      { key: 'specialty', label: 'Especialidad' },
       { key: 'duration', label: 'Duración' },
       { key: 'price', label: 'Precio' },
       { key: 'status', label: 'Estado' }
@@ -588,7 +641,8 @@ export default {
         if (statusFilter.value === 'active' && !type.is_active) return false
         if (statusFilter.value === 'inactive' && type.is_active) return false
         if (query) {
-          const haystack = `${type.name || ''} ${type.description || ''}`.toLowerCase()
+          const haystack =
+            `${type.name || ''} ${type.description || ''} ${type.specialty?.name || ''}`.toLowerCase()
           if (!haystack.includes(query)) return false
         }
         return true
@@ -666,6 +720,15 @@ export default {
       }
     }
 
+    const loadSpecialties = async () => {
+      try {
+        const response = await get('/api/specialties/active')
+        specialties.value = response?.data || []
+      } catch (error) {
+        handleError(error, 'Error al cargar las especialidades.')
+      }
+    }
+
     // #440: the page validates the two rules the API demands (a name and a
     // 15-480 minute duration) so an empty submit paints its message instead of
     // reaching the network. The server keeps deciding; a 422 is mapped onto
@@ -706,6 +769,10 @@ export default {
     const writePayload = source => {
       const payload = { ...source }
       delete payload.requires_materials
+      payload.specialty_id =
+        payload.specialty_id === '' || payload.specialty_id === undefined
+          ? null
+          : payload.specialty_id
       return payload
     }
 
@@ -714,7 +781,7 @@ export default {
       if (!validateForm(newType.value, createErrors)) return
       creating.value = true
       try {
-        await post('/api/appointment-types', newType.value)
+        await post('/api/appointment-types', writePayload(newType.value))
         showNewTypeModal.value = false
         newType.value = emptyNewType()
         createErrors.value = {}
@@ -736,6 +803,7 @@ export default {
       editingType.value = {
         ...type,
         color: storedColor,
+        specialty_id: type.specialty_id ?? '',
         duration_minutes: type.default_duration_minutes
       }
       editErrors.value = {}
@@ -795,6 +863,7 @@ export default {
 
     onMounted(() => {
       loadTypes()
+      loadSpecialties()
     })
 
     return {
@@ -808,6 +877,7 @@ export default {
       statusFilterOptions,
       isActiveOptions,
       editingTypeIsActive,
+      specialtyOptions,
       filteredTypes,
       tableColumns,
       typeRowAttributes,

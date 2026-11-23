@@ -200,6 +200,65 @@ class AppointmentSlotRaceTest extends TestCase
         $this->assertSame($otherDentist->id, (int) Appointment::firstOrFail()->user_id);
     }
 
+    public function test_reschedule_that_loses_the_race_answers_the_conflict_envelope(): void
+    {
+        $actor = $this->actor();
+        $dentist = $this->dentist();
+        $chair = DentalChair::factory()->create();
+
+        $moving = Appointment::factory()->create([
+            'patient_id' => Patient::factory()->create()->id,
+            'user_id' => $dentist->id,
+            'dental_chair_id' => $chair->id,
+            'appointment_type_id' => AppointmentType::factory()->create()->id,
+            'scheduled_at' => $this->at('11:00'),
+            'ends_at' => $this->at('11:30'),
+            'duration_minutes' => 30,
+        ]);
+
+        $contender = $this->startContender('users', $dentist->id, [
+            $this->patientId(),
+            $dentist->id,
+            $chair->id,
+            $this->appointmentTypeId(),
+            $this->at('09:00')->toDateTimeString(),
+            $this->at('09:30')->toDateTimeString(),
+            30,
+            $actor->id,
+        ]);
+
+        try {
+            $this->awaitLine($contender, 'locked');
+
+            $startedAt = microtime(true);
+            $response = $this->actingAs($actor, 'sanctum')
+                ->patchJson("/api/appointments/{$moving->id}/reschedule", [
+                    'scheduled_at' => $this->at('09:15')->toDateTimeString(),
+                    'duration_minutes' => 30,
+                ]);
+            $waitedMs = (microtime(true) - $startedAt) * 1000;
+
+            $response->assertStatus(422)
+                ->assertJsonValidationErrors('scheduled_at')
+                ->assertJsonPath('conflict.type', 'user_conflict');
+            $this->assertNotNull($response->json('conflict.conflicting_appointment'));
+            $this->assertGreaterThan(
+                self::HOLD_MICROSECONDS / 1000 * 0.6,
+                $waitedMs,
+                sprintf('The reschedule answered in %.0f ms instead of waiting for the lock.', $waitedMs)
+            );
+
+            $this->awaitLine($contender, 'committed');
+        } finally {
+            $this->stopContender($contender);
+        }
+
+        $this->assertSame(
+            $this->at('11:00')->format('Y-m-d H:i:s'),
+            $moving->fresh()->scheduled_at->format('Y-m-d H:i:s')
+        );
+    }
+
     private function patientId(): int
     {
         return Patient::factory()->create()->id;
