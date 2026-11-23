@@ -14,6 +14,7 @@ class AppointmentType extends Model
 
     protected $fillable = [
         'name',
+        'specialty_id',
         'description',
         'default_duration_minutes',
         'price',
@@ -41,6 +42,14 @@ class AppointmentType extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    /**
+     * Especialidad del catalogo a la que pertenece el tipo de cita.
+     */
+    public function specialty(): BelongsTo
+    {
+        return $this->belongsTo(Specialty::class, 'specialty_id');
     }
 
     /**

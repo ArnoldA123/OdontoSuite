@@ -49,41 +49,12 @@ class AppointmentService
             $scheduledAt = Carbon::parse($data['scheduled_at'])->setTimezone(config('app.timezone'));
             $duration = $data['duration_minutes'] ?? 60;
 
-            Log::info('AppointmentService::createAppointment - Checking conflicts', [
-                'user_id' => $data['user_id'],
-                'dental_chair_id' => $data['dental_chair_id'],
-                'scheduled_at' => $scheduledAt->toDateTimeString(),
-                'duration' => $duration,
-            ]);
-
-            // Check for conflicts using repository
-            $conflicts = $this->repository->findConflicts(
-                $data['user_id'],
-                $data['dental_chair_id'],
-                $scheduledAt,
-                $duration
-            );
-
-            Log::info('AppointmentService::createAppointment - Conflicts checked', [
-                'conflicts_count' => $conflicts->count(),
-            ]);
-
-            if ($conflicts->isNotEmpty()) {
-                throw ValidationException::withMessages([
-                    'scheduled_at' => ['Conflicto de horario detectado. Ya existe una cita en ese horario.'],
-                ]);
-            }
-
-            Log::info('AppointmentService::createAppointment - Checking work schedule');
-
             // Check work schedule - Deshabilitado: profesionales trabajan 24/7
             // if (!$this->isWithinWorkSchedule($data['user_id'], $scheduledAt)) {
             //     throw ValidationException::withMessages([
             //         'scheduled_at' => ['El horario está fuera del horario de trabajo del profesional.'],
             //     ]);
             // }
-
-            Log::info('AppointmentService::createAppointment - Checking blocks');
 
             // Check for blocks - Deshabilitado temporalmente para simplificar
             // if ($this->hasConflictingBlocks($data['user_id'], $data['dental_chair_id'], $scheduledAt, $duration)) {
@@ -94,9 +65,37 @@ class AppointmentService
 
             Log::info('AppointmentService::createAppointment - All validations passed, creating appointment');
 
+            // The slot pre-check runs inside the transaction that writes: the
+            // lock on the professional and the chair is what makes the read
+            // authoritative, and it is released by the commit that publishes
+            // the booking to the waiter.
             DB::beginTransaction();
 
             try {
+                Log::info('AppointmentService::createAppointment - Checking conflicts', [
+                    'user_id' => $data['user_id'],
+                    'dental_chair_id' => $data['dental_chair_id'],
+                    'scheduled_at' => $scheduledAt->toDateTimeString(),
+                    'duration' => $duration,
+                ]);
+
+                $conflicts = $this->repository->findConflictsForWrite(
+                    $data['user_id'],
+                    $data['dental_chair_id'],
+                    $scheduledAt,
+                    $duration
+                );
+
+                Log::info('AppointmentService::createAppointment - Conflicts checked', [
+                    'conflicts_count' => $conflicts->count(),
+                ]);
+
+                if ($conflicts->isNotEmpty()) {
+                    throw ValidationException::withMessages([
+                        'scheduled_at' => ['Conflicto de horario detectado. Ya existe una cita en ese horario.'],
+                    ]);
+                }
+
                 $endsAt = $scheduledAt->copy()->addMinutes($duration);
 
                 // #394: el motivo no es campo de asignación masiva; se escribe
@@ -160,6 +159,12 @@ class AppointmentService
                 ]);
 
                 return $appointment;
+            } catch (ValidationException $e) {
+                // A slot conflict is a business answer, not a server error:
+                // release the lock and let the controller render the 422.
+                DB::rollBack();
+
+                throw $e;
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error('AppointmentService::createAppointment - Error in transaction', [
@@ -199,39 +204,42 @@ class AppointmentService
         $previousTypeId = (int) $appointment->appointment_type_id;
         $previousStatus = $appointment->status;
 
-        // Check for conflicts if time is being changed
-        if (isset($data['scheduled_at']) || isset($data['duration_minutes'])) {
-            $scheduledAt = Carbon::parse($data['scheduled_at'] ?? $appointment->scheduled_at)->setTimezone(config('app.timezone'));
-            $duration = $data['duration_minutes'] ?? $appointment->duration_minutes ?? 60;
-            $userId = $data['user_id'] ?? $appointment->user_id;
-            $chairId = $data['dental_chair_id'] ?? $appointment->dental_chair_id;
-
-            $conflicts = $this->repository->findConflicts($userId, $chairId, $scheduledAt, $duration, $appointment->id);
-
-            if ($conflicts->isNotEmpty()) {
-                throw ValidationException::withMessages([
-                    'scheduled_at' => ['Conflicto de horario detectado. Ya existe una cita en ese horario.'],
-                ]);
-            }
-
-            // Check work schedule - Deshabilitado: profesionales trabajan 24/7
-            // if (!$this->isWithinWorkSchedule($userId, $scheduledAt)) {
-            //     throw ValidationException::withMessages([
-            //         'scheduled_at' => ['El horario está fuera del horario de trabajo del profesional.'],
-            //     ]);
-            // }
-
-            // Check for blocks - Deshabilitado temporalmente para simplificar
-            // if ($this->hasConflictingBlocks($userId, $chairId, $scheduledAt, $duration)) {
-            //     throw ValidationException::withMessages([
-            //         'scheduled_at' => ['El horario está bloqueado (vacaciones, mantenimiento, etc.).'],
-            //     ]);
-            // }
-        }
-
         DB::beginTransaction();
 
         try {
+            // Check for conflicts if time is being changed. The read runs under
+            // the lock of the professional and the chair, inside the
+            // transaction that writes, so two concurrent edits cannot both
+            // clear it.
+            if (isset($data['scheduled_at']) || isset($data['duration_minutes'])) {
+                $scheduledAt = Carbon::parse($data['scheduled_at'] ?? $appointment->scheduled_at)->setTimezone(config('app.timezone'));
+                $duration = $data['duration_minutes'] ?? $appointment->duration_minutes ?? 60;
+                $userId = $data['user_id'] ?? $appointment->user_id;
+                $chairId = $data['dental_chair_id'] ?? $appointment->dental_chair_id;
+
+                $conflicts = $this->repository->findConflictsForWrite($userId, $chairId, $scheduledAt, $duration, $appointment->id);
+
+                if ($conflicts->isNotEmpty()) {
+                    throw ValidationException::withMessages([
+                        'scheduled_at' => ['Conflicto de horario detectado. Ya existe una cita en ese horario.'],
+                    ]);
+                }
+
+                // Check work schedule - Deshabilitado: profesionales trabajan 24/7
+                // if (!$this->isWithinWorkSchedule($userId, $scheduledAt)) {
+                //     throw ValidationException::withMessages([
+                //         'scheduled_at' => ['El horario está fuera del horario de trabajo del profesional.'],
+                //     ]);
+                // }
+
+                // Check for blocks - Deshabilitado temporalmente para simplificar
+                // if ($this->hasConflictingBlocks($userId, $chairId, $scheduledAt, $duration)) {
+                //     throw ValidationException::withMessages([
+                //         'scheduled_at' => ['El horario está bloqueado (vacaciones, mantenimiento, etc.).'],
+                //     ]);
+                // }
+            }
+
             // Update ends_at if scheduled_at or duration changed
             if (isset($data['scheduled_at']) || isset($data['duration_minutes'])) {
                 $scheduledAt = Carbon::parse($data['scheduled_at'] ?? $appointment->scheduled_at)->setTimezone(config('app.timezone'));
@@ -334,21 +342,6 @@ class AppointmentService
         $oldValues = $appointment->toArray();
         $duration = $duration ?? $appointment->duration_minutes ?? 60;
 
-        // Check for conflicts using repository
-        $conflicts = $this->repository->findConflicts(
-            $appointment->user_id,
-            $appointment->dental_chair_id,
-            $newDateTime,
-            $duration,
-            $appointment->id
-        );
-
-        if ($conflicts->isNotEmpty()) {
-            throw ValidationException::withMessages([
-                'scheduled_at' => ['Conflicto de horario detectado. Ya existe una cita en ese horario.'],
-            ]);
-        }
-
         // Check work schedule - Deshabilitado: profesionales trabajan 24/7
         // if (!$this->isWithinWorkSchedule($appointment->user_id, $newDateTime)) {
         //     throw ValidationException::withMessages([
@@ -366,6 +359,23 @@ class AppointmentService
         DB::beginTransaction();
 
         try {
+            // The move lands on the lock like the other two doors: the target
+            // slot is read under the professional's and the chair's lock, so a
+            // second request cannot pass the same read.
+            $conflicts = $this->repository->findConflictsForWrite(
+                $appointment->user_id,
+                $appointment->dental_chair_id,
+                $newDateTime,
+                $duration,
+                $appointment->id
+            );
+
+            if ($conflicts->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'scheduled_at' => ['Conflicto de horario detectado. Ya existe una cita en ese horario.'],
+                ]);
+            }
+
             $appointment->update([
                 'scheduled_at' => $newDateTime,
                 'ends_at' => $newDateTime->copy()->addMinutes($duration),
@@ -521,14 +531,10 @@ class AppointmentService
                       ->orWhere('dental_chair_id', $chairId);
             })
             ->where(function ($query) use ($dateTime, $endsAt) {
-                $query->where(function ($q) use ($dateTime, $endsAt) {
-                    $q->whereBetween('starts_at', [$dateTime, $endsAt])
-                      ->orWhereBetween('ends_at', [$dateTime, $endsAt])
-                      ->orWhere(function ($q2) use ($dateTime, $endsAt) {
-                          $q2->where('starts_at', '<=', $dateTime)
-                             ->where('ends_at', '>=', $endsAt);
-                      });
-                });
+                // Same half-open `[inicio, fin)` rule as the slot pre-check:
+                // the closing edge of a block does not collide.
+                $query->where('starts_at', '<', $endsAt)
+                      ->where('ends_at', '>', $dateTime);
             })
             ->first();
 
@@ -613,23 +619,31 @@ class AppointmentService
 
         $currentTime = $startTime->copy();
         while ($currentTime->addMinutes($duration)->lte($endTime)) {
-            $slotEnd = $currentTime->copy()->addMinutes($duration);
+            $slotEnd = $currentTime->copy();
+            $slotStart = $slotEnd->copy()->subMinutes($duration);
 
-            // Check if slot conflicts with existing appointments
-            $hasConflict = $existingAppointments->some(function ($appointment) use ($currentTime, $slotEnd) {
-                return $currentTime->lt($appointment->ends_at) && $slotEnd->gt($appointment->scheduled_at);
-            });
+            // Check if slot conflicts with existing appointments. The rule is the
+            // repository's half-open `[inicio, fin)` comparison, so a slot that
+            // opens exactly when an appointment ends is free.
+            $hasConflict = $existingAppointments->contains(
+                fn (Appointment $appointment) => AppointmentRepository::slotsOverlap(
+                    $slotStart,
+                    $slotEnd,
+                    $appointment->scheduled_at,
+                    $appointment->end_time
+                )
+            );
 
             // Check if slot conflicts with blocks
-            $hasBlock = $blocks->some(function ($block) use ($currentTime, $slotEnd) {
-                return $block->conflictsWith($currentTime, $slotEnd);
-            });
+            $hasBlock = $blocks->contains(
+                fn (AppointmentBlock $block) => $block->conflictsWith($slotStart, $slotEnd)
+            );
 
             if (! $hasConflict && ! $hasBlock) {
                 $slots[] = [
-                    'start' => $currentTime->copy()->subMinutes($duration)->toISOString(),
-                    'end' => $currentTime->toISOString(),
-                    'formatted' => $currentTime->copy()->subMinutes($duration)->format('H:i').' - '.$currentTime->format('H:i'),
+                    'start' => $slotStart->toISOString(),
+                    'end' => $slotEnd->toISOString(),
+                    'formatted' => $slotStart->format('H:i').' - '.$slotEnd->format('H:i'),
                 ];
             }
 

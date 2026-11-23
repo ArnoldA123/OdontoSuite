@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\AppointmentType;
+use App\Models\Specialty;
 use Illuminate\Database\Seeder;
 
 class AppointmentTypeSeeder extends Seeder
@@ -12,9 +13,14 @@ class AppointmentTypeSeeder extends Seeder
      */
     public function run(): void
     {
+        // La especialidad se resuelve por `code` en el catalogo ya sembrado:
+        // este seeder no crea especialidades.
+        $specialties = Specialty::pluck('id', 'code');
+
         $appointmentTypes = [
             [
                 'name' => 'Consulta General',
+                'specialty' => 'general',
                 'description' => 'Consulta dental de rutina y revisión general',
                 'default_duration_minutes' => 30,
                 'price' => 50.00,
@@ -24,6 +30,7 @@ class AppointmentTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Limpieza Dental',
+                'specialty' => 'general',
                 'description' => 'Profilaxis y limpieza dental profesional',
                 'default_duration_minutes' => 45,
                 'price' => 80.00,
@@ -33,6 +40,7 @@ class AppointmentTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Extracción',
+                'specialty' => 'cirugia_oral',
                 'description' => 'Extracción de diente o muela',
                 'default_duration_minutes' => 60,
                 'price' => 120.00,
@@ -42,6 +50,7 @@ class AppointmentTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Empaste',
+                'specialty' => 'rehabilitacion',
                 'description' => 'Restauración con resina o amalgama',
                 'default_duration_minutes' => 45,
                 'price' => 90.00,
@@ -51,6 +60,7 @@ class AppointmentTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Endodoncia',
+                'specialty' => 'endodoncia',
                 'description' => 'Tratamiento de conducto',
                 'default_duration_minutes' => 120,
                 'price' => 300.00,
@@ -60,6 +70,7 @@ class AppointmentTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Corona',
+                'specialty' => 'rehabilitacion',
                 'description' => 'Colocación de corona dental',
                 'default_duration_minutes' => 90,
                 'price' => 400.00,
@@ -69,6 +80,7 @@ class AppointmentTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Ortodoncia',
+                'specialty' => 'ortodoncia',
                 'description' => 'Consulta y ajuste de ortodoncia',
                 'default_duration_minutes' => 30,
                 'price' => 60.00,
@@ -78,6 +90,7 @@ class AppointmentTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Cirugía Oral',
+                'specialty' => 'cirugia_oral',
                 'description' => 'Procedimientos quirúrgicos orales',
                 'default_duration_minutes' => 180,
                 'price' => 500.00,
@@ -88,9 +101,12 @@ class AppointmentTypeSeeder extends Seeder
         ];
 
         foreach ($appointmentTypes as $type) {
+            $specialtyId = $specialties[$type['specialty']] ?? null;
+            unset($type['specialty']);
+
             AppointmentType::firstOrCreate(
                 ['name' => $type['name']],
-                $type
+                array_merge($type, ['specialty_id' => $specialtyId])
             );
         }
     }
