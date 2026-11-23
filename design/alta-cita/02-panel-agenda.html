@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1440" />
+    <title>OdontoSuite · Alta de cita · Panel sobre la agenda</title>
+    <style>
+      :root {
+        --accent: #0f7a5f;
+        --accent-hover: #0a5f49;
+        --accent-700: #084c3b;
+        --accent-50: #f2f8f5;
+        --accent-100: #c9e7dc;
+        --accent-200: #93cdb9;
+        --canvas: #f7f6f4;
+        --surface: #f7f6f4;
+        --elevated: #ffffff;
+        --text-primary: #1a1917;
+        --text-secondary: #5c5a55;
+        --border: #c9c5bd;
+        --border-light: #edebe7;
+        --hairline: rgba(26, 24, 20, 0.1);
+        --success-text: #1a6530;
+        --warning-bg: #fff9d6;
+        --warning-text: #7a5200;
+        --gray-100: #edebe7;
+        --gray-500: #908b82;
+        --radius-ios: 10px;
+        --radius-modal: 14px;
+        --radius-md: 8px;
+        --radius-full: 9999px;
+        --elevation-2: 0 2px 8px rgba(92, 90, 85, 0.06), 0 1px 2px rgba(92, 90, 85, 0.04);
+        --elevation-3: 0 8px 16px rgba(92, 90, 85, 0.08), 0 2px 6px rgba(92, 90, 85, 0.06);
+        --elevation-4: 0 16px 24px rgba(92, 90, 85, 0.12), 0 4px 8px rgba(92, 90, 85, 0.08);
+        --focus-ring: 0 0 0 3px rgba(15, 122, 95, 0.2);
+        --font-sans:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      body {
+        font-family: var(--font-sans);
+        background: var(--canvas);
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+      }
+      :focus-visible {
+        outline: none;
+        box-shadow: var(--focus-ring);
+      }
+      .stage {
+        position: relative;
+        width: 1440px;
+        height: 900px;
+        display: flex;
+        overflow: hidden;
+      }
+
+      /* ---------- Agenda a la izquierda, viva y legible ---------- */
+      .agenda {
+        flex: 1;
+        padding: 24px 32px;
+        min-width: 0;
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .bar h1 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 32px;
+        letter-spacing: -0.015em;
+        font-weight: 600;
+      }
+      .bar p {
+        margin: 2px 0 0;
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .seg {
+        display: flex;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-ios);
+        overflow: hidden;
+        font-size: 13px;
+      }
+      .seg span {
+        padding: 6px 12px;
+        color: var(--text-secondary);
+      }
+      .seg span.on {
+        background: var(--elevated);
+        color: var(--text-primary);
+        font-weight: 500;
+        box-shadow: var(--elevation-2);
+      }
+
+      .grid-head {
+        display: grid;
+        grid-template-columns: 60px repeat(3, 1fr);
+        gap: 0;
+        border-bottom: 1px solid var(--hairline);
+        padding-bottom: 8px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        text-align: center;
+      }
+      .grid-body {
+        display: grid;
+        grid-template-columns: 60px repeat(3, 1fr);
+      }
+      .hours {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-variant-numeric: tabular-nums;
+      }
+      .hours div {
+        height: 56px;
+        padding-top: 2px;
+      }
+      .col {
+        border-left: 1px solid var(--border-light);
+      }
+      .ev {
+        margin: 2px 4px;
+        padding: 5px 8px;
+        border-radius: var(--radius-md);
+        background: var(--accent-100);
+        color: var(--accent-700);
+        font-size: 12px;
+        line-height: 15px;
+        height: 48px;
+      }
+      .ev small {
+        display: block;
+        opacity: 0.75;
+        font-variant-numeric: tabular-nums;
+      }
+      .ev.other {
+        background: var(--surface);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-light);
+      }
+      /* El hueco elegido se ve, no se describe */
+      .ev.target {
+        background: var(--accent);
+        color: #fff;
+        outline: 2px solid var(--accent-700);
+        outline-offset: 1px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .ev.target small {
+        opacity: 0.85;
+      }
+      .gap {
+        height: 8px;
+      }
+
+      /* ---------- Panel ---------- */
+      .panel {
+        width: 424px;
+        flex: none;
+        background: var(--elevated);
+        border-left: 1px solid var(--border-light);
+        box-shadow: var(--elevation-4);
+        display: flex;
+        flex-direction: column;
+        z-index: 2;
+      }
+      .panel-head {
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid var(--border-light);
+      }
+      .panel-head .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .panel-head h2 {
+        margin: 0;
+        font-size: 20px;
+        line-height: 28px;
+        letter-spacing: -0.01em;
+        font-weight: 600;
+      }
+      .x {
+        width: 32px;
+        height: 32px;
+        border: 0;
+        background: transparent;
+        border-radius: var(--radius-full);
+        color: var(--text-secondary);
+        font-size: 18px;
+        cursor: pointer;
+      }
+      .x:hover {
+        background: var(--surface);
+      }
+      .slot-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        padding: 6px 10px;
+        border-radius: var(--radius-full);
+        background: var(--accent-50);
+        border: 1px solid var(--accent-100);
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--accent-700);
+        font-variant-numeric: tabular-nums;
+      }
+      .slot-chip button {
+        border: 0;
+        background: transparent;
+        color: var(--accent-700);
+        font: inherit;
+        font-size: 12px;
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 0;
+      }
+
+      .panel-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 24px;
+        display: grid;
+        gap: 18px;
+        align-content: start;
+      }
+      .label {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 500;
+        margin-bottom: 6px;
+      }
+      .label .hint {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--text-secondary);
+      }
+      .input,
+      select {
+        width: 100%;
+        height: 44px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-ios);
+        font: inherit;
+        font-size: 15px;
+        background: var(--elevated);
+        color: var(--text-primary);
+      }
+      select {
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%235c5a55' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 32px;
+      }
+      .chosen {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--accent-200);
+        background: var(--accent-50);
+        border-radius: var(--radius-ios);
+      }
+      .chosen .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-full);
+        background: var(--accent);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 600;
+        flex: none;
+      }
+      .chosen .who {
+        flex: 1;
+        min-width: 0;
+      }
+      .chosen b {
+        display: block;
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 20px;
+      }
+      .chosen span {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-variant-numeric: tabular-nums;
+      }
+      .chosen button {
+        border: 0;
+        background: transparent;
+        font: inherit;
+        font-size: 12px;
+        color: var(--accent-700);
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 4px;
+      }
+
+      .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .occ {
+        margin: 6px 0 0;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .occ.busy {
+        color: var(--warning-text);
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: var(--radius-full);
+        flex: none;
+      }
+      .dot.ok {
+        background: var(--success-text);
+      }
+      .dot.busy {
+        background: var(--warning-text);
+      }
+
+      details {
+        border-top: 1px solid var(--border-light);
+        padding-top: 12px;
+      }
+      summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        list-style: none;
+      }
+      summary::-webkit-details-marker {
+        display: none;
+      }
+      summary .caret {
+        transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        color: var(--gray-500);
+      }
+      details[open] summary .caret {
+        transform: rotate(90deg);
+      }
+      details .inner {
+        display: grid;
+        gap: 12px;
+        padding-top: 12px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 60px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-ios);
+        font: inherit;
+        font-size: 13px;
+        resize: vertical;
+      }
+
+      /* Pie: la cita como quedará escrita en la agenda */
+      .panel-foot {
+        border-top: 1px solid var(--border-light);
+        padding: 16px 24px 20px;
+        display: grid;
+        gap: 12px;
+        background: var(--elevated);
+      }
+      .preview {
+        border: 1px dashed var(--border);
+        border-radius: var(--radius-ios);
+        padding: 10px 12px;
+        background: var(--surface);
+      }
+      .preview .cap {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-secondary);
+        margin: 0 0 6px;
+      }
+      .preview .chip {
+        border-radius: var(--radius-md);
+        background: var(--accent);
+        color: #fff;
+        padding: 6px 8px;
+        font-size: 12px;
+        line-height: 15px;
+      }
+      .preview .chip b {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .preview .chip span {
+        opacity: 0.85;
+        font-variant-numeric: tabular-nums;
+      }
+      .btns {
+        display: flex;
+        gap: 12px;
+      }
+      .btn {
+        height: 44px;
+        border-radius: var(--radius-ios);
+        font: inherit;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+      .btn.secondary {
+        flex: 1;
+        background: transparent;
+        border-color: var(--border);
+        color: var(--text-primary);
+      }
+      .btn.primary {
+        flex: 2;
+        background: var(--accent);
+        color: #fff;
+        box-shadow:
+          var(--elevation-3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      }
+      .btn.primary:hover {
+        background: var(--accent-hover);
+      }
+      .btn.primary:active {
+        transform: translateY(1px);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <main class="agenda">
+        <div class="bar">
+          <div>
+            <h1>Calendario</h1>
+            <p>Clínica San Isidro · jueves 5 de noviembre de 2026</p>
+          </div>
+          <div class="seg" aria-hidden="true">
+            <span>Día</span><span class="on">Semana</span><span>Mes</span>
+          </div>
+        </div>
+
+        <div class="grid-head">
+          <div></div>
+          <div>Dra. Salazar · Sillón 2</div>
+          <div>Dr. Pinto · Sillón 1</div>
+          <div>Dra. Ferrer · Sillón 3</div>
+        </div>
+        <div class="grid-body">
+          <div class="hours">
+            <div>08:00</div>
+            <div>09:00</div>
+            <div>10:00</div>
+            <div>11:00</div>
+            <div>12:00</div>
+            <div>13:00</div>
+          </div>
+          <div class="col">
+            <div class="ev other">Luis Ramírez <small>08:00 Control</small></div>
+            <div class="ev target">
+              Nueva cita<small id="slot-preview">09:00–09:45</small>
+            </div>
+            <div class="gap"></div>
+            <div class="ev other">Rocío Mendoza <small>10:00 Resina 26</small></div>
+            <div class="ev other">Carlos Vega <small>11:00 Revisión</small></div>
+          </div>
+          <div class="col">
+            <div class="ev other">Jorge Paredes <small>08:00 Endodoncia 36</small></div>
+            <div class="ev other">Ana Torres <small>09:00 Resina 16</small></div>
+            <div class="gap"></div>
+            <div class="ev other">María Torres <small>10:30 Limpieza</small></div>
+          </div>
+          <div class="col">
+            <div class="ev other">Ortodoncia <small>08:00–10:00 4 pacientes</small></div>
+            <div class="gap"></div>
+            <div class="ev other">Sofía Rojas <small>10:30 Control</small></div>
+            <div class="ev other">Iván Castro <small>11:30 Retiro brackets</small></div>
+          </div>
+        </div>
+      </main>
+
+      <aside class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title">
+        <div class="panel-head">
+          <div class="row">
+            <h2 id="panel-title">Nueva cita</h2>
+            <button class="x" aria-label="Cerrar panel">×</button>
+          </div>
+          <div class="slot-chip">
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+              <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" stroke-width="1.5" />
+              <path d="M6 3.5V6l2 1.4" stroke="currentColor" stroke-width="1.5" fill="none" />
+            </svg>
+            Jue 5 nov · 09:00 – 09:45 <span aria-hidden="true">·</span> Sillón 2
+            <button type="button">Cambiar</button>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <div>
+            <label class="label" for="p">Paciente <span class="hint">reemplazar</span></label>
+            <div class="chosen">
+              <span class="avatar">AT</span>
+              <span class="who"
+                ><b>Ana Torres Chávez</b><span>DNI 45872310 · 34 años · 2 citas previas</span></span
+              >
+              <button type="button">Cambiar</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="label" for="t">Tipo de cita</label>
+            <select id="t">
+              <option>Resina compuesta — 45 min — S/ 120,00</option>
+              <option>Consulta general — 30 min — S/ 60,00</option>
+            </select>
+          </div>
+
+          <div class="two">
+            <div>
+              <label class="label" for="pro">Profesional</label>
+              <select id="pro">
+                <option>Dra. C. Salazar</option>
+                <option>Dr. M. Pinto</option>
+              </select>
+              <p class="occ"><i class="dot ok"></i>Libre del todo</p>
+            </div>
+            <div>
+              <label class="label" for="s">Sillón</label>
+              <select id="s">
+                <option>Sillón 2</option>
+                <option>Sillón 4</option>
+              </select>
+              <p class="occ"><i class="dot ok"></i>Asignado</p>
+            </div>
+          </div>
+
+          <details>
+            <summary>
+              <svg class="caret" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                <path
+                  d="M3 1l4 4-4 4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Notas
+            </summary>
+            <div class="inner">
+              <textarea placeholder="Indicaciones para la atención"></textarea>
+            </div>
+          </details>
+        </div>
+
+        <div class="panel-foot">
+          <div class="preview">
+            <p class="cap">Así quedará en la agenda</p>
+            <div class="chip">
+              <b>Ana Torres</b>
+              <span>09:00–09:45 · Dra. Salazar · Sillón 2</span>
+            </div>
+          </div>
+          <div class="btns">
+            <button class="btn secondary">Cancelar</button>
+            <button class="btn primary">Agendar cita</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </body>
+</html>

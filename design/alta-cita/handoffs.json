@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "chosen": "05-captura-disponible.html",
+  "handoffs": {
+    "05-captura-disponible.html": {
+      "status": "implemented",
+      "queued": false,
+      "sentAt": "2026-11-20T23:14:25.407Z",
+      "startedAt": "2026-11-20T23:14:33.731Z",
+      "implementedAt": "2026-11-20T23:40:30.838Z",
+      "note": "Alta de cita en producción: paciente por búsqueda, cuándo con «Termina», chips de tipo, pares profesional·sillón con disponibilidad real y degradación honesta. Verificado en navegador.",
+      "previewUrl": "http://127.0.0.1:8000/calendar"
+    }
+  }
+}

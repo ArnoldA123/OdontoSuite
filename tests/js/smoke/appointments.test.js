@@ -2,8 +2,34 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
-const { patchMock, postMock, apiAppointments, deleteMock, getGate } = vi.hoisted(() => ({
+const {
+  patchMock,
+  postMock,
+  apiAppointments,
+  deleteMock,
+  getGate,
+  getCalls,
+  apiPatients,
+  apiProfiles,
+  apiAppointmentTypes,
+  apiAvailability,
+  echoListeners
+} = vi.hoisted(() => ({
   patchMock: vi.fn(),
+  // Redesign del alta: los dobles de `get` que la superficie nueva necesita
+  // (búsqueda de paciente, perfiles de la lista de pares y la lectura del día
+  // que puede fallar). Los valores por omisión dejan intacto el resto de la
+  // suite, que solo depende de `apiAppointments`.
+  getCalls: [],
+  apiPatients: { value: [] },
+  apiProfiles: { professionals: null, chairs: null },
+  // El catálogo de tipos trae la especialidad de cada uno (el contrato que
+  // publica `GET /api/appointment-types/active` desde esta ronda).
+  apiAppointmentTypes: { value: null },
+  apiAvailability: { fail: false },
+  // El canal privado guarda sus manejadores para que una prueba pueda emitir
+  // el eco de la difusión (`.appointment.created`) sin un Reverb vivo.
+  echoListeners: { handlers: {} },
   // #281: each custody action walks its own door (check-in / announce /
   // start-attention), so the spy pins the exact endpoint per action.
   postMock: vi.fn().mockResolvedValue({ data: {} }),
@@ -38,7 +64,25 @@ const { patchMock, postMock, apiAppointments, deleteMock, getGate } = vi.hoisted
 }))
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
-    get: () => {
+    get: (url, options = {}) => {
+      getCalls.push({ url: String(url), params: options?.params || null })
+
+      if (String(url).includes('/api/patients/search')) {
+        return Promise.resolve({ data: JSON.parse(JSON.stringify(apiPatients.value)) })
+      }
+      if (String(url) === '/api/users/active' && apiProfiles.professionals) {
+        return Promise.resolve({ data: JSON.parse(JSON.stringify(apiProfiles.professionals)) })
+      }
+      if (String(url).startsWith('/api/dental-chairs/active') && apiProfiles.chairs) {
+        return Promise.resolve({ data: JSON.parse(JSON.stringify(apiProfiles.chairs)) })
+      }
+      if (String(url) === '/api/appointment-types/active' && apiAppointmentTypes.value) {
+        return Promise.resolve({ data: JSON.parse(JSON.stringify(apiAppointmentTypes.value)) })
+      }
+      if (String(url) === '/api/appointments' && apiAvailability.fail) {
+        return Promise.reject(new Error('network'))
+      }
+
       const payload = () => ({ data: JSON.parse(JSON.stringify(apiAppointments.value)) })
       if (getGate.deferred) {
         return new Promise(resolve => {
@@ -61,12 +105,25 @@ vi.mock('../../../resources/js/composables/useEcho', () => ({
   useEcho: () => ({
     echo: {},
     channel: () => ({}),
-    privateChannel: () => ({}),
+    privateChannel: () => ({
+      listen(name, handler) {
+        const key = String(name).replace(/^\./, '')
+        echoListeners.handlers[key] = [...(echoListeners.handlers[key] || []), handler]
+        return this
+      }
+    }),
     connectionStatus: { value: 'connected' }
   })
 }))
+// El guard de eco vive en el composable real; aquí solo hace falta su registro
+// para que la agenda marque lo que escribe, con la misma semántica de un uso.
+const localEcho = new Set()
 vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
-  useWebSocketNotifications: () => ({})
+  useWebSocketNotifications: () => ({}),
+  markLocalAppointmentEcho: id => {
+    if (id !== null && id !== undefined && id !== '') localEcho.add(String(id))
+  },
+  consumeLocalAppointmentEcho: id => localEcho.delete(String(id))
 }))
 // #280: the page derives its action gates from user.permissions. Keep a
 // reactive role handle so a test can switch roles without reimporting modules.
@@ -167,19 +224,33 @@ describe('appointments smoke', () => {
 })
 
 // T8b defect 1 — click-to-create prefill race: clicking an empty slot must
-// land in NewAppointmentModal with the Fecha y Hora input ALREADY populated
-// with the slot's `YYYY-MM-DDTHH:mm`, regardless of the order in which the
-// page sets `newAppointmentPrefill` and `showNewAppointmentModal`. The old
+// land in NewAppointmentModal with the date and the hour ALREADY populated
+// from the slot (`YYYY-MM-DD` + `HH:mm`), regardless of the order in which
+// the page sets `newAppointmentPrefill` and `showNewAppointmentModal`. The old
 // T4 anchor only asserted the modal *props*; this block asserts the rendered
-// input value (the thing the real-browser pass saw empty).
+// input values (the thing the real-browser pass saw empty).
+//
+// The dialog reads "cuándo" as two fields (date + time), so the prefill is
+// measured on both halves — the contract is the same one the old
+// `datetime-local` carried.
 describe('T8b click-to-create prefill smoke (defect 1)', () => {
   const expectedPrefill = slotKey => {
     const dateStr = slotKey.slice(0, 10)
     const hour = Number(slotKey.slice(11))
-    return `${dateStr}T${String(hour).padStart(2, '0')}:00`
+    return { date: dateStr, time: `${String(hour).padStart(2, '0')}:00` }
   }
 
-  const scheduledInput = () => document.querySelector('input[type="datetime-local"]')
+  const formRoot = () => document.querySelector('[data-appointment-form]')
+  const dateInput = () => document.querySelector('[data-appointment-form] input[type="date"]')
+  // La hora ya no es un `<input type="time">`: la elige la rejilla de casillas,
+  // así que la hora del formulario es la casilla marcada.
+  const timeInput = () =>
+    document.querySelector('[data-appointment-form] [data-appointment-slot][aria-pressed="true"]')
+
+  const selectedTime = () => {
+    const slot = timeInput()
+    return slot ? slot.getAttribute('data-appointment-slot') : null
+  }
 
   const mounted = []
   const mountPage = () => {
@@ -222,9 +293,11 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
     await slot.trigger('click')
     await flushPromises()
 
-    const input = scheduledInput()
-    expect(input, 'the modal form must render its datetime-local input').not.toBeNull()
-    expect(input.value).toBe(expectedPrefill(key))
+    const input = { date: dateInput(), time: timeInput() }
+    expect(input.date, 'the modal form must render its date input').not.toBeNull()
+    expect(input.time, 'the modal hour grid must mark the prefilled slot').not.toBeNull()
+    expect(input.date.value).toBe(expectedPrefill(key).date)
+    expect(selectedTime()).toBe(expectedPrefill(key).time)
   })
 
   it('populates the Fecha y Hora input from the clicked slot in Day view', async () => {
@@ -241,9 +314,11 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
     await slot.trigger('click')
     await flushPromises()
 
-    const input = scheduledInput()
-    expect(input, 'the modal form must render its datetime-local input').not.toBeNull()
-    expect(input.value).toBe(expectedPrefill(key))
+    const input = { date: dateInput(), time: timeInput() }
+    expect(input.date, 'the modal form must render its date input').not.toBeNull()
+    expect(input.time, 'the modal hour grid must mark the prefilled slot').not.toBeNull()
+    expect(input.date.value).toBe(expectedPrefill(key).date)
+    expect(selectedTime()).toBe(expectedPrefill(key).time)
   })
 
   // Order-independence regressions: the prefill must survive every reopen
@@ -255,7 +330,10 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
 
     await wrapper.find('[data-calendar-action="new-appointment"]').trigger('click')
     await flushPromises()
-    expect(scheduledInput().value).toBe('') // button open carries no slot context
+    // button open carries no slot context
+    expect(formRoot()).not.toBeNull()
+    expect(dateInput().value).toBe('')
+    expect(selectedTime()).toBeNull()
 
     // close through the modal cancel button
     const cancel = Array.from(document.querySelectorAll('button')).find(
@@ -263,13 +341,14 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
     )
     cancel.click()
     await flushPromises()
-    expect(scheduledInput()).toBeNull() // closed → form unmounted
+    expect(formRoot()).toBeNull() // closed → form unmounted
 
     const slot = wrapper.find('button[data-calendar-slot]')
     const key = slot.attributes('data-calendar-slot')
     await slot.trigger('click')
     await flushPromises()
-    expect(scheduledInput().value).toBe(expectedPrefill(key))
+    expect(dateInput().value).toBe(expectedPrefill(key).date)
+    expect(selectedTime()).toBe(expectedPrefill(key).time)
   })
 
   it('re-prefills when the same slot is opened a second time', async () => {
@@ -281,7 +360,8 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
 
     await slot.trigger('click')
     await flushPromises()
-    expect(scheduledInput().value).toBe(expectedPrefill(key))
+    expect(dateInput().value).toBe(expectedPrefill(key).date)
+    expect(selectedTime()).toBe(expectedPrefill(key).time)
 
     const cancel = Array.from(document.querySelectorAll('button')).find(
       b => b.textContent.trim() === 'Cancelar'
@@ -291,7 +371,8 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
 
     await slot.trigger('click')
     await flushPromises()
-    expect(scheduledInput().value).toBe(expectedPrefill(key))
+    expect(dateInput().value).toBe(expectedPrefill(key).date)
+    expect(selectedTime()).toBe(expectedPrefill(key).time)
   })
 
   it('prefills the slot after a previous edit session (edit data must not leak)', async () => {
@@ -304,7 +385,9 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
     await nextTick()
     document.querySelector('[data-calendar-action="edit"]').click()
     await flushPromises()
-    expect(scheduledInput().value).toBe('2026-05-13T10:00:00'.slice(0, 16)) // edit populates
+    // edit populates both halves of the schedule
+    expect(dateInput().value).toBe('2026-05-13')
+    expect(selectedTime()).toBe('10:00')
 
     const cancel = Array.from(document.querySelectorAll('button')).find(
       b => b.textContent.trim() === 'Cancelar'
@@ -317,8 +400,8 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
     await slot.trigger('click')
     await flushPromises()
 
-    const input = scheduledInput()
-    expect(input.value).toBe(expectedPrefill(key))
+    expect(dateInput().value).toBe(expectedPrefill(key).date)
+    expect(selectedTime()).toBe(expectedPrefill(key).time)
     // create mode: no leftover edit binding
     expect(wrapper.findComponent(NewAppointmentModal).props('appointment')).toBeNull()
   })
@@ -1018,7 +1101,7 @@ describe('T7 details modal smoke', () => {
 
     // Edit mode, not an empty form: the UiModal title flips on
     // `props.appointment?.id` inside NewAppointmentModal.
-    expect(document.body.textContent).toContain('Editar Cita')
+    expect(document.body.textContent).toContain('Editar cita')
 
     // The details surface hands over and closes.
     const modal = detailsModal(wrapper)
@@ -1436,5 +1519,606 @@ describe('T7 empty range smoke', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-calendar-empty]').exists()).toBe(true)
+  })
+})
+
+// Rediseño del alta de cita (ronda 2) — la superficie se mide sobre el
+// contrato que la ronda 2 fija, no sobre sus clases:
+//   · el paciente se busca en el servidor (`q`, mínimo 2 caracteres);
+//   · profesional y sillón son dos listas independientes: cada recurso declara
+//     su ocupación con su motivo, y ninguna combinación de dos recursos libres
+//     queda bloqueada por no ser «la pareja» de la agenda;
+//   · la hora se elige en una rejilla de casillas de 15 minutos, no en la rueda
+//     nativa de un `<input type="time">`;
+//   · el tipo de cita depende de la especialidad del profesional elegido;
+//   · una cita creada deja una sola confirmación, con su acción a la agenda.
+describe('alta de cita: captura rápida + disponibilidad', () => {
+  const mountModal = async (props = {}, options = {}) => {
+    const wrapper = mount(NewAppointmentModal, {
+      props: { modelValue: true, ...props },
+      ...options,
+      global: { plugins: [uiComponents], stubs: { teleport: true }, ...(options.global || {}) }
+    })
+    await flushPromises()
+    return wrapper
+  }
+
+  const schedule = async (wrapper, date = '2026-05-13', time = '10:00') => {
+    await wrapper.find('[data-appointment-form] input[type="date"]').setValue(date)
+    await flushPromises()
+
+    // La rejilla se pagina por bloques de tres horas: la casilla pedida puede
+    // estar en otro bloque, así que el ayudante los recorre.
+    if (!wrapper.find(`[data-appointment-form] [data-appointment-slot="${time}"]`).exists()) {
+      for (const tab of wrapper.findAll('[data-appointment-hour-block]')) {
+        await tab.trigger('click')
+        await flushPromises()
+        if (wrapper.find(`[data-appointment-form] [data-appointment-slot="${time}"]`).exists())
+          break
+      }
+    }
+
+    const slot = wrapper.find(`[data-appointment-form] [data-appointment-slot="${time}"]`)
+    expect(slot.exists(), `the hour grid must offer ${time}`).toBe(true)
+    await slot.trigger('click')
+    await flushPromises()
+  }
+
+  beforeEach(() => {
+    getCalls.length = 0
+    apiPatients.value = []
+    apiProfiles.professionals = null
+    apiProfiles.chairs = null
+    apiAvailability.fail = false
+    globalToasts.value.splice(0, globalToasts.value.length)
+  })
+
+  it('searches the patient on the server and picks it with the keyboard', async () => {
+    apiPatients.value = [
+      { id: 41, name: 'Ana Torres Chávez', dni: '45872310', age: 34 },
+      { id: 42, name: 'Jorge Torres Medina', dni: '70912844', age: 51 }
+    ]
+
+    const wrapper = await mountModal()
+    const search = wrapper.find('#appointment-patient-search')
+    expect(search.exists()).toBe(true)
+
+    await search.setValue('tor')
+    // 300 ms of typing idle before the request leaves the component.
+    await new Promise(resolve => setTimeout(resolve, 350))
+    await flushPromises()
+
+    const lookups = getCalls.filter(call => call.url.includes('/api/patients/search'))
+    expect(lookups).toHaveLength(1)
+    expect(lookups[0].params).toMatchObject({ q: 'tor' })
+    // The whole patient table is no longer loaded into the modal.
+    expect(getCalls.some(call => /^\/api\/patients\?/.test(call.url))).toBe(false)
+
+    const listbox = wrapper.find('[role="listbox"]')
+    expect(listbox.exists()).toBe(true)
+    const options = wrapper.findAll('[role="option"]')
+    expect(options).toHaveLength(2)
+    expect(options[0].attributes('aria-selected')).toBe('true')
+
+    await search.trigger('keydown', { key: 'ArrowDown' })
+    expect(wrapper.findAll('[role="option"]')[1].attributes('aria-selected')).toBe('true')
+
+    await search.trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+
+    const identity = wrapper.find('[data-appointment-patient]')
+    expect(identity.exists()).toBe(true)
+    expect(identity.attributes('data-appointment-patient')).toBe('42')
+    expect(identity.text()).toContain('Jorge Torres Medina')
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('offers professionals and chairs as two independent lists, each with its reason', async () => {
+    apiProfiles.professionals = [
+      { id: 2, name: 'Dra. Ruiz', specialty: 'Odontología', role: 'odontologo' },
+      { id: 3, name: 'Dr. Pinto', specialty: 'Implantología', role: 'implantologo' }
+    ]
+    apiProfiles.chairs = [
+      { id: 3, name: 'Sillón 3', code: 'S3' },
+      { id: 4, name: 'Sillón 4', code: 'S4' }
+    ]
+
+    const wrapper = await mountModal()
+    await schedule(wrapper)
+
+    // La cita sembrada (10:00–10:30) ocupa a la Dra. Ruiz y no a ningún sillón:
+    // la disponibilidad del sillón es independiente de la del profesional.
+    const door = wrapper.find('[data-appointment-team-door]')
+    expect(door.exists()).toBe(true)
+    expect(door.attributes('data-appointment-free-professionals')).toBe('1')
+    expect(door.attributes('data-appointment-free-chairs')).toBe('2')
+
+    const people = wrapper.findAll('[data-appointment-professional]')
+    expect(people).toHaveLength(2)
+    const busyPerson = people.find(row => row.attributes('data-appointment-professional') === '2')
+    expect(busyPerson.text()).toContain('Ocupado hasta 10:30')
+    expect(busyPerson.attributes('disabled')).toBeDefined()
+    expect(busyPerson.attributes('aria-label')).toContain('ocupado hasta 10:30')
+
+    const freePerson = people.find(row => row.attributes('data-appointment-professional') === '3')
+    expect(freePerson.text()).toContain('Libre')
+    expect(freePerson.attributes('disabled')).toBeUndefined()
+
+    // Dos recursos libres se combinan sin que nadie proponga la pareja.
+    await freePerson.trigger('click')
+    await wrapper.find('[data-appointment-chair="4"]').trigger('click')
+    await flushPromises()
+
+    const combination = wrapper.find('[data-appointment-combination]')
+    expect(combination.text()).toContain('Dr. Pinto')
+    expect(combination.text()).toContain('Sillón 4')
+    expect(combination.text()).toContain('10:00–10:30')
+
+    const summary = wrapper.find('[data-appointment-summary]')
+    expect(summary.text()).toContain('Dr. Pinto')
+    expect(summary.text()).toContain('Sillón 4')
+    expect(summary.text()).toContain('10:00–10:30')
+
+    wrapper.unmount()
+  })
+
+  it('offers the pairs the day already used as a single click', async () => {
+    apiProfiles.professionals = [
+      { id: 2, name: 'Dra. Ruiz', specialty: 'Odontología', role: 'odontologo' },
+      { id: 3, name: 'Dr. Pinto', specialty: 'Implantología', role: 'implantologo' }
+    ]
+    apiProfiles.chairs = [{ id: 3, name: 'Sillón 3', code: 'S3' }]
+    // La agenda del día usó Pinto en el Sillón 3 a las 08:00.
+    apiAppointments.value = [
+      {
+        id: 11,
+        scheduled_at: '2026-05-13T08:00:00',
+        ends_at: '2026-05-13T08:30:00',
+        duration_minutes: 30,
+        status: 'scheduled',
+        user_id: 3,
+        dental_chair_id: 3,
+        patient: { id: 7, first_name: 'Ana', last_name: 'Pérez' }
+      }
+    ]
+
+    const wrapper = await mountModal()
+    await schedule(wrapper, '2026-05-13', '10:00')
+
+    const suggestions = wrapper.findAll('[data-appointment-suggestion]')
+    expect(suggestions).toHaveLength(1)
+    expect(suggestions[0].text()).toContain('Dr. Pinto')
+    expect(suggestions[0].text()).toContain('Sillón 3')
+    expect(suggestions[0].text()).toContain('Libre')
+
+    await suggestions[0].trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-appointment-combination]').text()).toContain('Dr. Pinto')
+    expect(wrapper.find('[data-appointment-combination]').text()).toContain('Sillón 3')
+
+    wrapper.unmount()
+    apiAppointments.value = [
+      {
+        id: 1,
+        scheduled_at: '2026-05-13T10:00:00',
+        ends_at: '2026-05-13T10:30:00',
+        duration_minutes: 30,
+        status: 'scheduled',
+        notes: null,
+        patient: { id: 7, first_name: 'Ana', last_name: 'Pérez' },
+        user: { id: 2, name: 'Dra. Ruiz' },
+        dental_chair: null,
+        appointment_type: { id: 3, name: 'Limpieza' }
+      }
+    ]
+  })
+
+  it('declares an hour outside the nominal window instead of hiding it', async () => {
+    const wrapper = await mountModal({ initialDate: '2026-05-13T06:00' })
+    await flushPromises()
+
+    const marked = wrapper.find(
+      '[data-appointment-form] [data-appointment-slot][aria-pressed="true"]'
+    )
+    expect(marked.exists()).toBe(true)
+    expect(marked.attributes('data-appointment-slot')).toBe('06:00')
+
+    wrapper.unmount()
+  })
+
+  it('replaces the native time input with a 15-minute grid that declares its occupied cells', async () => {
+    apiProfiles.professionals = [
+      { id: 2, name: 'Dra. Ruiz', specialty: 'Odontología', role: 'odontologo' }
+    ]
+    apiProfiles.chairs = [{ id: 3, name: 'Sillón 3', code: 'S3' }]
+
+    const wrapper = await mountModal()
+
+    // Sin fecha ni duración no hay rejilla: se dice qué falta.
+    expect(wrapper.find('[data-appointment-hour-grid]').exists()).toBe(false)
+    expect(wrapper.find('[data-appointment-hour-hint]').text()).toContain('Elige la fecha')
+    expect(wrapper.find('[data-appointment-form] input[type="time"]').exists()).toBe(false)
+
+    await wrapper.find('[data-appointment-form] input[type="date"]').setValue('2026-05-13')
+    await flushPromises()
+
+    const grid = wrapper.find('[data-appointment-hour-grid]')
+    expect(grid.exists()).toBe(true)
+    expect(wrapper.findAll('[data-appointment-hour-block]')).toHaveLength(4)
+
+    // Una hora elegida abre la ventana: recién entonces la agenda puede decir
+    // quién está libre, y el profesional elegido convierte las casillas de su
+    // cita en ocupadas. Las 10:30 viven en el bloque «10–13».
+    await wrapper.find('[data-appointment-hour-block="midday"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-appointment-slot="10:30"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-appointment-professional="2"]').trigger('click')
+    await flushPromises()
+
+    const blocked = wrapper.find('[data-appointment-slot="10:00"]')
+    expect(blocked.attributes('disabled')).toBeDefined()
+    expect(blocked.attributes('aria-label')).toBe('10:00, ocupado hasta 10:30')
+
+    const free = wrapper.find('[data-appointment-slot="10:30"]')
+    expect(free.attributes('disabled')).toBeUndefined()
+    expect(free.attributes('aria-label')).toBe('10:30')
+    expect(free.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.find('[data-appointment-end]').text()).toContain('Termina 11:00')
+
+    wrapper.unmount()
+  })
+
+  it('does not invent a specialty for the frequent types when nobody is chosen', async () => {
+    apiProfiles.professionals = [
+      { id: 9, name: 'Dra. Ferrer', specialty: 'orthodontics', role: 'odontologo' }
+    ]
+    apiAppointmentTypes.value = [
+      {
+        id: 3,
+        name: 'Consulta General',
+        default_duration_minutes: 30,
+        specialty: { id: 1, code: 'general', name: 'General' }
+      },
+      {
+        id: 4,
+        name: 'Ortodoncia',
+        default_duration_minutes: 30,
+        specialty: { id: 2, code: 'ortodoncia', name: 'Ortodoncia' }
+      }
+    ]
+
+    const wrapper = await mountModal()
+
+    expect(wrapper.find('[data-appointment-type-specialty]').exists()).toBe(false)
+
+    await wrapper.find('[data-appointment-type-more]').trigger('click')
+    await flushPromises()
+    expect(wrapper.findAll('[data-appointment-type-option]')).toHaveLength(2)
+
+    wrapper.unmount()
+    apiAppointmentTypes.value = null
+  })
+
+  it('pages the team lists instead of clipping them', async () => {
+    apiProfiles.professionals = [
+      { id: 2, name: 'Dra. Ruiz', specialty: 'Odontología', role: 'odontologo' },
+      { id: 3, name: 'Dr. Pinto', specialty: 'Implantología', role: 'implantologo' },
+      { id: 4, name: 'Dra. Ferrer', specialty: 'Ortodoncia', role: 'odontologo' },
+      { id: 5, name: 'Dr. Rojas', specialty: 'Endodoncia', role: 'odontologo' },
+      { id: 6, name: 'Dra. Paz', specialty: 'Rehabilitación', role: 'odontologo' }
+    ]
+    apiProfiles.chairs = [
+      { id: 4, name: 'Ambiente 1', code: 'AMB-001' },
+      { id: 5, name: 'Ambiente 2', code: 'AMB-002' }
+    ]
+
+    const wrapper = await mountModal()
+    await schedule(wrapper, '2026-05-13', '09:00')
+
+    // Cuatro filas por página: nada se corta a la mitad, el resto se pagina.
+    expect(wrapper.findAll('[data-appointment-professional]')).toHaveLength(4)
+    expect(wrapper.find('[data-appointment-professionals-range]').text()).toBe('1–4/5')
+    // Dos sillones caben enteros: no hay paginador.
+    expect(wrapper.findAll('[data-appointment-chair]')).toHaveLength(2)
+    expect(wrapper.find('[data-appointment-chairs-pager]').exists()).toBe(false)
+
+    await wrapper.find('[data-appointment-professionals-next]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findAll('[data-appointment-professional]')).toHaveLength(1)
+    expect(wrapper.find('[data-appointment-professionals-range]').text()).toBe('5–5/5')
+
+    await wrapper.find('[data-appointment-professionals-prev]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-appointment-professionals-range]').text()).toBe('1–4/5')
+
+    wrapper.unmount()
+  })
+
+  it('wraps a long professional name instead of cutting it with an ellipsis', async () => {
+    apiProfiles.professionals = [
+      {
+        id: 2,
+        name: 'Dra. Carmen Beatriz Salazar Villanueva',
+        specialty: 'Odontología',
+        role: 'odontologo'
+      }
+    ]
+    apiProfiles.chairs = [{ id: 4, name: 'Ambiente 1', code: 'AMB-001' }]
+
+    const wrapper = await mountModal()
+    await schedule(wrapper, '2026-05-13', '09:00')
+
+    const row = wrapper.find('[data-appointment-professional="2"]')
+    expect(row.exists()).toBe(true)
+    expect(row.text()).toContain('Dra. Carmen Beatriz Salazar Villanueva')
+    expect(row.html()).not.toContain('truncate')
+    expect(row.html()).toContain('break-words')
+
+    wrapper.unmount()
+  })
+
+  it('moves across the hour grid with the arrow keys, skipping occupied cells', async () => {
+    apiProfiles.professionals = [
+      { id: 2, name: 'Dra. Ruiz', specialty: 'Odontología', role: 'odontologo' }
+    ]
+
+    const wrapper = await mountModal({}, { attachTo: document.body })
+    await wrapper.find('[data-appointment-form] input[type="date"]').setValue('2026-05-13')
+    await flushPromises()
+    // Las 09:30 abren una ventana en la que la Dra. Ruiz todavía está libre;
+    // su cita de 10:00 es la que la rejilla marca ocupada.
+    await wrapper.find('[data-appointment-slot="09:30"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-appointment-professional="2"]').trigger('click')
+    await flushPromises()
+
+    const origin = wrapper.find('[data-appointment-slot="09:30"]')
+    await origin.trigger('keydown', { key: 'ArrowRight' })
+    await flushPromises()
+
+    // 09:45, 10:00 y 10:15 chocan con la cita de 10:00–10:30; la flecha
+    // aterriza en la primera casilla libre, no en una muerta.
+    expect(document.activeElement?.getAttribute('data-appointment-slot')).toBe('10:30')
+
+    document.activeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })
+    )
+    await flushPromises()
+
+    expect(document.activeElement?.getAttribute('data-appointment-slot')).toBe('09:30')
+
+    wrapper.unmount()
+  })
+
+  it('never claims «Libre» when the day agenda could not be read', async () => {
+    apiAvailability.fail = true
+
+    const wrapper = await mountModal()
+    await schedule(wrapper)
+
+    expect(wrapper.find('[data-appointment-team-door]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Libre')
+    expect(wrapper.text()).toContain('No se pudo leer la agenda del día')
+    expect(wrapper.find('[data-appointment-manual-pick]').exists()).toBe(true)
+    // La rejilla sigue ofreciendo horas, pero ninguna se declara ocupada.
+    expect(wrapper.findAll('[data-appointment-slot][disabled]')).toHaveLength(0)
+    expect(wrapper.find('[data-appointment-hour-note]').text()).toContain(
+      'No se pudo leer la agenda del día'
+    )
+
+    wrapper.unmount()
+  })
+
+  it('puts the types of the chosen professional specialty first and keeps the rest grouped', async () => {
+    apiProfiles.professionals = [
+      { id: 9, name: 'Dra. Ferrer', specialty: 'orthodontics', role: 'odontologo' }
+    ]
+    apiAppointmentTypes.value = [
+      {
+        id: 3,
+        name: 'Consulta General',
+        default_duration_minutes: 30,
+        specialty: { id: 1, code: 'general', name: 'General' }
+      },
+      {
+        id: 4,
+        name: 'Ortodoncia',
+        default_duration_minutes: 30,
+        specialty: { id: 2, code: 'ortodoncia', name: 'Ortodoncia' }
+      },
+      { id: 5, name: 'Sin catálogo', default_duration_minutes: 15, specialty: null }
+    ]
+
+    const wrapper = await mountModal()
+    await schedule(wrapper, '2026-05-13', '09:00')
+
+    await wrapper.find('[data-appointment-professional="9"]').trigger('click')
+    await flushPromises()
+
+    // La especialidad del profesional vive en el rótulo del bloque —con su
+    // conteo—, no repetida en cada chip.
+    expect(wrapper.find('[data-appointment-type-specialty]').text()).toBe('Ortodoncia · 1 tipo')
+
+    const chips = wrapper.findAll('[data-appointment-type-chip]')
+    expect(chips.map(chip => chip.attributes('data-appointment-type-chip'))).toEqual(['4'])
+    expect(wrapper.findAll('[data-appointment-chip-specialty]')).toHaveLength(0)
+
+    // Sin profesional, el rótulo no inventa especialidad.
+    await wrapper.find('[data-appointment-professional="9"]').trigger('click')
+    await wrapper.find('[data-appointment-type-more]').trigger('click')
+    await flushPromises()
+
+    // «Otros tipos» expande el catálogo en el propio flujo, agrupado y con
+    // «Sin especialidad» al final; sin menú flotante.
+    const catalog = wrapper.find('[data-appointment-type-catalog]')
+    expect(catalog.exists()).toBe(true)
+    expect(wrapper.find('[data-appointment-section="type"] .select-container').exists()).toBe(false)
+    const groups = wrapper.findAll('[data-appointment-type-group]')
+    expect(groups.map(group => group.attributes('data-appointment-type-group'))).toEqual([
+      'General',
+      'Ortodoncia',
+      'Sin especialidad'
+    ])
+    expect(wrapper.findAll('[data-appointment-type-option]')).toHaveLength(3)
+
+    // Elegir desde el catálogo deja el tipo marcado en su propia fila.
+    await wrapper.find('[data-appointment-type-option="5"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-appointment-type-option="5"]').attributes('aria-pressed')).toBe(
+      'true'
+    )
+
+    wrapper.unmount()
+    apiAppointmentTypes.value = null
+  })
+
+  it('offers the lifecycle status only when editing an appointment', async () => {
+    const create = await mountModal()
+    expect(create.text()).not.toContain('Estado de la cita')
+    create.unmount()
+
+    const edit = await mountModal({
+      appointment: {
+        id: 9,
+        patient_id: 7,
+        user_id: 2,
+        scheduled_at: '2026-05-13T10:00:00',
+        duration_minutes: 30,
+        appointment_type_id: 3,
+        dental_chair_id: 3,
+        status: 'scheduled'
+      }
+    })
+
+    expect(edit.text()).toContain('Estado de la cita')
+    edit.unmount()
+  })
+})
+
+// Una sola confirmación por cita creada. El modal no confirma, el eco de
+// difusión de la propia mesa no confirma: la agenda pinta la línea del alta con
+// su acción, salta al día creado y deja el chip marcado.
+describe('alta de cita: una sola confirmación y el día creado', () => {
+  const createdAppointment = {
+    id: 4242,
+    scheduled_at: '2026-12-03T09:00:00',
+    ends_at: '2026-12-03T09:30:00',
+    duration_minutes: 30,
+    status: 'scheduled',
+    notes: null,
+    patient: { id: 7, first_name: 'Ana', last_name: 'Pérez' },
+    user: { id: 3, name: 'Dr. Pinto' },
+    dental_chair: { id: 4, name: 'Sillón 4' },
+    appointment_type: { id: 4, name: 'Ortodoncia' }
+  }
+
+  const mountPage = async () => {
+    const wrapper = mount(Page, {
+      attachTo: document.body,
+      // El diálogo se monta dentro del árbol de la prueba: la petición y la
+      // confirmación se miden sobre la misma página.
+      global: { plugins: [router, uiComponents], stubs: { teleport: true } }
+    })
+    await flushPromises()
+    return wrapper
+  }
+
+  const openAndFill = async (wrapper, date = '2026-12-03', time = '09:00') => {
+    await wrapper.find('[data-calendar-action="new-appointment"]').trigger('click')
+    await flushPromises()
+
+    const search = wrapper.find('#appointment-patient-search')
+    await search.setValue('ana')
+    await new Promise(resolve => setTimeout(resolve, 350))
+    await flushPromises()
+    await wrapper.findAll('[role="option"]')[0].trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-appointment-form] input[type="date"]').setValue(date)
+    await flushPromises()
+    await wrapper.find(`[data-appointment-form] [data-appointment-slot="${time}"]`).trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-appointment-type-chip="4"]').trigger('click')
+    await wrapper.find('[data-appointment-professional="3"]').trigger('click')
+    await wrapper.find('[data-appointment-chair="4"]').trigger('click')
+    await flushPromises()
+  }
+
+  beforeEach(() => {
+    globalToasts.value.splice(0, globalToasts.value.length)
+    echoListeners.handlers = {}
+    apiPatients.value = [{ id: 7, name: 'Ana Pérez', dni: '45872310', age: 34 }]
+    apiProfiles.professionals = [
+      { id: 2, name: 'Dra. Ruiz', specialty: 'Odontología', role: 'odontologo' },
+      { id: 3, name: 'Dr. Pinto', specialty: 'Implantología', role: 'implantologo' }
+    ]
+    apiProfiles.chairs = [{ id: 4, name: 'Sillón 4', code: 'S4' }]
+    apiAppointmentTypes.value = [
+      {
+        id: 4,
+        name: 'Ortodoncia',
+        default_duration_minutes: 30,
+        specialty: { id: 2, code: 'ortodoncia', name: 'Ortodoncia' }
+      }
+    ]
+    apiAppointments.value = []
+    postMock.mockResolvedValueOnce({ data: createdAppointment })
+  })
+
+  it('leaves exactly one confirmation, jumps to the created day and marks its chip', async () => {
+    const wrapper = await mountPage()
+    await openAndFill(wrapper)
+
+    const toastCountBefore = globalToasts.value.length
+
+    // La lectura del día es la que trae la cita recién escrita: el alta no
+    // inventa el chip, lo pide a la agenda igual que cualquier otra.
+    apiAppointments.value = [createdAppointment]
+    await wrapper.find('[data-appointment-form]').trigger('submit')
+    await flushPromises()
+    await flushPromises()
+
+    // El modal ya no confirma por su cuenta.
+    expect(globalToasts.value.length).toBe(toastCountBefore)
+
+    const confirmations = wrapper.findAll('[data-appointment-confirmation]')
+    expect(confirmations).toHaveLength(1)
+    expect(confirmations[0].attributes('data-appointment-confirmation-id')).toBe('4242')
+    expect(confirmations[0].text()).toContain('Cita agendada')
+    expect(confirmations[0].text()).toContain('Ana Pérez')
+    expect(confirmations[0].find('[data-appointment-confirmation-action]').text()).toBe(
+      'Ver en la agenda'
+    )
+
+    // La agenda salta al día de la cita creada y el chip queda marcado.
+    expect(wrapper.text()).toContain('dic')
+    const created = wrapper.find('[data-appointment-created]')
+    expect(created.exists()).toBe(true)
+    expect(created.attributes('data-calendar-appointment')).toBe('4242')
+
+    // El eco de la difusión por la propia creación no vuelve a avisar.
+    const createdHandlers = echoListeners.handlers['appointment.created'] || []
+    expect(createdHandlers.length).toBeGreaterThan(0)
+    for (const handler of createdHandlers) {
+      await handler({ appointment: { id: 4242 } })
+    }
+    await flushPromises()
+    expect(globalToasts.value.length).toBe(toastCountBefore)
+
+    // La cita de otra mesa sí avisa, una sola vez.
+    for (const handler of createdHandlers) {
+      await handler({ appointment: { id: 9999 } })
+    }
+    await flushPromises()
+    expect(globalToasts.value.length).toBe(toastCountBefore + 1)
+    expect(globalToasts.value[globalToasts.value.length - 1].message).toBe('Nueva cita agregada')
+
+    wrapper.unmount()
   })
 })

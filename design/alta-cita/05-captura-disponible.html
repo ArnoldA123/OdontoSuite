@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1440" />
+    <title>OdontoSuite · Alta de cita · Captura con disponibilidad</title>
+    <style>
+      /* Tokens — design/system.md §1, §2, §4, §5, §6. Ninguno inventado. */
+      :root {
+        --accent: #0f7a5f;
+        --accent-hover: #0a5f49;
+        --accent-700: #084c3b;
+        --accent-50: #f2f8f5;
+        --accent-100: #c9e7dc;
+        --canvas: #f7f6f4;
+        --surface: #f7f6f4;
+        --elevated: #ffffff;
+        --text-primary: #1a1917;
+        --text-secondary: #5c5a55;
+        --text-tertiary: rgba(26, 24, 20, 0.3);
+        --border: #c9c5bd;
+        --border-light: #edebe7;
+        --hairline: rgba(26, 24, 20, 0.1);
+        --success-bg: #e8f5e9;
+        --success-text: #1a6530;
+        --warning-bg: #fff9d6;
+        --warning-text: #7a5200;
+        --danger: #ff3b30;
+        --danger-bg: #ffebea;
+        --danger-text: #a50e10;
+        --gray-100: #edebe7;
+        --gray-500: #908b82;
+        --gray-700: #3b3833;
+        --radius-ios: 10px;
+        --radius-modal: 14px;
+        --radius-md: 8px;
+        --radius-full: 9999px;
+        --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --elevation-2: 0 2px 8px rgba(92, 90, 85, 0.06), 0 1px 2px rgba(92, 90, 85, 0.04);
+        --elevation-3: 0 8px 16px rgba(92, 90, 85, 0.08), 0 2px 6px rgba(92, 90, 85, 0.06);
+        --elevation-4: 0 16px 24px rgba(92, 90, 85, 0.12), 0 4px 8px rgba(92, 90, 85, 0.08);
+        --focus-ring: 0 0 0 3px rgba(15, 122, 95, 0.2);
+        --font-sans:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      body {
+        font-family: var(--font-sans);
+        background: var(--canvas);
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+      }
+      :focus-visible {
+        outline: none;
+        box-shadow: var(--focus-ring);
+      }
+
+      /* ---------- Fondo: calendario real de la recepción ---------- */
+      .stage {
+        position: relative;
+        width: 1440px;
+        height: 900px;
+        overflow: hidden;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 2;
+      }
+      .agenda {
+        position: absolute;
+        inset: 0;
+        padding: 24px 32px;
+      }
+      .agenda-top {
+        display: flex;
+        align-items: baseline;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .agenda-top h1 {
+        font-size: 24px;
+        line-height: 32px;
+        letter-spacing: -0.015em;
+        margin: 0;
+        font-weight: 600;
+      }
+      .agenda-top span {
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .grid-head {
+        display: grid;
+        grid-template-columns: 64px repeat(3, 1fr);
+        gap: 0;
+        border-bottom: 1px solid var(--hairline);
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        text-align: center;
+      }
+      .grid-body {
+        display: grid;
+        grid-template-columns: 64px repeat(3, 1fr);
+      }
+      .hours {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-variant-numeric: tabular-nums;
+      }
+      .hours div {
+        height: 48px;
+      }
+      .col {
+        border-left: 1px solid var(--border-light);
+        position: relative;
+      }
+      .event {
+        margin: 2px 4px;
+        padding: 4px 8px;
+        border-radius: var(--radius-md);
+        background: var(--accent-100);
+        color: var(--accent-700);
+        font-size: 12px;
+        line-height: 16px;
+        height: 44px;
+      }
+      .event.free {
+        background: transparent;
+        border: 1px dashed var(--border);
+        color: var(--text-tertiary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 60px;
+      }
+      .slot {
+        height: 24px;
+        border-top: 1px solid var(--border-light);
+      }
+
+      /* ---------- Modal ---------- */
+      .modal {
+        position: absolute;
+        z-index: 3;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 560px;
+        max-height: 800px;
+        display: flex;
+        flex-direction: column;
+        background: var(--elevated);
+        border-radius: var(--radius-modal);
+        box-shadow: var(--elevation-4);
+      }
+      .modal-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid var(--border-light);
+      }
+      .eyebrow {
+        margin: 0 0 2px;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--text-secondary);
+      }
+      .modal-head h2 {
+        margin: 0;
+        font-size: 20px;
+        line-height: 28px;
+        letter-spacing: -0.01em;
+        font-weight: 600;
+      }
+      .x {
+        width: 32px;
+        height: 32px;
+        border: 0;
+        background: transparent;
+        border-radius: var(--radius-full);
+        color: var(--text-secondary);
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        flex: none;
+      }
+      .x:hover {
+        background: var(--surface);
+      }
+
+      .modal-body {
+        padding: 20px 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .label {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 6px;
+      }
+      .label .hint {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--text-secondary);
+      }
+
+      /* Paciente: el único campo que se busca */
+      .search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 44px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-ios);
+        background: var(--elevated);
+      }
+      .search:focus-within {
+        box-shadow: var(--focus-ring);
+        border-color: var(--accent);
+      }
+      .search input {
+        border: 0;
+        outline: 0;
+        flex: 1;
+        font: inherit;
+        font-size: 15px;
+        background: transparent;
+        color: var(--text-primary);
+      }
+      .search input::placeholder {
+        color: var(--text-secondary);
+      }
+      .search kbd {
+        font: inherit;
+        font-size: 12px;
+        color: var(--text-secondary);
+        border: 1px solid var(--border-light);
+        border-radius: 4px;
+        padding: 1px 5px;
+        background: var(--surface);
+      }
+      .results {
+        list-style: none;
+        margin: 6px 0 0;
+        padding: 4px;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-ios);
+        box-shadow: var(--elevation-3);
+        background: var(--elevated);
+      }
+      .results li {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 10px;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .results li[aria-selected='true'],
+      .results li:hover {
+        background: var(--accent-50);
+      }
+      .results .who {
+        flex: 1;
+        min-width: 0;
+      }
+      .results .who b {
+        display: block;
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 20px;
+      }
+      .results .who span {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-variant-numeric: tabular-nums;
+      }
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-full);
+        background: var(--accent-100);
+        color: var(--accent-700);
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 600;
+        flex: none;
+      }
+
+      /* Cuándo: una sola fila, como se lee una hora */
+      .when {
+        display: grid;
+        grid-template-columns: 1fr 96px 120px;
+        gap: 12px;
+      }
+      .field input,
+      .field select {
+        width: 100%;
+        height: 44px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-ios);
+        background: var(--elevated);
+        font: inherit;
+        font-size: 15px;
+        color: var(--text-primary);
+        appearance: none;
+      }
+      .field select {
+        background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%235c5a55' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 32px;
+      }
+      .field .note {
+        margin: 4px 0 0;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--text-secondary);
+      }
+      .field .note.warn {
+        color: var(--warning-text);
+      }
+
+      /* Tipo: chips de lo frecuente */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        height: 36px;
+        padding: 0 12px;
+        border-radius: var(--radius-full);
+        border: 1px solid var(--border);
+        background: var(--elevated);
+        font: inherit;
+        font-size: 13px;
+        color: var(--text-primary);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .chip span {
+        color: var(--text-secondary);
+        font-variant-numeric: tabular-nums;
+      }
+      .chip:hover {
+        border-color: var(--gray-500);
+      }
+      .chip[aria-pressed='true'] {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .chip[aria-pressed='true'] span {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      /* Dónde: solo lo que cabe en el hueco, con su sillón */
+      .pick {
+        display: grid;
+        gap: 8px;
+      }
+      .who {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        text-align: left;
+        padding: 10px 12px;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-ios);
+        background: var(--elevated);
+        font: inherit;
+        cursor: pointer;
+      }
+      .who:hover:not([disabled]) {
+        border-color: var(--gray-500);
+      }
+      .who[aria-pressed='true'] {
+        border-color: var(--accent);
+        background: var(--accent-50);
+        box-shadow: inset 0 0 0 1px var(--accent);
+      }
+      .who[disabled] {
+        cursor: not-allowed;
+        background: var(--surface);
+      }
+      .who .txt {
+        flex: 1;
+        min-width: 0;
+      }
+      .who b {
+        display: block;
+        font-size: 15px;
+        line-height: 20px;
+        font-weight: 500;
+      }
+      .who .txt > span {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--text-secondary);
+      }
+      .who .state {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--success-text);
+        flex: none;
+      }
+      .who[disabled] .state {
+        color: var(--warning-text);
+      }
+      .who[disabled] b {
+        color: var(--text-secondary);
+        font-weight: 400;
+      }
+      .escape {
+        margin: 8px 0 0;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--text-secondary);
+      }
+      .escape button {
+        border: 0;
+        background: transparent;
+        font: inherit;
+        font-size: 12px;
+        color: var(--accent-700);
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 0;
+      }
+      .avail {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 0 0;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--text-secondary);
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: var(--radius-full);
+        flex: none;
+      }
+      .dot.ok {
+        background: var(--success-text);
+      }
+      .dot.busy {
+        background: var(--warning-text);
+      }
+      .avail.busy {
+        color: var(--warning-text);
+      }
+
+      /* Detalles: lo que casi nunca se toca */
+      .more {
+        border-top: 1px solid var(--border-light);
+        padding-top: 12px;
+      }
+      .more summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        list-style: none;
+      }
+      .more summary::-webkit-details-marker {
+        display: none;
+      }
+      .more summary .caret {
+        transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        color: var(--gray-500);
+      }
+      .more[open] summary .caret {
+        transform: rotate(90deg);
+      }
+      .more-body {
+        display: grid;
+        gap: 12px;
+        padding-top: 12px;
+      }
+      .more-body textarea {
+        width: 100%;
+        min-height: 64px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-ios);
+        font: inherit;
+        font-size: 13px;
+        resize: vertical;
+      }
+
+      /* Pie: el resumen ES la confirmación */
+      .modal-foot {
+        border-top: 1px solid var(--border-light);
+        padding: 16px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .receipt {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 10px;
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--text-primary);
+        background: var(--surface);
+        border-radius: var(--radius-ios);
+        padding: 10px 12px;
+      }
+      .receipt .k {
+        color: var(--text-secondary);
+      }
+      .receipt b {
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+      .receipt .sep {
+        color: var(--border);
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .shortcut {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .shortcut kbd {
+        font: inherit;
+        font-size: 12px;
+        border: 1px solid var(--border-light);
+        border-radius: 4px;
+        padding: 1px 5px;
+        background: var(--surface);
+      }
+      .btns {
+        display: flex;
+        gap: 12px;
+      }
+      .btn {
+        height: 44px;
+        padding: 0 16px;
+        border-radius: var(--radius-ios);
+        font: inherit;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+      .btn.secondary {
+        background: transparent;
+        border-color: var(--border);
+        color: var(--text-primary);
+      }
+      .btn.primary {
+        padding: 0 20px;
+        background: var(--accent);
+        color: #fff;
+        box-shadow:
+          var(--elevation-3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      }
+      .btn.primary:hover {
+        background: var(--accent-hover);
+      }
+      .btn.primary:active {
+        transform: translateY(1px);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <!-- Calendario de la recepción, atenuado detrás del diálogo -->
+      <div class="agenda" aria-hidden="true">
+        <div class="agenda-top">
+          <h1>Calendario</h1>
+          <span>Clínica San Isidro · jueves 5 de noviembre</span>
+        </div>
+        <div class="grid-head">
+          <div></div>
+          <div>Dra. Salazar · Sillón 2</div>
+          <div>Dr. Pinto · Sillón 1</div>
+          <div>Dra. Ferrer · Sillón 3</div>
+        </div>
+        <div class="grid-body">
+          <div class="hours">
+            <div>08:00</div>
+            <div>09:00</div>
+            <div>10:00</div>
+            <div>11:00</div>
+            <div>12:00</div>
+            <div>13:00</div>
+            <div>14:00</div>
+          </div>
+          <div class="col">
+            <div class="slot"></div>
+            <div class="event">Luis Ramírez · Control</div>
+            <div class="event free">09:00 libre</div>
+            <div class="slot"></div>
+            <div class="event">Rocío Mendoza · Resina 26</div>
+          </div>
+          <div class="col">
+            <div class="event">Jorge Paredes · Endodoncia 36</div>
+            <div class="slot"></div>
+            <div class="event">Ana Torres · Resina 16</div>
+            <div class="slot"></div>
+            <div class="event free">11:00 libre</div>
+          </div>
+          <div class="col">
+            <div class="slot"></div>
+            <div class="event">Control ortodoncia · 4 pacientes</div>
+            <div class="slot"></div>
+            <div class="event free">10:30 libre</div>
+          </div>
+        </div>
+      </div>
+      <div class="scrim"></div>
+
+      <!-- Dirección 01 -->
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">Sillón 2 · jueves 5 de noviembre</p>
+            <h2 id="dlg-title">Nueva cita</h2>
+          </div>
+          <button class="x" aria-label="Cerrar">×</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="field">
+            <label class="label" for="q"
+              >Paciente <span class="hint">3 coincidencias</span></label
+            >
+            <div class="search">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="7" cy="7" r="5" fill="none" stroke="#5c5a55" stroke-width="1.6" />
+                <path d="M11 11l3 3" stroke="#5c5a55" stroke-width="1.6" stroke-linecap="round" />
+              </svg>
+              <input id="q" value="torres" placeholder="Nombre o documento" />
+              <kbd>/</kbd>
+            </div>
+            <ul class="results" role="listbox" aria-label="Pacientes que coinciden">
+              <li role="option" aria-selected="true">
+                <span class="avatar">AT</span>
+                <span class="who"
+                  ><b>Ana Torres Chávez</b><span>DNI 45872310 · 34 años</span></span
+                >
+                <span class="avail"><i class="dot ok"></i>2 citas previas</span>
+              </li>
+              <li role="option" aria-selected="false">
+                <span class="avatar">JT</span>
+                <span class="who"
+                  ><b>Jorge Torres Medina</b><span>DNI 70912844 · 51 años</span></span
+                >
+                <span class="avail"><i class="dot ok"></i>1 cita previa</span>
+              </li>
+              <li role="option" aria-selected="false">
+                <span class="avatar">MT</span>
+                <span class="who"
+                  ><b>María Torres Ruiz</b><span>DNI 10293756 · 28 años</span></span
+                >
+                <span class="avail"><i class="dot ok"></i>sin historial</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="when">
+            <div class="field">
+              <label class="label" for="d">Fecha</label>
+              <input id="d" type="date" value="2026-11-05" />
+            </div>
+            <div class="field">
+              <label class="label" for="h">Hora</label>
+              <select id="h">
+                <option>09:00</option>
+                <option>09:15</option>
+                <option>09:30</option>
+                <option>09:45</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="label" for="dur">Duración</label>
+              <select id="dur">
+                <option>45 min</option>
+                <option>30 min</option>
+                <option>60 min</option>
+              </select>
+              <p class="note">Del procedimiento</p>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label" id="tipo-label"
+              >Tipo de cita <span class="hint">el más usado primero</span></label
+            >
+            <div class="chips" role="group" aria-labelledby="tipo-label">
+              <button class="chip" aria-pressed="true">Resina compuesta <span>45’</span></button>
+              <button class="chip" aria-pressed="false">Consulta general <span>30’</span></button>
+              <button class="chip" aria-pressed="false">Control ortodoncia <span>20’</span></button>
+              <button class="chip" aria-pressed="false">Endodoncia <span>60’</span></button>
+              <button class="chip" aria-pressed="false">Otro…</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label" id="quien-label"
+              >Quién atiende y en qué sillón
+              <span class="hint">libres 09:00 – 09:45</span></label
+            >
+            <div class="pick" role="group" aria-labelledby="quien-label">
+              <button class="who" aria-pressed="true">
+                <span class="avatar">CS</span>
+                <span class="txt"
+                  ><b>Dra. Carmen Salazar</b><span>Odontología · Sillón 2</span></span
+                >
+                <span class="state"><i class="dot ok"></i>Libre</span>
+              </button>
+              <button class="who" aria-pressed="false">
+                <span class="avatar">MP</span>
+                <span class="txt"
+                  ><b>Dr. Marco Pinto</b><span>Implantología · Sillón 1</span></span
+                >
+                <span class="state"><i class="dot ok"></i>Libre</span>
+              </button>
+              <button class="who" aria-pressed="false">
+                <span class="avatar">LF</span>
+                <span class="txt"
+                  ><b>Dra. Lucía Ferrer</b><span>Ortodoncia · Sillón 3</span></span
+                >
+                <span class="state"><i class="dot ok"></i>Libre</span>
+              </button>
+              <button class="who" disabled>
+                <span class="avatar">RT</span>
+                <span class="txt"
+                  ><b>Dr. Raúl Tello</b><span>Rehabilitación · Sillón 4</span></span
+                >
+                <span class="state"><i class="dot busy"></i>Ocupado hasta 09:30</span>
+              </button>
+            </div>
+            <p class="escape">
+              ¿Ninguno sirve? <button type="button">Ver los cuatro sillones y elegir a mano</button>
+            </p>
+          </div>
+
+          <details class="more">
+            <summary>
+              <svg class="caret" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                <path
+                  d="M3 1l4 4-4 4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Más detalles <span class="hint">procedimiento, importe, notas</span>
+            </summary>
+            <div class="more-body">
+              <div class="field">
+                <label class="label" for="proc"
+                  >Procedimiento <span class="hint">opcional · ajusta duración e importe</span></label
+                >
+                <select id="proc">
+                  <option>Resina compuesta en pieza 26 · 45 min · S/ 120,00</option>
+                  <option>Sin procedimiento</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label" for="notas">Notas</label>
+                <textarea id="notas" placeholder="Indicaciones para la atención"></textarea>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="modal-foot">
+          <p class="receipt">
+            <b>Ana Torres Chávez</b>
+            <span class="sep">·</span>
+            <span class="k">jue 5 nov,</span> <b>09:00–09:45</b>
+            <span class="sep">·</span>
+            <span class="k">Dra. Salazar · Sillón 2</span>
+          </p>
+          <div class="actions">
+            <p class="shortcut"><kbd>Esc</kbd> cancelar · <kbd>Enter</kbd> agendar</p>
+            <div class="btns">
+              <button class="btn secondary">Cancelar</button>
+              <button class="btn primary">Agendar cita</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
