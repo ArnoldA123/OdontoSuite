@@ -66,6 +66,41 @@
       </div>
 
       <!--
+        Una sola confirmación por cita creada. El modal ya no confirma: esta
+        línea es la única voz, con el resumen de lo agendado y la acción que
+        abre la agenda del día creado.
+      -->
+      <div
+        v-if="createdConfirmation"
+        class="flex flex-wrap items-center gap-3 rounded-ios border border-hairline bg-systemGreen-50 px-4 py-3"
+        role="status"
+        data-appointment-confirmation
+        :data-appointment-confirmation-id="createdConfirmation.id"
+      >
+        <CheckCircleIcon class="h-5 w-5 shrink-0 text-systemGreen-700" aria-hidden="true" />
+        <p class="min-w-0 flex-1 text-sm text-theme-primary">
+          <span class="font-semibold">Cita agendada</span>
+          <span v-if="createdConfirmation.summary">· {{ createdConfirmation.summary }}</span>
+        </p>
+        <UiButton
+          variant="secondary"
+          size="sm"
+          data-appointment-confirmation-action
+          @click="openCreatedAppointmentInAgenda"
+        >
+          Ver en la agenda
+        </UiButton>
+        <UiButton
+          variant="ghost"
+          size="sm"
+          data-appointment-confirmation-dismiss
+          @click="createdConfirmation = null"
+        >
+          Cerrar
+        </UiButton>
+      </div>
+
+      <!--
         Stats error state (T3). A non-401 failure of dashboard/stats reports
         HERE, in its own space under the hero band: the destinations below
         are static and stay mounted, and Reintentar re-fetches ONLY the
@@ -256,7 +291,7 @@
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { useApi } from '../../composables/useApi'
@@ -269,6 +304,7 @@ import { prefersReducedMotion } from '../../composables/useSpringMath'
 import { usePermissions } from '../../composables/usePermissions'
 import { useCashRegister } from '../../composables/useCashRegister'
 import { useEcho } from '../../composables/useEcho'
+import { markLocalAppointmentEcho } from '../../composables/useWebSocketNotifications'
 import { formatDate, formatPENLabel, formatTime } from '@/composables/useFormatters'
 
 const router = useRouter()
@@ -454,10 +490,38 @@ const destinations = computed(() =>
 // Navigation functions
 const showNewAppointmentModal = ref(false)
 
-const handleAppointmentCreated = async () => {
+// Una sola confirmación por cita creada, con la misma acción que la agenda.
+// El modal no confirma y esta página no confirma dos veces: el aviso vive aquí
+// y su botón abre el día que la cita ocupa.
+const createdConfirmation = ref(null)
+
+const dayOfCreated = payload => {
+  const raw = payload?.date || payload?.scheduled_at || ''
+  const match = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})/)
+  return match ? `${match[1]}-${match[2]}-${match[3]}` : ''
+}
+
+const handleAppointmentCreated = async payload => {
+  const id = payload?.id ?? payload?.data?.id ?? null
+
+  // La confirmación de esta pantalla es la única: el eco de la difusión del
+  // shell se descarta con el id que se acaba de escribir.
+  markLocalAppointmentEcho(id)
+
+  createdConfirmation.value = {
+    id,
+    date: dayOfCreated(payload),
+    summary: payload?.summary || ''
+  }
+
   // The new appointment changes today's count; the summary is the only
   // visible reader, so a single refresh is enough.
   await loadDashboardData()
+}
+
+const openCreatedAppointmentInAgenda = () => {
+  const date = createdConfirmation.value?.date
+  router.push(date ? { path: '/calendar', query: { date } } : '/calendar')
 }
 
 const goToCashRegister = () => {
