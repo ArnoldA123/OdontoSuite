@@ -113,7 +113,7 @@ app/
 
 resources/js/
   app.js                   # entry + router (guards en router/auth.js)
-  composables/             # 45 composables singleton
+  composables/             # 46 composables singleton
   components/
     ui/                    # 34 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
@@ -124,7 +124,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 156 migraciones
+  migrations/              # 158 migraciones
   seeders/                 # 18 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, DiagnosisCatalogSeeder,
                            #   AppointmentTypeSeeder, EnvironmentSeeder, ProcedureCatalogSeeder,
@@ -607,6 +607,88 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-11-02 (frontera de horarios semiabierta y dos agujeros cerrados)** — Una
+  cita de 09:00–09:30 y otra de 09:30–10:00 se rechazaban como conflicto:
+  `AppointmentRepository::findConflicts` comparaba con `whereBetween`, que
+  **incluye los dos extremos**, así que el fin de una cita contaba como parte de
+  ella. La regla pasa a **semiabierta `[inicio, fin)`** —hay solape sólo si
+  `existente.inicio < nueva.fin AND existente.fin > nueva.inicio`— en una sola
+  definición (`overlapsSlot` en SQL, `slotsOverlap` en PHP) compartida por
+  profesional y sillón, y `getAvailableTimeSlots` la reutiliza. `ends_at` es
+  columna almacenada `NOT NULL` y la comparación la lee por `COALESCE` con
+  `scheduled_at + duration_minutes` como red para que una fila nula no escape del
+  control ni reserve para siempre. El frontend ya era semiabierto: ahora lo fija
+  con pruebas en ambas direcciones. **Carrera de mesa**: el pre-chequeo no
+  bloqueaba y dos recepcionistas podían pasar el mismo hueco parcial;
+  `findConflictsForWrite` toma `lockSlotOwners` en orden fijo (`users` →
+  `dental_chairs`) y lee los conflictos con `FOR UPDATE` dentro de la transacción
+  de alta, edición y reprogramación. **Borrado suave**: `slot_reservation` valía
+  `1` en una cita eliminada, así que el índice único seguía reservando su
+  instante aunque el pre-chequeo ya no la viera; la migración
+  `2026_11_02_100000` la redefine como
+  `if(status='cancelled' or deleted_at is not null, null, 1)`, soltando y
+  recreando `unique_user_time_slot` y `unique_chair_time_slot` en ese orden
+  (medido: 0 filas borradas con reserva, 111 vivas con reserva, 0 canceladas
+  tras aplicarla). Sin rutas ni permisos nuevos: §4 sube a **158 migraciones**.
+  Tests: `AppointmentSlotBoundaryTest` (11), `AppointmentSlotRaceTest` (2, con
+  dos conexiones reales y 743 ms de espera medida), `AppointmentSoftDeletedSlotTest`
+  (3), `AppointmentSlotReleaseTest` (7) y 3 casos puros nuevos en
+  `appointmentAvailability`; Pint en verde. Queda declarado un agujero previo:
+  editar **solo** profesional o sillón no valida solape (el servicio sólo
+  chequea si cambian fecha o duración).
+
+- **2026-11-01 (alta de cita, ronda 2: tipos por especialidad, hora en rejilla,
+  equipo independiente y una sola confirmación)** — Cinco defectos medidos por
+  el usuario. **Tipos de cita ↔ especialidades**: `appointment_types.specialty_id`
+  (FK nullable `nullOnDelete`), relación `specialty()` en el modelo, validación
+  `exists:specialties,id` y `specialty_id=none` como filtro del índice; `index`,
+  `active` y `show` publican `specialty_id` y `specialty: {id, code, name}`, y
+  `AppointmentTypeSeeder` resuelve el código de las ocho filas contra el catálogo
+  existente sin crear especialidades. Sin backfill: una fila previa queda en
+  `null` y eso es un estado válido («Sin especialidad»). **Hora**: fuera el
+  `<input type="time">` y su rueda de scroll; entrega una rejilla de casillas de
+  15 minutos en cuatro bloques de tres horas (07–10 / 10–13 / 13–16 / 16–20),
+  44 px, con las ocupadas deshabilitadas y su motivo accesible. **Equipo**: el
+  profesional y el sillón dejan de ser una pareja fija; son dos listas
+  independientes con su propia ocupación, los pares usados hoy se ofrecen como
+  atajos y la combinación libre está siempre visible. **Confirmación**: el alta
+  ya no tosta; la agenda pinta una sola franja con «Ver en la agenda», salta al
+  día creado y marca el chip (`data-appointment-created`), y el eco de la
+  difusión se suprime con `markLocalAppointmentEcho`/`consumeLocalAppointmentEcho`
+  en `useWebSocketNotifications` — antes convivían dos o tres avisos por la misma
+  cita. **Densidad**: el modal pasa a `size="3xl"` (768 px) con dos columnas, sin
+  recortes medidos en 1440×900 ni 1280×800. Sin rutas ni permisos nuevos: §4 sube
+  a **157 migraciones** y conserva 46 composables. Tests: 93 de Vitest en los tres
+  archivos del alta, `NewAppointmentModalAppShellTest` (24) y los guards de la
+  agenda; Pint, ESLint y Prettier en verde; `doc-drift` 14/14. Queda pendiente el
+  campo `specialty_id` en la pantalla de administración de tipos de cita (hoy
+  solo lo escriben el seeder y la API).
+
+- **2026-10-31 (alta de cita: captura rápida con disponibilidad)** — El alta deja
+  de ser una retícula plana de nueve controles al mismo nivel. **Paciente** por
+  búsqueda en el servidor (`GET /api/patients/search`, `q` con mínimo 2
+  caracteres, 20 filas) en lugar de paginar todos los pacientes de 100 en 100;
+  **cuándo** como fecha + hora + duración con «Termina HH:MM» en vivo;
+  **tipo** en chips (los cuatro más usados del día, con propuesta de duración);
+  **quién atiende y en qué sillón** como pares profesional·sillón con «Libre» u
+  «Ocupado hasta HH:MM» leídos de la agenda del día; **más detalles** plegado
+  (procedimiento y notas); y un **pie** que se lee como la cita ya escrita.
+  `Estado` sale del alta y solo aparece al editar, con el motivo de cancelación
+  de #394 intacto. La disponibilidad vive en
+  `resources/js/composables/useAppointmentAvailability.js` (46 composables):
+  `buildAppointmentAvailability` es pura (ventana semiabierta `[inicio, fin)`,
+  una cita `cancelled` no ocupa, auto-exclusión al editar) y publica `unknown`
+  cuando el día no se pudo leer — en ese caso el modal vuelve a los `UiSelect`
+  planos y **nunca** afirma «Libre». El 422 de duplicate-key sigue siendo la
+  verdad final, con su badge intacto. Sin rutas, modelos, migraciones ni
+  permisos nuevos: los conteos de §4/§5 no cambian salvo el de composables.
+  Diseño en `design/alta-cita/` (cinco tableros; elegido
+  `05-captura-disponible.html`). Tests: `appointmentAvailability` (16),
+  `appointments` (44), `dashboard-agenda` (3), `NewAppointmentModalAppShellTest`
+  (20); Vitest completo 178 archivos / 1572 pruebas y PHPUnit Unit 1598
+  pruebas, 10564 aserciones (51 saltadas por SQLite); Pint, ESLint y Prettier
+  en verde; `doc-drift` 14/14.
 
 - **2026-10-30 (tres destinos: Pendientes absorbe lo comercial y el Dashboard
   deja de listar citas)** — El escritorio de continuidad pasa a llamarse
