@@ -8,6 +8,49 @@ import { CHANNEL_PERMISSIONS } from '@/utils/broadcastChannels'
 import { NotificationService } from '@/services/NotificationService'
 
 /**
+ * Ecos que esta pestaña produjo y que, por tanto, no debe anunciarse a sí
+ * misma.
+ *
+ * El alta de cita ya confirma con su propia línea y su acción; la difusión del
+ * servidor llega igual a esta ventana, y sin este registro el mismo hecho
+ * aparecía dos veces (la franja de la agenda y «Nueva cita programada» en el
+ * panel). El registro es de módulo y de un solo uso: la página marca el id que
+ * acaba de escribir y el primer evento con ese id se descarta.
+ *
+ * Es la contraparte de `toOthers()` de Laravel, que el cliente no puede pedir:
+ * el servidor difunde a todos, así que la pestaña que originó el cambio filtra
+ * su propio eco.
+ */
+const localEchoIds = new Set()
+
+/**
+ * Marca un id de cita como escrito por esta pestaña.
+ *
+ * @param {number|string|null} id
+ */
+export function markLocalAppointmentEcho(id) {
+  if (id === null || id === undefined || id === '') return
+
+  localEchoIds.add(String(id))
+}
+
+/**
+ * Consume el eco de una cita escrita por esta pestaña. Devuelve `true` la
+ * primera vez (y lo retira), `false` cuando la cita es de otra mesa.
+ *
+ * @param {number|string|null} id
+ * @returns {boolean}
+ */
+export function consumeLocalAppointmentEcho(id) {
+  if (id === null || id === undefined || id === '') return false
+
+  return localEchoIds.delete(String(id))
+}
+
+/** Los eventos de cita cuyo eco propio se descarta. */
+const APPOINTMENT_EVENTS = ['appointment.created', 'appointment.updated']
+
+/**
  * Composable para escuchar eventos WebSocket globales y generar notificaciones
  */
 export function useWebSocketNotifications() {
@@ -62,6 +105,13 @@ export function useWebSocketNotifications() {
    */
   const handleEvent = (eventName, data) => {
     try {
+      // La cita que esta pestaña acaba de escribir ya se confirmó donde se
+      // escribió: su difusión se consume aquí y no publica nada.
+      if (APPOINTMENT_EVENTS.includes(eventName)) {
+        const echoed = data?.appointment ?? data
+        if (consumeLocalAppointmentEcho(echoed?.id)) return
+      }
+
       const notificationData = NotificationService.convertEventToNotification(eventName, data)
 
       if (!notificationData) {

@@ -29,6 +29,39 @@
       </template>
     </PageHeader>
 
+    <!-- Una sola confirmación por cita creada. El modal no confirma, el aviso
+         de difusión de la propia mesa no confirma: esta línea es la única voz,
+         con el resumen de lo que se acaba de escribir y su acción. -->
+    <div
+      v-if="createdConfirmation"
+      class="mt-4 flex flex-wrap items-center gap-3 rounded-ios border border-hairline bg-systemGreen-50 px-4 py-3"
+      role="status"
+      data-appointment-confirmation
+      :data-appointment-confirmation-id="createdConfirmation.id"
+    >
+      <CheckCircleIcon class="h-5 w-5 shrink-0 text-systemGreen-700" aria-hidden="true" />
+      <p class="min-w-0 flex-1 text-sm text-theme-primary">
+        <span class="font-semibold">Cita agendada</span>
+        <span v-if="createdConfirmation.summary">· {{ createdConfirmation.summary }}</span>
+      </p>
+      <UiButton
+        variant="secondary"
+        size="sm"
+        data-appointment-confirmation-action
+        @click="revealCreatedAppointment"
+      >
+        Ver en la agenda
+      </UiButton>
+      <UiButton
+        variant="ghost"
+        size="sm"
+        data-appointment-confirmation-dismiss
+        @click="dismissCreatedConfirmation"
+      >
+        Cerrar
+      </UiButton>
+    </div>
+
     <div class="mt-4 flex flex-wrap items-center gap-3" data-calendar-toolbar>
       <div
         class="inline-flex items-center gap-1 rounded-full border border-hairline bg-theme-surface-elevated p-1"
@@ -304,6 +337,7 @@
                   style="border-radius: var(--radius-panel)"
                   :title="chipTitle(appointment)"
                   :data-calendar-appointment="appointment.id"
+                  :data-appointment-created="createdHighlightId === appointment.id ? '' : null"
                   :data-calendar-draggable="appointment.id"
                   :data-calendar-drag-state="
                     draggingAppointmentId === appointment.id ? 'active' : null
@@ -421,6 +455,9 @@
                         style="border-radius: var(--radius-panel)"
                         :title="chipTitle(appointment)"
                         :data-calendar-appointment="appointment.id"
+                        :data-appointment-created="
+                          createdHighlightId === appointment.id ? '' : null
+                        "
                         :data-calendar-draggable="appointment.id"
                         :data-calendar-drag-state="
                           draggingAppointmentId === appointment.id ? 'active' : null
@@ -533,6 +570,7 @@
                   style="border-radius: var(--radius-panel)"
                   :title="chipTitle(appointment)"
                   :data-calendar-appointment="appointment.id"
+                  :data-appointment-created="createdHighlightId === appointment.id ? '' : null"
                   @click="selectAppointment(appointment)"
                 >
                   <span
@@ -772,7 +810,7 @@
       v-model="showNewAppointmentModal"
       :initial-date="newAppointmentPrefill"
       :appointment="editingAppointment"
-      @created="handleAppointmentSaved"
+      @created="handleAppointmentCreated"
       @updated="handleAppointmentSaved"
     />
   </AppLayout>
@@ -780,10 +818,12 @@
 
 <script>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
+import { markLocalAppointmentEcho } from '../../composables/useWebSocketNotifications'
 import { useReducedMotion } from '../../composables/useReducedMotion'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import PageHeader from '../../components/layout/PageHeader.vue'
@@ -797,6 +837,7 @@ import UiFilterBar from '../../components/ui/FilterBar.vue'
 import {
   ArrowPathIcon,
   CalendarDaysIcon,
+  CheckCircleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ExclamationTriangleIcon,
@@ -854,6 +895,7 @@ export default {
     UiFilterBar,
     ArrowPathIcon,
     CalendarDaysIcon,
+    CheckCircleIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
     ExclamationTriangleIcon,
@@ -862,6 +904,7 @@ export default {
     NewAppointmentModal
   },
   setup() {
+    const route = useRoute()
     const { get, del, patch, normalizeError } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
@@ -946,9 +989,90 @@ export default {
       showNewAppointmentModal.value = true
     }
 
-    const handleAppointmentSaved = async () => {
+    const handleAppointmentSaved = async appointment => {
+      // La edición ya se confirmó en el formulario: su difusión no vuelve a
+      // anunciarse en esta pestaña.
+      markLocalAppointmentEcho(appointment?.id ?? appointment?.data?.id ?? null)
       editingAppointment.value = null
       await loadAppointments()
+    }
+
+    // --- Confirmación única de la cita creada -------------------------------
+    //
+    // Crear una cita dispara tres voces: el toast del modal, el toast del
+    // listener `.appointment.created` de esta página y la notificación global
+    // del shell. Aquí viven las dos piezas que sí son de la agenda: la única
+    // confirmación (una línea con su acción) y el registro de lo que esta
+    // pestaña acaba de crear, para que su propio eco no vuelva a hablar.
+    const createdConfirmation = ref(null)
+    const createdHighlightId = ref(null)
+    const locallyCreatedIds = new Set()
+
+    const localDayOf = value => {
+      const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/)
+      if (!match) return null
+      const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      return Number.isNaN(parsed.getTime()) ? null : parsed
+    }
+
+    const summaryOfCreated = payload => {
+      if (payload?.summary) return payload.summary
+      const parts = []
+      if (payload?.patient_name) parts.push(payload.patient_name)
+      const when = [payload?.date, payload?.time].filter(Boolean).join(' ')
+      if (when) parts.push(when)
+      const who = [payload?.professional_name, payload?.chair_name].filter(Boolean).join(' · ')
+      if (who) parts.push(who)
+      return parts.join(' · ')
+    }
+
+    const jumpToCreatedDay = payload => {
+      const day = localDayOf(payload?.date || payload?.scheduled_at)
+      if (!day) return
+      currentDate.value = day
+    }
+
+    const handleAppointmentCreated = async payload => {
+      const id = payload?.id ?? payload?.data?.id ?? null
+      if (id !== null && id !== undefined) locallyCreatedIds.add(String(id))
+      // El shell también escucha la difusión de esta cita: su eco se marca para
+      // que no publique una segunda confirmación en el panel.
+      markLocalAppointmentEcho(id)
+
+      jumpToCreatedDay(payload)
+      await loadAppointments()
+
+      editingAppointment.value = null
+      createdHighlightId.value = id ?? null
+      createdConfirmation.value = {
+        id,
+        summary: summaryOfCreated(payload),
+        date: payload?.date || ''
+      }
+    }
+
+    const dismissCreatedConfirmation = () => {
+      createdConfirmation.value = null
+      createdHighlightId.value = null
+    }
+
+    // «Ver en la agenda» lleva la vista a la cita: el chip ya está en su día,
+    // así que la acción lo trae al centro y le da el foco.
+    const revealCreatedAppointment = () => {
+      if (createdHighlightId.value === null || createdHighlightId.value === undefined) return
+      nextTick(() => {
+        const node = document.querySelector(
+          `[data-calendar-appointment="${createdHighlightId.value}"]`
+        )
+        if (!node) return
+        if (typeof node.scrollIntoView === 'function') {
+          node.scrollIntoView({
+            block: 'center',
+            behavior: reducedMotion.value ? 'auto' : 'smooth'
+          })
+        }
+        if (typeof node.focus === 'function') node.focus({ preventScroll: true })
+      })
     }
 
     const dayHours = buildHours()
@@ -1274,7 +1398,13 @@ export default {
     }
 
     const getAppointmentClasses = appointment => {
-      return `${APPOINTMENT_CHIP_BASE_CLASSES} ${statusChipClasses(appointment.status)} ${dragChipClasses(appointment)}`.trim()
+      const created =
+        createdHighlightId.value !== null &&
+        String(createdHighlightId.value) === String(appointment.id)
+          ? 'ring-2 ring-systemGreen-500'
+          : ''
+
+      return `${APPOINTMENT_CHIP_BASE_CLASSES} ${statusChipClasses(appointment.status)} ${dragChipClasses(appointment)} ${created}`.trim()
     }
 
     const getStatusClasses = status => {
@@ -1664,6 +1794,11 @@ export default {
       window.addEventListener('resize', readWeekScrollState)
       nextTick(readWeekScrollState)
 
+      // `?date=YYYY-MM-DD` abre la agenda en ese día: es el destino de la
+      // confirmación del dashboard y del aviso de la notificación.
+      const fromQuery = localDayOf(route.query?.date)
+      if (fromQuery) currentDate.value = fromQuery
+
       // Las poblaciones de los filtros son una lectura aparte: se lanzan sin
       // esperar y la agenda no depende de ellas (un lookup caído sólo oculta
       // su filtro). La lectura del rango sale a continuación, nunca encadenada.
@@ -1675,8 +1810,15 @@ export default {
         appointmentsChannel = privateChannel('appointments')
         if (appointmentsChannel) {
           appointmentsChannel
-            .listen('.appointment.created', async () => {
+            .listen('.appointment.created', async event => {
               await loadAppointments()
+              // El eco de la propia creación ya se confirmó con su línea y su
+              // acción: solo se avisa de la cita que trajo otra mesa.
+              const id = String(event?.appointment?.id ?? '')
+              if (id && locallyCreatedIds.has(id)) {
+                locallyCreatedIds.delete(id)
+                return
+              }
               toast.success('Nueva cita agregada')
             })
             .listen('.appointment.updated', async () => {
@@ -1800,6 +1942,11 @@ export default {
       formatDateTime,
       getInitialDateForModal,
       handleAppointmentSaved,
+      handleAppointmentCreated,
+      createdConfirmation,
+      createdHighlightId,
+      dismissCreatedConfirmation,
+      revealCreatedAppointment,
       toLocalDateString,
       getAppointmentLocalDate
     }
