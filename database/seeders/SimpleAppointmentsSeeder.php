@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Appointment;
 use App\Models\AppointmentType;
+use App\Models\Branch;
 use App\Models\DentalChair;
 use App\Models\Patient;
 use App\Models\User;
@@ -19,7 +20,19 @@ class SimpleAppointmentsSeeder extends Seeder
         $patients = Patient::all();
         $professionals = User::whereIn('role', ['odontologo', 'implantologo', 'tecnico_dental', 'asistente'])->get();
         $appointmentTypes = AppointmentType::all();
-        $dentalChairs = DentalChair::where('is_active', true)->get();
+        // Los profesionales sembrados viven en Trujillo (T3), asi que la agenda
+        // de prueba usa los ambientes de esa sede. Si el seeder corre solo
+        // contra una base sin Trujillo, cae a cualquier ambiente activo.
+        $trujilloId = Branch::query()->where('code', 'SC-TRU-01')->value('id');
+        $dentalChairs = DentalChair::query()
+            ->where('is_active', true)
+            ->when($trujilloId, fn ($query) => $query->where('branch_id', $trujilloId))
+            ->get();
+
+        if ($dentalChairs->isEmpty()) {
+            $dentalChairs = DentalChair::where('is_active', true)->get();
+        }
+
         $admin = User::where('role', 'administrador')->first();
 
         if ($patients->isEmpty() || $professionals->isEmpty() || $appointmentTypes->isEmpty() || $dentalChairs->isEmpty()) {
@@ -69,6 +82,7 @@ class SimpleAppointmentsSeeder extends Seeder
                     'user_id' => $professional->id,
                     'dental_chair_id' => $dentalChair->id,
                     'appointment_type_id' => $appointmentType->id,
+                    'branch_id' => $professional->branch_id ?? $dentalChair->branch_id,
                     'scheduled_at' => $scheduledAt,
                     'ends_at' => $endsAt,
                     'duration_minutes' => $duration,

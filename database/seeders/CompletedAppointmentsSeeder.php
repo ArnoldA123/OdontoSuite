@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
 use App\Models\Branch;
+use App\Models\DentalChair;
 use App\Models\Patient;
 use App\Models\TreatmentPlan;
 use App\Models\User;
@@ -18,13 +19,15 @@ class CompletedAppointmentsSeeder extends Seeder
      */
     public function run(): void
     {
-        // Obtener datos existentes
-        $branch = Branch::first();
+        // Las citas completadas son la agenda de prueba de los usuarios
+        // sembrados, que viven en Trujillo (T3). Sin Trujillo no hay dataset
+        // coherente: se avisa en vez de inventar la sede.
+        $branch = Branch::query()->where('code', 'SC-TRU-01')->first();
         $appointmentTypes = AppointmentType::all();
         $professionals = User::whereIn('role', ['dentista', 'administrador', 'recepcionista'])->get();
 
         if (! $branch || $appointmentTypes->isEmpty() || $professionals->isEmpty()) {
-            $this->command->warn('No hay sucursales, tipos de cita o profesionales. Ejecuta primero los seeders básicos.');
+            $this->command->warn('No hay sede Trujillo (SC-TRU-01), tipos de cita o profesionales. Ejecuta primero los seeders básicos.');
 
             return;
         }
@@ -252,13 +255,19 @@ class CompletedAppointmentsSeeder extends Seeder
     private function createCompletedAppointments($patients, $appointmentTypes, $professionals, $branch)
     {
         $today = Carbon::today();
-        $dentalChair = \App\Models\DentalChair::first();
+        $dentalChair = DentalChair::query()
+            ->where('is_active', true)
+            ->where('branch_id', $branch->id)
+            ->first()
+            ?? DentalChair::query()->where('is_active', true)->first();
 
         if (! $dentalChair) {
             $this->command->warn('No hay sillas dentales disponibles. Creando una...');
-            $dentalChair = \App\Models\DentalChair::create([
+            $dentalChair = DentalChair::create([
                 'name' => 'Silla 1',
+                'code' => 'SILLA-TRU-01',
                 'location' => 'Consultorio 1',
+                'branch_id' => $branch->id,
                 'is_active' => true,
             ]);
         }
@@ -333,6 +342,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'appointment_type_id' => $data['appointment_type']->id,
                 'user_id' => $data['professional']->id,
                 'dental_chair_id' => $dentalChair->id,
+                'branch_id' => $data['professional']->branch_id ?? $dentalChair->branch_id ?? $branch->id,
                 'scheduled_at' => $scheduledAt,
                 'ends_at' => $endsAt,
                 'duration_minutes' => $data['duration_minutes'],

@@ -1,66 +1,68 @@
 # Credenciales de Acceso - OdontoSuite
 
 Este documento contiene las credenciales de acceso reales para el sistema
-OdontoSuite. Datos verificados contra la BD activa (MySQL, 2026-06-11).
+OdontoSuite. Datos verificados contra la BD activa (MySQL, 2026-11-24).
 
 ## Contraseña por Defecto
 
 **Todas las cuentas utilizan la contraseña:** `password123` **El campo "Usuario"
 del login es el `username`** (no el email, no el nombre).
 
+> **Limpieza demo (2026-11-24).** La base se depuró con
+> `php artisan demo:prune-test-users`: se retiraron las seis cuentas `*_test` y
+> el administrador `Ever Huamán Cruz` duplicado; se reasignaron 377 dependencias
+> y se eliminaron 20 tokens personales. Quedan estas 9 cuentas (una por rol) y
+> la demo clínica completa: 100 pacientes y 119 citas, sin huérfanos. El comando
+> es idempotente; `--dry-run` solo reporta. La cuenta de grupo (`admin_test`) es
+> la única sin sede; las demás operan en Trujillo.
+
 ---
 
-## Usuarios Reales
+## Usuarios demo (9)
 
 ### Administradores
 
-| Nombre              | Email                           | Username     | Rol           |
-| ------------------- | ------------------------------- | ------------ | ------------- |
-| Elizabet Cunia Cruz | elizabet+administrador@test.com | `elizabet`   | administrador |
-| Ever Huamán Cruz    | ever+administrador@test.com     | `ever`       | administrador |
-| Admin Test          | admin+administrador@test.com    | `admin_test` | administrador |
+| Nombre               | Email                           | Username     | Rol           |
+| -------------------- | ------------------------------- | ------------ | ------------- |
+| Elizabet Cunia Cruz  | elizabet+administrador@test.com | `elizabet`   | administrador |
+| Gerencia OdontoSuite | admin+administrador@test.com    | `admin_test` | administrador |
 
 ### Recepcionista
 
 | Nombre             | Email                                | Username             | Rol           |
 | ------------------ | ------------------------------------ | -------------------- | ------------- |
-| Recepcionista Test | recepcionista+recepcionista@test.com | `recepcionista_test` | recepcionista |
+| Rosa Quispe Flores | recepcionista+recepcionista@test.com | `recepcionista_test` | recepcionista |
 
 ### Odontólogos
 
-| Nombre               | Email                          | Username          | Rol        |
-| -------------------- | ------------------------------ | ----------------- | ---------- |
-| Ever Huamán Cruz     | ever+odontologo@test.com       | `ever_odontologo` | odontologo |
-| Brenda Tejada Alfaro | brenda+odontologo@test.com     | `brenda`          | odontologo |
-| Odontologo Test      | odontologo+odontologo@test.com | `odontologo_test` | odontologo |
+| Nombre               | Email                      | Username          | Rol        |
+| -------------------- | -------------------------- | ----------------- | ---------- |
+| Ever Huamán Cruz     | ever+odontologo@test.com   | `ever_odontologo` | odontologo |
+| Brenda Tejada Alfaro | brenda+odontologo@test.com | `brenda`          | odontologo |
 
 ### Implantólogos
 
-| Nombre            | Email                              | Username            | Rol          |
-| ----------------- | ---------------------------------- | ------------------- | ------------ |
-| Wilmer Valderrama | wilmer+implantologo@test.com       | `wilmer`            | implantologo |
-| Implantologo Test | implantologo+implantologo@test.com | `implantologo_test` | implantologo |
+| Nombre            | Email                        | Username | Rol          |
+| ----------------- | ---------------------------- | -------- | ------------ |
+| Wilmer Valderrama | wilmer+implantologo@test.com | `wilmer` | implantologo |
 
 ### Técnicos Dentales
 
-| Nombre           | Email                    | Username       | Rol            |
-| ---------------- | ------------------------ | -------------- | -------------- |
-| Sofia Villanueva | sofia+tecnico@test.com   | `sofia`        | tecnico_dental |
-| Tecnico Test     | tecnico+tecnico@test.com | `tecnico_test` | tecnico_dental |
+| Nombre           | Email                  | Username | Rol            |
+| ---------------- | ---------------------- | -------- | -------------- |
+| Sofia Villanueva | sofia+tecnico@test.com | `sofia`  | tecnico_dental |
 
 ### Asistentes
 
-| Nombre           | Email                        | Username         | Rol       |
-| ---------------- | ---------------------------- | ---------------- | --------- |
-| Azul Huamán Díaz | azul+asistente@test.com      | `azul`           | asistente |
-| Asistente Test   | asistente+asistente@test.com | `asistente_test` | asistente |
+| Nombre           | Email                   | Username | Rol       |
+| ---------------- | ----------------------- | -------- | --------- |
+| Azul Huamán Díaz | azul+asistente@test.com | `azul`   | asistente |
 
 ### Finanzas
 
-| Nombre             | Email                      | Username        | Rol      |
-| ------------------ | -------------------------- | --------------- | -------- |
-| Milagros Cochachin | milagros+finanzas@test.com | `milagros`      | finanzas |
-| Finanzas Test      | finanzas+finanzas@test.com | `finanzas_test` | finanzas |
+| Nombre             | Email                      | Username   | Rol      |
+| ------------------ | -------------------------- | ---------- | -------- |
+| Milagros Cochachin | milagros+finanzas@test.com | `milagros` | finanzas |
 
 ---
 
@@ -103,12 +105,12 @@ del login es el `username`** (no el email, no el nombre).
 | Eliminar pacientes                  | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | Exportar ficha de paciente          | ✅            | ✅            | ✅         | ✅           | ❌      | ❌        | ❌       |
 | **Citas/Agenda**                    |
-| Crear citas                         | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Crear citas                         | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | Ver citas                           | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Editar citas                        | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Cancelar citas                      | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Registrar llegada                   | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Anunciar paciente                   | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Anunciar paciente                   | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Iniciar atención                    | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Escritorio Mi día                   | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Completar consulta (clínica)        | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
@@ -172,6 +174,16 @@ las aprueba ni las rechaza. La aprobación es la única escritura de
 `users.branch_id` fuera de la edición administrativa, ocurre en la misma
 transacción que el cambio de estado y deja `user_branch_assigned` con el valor
 anterior y el nuevo. Una solicitud pendiente no habilita nada.
+
+---
+
+## Reserva y anuncio de citas
+
+La reserva (`create.appointment`) es exclusiva de **recepción y
+administración**. El profesional solo opera las citas asignadas a su usuario:
+ver, confirmar, registrar llegada, anunciar, iniciar/cerrar y reprogramar las
+propias; no crea citas ni reprograma las ajenas. Recepción y administración
+operan su sede; el administrador de grupo (`admin_test`) ve todas.
 
 ---
 

@@ -46,7 +46,9 @@ const rowActive = {
   description: 'Box 1',
   equipment: 'Unidad dental',
   status: 'active',
-  is_active: true
+  is_active: true,
+  branch_id: 1,
+  branch: { id: 1, name: 'Trujillo', code: 'SC-TRU-01' }
 }
 const rowMaintenance = {
   id: 2,
@@ -55,7 +57,9 @@ const rowMaintenance = {
   description: 'Area de autoclave',
   equipment: 'Autoclave',
   status: 'maintenance',
-  is_active: true
+  is_active: true,
+  branch_id: 1,
+  branch: { id: 1, name: 'Trujillo', code: 'SC-TRU-01' }
 }
 const rowInactive = {
   id: 3,
@@ -64,7 +68,9 @@ const rowInactive = {
   description: null,
   equipment: null,
   status: 'inactive',
-  is_active: true
+  is_active: true,
+  branch_id: 2,
+  branch: { id: 2, name: 'Lima central', code: 'SC-LIM-01' }
 }
 
 const rowArchived = {
@@ -74,7 +80,29 @@ const rowArchived = {
   description: 'Archivado',
   equipment: 'Unidad dental',
   status: 'maintenance',
-  is_active: false
+  is_active: false,
+  branch_id: 1,
+  branch: { id: 1, name: 'Trujillo', code: 'SC-TRU-01' }
+}
+
+// citas-privacidad (T4): every environment belongs to a sede, and the page
+// reads the active catalog for the filter and for the form selector.
+const activeBranches = [
+  { id: 1, name: 'Trujillo', code: 'SC-TRU-01', is_active: true },
+  { id: 2, name: 'Lima central', code: 'SC-LIM-01', is_active: true }
+]
+
+// The page reads two endpoints on mount: the list and the sede catalog. Every
+// test that only cares about the rows keeps using this helper so the two
+// answers never get mixed.
+const mockChairs = rows => {
+  getMock.mockImplementation(url => {
+    if (String(url).startsWith('/api/branches')) {
+      return Promise.resolve({ data: activeBranches })
+    }
+
+    return Promise.resolve({ data: rows })
+  })
 }
 
 let pageRouter = null
@@ -99,7 +127,9 @@ const mountPage = async () => {
 }
 
 const selectFilterOption = async (wrapper, label, index = 0) => {
-  await wrapper.findAll('button[aria-haspopup="true"]')[index].trigger('click')
+  // The bar carries two selects (sede and estado): the status one is addressed
+  // by its own hook instead of by position.
+  await wrapper.findAll('[data-status-filter] button[aria-haspopup="true"]')[index].trigger('click')
   const option = wrapper
     .findAll('[role="listbox"] button')
     .find(candidate => candidate.text().trim() === label)
@@ -140,6 +170,18 @@ const openModalStatusOptions = async form => {
   )
 }
 
+// citas-privacidad (T4): the sede rides its own select on both modals.
+const chooseModalBranch = async (form, label, kind = 'create') => {
+  form.querySelector(`[data-branch-select="${kind}"] button[aria-haspopup="true"]`).click()
+  await flushPromises()
+  const option = [...form.querySelectorAll('[role="listbox"] button')].find(
+    candidate => candidate.textContent.trim() === label
+  )
+  expect(option, `modal sede option "${label}" must exist`).toBeTruthy()
+  option.click()
+  await flushPromises()
+}
+
 beforeEach(async () => {
   // Close any teleported dialog left by the previous test before its host
   // container is discarded; otherwise the teleport anchors are stale.
@@ -149,7 +191,7 @@ beforeEach(async () => {
   document.body.innerHTML = ''
   useToast().clearAll()
   seedSession('administrador')
-  getMock.mockResolvedValue({ data: [] })
+  mockChairs([])
 })
 
 afterEach(() => {
@@ -166,7 +208,7 @@ describe('environments smoke', () => {
 
 describe('environments filter bar (#456)', () => {
   it('mounts the filter bar primitive around the search and the single state select', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     const wrapper = await mountPage()
 
     const bar = wrapper.find('[data-environment-filters]')
@@ -178,7 +220,10 @@ describe('environments filter bar (#456)', () => {
     // one question, not two controls whose defaults read the same.
     expect(bar.findAll('[data-status-filter]')).toHaveLength(1)
     expect(bar.find('[data-archived-filter]').exists()).toBe(false)
-    expect(bar.find('label').text()).toBe('Estado')
+    // citas-privacidad (T4): group scope also narrows by sede; the label rides
+    // the same bar and keeps the single state select untouched.
+    expect(bar.findAll('label').map(label => label.text())).toEqual(['Sede', 'Estado'])
+    expect(bar.findAll('[data-branch-filter]')).toHaveLength(1)
 
     // Nothing chosen yet: the in-bar reset is not offered.
     expect(bar.find('[data-filters-clear]').exists()).toBe(false)
@@ -192,7 +237,7 @@ describe('environments filter bar (#456)', () => {
   })
 
   it('the in-bar «Limpiar filtros» restores the defaults and re-reads the list once', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     const wrapper = await mountPage()
 
     await selectFilterOption(wrapper, 'Mantenimiento')
@@ -215,7 +260,7 @@ describe('environments filter bar (#456)', () => {
   })
 
   it('«Limpiar filtros» restores the defaults and re-reads the list once', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     const wrapper = await mountPage()
 
     await selectFilterOption(wrapper, 'Mantenimiento')
@@ -241,7 +286,7 @@ describe('environments filter bar (#456)', () => {
 
 describe('environments status filter (T2)', () => {
   it('requests the filtered list and hides non-matching rows when a status is selected', async () => {
-    getMock.mockResolvedValue({ data: [rowActive, rowMaintenance, rowInactive] })
+    mockChairs([rowActive, rowMaintenance, rowInactive])
     const wrapper = await mountPage()
 
     expect(getMock).toHaveBeenCalledWith('/api/dental-chairs')
@@ -258,7 +303,7 @@ describe('environments status filter (T2)', () => {
   })
 
   it('omits the status param entirely for "Todos los estados"', async () => {
-    getMock.mockResolvedValue({ data: [rowActive, rowMaintenance, rowInactive] })
+    mockChairs([rowActive, rowMaintenance, rowInactive])
     const wrapper = await mountPage()
 
     await selectFilterOption(wrapper, 'Mantenimiento')
@@ -273,7 +318,7 @@ describe('environments status filter (T2)', () => {
   })
 
   it('filters search results client-side without a server-side status refetch', async () => {
-    getMock.mockResolvedValue({ data: [rowActive, rowMaintenance, rowInactive] })
+    mockChairs([rowActive, rowMaintenance, rowInactive])
     const wrapper = await mountPage()
 
     vi.useFakeTimers()
@@ -300,9 +345,8 @@ describe('environments status filter (T2)', () => {
 
 describe('environments error state (T2)', () => {
   it('shows the error state with retry and recovers on Reintentar', async () => {
-    getMock
-      .mockRejectedValueOnce(new Error('network down'))
-      .mockResolvedValue({ data: [rowActive] })
+    getMock.mockRejectedValueOnce(new Error('network down'))
+    mockChairs([rowActive])
     const wrapper = await mountPage()
 
     expect(wrapper.find('[data-environments-error]').exists()).toBe(true)
@@ -321,7 +365,7 @@ describe('environments error state (T2)', () => {
 
 describe('environments delete flow (T2)', () => {
   it('deletes through useConfirm only after the dialog is confirmed', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     deleteMock.mockResolvedValue({ data: {} })
     const wrapper = await mountPage()
 
@@ -344,7 +388,7 @@ describe('environments delete flow (T2)', () => {
   })
 
   it('does not delete when the dialog is cancelled', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     deleteMock.mockResolvedValue({ data: {} })
     const wrapper = await mountPage()
 
@@ -367,7 +411,7 @@ describe('environments delete flow (T2)', () => {
   it('surfaces the 409 explanation when the environment still has scheduling history', async () => {
     const toast = useToast()
     toast.clearAll()
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     deleteMock.mockRejectedValue({
       status: 409,
       response: {
@@ -406,7 +450,7 @@ describe('environments modal surfaces (T3)', () => {
     expect(source).not.toContain('showViewEnvironmentModal')
     expect(source).not.toContain('Ver Ambiente')
 
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     const wrapper = await mountPage()
 
     await clickRowAction(wrapper, 'Ver ficha')
@@ -420,7 +464,7 @@ describe('environments modal surfaces (T3)', () => {
   })
 
   it('creates an environment through the grouped form with the same payload shape as before', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     postMock.mockResolvedValue({ data: {} })
     const wrapper = await mountPage()
 
@@ -438,6 +482,10 @@ describe('environments modal surfaces (T3)', () => {
     setFieldValue(form.querySelector('[data-field="description"] textarea'), 'Cuarto nuevo')
     setFieldValue(form.querySelector('[data-field="equipment"] textarea'), 'Unidad dental')
 
+    // Group scope has to declare the sede: the field starts empty and the API
+    // is the authority that answers 422 when it is missing.
+    await chooseModalBranch(form, 'Trujillo')
+
     const statusLabels = await openModalStatusOptions(form)
     expect(statusLabels).not.toContain('Todos los estados')
     const option = [...form.querySelectorAll('[role="listbox"] button')].find(
@@ -454,14 +502,15 @@ describe('environments modal surfaces (T3)', () => {
       name: 'Box 4',
       description: 'Cuarto nuevo',
       equipment: 'Unidad dental',
-      status: 'maintenance'
+      status: 'maintenance',
+      branch_id: 1
     })
     expect(findModalForm('create')).toBeNull()
     wrapper.unmount()
   })
 
   it('prefills the edit form with code, name, description and status and saves the edited row', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     putMock.mockResolvedValue({ data: {} })
     const wrapper = await mountPage()
 
@@ -474,26 +523,26 @@ describe('environments modal surfaces (T3)', () => {
     expect(form.querySelector('[data-field="description"] textarea').value).toBe('Box 1')
     expect(form.querySelector('[data-field="status"]').textContent).toContain('Activo')
     expect(form.textContent).toContain('Código')
+    expect(form.querySelector('[data-field="branch"]').textContent).toContain('Trujillo')
 
     setFieldValue(form.querySelector('[data-field="name"] input'), 'Consultorio Sur')
     findModalAction('edit', 'submit').click()
     await flushPromises()
 
     expect(putMock).toHaveBeenCalledWith('/api/dental-chairs/1', {
-      id: 1,
-      code: 'AMB-01',
       name: 'Consultorio Sur',
       description: 'Box 1',
       equipment: 'Unidad dental',
       status: 'active',
-      is_active: true
+      is_active: true,
+      branch_id: 1
     })
     expect(findModalForm('edit')).toBeNull()
     wrapper.unmount()
   })
 
   it('locks the form and shows progress while the create request is running', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     let resolveCreate
     postMock.mockReturnValue(
       new Promise(resolve => {
@@ -528,7 +577,7 @@ describe('environments modal surfaces (T3)', () => {
 
 describe('environments T5 polish (edit modal + list chrome)', () => {
   it('edits equipment end-to-end through the edit modal (F2)', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     putMock.mockResolvedValue({ data: {} })
     const wrapper = await mountPage()
 
@@ -544,20 +593,19 @@ describe('environments T5 polish (edit modal + list chrome)', () => {
     await flushPromises()
 
     expect(putMock).toHaveBeenCalledWith('/api/dental-chairs/1', {
-      id: 1,
-      code: 'AMB-01',
       name: 'Consultorio Norte',
       description: 'Box 1',
       equipment: 'Unidad dental + aspiracion',
       status: 'active',
-      is_active: true
+      is_active: true,
+      branch_id: 1
     })
     expect(findModalForm('edit')).toBeNull()
     wrapper.unmount()
   })
 
   it('pins the read-only auto-generated code field and the single framed table surface (F3 + F5)', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     const wrapper = await mountPage()
 
     // F5 (render): the table sits in exactly one framed surface — the
@@ -602,6 +650,7 @@ describe('environments search debounce (S6)', () => {
   const deferredSearch = () => {
     const pendingSearches = []
     getMock.mockImplementation(url => {
+      if (String(url).startsWith('/api/branches')) return Promise.resolve({ data: activeBranches })
       if (url === '/api/dental-chairs') return Promise.resolve({ data: [rowActive] })
       return new Promise(resolve => pendingSearches.push({ url, resolve }))
     })
@@ -609,7 +658,7 @@ describe('environments search debounce (S6)', () => {
   }
 
   it('issues a single search request 300 ms after the last keystroke', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     const wrapper = await mountPage()
     getMock.mockClear()
 
@@ -638,7 +687,7 @@ describe('environments search debounce (S6)', () => {
   })
 
   it('loads the unfiltered list immediately for a short query and cancels the pending search', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     const wrapper = await mountPage()
     getMock.mockClear()
 
@@ -745,7 +794,7 @@ describe('environments error messages (S6)', () => {
 
 describe('environments archive management (S9)', () => {
   it('requests only archived environments and offers reactivation', async () => {
-    getMock.mockResolvedValue({ data: [rowArchived] })
+    mockChairs([rowArchived])
     const wrapper = await mountPage()
 
     await selectFilterOption(wrapper, 'Archivados')
@@ -760,7 +809,7 @@ describe('environments archive management (S9)', () => {
   })
 
   it('carries the archive visibility into search requests', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     const wrapper = await mountPage()
 
     vi.useFakeTimers()
@@ -781,7 +830,7 @@ describe('environments archive management (S9)', () => {
   })
 
   it('archives an environment after confirmation', async () => {
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     putMock.mockResolvedValue({ data: {} })
     const wrapper = await mountPage()
     await clickRowAction(wrapper, 'Archivar')
@@ -802,7 +851,7 @@ describe('environments archive management (S9)', () => {
   })
 
   it('reactivates an archived environment without a confirmation dialog', async () => {
-    getMock.mockResolvedValue({ data: [rowArchived] })
+    mockChairs([rowArchived])
     putMock.mockResolvedValue({ data: {} })
     const wrapper = await mountPage()
 
@@ -821,7 +870,7 @@ describe('environments archive management (S9)', () => {
 describe('environments write affordances (#439)', () => {
   it('keeps the list for a recepcionista session and hides every write control', async () => {
     seedSession('recepcionista')
-    getMock.mockResolvedValue({ data: [rowActive, rowArchived] })
+    mockChairs([rowActive, rowArchived])
     const wrapper = await mountPage()
 
     // The read surface is untouched: list, filters and "Ver ficha" stay.
@@ -853,7 +902,7 @@ describe('environments field errors (#440)', () => {
 
   it('renders a rejected create inside the name field instead of only as a toast', async () => {
     const toast = useToast()
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     postMock.mockRejectedValue(rejection(createErrorMessage))
     const wrapper = await mountPage()
 
@@ -883,7 +932,7 @@ describe('environments field errors (#440)', () => {
 
   it('renders a rejected edit inside the name field instead of only as a toast', async () => {
     const toast = useToast()
-    getMock.mockResolvedValue({ data: [rowActive] })
+    mockChairs([rowActive])
     putMock.mockRejectedValue(rejection(editErrorMessage))
     const wrapper = await mountPage()
 

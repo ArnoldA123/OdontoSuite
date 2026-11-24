@@ -76,7 +76,7 @@ const TIMEOUT_MS = 30000
 const ROLE_USERS = [
   { role: 'administrador', username: 'elizabet' },
   { role: 'recepcionista', username: 'recepcionista_test' },
-  { role: 'odontologo', username: 'odontologo_test' },
+  { role: 'odontologo', username: 'ever_odontologo' },
   { role: 'finanzas', username: 'milagros' }
 ]
 const PASSWORD = 'password123'

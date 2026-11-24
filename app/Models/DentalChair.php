@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\ScopesToBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
@@ -13,6 +14,7 @@ class DentalChair extends Model
     use HasFactory, ScopesToBranch;
 
     protected $fillable = [
+        'branch_id',
         'name',
         'code',
         'description',
@@ -24,6 +26,14 @@ class DentalChair extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    /**
+     * The sede the environment belongs to (#283 S2, citas-privacidad T4).
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
 
     /**
      * Get the appointments for the dental chair.

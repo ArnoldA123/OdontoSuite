@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Authorization\BranchAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\AuditLog;
 use App\Models\DentalChair;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class DentalChairController extends Controller
@@ -21,6 +24,10 @@ class DentalChairController extends Controller
 
     /**
      * Rules shared by the store and update actions.
+     *
+     * citas-privacidad (T4): every environment belongs to a sede. A restricted
+     * actor cannot choose it — `ScopesToBranch` stamps their own — while group
+     * scope has to declare it, so no new environment is left without a sede.
      */
     protected function storeRules(): array
     {
@@ -30,6 +37,26 @@ class DentalChairController extends Controller
             'equipment' => 'nullable|string',
             'status' => 'required|in:active,inactive,maintenance',
             'is_active' => 'boolean',
+            'branch_id' => [
+                Rule::requiredIf(! BranchAccess::isRestricted(Auth::user())),
+                'nullable',
+                'integer',
+                Rule::exists('branches', 'id'),
+            ],
+        ];
+    }
+
+    /**
+     * Messages for the sede rules (the rest keeps the framework defaults).
+     *
+     * @return array<string, string>
+     */
+    protected function branchMessages(): array
+    {
+        return [
+            'branch_id.required' => 'La sede es obligatoria.',
+            'branch_id.integer' => 'La sede seleccionada no es válida.',
+            'branch_id.exists' => 'La sede seleccionada no existe.',
         ];
     }
 
@@ -43,8 +70,16 @@ class DentalChairController extends Controller
             'archived' => 'sometimes|in:exclude,include,only',
         ]);
 
+        // #283 S2 / citas-privacidad (T4): la sede autoriza también aquí. Un
+        // actor restringido queda acotado a su sede aunque no envíe el
+        // parámetro, y pedir otra responde 403 antes de construir la consulta.
+        $branchFilter = BranchAccess::effectiveFilter(
+            Auth::user(),
+            $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+        );
+
         try {
-            $query = DentalChair::query();
+            $query = DentalChair::query()->with('branch:id,name,code');
 
             $archived = $validated['archived'] ?? 'exclude';
 
@@ -56,6 +91,10 @@ class DentalChairController extends Controller
 
             if (isset($validated['status'])) {
                 $query->where('status', $validated['status']);
+            }
+
+            if ($branchFilter !== null) {
+                $query->where('branch_id', $branchFilter);
             }
 
             $chairs = $query->orderBy('name')->get();
@@ -81,11 +120,12 @@ class DentalChairController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            $validated = $request->validate($this->storeRules());
+            $validated = $request->validate($this->storeRules(), $this->branchMessages());
 
             $validated['is_active'] = $validated['is_active'] ?? true;
 
             $chair = $this->createWithGeneratedCode($validated);
+            $chair->load('branch:id,name,code');
 
             // Log audit
             if (Auth::check()) {
@@ -97,6 +137,7 @@ class DentalChairController extends Controller
                     [
                         'name' => $chair->name,
                         'code' => $chair->code,
+                        'branch_id' => $chair->branch_id,
                         'description' => $chair->description,
                         'equipment' => $chair->equipment,
                         'status' => $chair->status,
@@ -116,6 +157,12 @@ class DentalChairController extends Controller
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (AuthorizationException $e) {
+            // El middleware de sede ya responde 403 antes de llegar aquí; esta
+            // rama evita que el backstop del modelo degrade a 500.
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 403);
         } catch (\Exception $e) {
             Log::error('Error al crear ambiente: '.$e->getMessage());
 
@@ -127,11 +174,18 @@ class DentalChairController extends Controller
 
     /**
      * Display the specified resource.
+     *
+     * citas-privacidad (T4): la sede autoriza también el detalle. Este `show`
+     * resuelve por id, así que aplica el mismo alcance de lectura que el
+     * binding del modelo: otra sede responde 404, nunca su ficha.
      */
     public function show(string $id): JsonResponse
     {
         try {
-            $chair = DentalChair::findOrFail($id);
+            $chair = DentalChair::query()
+                ->visibleToBranch(Auth::user())
+                ->with('branch:id,name,code')
+                ->findOrFail($id);
 
             return response()->json([
                 'data' => $chair,
@@ -163,12 +217,18 @@ class DentalChairController extends Controller
         }
 
         try {
-            $validated = $request->validate($this->updateRules($this->storeRules()));
+            $rules = $this->updateRules($this->storeRules(), ['branch_id']);
+            // Archivar y reactivar envían solo `is_active`, así que la sede se
+            // valida cuando llega; una sede nula no la borra.
+            $rules['branch_id'] = ['sometimes', 'required', 'integer', Rule::exists('branches', 'id')];
+
+            $validated = $request->validate($rules, $this->branchMessages());
 
             // Capture old values for audit (only relevant fields)
             $oldValues = [
                 'name' => $chair->name,
                 'code' => $chair->code,
+                'branch_id' => $chair->branch_id,
                 'description' => $chair->description,
                 'equipment' => $chair->equipment,
                 'status' => $chair->status,
@@ -177,11 +237,13 @@ class DentalChairController extends Controller
 
             $chair->update($validated);
             $chair->refresh();
+            $chair->load('branch:id,name,code');
 
             // Capture new values for audit (only relevant fields)
             $newValues = [
                 'name' => $chair->name,
                 'code' => $chair->code,
+                'branch_id' => $chair->branch_id,
                 'description' => $chair->description,
                 'equipment' => $chair->equipment,
                 'status' => $chair->status,
@@ -210,6 +272,10 @@ class DentalChairController extends Controller
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (AuthorizationException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 403);
         } catch (\Exception $e) {
             Log::error('Error al actualizar ambiente: '.$e->getMessage());
 
@@ -342,15 +408,26 @@ class DentalChairController extends Controller
             'status' => 'sometimes|in:active,inactive,maintenance',
         ]);
 
+        // La misma visibilidad que el índice: el selector de la agenda no
+        // ofrece ambientes de otra sede a un actor restringido.
+        $branchFilter = BranchAccess::effectiveFilter(
+            Auth::user(),
+            $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+        );
+
         try {
-            $query = DentalChair::where('is_active', true);
+            $query = DentalChair::where('is_active', true)->with('branch:id,name,code');
 
             if (isset($validated['status'])) {
                 $query->where('status', $validated['status']);
             }
 
+            if ($branchFilter !== null) {
+                $query->where('branch_id', $branchFilter);
+            }
+
             $chairs = $query
-                ->select('id', 'name', 'code', 'description', 'status')
+                ->select('id', 'branch_id', 'name', 'code', 'description', 'status')
                 ->orderBy('name')
                 ->get();
 
@@ -378,13 +455,22 @@ class DentalChairController extends Controller
             'archived' => 'sometimes|in:exclude,include,only',
         ]);
 
+        // El buscador comparte la visibilidad del índice: la búsqueda no puede
+        // ensanchar la población que el listado ya acota por sede.
+        $branchFilter = BranchAccess::effectiveFilter(
+            Auth::user(),
+            $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+        );
+
         try {
             $query = $request->get('q', '');
             $archived = $validated['archived'] ?? 'exclude';
 
             $chairs = DentalChair::query()
+                ->with('branch:id,name,code')
                 ->when($archived === 'exclude', fn ($q) => $q->where('is_active', true))
                 ->when($archived === 'only', fn ($q) => $q->where('is_active', false))
+                ->when($branchFilter !== null, fn ($q) => $q->where('branch_id', $branchFilter))
                 ->where(function ($q) use ($query) {
                     $q->where('name', 'like', "%{$query}%")
                         ->orWhere('description', 'like', "%{$query}%")

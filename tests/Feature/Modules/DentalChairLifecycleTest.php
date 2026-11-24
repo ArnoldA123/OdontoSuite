@@ -5,6 +5,7 @@ namespace Tests\Feature\Modules;
 use App\Models\Appointment;
 use App\Models\AppointmentBlock;
 use App\Models\AppointmentType;
+use App\Models\Branch;
 use App\Models\DentalChair;
 use App\Models\Patient;
 use App\Models\User;
@@ -221,10 +222,12 @@ class DentalChairLifecycleTest extends TestCase
         $this->chair($this->ambCode($start + 2));
         $deleted->delete();
 
+        // citas-privacidad (T4): el alta exige sede al alcance de grupo.
         $this->actingAs($this->admin(), 'sanctum')
             ->postJson('/api/dental-chairs', [
                 'name' => 'Nuevo ambiente',
                 'status' => 'active',
+                'branch_id' => Branch::factory()->create()->id,
             ])
             ->assertCreated()
             ->assertJsonPath('data.code', $this->ambCode($start + 3));
@@ -241,6 +244,7 @@ class DentalChairLifecycleTest extends TestCase
             ->postJson('/api/dental-chairs', [
                 'name' => 'Nuevo ambiente',
                 'status' => 'active',
+                'branch_id' => Branch::factory()->create()->id,
             ])
             ->assertCreated()
             ->assertJsonPath('data.code', $this->ambCode($start + 4));
