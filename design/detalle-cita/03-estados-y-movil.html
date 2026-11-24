@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sistema de estados de la cita + móvil</title>
+    <style>
+      :root {
+        --accent: #0f7a5f;
+        --accent-hover: #0a5f49;
+        --accent-50: #f2f8f5;
+        --accent-100: #c9e7dc;
+        --accent-200: #93cdb9;
+        --canvas: #f7f6f4;
+        --surface: #ffffff;
+        --label: #1a1917;
+        --label-2: #5c5a55;
+        --label-3: rgba(26, 24, 20, 0.3);
+        --border: #c9c5bd;
+        --hairline: rgba(26, 24, 20, 0.1);
+        --gray-50: #f7f6f4;
+        --gray-100: #edebe7;
+        --gray-200: #dcd8d2;
+        --gray-500: #908b82;
+        --gray-600: #635e57;
+        --gray-700: #3b3833;
+        --steel-50: #eef3f8;
+        --steel-200: #bed0e0;
+        --steel-500: #4a7191;
+        --steel-700: #2b4459;
+        --indigo-50: #efe9ff;
+        --indigo-200: #c8b6ff;
+        --indigo-500: #5856d6;
+        --indigo-700: #2d2b80;
+        --amber-50: #fff9d6;
+        --amber-200: #ffe57f;
+        --amber-500: #ffcc00;
+        --amber-700: #7a5200;
+        --green-50: #e8f5e9;
+        --green-200: #a4d8a8;
+        --green-500: #34c759;
+        --green-700: #1a6530;
+        --red-50: #ffebea;
+        --red-200: #ffb8b3;
+        --red-500: #ff3b30;
+        --red-700: #a50e10;
+        --orange-50: #fff1e5;
+        --orange-200: #ffd09d;
+        --orange-500: #ff9500;
+        --orange-700: #9a2700;
+        --purple-50: #f6e9ff;
+        --purple-200: #dfaeff;
+        --purple-500: #af52de;
+        --purple-700: #55276f;
+        --radius-control: 12px;
+        --radius-ios: 10px;
+        --radius-modal: 14px;
+        --radius-card: 16px;
+        --elevation-1: 0 1px 3px rgba(92, 90, 85, 0.04);
+        --elevation-2: 0 2px 8px rgba(92, 90, 85, 0.06), 0 1px 2px rgba(92, 90, 85, 0.04);
+        --elevation-3: 0 8px 16px rgba(92, 90, 85, 0.08), 0 2px 6px rgba(92, 90, 85, 0.06);
+        --elevation-4: 0 16px 24px rgba(92, 90, 85, 0.12), 0 4px 8px rgba(92, 90, 85, 0.08);
+        --focus: 0 0 0 3px rgba(15, 122, 95, 0.2);
+        --ease: cubic-bezier(0.4, 0, 0.2, 1);
+        --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+
+      body {
+        font-family: var(--font);
+        background: var(--canvas);
+        color: var(--label);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+          'Courier New', monospace;
+      }
+
+      .wrap {
+        padding: 28px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 390px;
+        gap: 36px;
+        align-items: start;
+        max-width: 1440px;
+        margin: 0 auto;
+      }
+
+      .head h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 34px;
+        letter-spacing: -0.02em;
+        font-weight: 600;
+      }
+
+      .head p {
+        margin: 6px 0 0;
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--label-2);
+        max-width: 64ch;
+      }
+
+      .group-label {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 22px 0 8px;
+        font-size: 12px;
+        line-height: 16px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--label-2);
+        font-weight: 600;
+      }
+
+      .group-label small {
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 400;
+        color: var(--label-2);
+        font-size: 12px;
+      }
+
+      .rows {
+        border: 1px solid var(--hairline);
+        border-radius: var(--radius-card);
+        background: var(--surface);
+        box-shadow: var(--elevation-1);
+        overflow: hidden;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 176px minmax(0, 1fr) 168px;
+        gap: 16px;
+        align-items: center;
+        padding: 12px 16px;
+      }
+
+      .row + .row {
+        border-top: 1px solid var(--hairline);
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        border: 1px solid transparent;
+        white-space: nowrap;
+      }
+
+      .chip .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 9999px;
+        flex: none;
+      }
+
+      .chip-key {
+        display: block;
+        margin-top: 4px;
+        font-size: 11px;
+        line-height: 14px;
+        color: var(--label-2);
+      }
+
+      .meaning {
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--label-2);
+      }
+
+      .meaning strong {
+        color: var(--label);
+        font-weight: 600;
+      }
+
+      .next {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+        color: var(--label);
+        text-align: right;
+      }
+
+      /* Chips canónicos */
+      .s-scheduled {
+        background: var(--gray-100);
+        border-color: var(--gray-200);
+        color: var(--gray-700);
+      }
+      .s-scheduled .dot {
+        background: var(--gray-500);
+      }
+      .s-confirmed {
+        background: var(--steel-50);
+        border-color: var(--steel-200);
+        color: var(--steel-700);
+      }
+      .s-confirmed .dot {
+        background: var(--steel-500);
+      }
+      .s-arrived {
+        background: var(--indigo-50);
+        border-color: var(--indigo-200);
+        color: var(--indigo-700);
+      }
+      .s-arrived .dot {
+        background: var(--indigo-500);
+      }
+      .s-consultation {
+        background: var(--amber-50);
+        border-color: var(--amber-200);
+        color: var(--amber-700);
+      }
+      .s-consultation .dot {
+        background: var(--amber-500);
+        animation: pulse 2s var(--ease) infinite;
+      }
+      .s-completed {
+        background: var(--green-50);
+        border-color: var(--green-200);
+        color: var(--green-700);
+      }
+      .s-completed .dot {
+        background: var(--green-500);
+      }
+      .s-cancelled {
+        background: var(--red-50);
+        border-color: var(--red-200);
+        color: var(--red-700);
+      }
+      .s-cancelled .dot {
+        background: var(--red-500);
+      }
+      .s-noshow {
+        background: var(--orange-50);
+        border-color: var(--orange-200);
+        color: var(--orange-700);
+        border-style: dashed;
+      }
+      .s-noshow .dot {
+        background: var(--orange-500);
+        border-radius: 2px;
+      }
+      .s-rescheduled {
+        background: var(--purple-50);
+        border-color: var(--purple-200);
+        color: var(--purple-700);
+      }
+      .s-rescheduled .dot {
+        background: var(--purple-500);
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(0.65);
+          opacity: 0.55;
+        }
+      }
+
+      .callout {
+        display: grid;
+        grid-template-columns: 176px minmax(0, 1fr);
+        gap: 16px;
+        align-items: center;
+        margin-top: 16px;
+        padding: 12px 16px;
+        border: 1px solid var(--hairline);
+        border-radius: var(--radius-card);
+        background: var(--surface);
+      }
+
+      .old-chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .old-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 8px;
+        border-radius: 9999px;
+        font-size: 11px;
+        line-height: 15px;
+        font-weight: 600;
+        background: var(--green-50);
+        border: 1px solid var(--green-200);
+        color: var(--green-700);
+        text-decoration: line-through;
+        text-decoration-color: rgba(165, 14, 16, 0.55);
+        text-decoration-thickness: 1.5px;
+      }
+
+      .old-chip .dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 9999px;
+        background: var(--green-500);
+      }
+
+      .callout p {
+        margin: 0;
+        font-size: 12px;
+        line-height: 17px;
+        color: var(--label-2);
+      }
+
+      .callout strong {
+        color: var(--label);
+      }
+
+      .rule {
+        margin-top: 16px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 12px 14px;
+        border-radius: var(--radius-ios);
+        background: var(--accent-50);
+        border: 1px solid var(--accent-100);
+      }
+
+      .rule svg {
+        flex: none;
+        margin-top: 1px;
+        color: var(--accent-hover);
+      }
+
+      .rule p {
+        margin: 0;
+        font-size: 12px;
+        line-height: 17px;
+        color: var(--accent-hover);
+      }
+
+      /* ---------- Móvil ---------- */
+      .phone-wrap {
+        position: sticky;
+        top: 28px;
+      }
+
+      .phone-caption {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--label-2);
+        margin: 0 0 10px 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-weight: 600;
+      }
+
+      .phone {
+        width: 390px;
+        height: 844px;
+        border-radius: 44px;
+        background: #101010;
+        padding: 10px;
+        box-shadow: var(--elevation-4);
+        position: relative;
+      }
+
+      .screen {
+        position: relative;
+        height: 100%;
+        border-radius: 36px;
+        overflow: hidden;
+        background: var(--canvas);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .phone-top {
+        padding: 14px 16px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--label-2);
+        font-feature-settings: 'tnum' 1;
+      }
+
+      .phone-scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.28);
+      }
+
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        max-height: calc(100% - 56px);
+        background: var(--surface);
+        border-radius: var(--radius-modal) var(--radius-modal) 0 0;
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.16);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .handle {
+        width: 48px;
+        height: 4px;
+        border-radius: 9999px;
+        background: var(--gray-200);
+        margin: 8px auto 0;
+      }
+
+      .sheet-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px 12px;
+      }
+
+      .sheet-when {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--label-2);
+        margin-bottom: 4px;
+        font-feature-settings: 'tnum' 1;
+      }
+
+      .sheet-head h2 {
+        margin: 0;
+        font-size: 20px;
+        line-height: 28px;
+        letter-spacing: -0.01em;
+        font-weight: 600;
+      }
+
+      .sheet-sub {
+        margin: 2px 0 0;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--label-2);
+      }
+
+      .icon-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 9999px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--label-2);
+        display: grid;
+        place-items: center;
+        flex: none;
+      }
+
+      .segments {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+        padding: 4px 16px 0;
+      }
+
+      .seg {
+        height: 4px;
+        border-radius: 9999px;
+        background: var(--gray-200);
+      }
+
+      .seg.done {
+        background: var(--gray-600);
+      }
+
+      .seg.current {
+        background: var(--indigo-500);
+      }
+
+      .mobile-status {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 10px 16px 14px;
+      }
+
+      .step-count {
+        font-size: 12px;
+        color: var(--label-2);
+        font-feature-settings: 'tnum' 1;
+      }
+
+      .sheet-body {
+        padding: 0 16px 12px;
+        overflow: auto;
+      }
+
+      .now {
+        border: 1px solid var(--hairline);
+        border-left: 3px solid var(--accent);
+        border-radius: var(--radius-ios);
+        padding: 14px;
+        box-shadow: var(--elevation-1);
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        line-height: 14px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--label-2);
+        font-weight: 600;
+      }
+
+      .now h3 {
+        margin: 5px 0 3px;
+        font-size: 15px;
+        line-height: 21px;
+        font-weight: 600;
+      }
+
+      .now p {
+        margin: 0;
+        font-size: 12px;
+        line-height: 17px;
+        color: var(--label-2);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        height: 44px;
+        padding: 0 14px;
+        border-radius: var(--radius-ios);
+        font-size: 15px;
+        font-weight: 600;
+        border: 1px solid transparent;
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+        box-shadow:
+          var(--elevation-3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32),
+          0 0 0 1px rgba(0, 0, 0, 0.04);
+      }
+
+      .btn-primary:focus-visible,
+      .btn-secondary:focus-visible {
+        outline: none;
+        box-shadow: var(--focus);
+      }
+
+      .btn-primary + .btn-secondary {
+        margin-top: 8px;
+      }
+
+      .now .btn-primary {
+        margin-top: 12px;
+      }
+
+      .btn-secondary {
+        background: var(--surface);
+        border-color: var(--border);
+        color: var(--label);
+        box-shadow: var(--elevation-1);
+      }
+
+      .details {
+        margin-top: 14px;
+        border-top: 1px solid var(--hairline);
+        padding-top: 12px;
+      }
+
+      .details summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        list-style: none;
+        border-radius: 6px;
+      }
+
+      .details summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .details summary:focus-visible {
+        outline: none;
+        box-shadow: var(--focus);
+      }
+
+      .facts {
+        margin: 10px 0 0;
+        display: grid;
+        gap: 8px;
+      }
+
+      .facts div {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .facts dt {
+        color: var(--label-2);
+      }
+
+      .facts dd {
+        margin: 0;
+        text-align: right;
+        color: var(--label);
+      }
+
+      .sheet-foot {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px 14px;
+        border-top: 1px solid var(--hairline);
+        background: var(--surface);
+      }
+
+      .sheet-foot .btn {
+        width: auto;
+        height: 36px;
+        font-size: 13px;
+        padding: 0 14px;
+        flex: 1;
+      }
+
+      .home-indicator {
+        height: 5px;
+        width: 134px;
+        border-radius: 9999px;
+        background: #101010;
+        margin: 6px auto 6px;
+        opacity: 0.85;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <main>
+        <header class="head">
+          <h1>Un estado, un color</h1>
+          <p>
+            El rail comunica <strong>posición</strong>; la píldora comunica
+            <strong>estado</strong>. El verde de marca queda reservado para la acción primaria,
+            así que ningún estado compite con el botón que hay que pulsar.
+          </p>
+        </header>
+
+        <div class="group-label">
+          Dentro del rail <small>5 etapas, un solo camino</small>
+        </div>
+        <div class="rows">
+          <div class="row">
+            <div>
+              <span class="chip s-scheduled"><span class="dot"></span> Programada</span>
+              <span class="chip-key mono">scheduled</span>
+            </div>
+            <div class="meaning">Agendada, aún sin confirmar. Es el único estado editable libre.</div>
+            <div class="next">Confirmar</div>
+          </div>
+          <div class="row">
+            <div>
+              <span class="chip s-confirmed"><span class="dot"></span> Confirmada</span>
+              <span class="chip-key mono">confirmed</span>
+            </div>
+            <div class="meaning">La paciente confirmó; todavía no ha llegado a la sede.</div>
+            <div class="next">Registrar llegada</div>
+          </div>
+          <div class="row">
+            <div>
+              <span class="chip s-arrived"><span class="dot"></span> En espera</span>
+              <span class="chip-key mono">arrived</span>
+            </div>
+            <div class="meaning">Llegó y está en sala de espera. Recepción la puede anunciar.</div>
+            <div class="next">Iniciar atención</div>
+          </div>
+          <div class="row">
+            <div>
+              <span class="chip s-consultation"><span class="dot"></span> En consulta</span>
+              <span class="chip-key mono">in_consultation</span>
+            </div>
+            <div class="meaning">Atención abierta; falta documentar y firmar el cierre.</div>
+            <div class="next">Continuar consulta</div>
+          </div>
+          <div class="row">
+            <div>
+              <span class="chip s-completed"><span class="dot"></span> Completada</span>
+              <span class="chip-key mono">completed</span>
+            </div>
+            <div class="meaning">Acto cerrado, evolución firmada y cargo emitido.</div>
+            <div class="next">Ver registro</div>
+          </div>
+        </div>
+
+        <div class="group-label">
+          Fuera del rail <small>desenlaces: el rail se sustituye por una franja</small>
+        </div>
+        <div class="rows">
+          <div class="row">
+            <div>
+              <span class="chip s-cancelled"><span class="dot"></span> Cancelada</span>
+              <span class="chip-key mono">cancelled</span>
+            </div>
+            <div class="meaning">Se anuló con motivo registrado y el horario quedó libre.</div>
+            <div class="next">Reagendar</div>
+          </div>
+          <div class="row">
+            <div>
+              <span class="chip s-noshow"><span class="dot"></span> No se presentó</span>
+              <span class="chip-key mono">no_show</span>
+            </div>
+            <div class="meaning">Pasó la ventana de espera sin llegada. Borde discontinuo.</div>
+            <div class="next">Reagendar</div>
+          </div>
+          <div class="row">
+            <div>
+              <span class="chip s-rescheduled"><span class="dot"></span> Reprogramada</span>
+              <span class="chip-key mono">rescheduled</span>
+            </div>
+            <div class="meaning">Se movió a otro horario; esta fila es el rastro del cambio.</div>
+            <div class="next">Ver cita nueva</div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="old-chips">
+            <span class="old-chip"><span class="dot"></span> Programada</span>
+            <span class="old-chip"><span class="dot"></span> Confirmada</span>
+            <span class="old-chip"><span class="dot"></span> En espera</span>
+            <span class="old-chip"><span class="dot"></span> Reprogramada</span>
+          </div>
+          <p>
+            Antes estas cuatro píldoras eran el mismo verde del acento.
+            <strong>Ahora ninguna se repite</strong> y <span class="mono">in_progress</span> (legacy)
+            se presenta como «En consulta» sin cambiar la fila.
+          </p>
+        </div>
+
+        <div class="rule">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4" />
+            <path d="M9 5.5v4l2.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+          </svg>
+          <p>
+            <strong>Regla de oro:</strong> en una vista hay un solo color de estado visible (el del
+            estado actual) y un solo botón verde. Los estados cumplidos del rail son grafito, no
+            arcoíris.
+          </p>
+        </div>
+      </main>
+
+      <aside class="phone-wrap">
+        <p class="phone-caption">Móvil · sheet de la agenda (390 px)</p>
+        <div class="phone">
+          <div class="screen">
+            <div class="phone-top">
+              <span>14:08</span>
+              <span>Mar 4 nov</span>
+            </div>
+            <div class="phone-scrim" aria-hidden="true"></div>
+
+            <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="m-title">
+              <div class="handle" aria-hidden="true"></div>
+              <header class="sheet-head">
+                <div>
+                  <div class="sheet-when">14:00 – 14:40 · Sillón 2</div>
+                  <h2 id="m-title">Ana Torres</h2>
+                  <p class="sheet-sub">34 años · Resina compuesta 2.6</p>
+                </div>
+                <button class="icon-btn" aria-label="Cerrar detalle de la cita">
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M3 3l10 10M13 3L3 13"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </button>
+              </header>
+
+              <div class="segments" role="img" aria-label="Etapa 3 de 5: En espera">
+                <span class="seg done"></span>
+                <span class="seg done"></span>
+                <span class="seg current"></span>
+                <span class="seg"></span>
+                <span class="seg"></span>
+              </div>
+
+              <div class="mobile-status">
+                <span class="chip s-arrived"><span class="dot"></span> En espera</span>
+                <span class="step-count">Paso 3 de 5 · 14:02</span>
+              </div>
+
+              <div class="sheet-body">
+                <div class="now">
+                  <div class="eyebrow">Ahora</div>
+                  <h3>La paciente está en sala de espera</h3>
+                  <p>Anunciada a las 14:07. Inicia la atención cuando pase al sillón.</p>
+                  <button class="btn btn-primary">Iniciar atención</button>
+                  <button class="btn btn-secondary">Anunciar de nuevo</button>
+                </div>
+
+                <details class="details">
+                  <summary>
+                    Datos de la cita
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                      <path
+                        d="M3.5 5.5L7 9l3.5-3.5"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </summary>
+                  <dl class="facts">
+                    <div>
+                      <dt>Profesional</dt>
+                      <dd>Dra. Lucía Mendoza</dd>
+                    </div>
+                    <div>
+                      <dt>Tipo</dt>
+                      <dd>Operatoria</dd>
+                    </div>
+                    <div>
+                      <dt>Sede</dt>
+                      <dd>San Isidro · Consultorio 2</dd>
+                    </div>
+                    <div>
+                      <dt>Duración</dt>
+                      <dd>40 min</dd>
+                    </div>
+                  </dl>
+                </details>
+              </div>
+
+              <footer class="sheet-foot">
+                <button class="btn btn-secondary">Editar</button>
+                <button class="btn btn-secondary" aria-label="Más acciones">Más</button>
+              </footer>
+              <div class="home-indicator" aria-hidden="true"></div>
+            </section>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </body>
+</html>

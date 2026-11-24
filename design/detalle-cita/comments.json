@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "comments": [
+    {
+      "id": "p9wrh9hl",
+      "file": "01-modal-siguiente-paso.html",
+      "selector": "body > section > div:nth-of-type(2)",
+      "excerpt": "AHORA · 14:08 La paciente está en sala de espera Anunciada a las 14:07. Inicia la atención cuando pase al sillón. Iniciar atención Anunciar de nuevo Datos de la cita Ver todos los datos Profesional Dra. Lucía Mendoza Tipo de cita Operatoria Procedimiento Resina compuesta · pieza 2.6, cara oclusal Se",
+      "comment": "me gusta este modelo pero hay zonas como la franja verde qyue lo hace ver generico de ia simple sin criterio de diseño, se quitaria en caso ello, la franja vertica con redondes delgada color verde",
+      "createdAt": "2026-11-23T22:55:37.725Z",
+      "status": "resolved",
+      "sentAt": "2026-11-23T22:55:37.855Z",
+      "resolvedAt": "2026-11-23T22:55:48.715Z",
+      "resolution": "Retiré la franja vertical verde de la tarjeta «Ahora»; la jerarquía descansa solo en el botón primario."
+    }
+  ]
+}

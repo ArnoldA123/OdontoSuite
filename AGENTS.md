@@ -609,6 +609,33 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-11-23 (detalle de cita: un estado, un color y una sola acción)** — El
+  detalle de la cita deja de ser una lista de campos con seis botones.
+  `appointmentStatus.js` gana una identidad por estado (gris, acero, índigo,
+  ámbar, verde, rojo, naranja y violeta) y el vocabulario del rail
+  (`APPOINTMENT_RAIL_STAGES`, desenlaces, `railStep`, `isTerminalOutcome`);
+  `in_progress` se presenta como `in_consultation`. Nace
+  `AppointmentStageRail.vue`: cinco etapas con check en las cumplidas, nodo
+  actual en el color del estado y franja de desenlace para
+  `cancelled`/`no_show`/`rescheduled`, con `prefers-reduced-motion`. El modal de
+  `CalendarPage.vue` pasa a cabecera con hora, sillón y tipo; rail; píldora;
+  tarjeta «Ahora» con **una sola transición por estado** (Confirmar en
+  `scheduled`, Registrar llegada en `confirmed`, Iniciar atención o Anunciar en
+  `arrived`, sin primario en `in_consultation`), datos y menú «⋯» con Reagendar,
+  Cancelar y Eliminar; la agenda inicia la atención con `start.consultation`
+  pero no abre la consulta clínica. El relleno de la píldora es tenue (`50`) y
+  sube a `100` solo en los estados que piden acción, con pulso en el punto; el
+  rail recorta sus conectores y alinea las horas. `StatusBadge` y `Badge` suman
+  `indigo`, `purple` y `orange` de forma aditiva. `AppointmentResource` publica
+  `branch` y `procedure` cuando vienen precargados, y el índice y `my-day` los
+  precargan; el detalle muestra sede y procedimiento. El índice publica además
+  `checked_in_at` y `completed_at`, que alimentan las horas del rail. Sin rutas,
+  permisos ni migraciones nuevas. Tests: `appointmentStatus`, `appointments`,
+  `my-day`, `calendar-cancel-reason` y `calendar-mobile-layout` **119 pruebas**;
+  guardas `CitasCalendar|CitasNegativeSpaceRules|SurfaceHeaderHomogeneity` **167
+  pruebas, 913 aserciones**; ESLint y Prettier limpios. Diseño en
+  `design/detalle-cita/` (elegido `01-modal-siguiente-paso.html`).
+
 - **2026-11-23 (el turno de las diez issues abiertas: agenda, continuidad,
   especialidad, guard de truncación, sondas y tableros)** — Cierra las issues
   #504, #505, #506, #517, #518, #519, #520, #521, #522 y #523. **Agenda
