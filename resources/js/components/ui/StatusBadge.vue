@@ -24,7 +24,10 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'neutral',
-    validator: value => ['success', 'warning', 'error', 'info', 'neutral'].includes(value)
+    validator: value =>
+      ['success', 'warning', 'error', 'info', 'neutral', 'indigo', 'purple', 'orange'].includes(
+        value
+      )
   },
   label: { type: [String, Number], default: null },
   size: {
@@ -33,6 +36,14 @@ const props = defineProps({
     validator: value => ['sm', 'md'].includes(value)
   },
   showDot: { type: Boolean, default: false },
+  // S3 — every state keeps its soft tint; only the states that ask for an
+  // action step up to the 100 wash and pulse their dot.
+  emphasis: {
+    type: String,
+    default: 'soft',
+    validator: value => ['soft', 'strong'].includes(value)
+  },
+  pulse: { type: Boolean, default: false },
   as: {
     type: String,
     default: 'span',
@@ -54,7 +65,23 @@ const VARIANT_CLASSES = {
   // hue and read as the same pill (Programada vs Confirmada). A semantic state
   // must never ride the brand accent.
   info: 'bg-systemSteel-50 text-systemSteel-700',
-  neutral: 'bg-systemGray-100 text-systemGray-700'
+  neutral: 'bg-systemGray-100 text-systemGray-700',
+  indigo: 'bg-systemIndigo-50 text-systemIndigo-700',
+  purple: 'bg-systemPurple-50 text-systemPurple-700',
+  orange: 'bg-systemOrange-50 text-systemOrange-700'
+}
+
+// Strong emphasis: the same hue one step up (100) with the 700 text of the
+// soft variant. `neutral` steps to 200 because its soft wash already IS 100.
+const STRONG_VARIANT_CLASSES = {
+  success: 'bg-systemGreen-100 text-systemGreen-700',
+  warning: 'bg-systemYellow-100 text-systemYellow-700',
+  error: 'bg-systemRed-100 text-systemRed-700',
+  info: 'bg-systemSteel-100 text-systemSteel-700',
+  neutral: 'bg-systemGray-200 text-systemGray-700',
+  indigo: 'bg-systemIndigo-100 text-systemIndigo-700',
+  purple: 'bg-systemPurple-100 text-systemPurple-700',
+  orange: 'bg-systemOrange-100 text-systemOrange-700'
 }
 
 const DOT_CLASSES = {
@@ -62,18 +89,27 @@ const DOT_CLASSES = {
   warning: 'bg-systemYellow-500',
   error: 'bg-systemRed-500',
   info: 'bg-systemSteel-500',
-  neutral: 'bg-systemGray-500'
+  neutral: 'bg-systemGray-500',
+  indigo: 'bg-systemIndigo-500',
+  purple: 'bg-systemPurple-500',
+  orange: 'bg-systemOrange-500'
 }
 
 const badgeClasses = computed(() =>
   [
     'inline-flex items-center gap-1.5 rounded-full font-medium select-none status-badge',
     SIZE_CLASSES[props.size],
-    VARIANT_CLASSES[props.variant]
+    props.emphasis === 'strong'
+      ? STRONG_VARIANT_CLASSES[props.variant]
+      : VARIANT_CLASSES[props.variant]
   ].join(' ')
 )
 
-const dotClasses = computed(() => DOT_CLASSES[props.variant])
+const dotClasses = computed(() =>
+  [DOT_CLASSES[props.variant], props.pulse ? 'motion-safe:animate-pulse-subtle' : '']
+    .filter(Boolean)
+    .join(' ')
+)
 
 const ariaLabel = computed(() => (props.label ? `Estado: ${props.label}` : undefined))
 </script>
