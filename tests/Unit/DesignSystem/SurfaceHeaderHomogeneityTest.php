@@ -102,6 +102,9 @@ class SurfaceHeaderHomogeneityTest extends TestCase
             'kicker' => 'Catálogo',
             'title' => 'Especialidades',
             'cta' => 'Nueva especialidad',
+            // Desde el hub de catálogos la anatomía vive en `CatalogPageShell`,
+            // que compone `PageHeader`; la página declara el kicker, el título
+            // y sus acciones en el contenedor compartido.
         ],
     ];
 
@@ -148,10 +151,60 @@ class SurfaceHeaderHomogeneityTest extends TestCase
             return $matches[0];
         }
 
+        if ($label === '/specialties') {
+            // El hub movió la cabecera a `CatalogPageShell`: el bloque es el
+            // contenedor con sus props y el slot de acciones que alimenta a
+            // PageHeader.
+            $matched = preg_match('#<CatalogPageShell\b[^>]*>#', $source, $opening);
+            self::assertSame(
+                1,
+                $matched,
+                "{$label} must render one <CatalogPageShell> container."
+            );
+
+            $actions = self::actionsSlotBlock($source);
+
+            return $opening[0].$actions;
+        }
+
         $matched = preg_match('#<PageHeader\b[\s\S]*?</PageHeader>#', $source, $matches);
         self::assertSame(1, $matched, "{$label} must render one <PageHeader>...</PageHeader> block.");
 
         return $matches[0];
+    }
+
+    /**
+     * El slot de acciones puede contener `<template #icon-left>` anidados: se
+     * extrae contando aperturas y cierres en vez de cortar en el primer
+     * `</template>`.
+     */
+    private static function actionsSlotBlock(string $source): string
+    {
+        $start = strpos($source, '<template #actions>');
+        if ($start === false) {
+            return '';
+        }
+
+        $depth = 0;
+        $offset = $start;
+
+        while (preg_match('/<template\b|<\/template>/', $source, $match, PREG_OFFSET_CAPTURE, $offset)) {
+            $token = $match[0][0];
+            $position = $match[0][1];
+
+            if (str_starts_with($token, '</')) {
+                $depth--;
+                if ($depth === 0) {
+                    return substr($source, $start, $position + strlen($token) - $start);
+                }
+            } else {
+                $depth++;
+            }
+
+            $offset = $position + strlen($token);
+        }
+
+        return '';
     }
 
     public static function surfaces(): array
@@ -181,6 +234,36 @@ class SurfaceHeaderHomogeneityTest extends TestCase
                 'PageHeader',
                 $source,
                 "{$route} must not mount PageHeader: its band is the compact header (T5a)."
+            );
+
+            return;
+        }
+
+        if ($route === '/specialties') {
+            // El hub de catálogos: la página compone el contenedor compartido y
+            // el contenedor compone PageHeader. La anatomía sigue viviendo en
+            // un solo componente.
+            self::assertMatchesRegularExpression(
+                "/import\s+CatalogPageShell\s+from\s+['\"][^'\"]*components\/catalogs\/CatalogPageShell\\.vue['\"]/",
+                $source,
+                "{$route} must import the shared CatalogPageShell component."
+            );
+            self::assertStringContainsString(
+                '<CatalogPageShell',
+                $source,
+                "{$route} must render <CatalogPageShell>; its header is the shared container, not local markup."
+            );
+
+            $shell = self::read('/resources/js/components/catalogs/CatalogPageShell.vue');
+            self::assertMatchesRegularExpression(
+                "/import\s+PageHeader\s+from\s+['\"][^'\"]*PageHeader\\.vue['\"]/",
+                $shell,
+                'CatalogPageShell.vue must import the shared PageHeader component.'
+            );
+            self::assertStringContainsString(
+                '<PageHeader',
+                $shell,
+                'CatalogPageShell.vue must render <PageHeader>; the header anatomy is not reimplemented.'
             );
 
             return;

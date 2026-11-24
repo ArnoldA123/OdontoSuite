@@ -26,6 +26,8 @@ class SpecialtiesRedesignContractTest extends TestCase
 
     private const META = '/resources/js/modules/specialties/specialtyMeta.js';
 
+    private const SHELL = '/resources/js/components/catalogs/CatalogPageShell.vue';
+
     private static function read(string $path): string
     {
         $source = file_get_contents(dirname(__DIR__, 3).$path);
@@ -46,25 +48,62 @@ class SpecialtiesRedesignContractTest extends TestCase
         return substr($source, $start, $end - $start + 1);
     }
 
-    public function test_page_leads_with_the_shared_page_header(): void
+    public function test_page_leads_with_the_shared_catalog_shell_that_owns_the_header(): void
     {
         $page = self::read(self::PAGE);
+        $shell = self::read(self::SHELL);
 
         $this->assertMatchesRegularExpression(
-            "/import\s+PageHeader\s+from\s+['\"][^'\"]*components\/layout\/PageHeader\.vue['\"]/",
+            "/import\s+CatalogPageShell\s+from\s+['\"][^'\"]*components\/catalogs\/CatalogPageShell\\.vue['\"]/",
             $page,
-            'The page must import the shared PageHeader.'
+            'The page must import the shared CatalogPageShell since the hub moved the catalog grammar into one primitive.'
         );
         $this->assertMatchesRegularExpression(
-            '#<PageHeader\b[^>]*kicker="Catálogo"[^>]*title="Especialidades"#u',
+            '#<CatalogPageShell\b[^>]*kicker="Catálogo"[^>]*title="Especialidades"#u',
             $page,
-            'The shared header MUST carry the "Catálogo" kicker and the exact title "Especialidades".'
+            'The shared shell MUST carry the "Catálogo" kicker and the exact title "Especialidades".'
+        );
+        $this->assertMatchesRegularExpression(
+            "/import\s+PageHeader\s+from\s+['\"][^'\"]*PageHeader\\.vue['\"]/",
+            $shell,
+            'CatalogPageShell MUST compose PageHeader so the header anatomy stays in one component.'
+        );
+        $this->assertStringContainsString(
+            '<PageHeader',
+            $shell,
+            'CatalogPageShell MUST render <PageHeader> instead of reimplementing the page header.'
         );
         $this->assertStringNotContainsString(
             'data-specialties-hero',
             $page,
             'The retired hero band must be gone: the page header is the shared component.'
         );
+    }
+
+    public function test_page_delegates_its_transient_states_to_the_shared_shell(): void
+    {
+        $page = self::read(self::PAGE);
+        $shell = self::read(self::SHELL);
+
+        $this->assertMatchesRegularExpression(
+            '#const listState = computed\(#',
+            $page,
+            'The page MUST derive one list state from loading, error, empty and rows.'
+        );
+        $this->assertStringContainsString(
+            ':state="listState"',
+            $page,
+            'The page MUST hand its transient state to CatalogPageShell.'
+        );
+        $this->assertStringContainsString('data-catalog-state', $shell);
+
+        foreach (['loading', 'error', 'empty', 'table'] as $slot) {
+            $this->assertStringContainsString(
+                'name="'.$slot.'"',
+                $shell,
+                sprintf('CatalogPageShell MUST expose the "%s" slot.', $slot)
+            );
+        }
     }
 
     public function test_page_renders_four_kpi_cards_sourced_from_the_response_meta(): void

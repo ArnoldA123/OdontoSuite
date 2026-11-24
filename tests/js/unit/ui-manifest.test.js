@@ -43,8 +43,8 @@ const manifest = buildManifest()
 const surface = route => manifest.surfaces.find(item => item.route === route)
 
 describe('ui manifest · surfaces', () => {
-  it('classifies 36 screen routes and excludes the two redirects with a motive', () => {
-    expect(manifest.surfaces).toHaveLength(36)
+  it('classifies 37 screen routes and excludes the two redirects with a motive', () => {
+    expect(manifest.surfaces).toHaveLength(37)
     expect(manifest.excluded).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ route: '/', kind: 'redirect' }),
@@ -104,6 +104,18 @@ describe('ui manifest · roles from AppLayout.navigation', () => {
     expect(surface('/cash-register/ready-to-bill').rolesSource).toBe('module-sibling')
   })
 
+  it('gives the catalog masters the roles of the hub that now owns their door', () => {
+    expect(surface('/catalogs')).toMatchObject({
+      roles: ['administrador'],
+      rolesSource: 'navigation'
+    })
+
+    for (const route of ['/specialties', '/appointment-types', '/procedure-catalog']) {
+      expect(surface(route).roles, route).toEqual(['administrador'])
+      expect(surface(route).rolesSource, route).toBe('hub')
+    }
+  })
+
   it('inherits the list roles for detail routes', () => {
     for (const [detail, list] of [
       ['/patients/:id', '/patients'],
@@ -137,7 +149,15 @@ describe('ui manifest · API surface and permission', () => {
 
 describe('ui manifest · tabs, dialogs and actions', () => {
   it('resolves a literal tab list', () => {
+    const { tabs } = surface('/environments/:id')
+
+    expect(tabs.map(tab => tab.label)).toEqual(['Información', 'Auditoría'])
+    expect(tabs.map(tab => tab.id)).toEqual(['data', 'audit'])
+  })
+
+  it('resolves the literal tab list of the clinical history', () => {
     const labels = surface('/medical-records').tabs.map(tab => tab.label)
+
     expect(labels).toEqual(['Historia general', 'Evoluciones', 'Adjuntos', 'Estadísticas'])
   })
 
@@ -168,8 +188,21 @@ describe('ui manifest · tabs, dialogs and actions', () => {
 
 describe('ui manifest · navigation and shell', () => {
   it('publishes the sidebar contract with the permission keys resolved through the SPA map', () => {
-    // AppLayout.allItems declares 25 sidebar entries.
-    expect(manifest.navigation).toHaveLength(25)
+    // AppLayout.allItems declares 23 sidebar entries: the three catalog
+    // masters collapsed into the /catalogs hub.
+    expect(manifest.navigation).toHaveLength(23)
+
+    expect(manifest.navigation.map(item => item.to)).not.toContain('/specialties')
+    expect(manifest.navigation.map(item => item.to)).not.toContain('/appointment-types')
+    expect(manifest.navigation.map(item => item.to)).not.toContain('/procedure-catalog')
+
+    expect(manifest.navigation.find(item => item.to === '/catalogs')).toMatchObject({
+      name: 'Catálogos',
+      roles: ['administrador'],
+      permissions: [],
+      permissionStrings: [],
+      unresolvedPermissions: []
+    })
 
     for (const item of manifest.navigation) {
       expect(Object.keys(item)).toEqual(
@@ -200,7 +233,7 @@ describe('ui manifest · navigation and shell', () => {
   })
 
   it('keeps the shell out of the all-routes manifest', () => {
-    expect(manifest.surfaces).toHaveLength(36)
+    expect(manifest.surfaces).toHaveLength(37)
     expect(manifest.surfaces.some(item => item.route === '(shell)')).toBe(false)
     expect(manifest.surfaces.some(item => item.kind === 'shell')).toBe(false)
   })

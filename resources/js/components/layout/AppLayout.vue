@@ -398,50 +398,58 @@
                   </svg>
                 </UiButton>
 
-                <!-- User Dropdown - Fixed Position -->
-                <Transition
-                  enter-active-class="transition-all duration-200 ease-out"
-                  enter-from-class="opacity-0 scale-95 translate-y-1"
-                  enter-to-class="opacity-100 scale-100 translate-y-0"
-                  leave-active-class="transition-all duration-150 ease-in"
-                  leave-from-class="opacity-100 scale-100 translate-y-0"
-                  leave-to-class="opacity-0 scale-95 translate-y-1"
-                >
-                  <div
-                    v-if="userMenuOpen"
-                    id="user-menu-dropdown"
-                    ref="userMenuDropdownRef"
-                    class="fixed z-50 w-64 bg-theme-surface-elevated rounded-xl shadow-2xl border border-theme py-2 origin-top-right"
-                    :style="userMenuStyle"
-                    role="menu"
-                    aria-label="Menú de usuario"
-                    @click.stop
-                    @keydown.esc="closeUserMenu"
+                <!--
+                  User Dropdown.
+                  The topbar is glass chrome with a mask and a transform-prone
+                  stacking context, so a fixed child would be clipped and
+                  painted below page content. The menu is teleported to body
+                  and positions itself against the trigger's viewport rect.
+                -->
+                <Teleport to="body">
+                  <Transition
+                    enter-active-class="transition-all duration-200 ease-out"
+                    enter-from-class="opacity-0 scale-95 translate-y-1"
+                    enter-to-class="opacity-100 scale-100 translate-y-0"
+                    leave-active-class="transition-all duration-150 ease-in"
+                    leave-from-class="opacity-100 scale-100 translate-y-0"
+                    leave-to-class="opacity-0 scale-95 translate-y-1"
                   >
-                    <div class="px-4 py-3 border-b border-theme">
-                      <p class="text-sm font-medium text-theme-primary">
-                        {{ safeUser.name || 'Usuario' }}
-                      </p>
-                      <p class="text-xs text-theme-secondary">
-                        {{ safeUser.email }}
-                      </p>
+                    <div
+                      v-if="userMenuOpen"
+                      id="user-menu-dropdown"
+                      ref="userMenuDropdownRef"
+                      class="fixed z-tooltip w-64 bg-theme-surface-elevated rounded-xl shadow-2xl border border-theme py-2 origin-top-right"
+                      :style="userMenuStyle"
+                      role="menu"
+                      aria-label="Menú de usuario"
+                      @click.stop
+                      @keydown.esc="closeUserMenu"
+                    >
+                      <div class="px-4 py-3 border-b border-theme">
+                        <p class="text-sm font-medium text-theme-primary">
+                          {{ safeUser.name || 'Usuario' }}
+                        </p>
+                        <p class="text-xs text-theme-secondary">
+                          {{ safeUser.email }}
+                        </p>
+                      </div>
+                      <!--
+                        #380 — every entry in the menu does something: the
+                        identity block names the session and "Cerrar Sesión"
+                        ends it. There is no profile, settings or appearance
+                        surface behind the shell, so the menu offers none.
+                      -->
+                      <div class="py-2">
+                        <button
+                          class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
+                          @click="handleLogout"
+                        >
+                          Cerrar Sesión
+                        </button>
+                      </div>
                     </div>
-                    <!--
-                      #380 — every entry in the menu does something: the
-                      identity block names the session and "Cerrar Sesión"
-                      ends it. There is no profile, settings or appearance
-                      surface behind the shell, so the menu offers none.
-                    -->
-                    <div class="py-2">
-                      <button
-                        class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
-                        @click="handleLogout"
-                      >
-                        Cerrar Sesión
-                      </button>
-                    </div>
-                  </div>
-                </Transition>
+                  </Transition>
+                </Teleport>
               </div>
             </div>
           </div>
@@ -542,6 +550,7 @@ const canvasRoutes = [
   '/environments',
   '/appointment-types',
   '/specialties',
+  '/catalogs',
   // Operación
   '/my-day',
   '/calendar',
@@ -633,39 +642,71 @@ const closeNotificationCenter = () => {
 const userMenuContainerRef = ref(null)
 const userMenuTriggerRef = ref(null)
 const userMenuDropdownRef = ref(null)
+const USER_MENU_GAP = 8
+const USER_MENU_VIEWPORT_MARGIN = 8
+
 // User menu state
 const userMenuOpen = ref(false)
-const toggleUserMenu = () => {
+const toggleUserMenu = event => {
   userMenuOpen.value = !userMenuOpen.value
   if (userMenuOpen.value) {
-    // Calcular posición cuando se abre
+    // Calcular posición cuando se abre; la altura del menú sólo se conoce
+    // después del render.
     nextTick(() => {
       calculateUserMenuPosition()
+      // El teletransporte saca el menú del orden de tabulación del topbar:
+      // una apertura por teclado (detail === 0) lleva el foco a su acción.
+      if (event?.detail === 0) {
+        userMenuDropdownRef.value?.querySelector('button')?.focus()
+      }
     })
   }
 }
 const closeUserMenu = () => {
+  const focusWasInside = Boolean(userMenuDropdownRef.value?.contains(document.activeElement))
   userMenuOpen.value = false
-}
 
-// Calcular posición del dropdown
-const userMenuPosition = ref({ top: '0px', right: '0px' })
-const calculateUserMenuPosition = () => {
-  if (!userMenuTriggerRef.value) return
-
-  const trigger = userMenuTriggerRef.value.$el || userMenuTriggerRef.value
-  const rect = trigger.getBoundingClientRect()
-
-  userMenuPosition.value = {
-    top: `${rect.bottom + 8}px`,
-    right: `${window.innerWidth - rect.right}px`
+  if (focusWasInside) {
+    nextTick(() => {
+      const trigger = userMenuTriggerRef.value?.$el || userMenuTriggerRef.value
+      trigger?.focus?.()
+    })
   }
 }
 
-const userMenuStyle = computed(() => ({
-  ...userMenuPosition.value
-  // z-index se maneja con la clase z-50 de Tailwind
-}))
+// El menú vive en <body>, así que se posiciona contra el rectángulo del
+// trigger en el viewport y no contra su offset parent.
+const userMenuPosition = ref({ top: '0px', right: '0px' })
+const calculateUserMenuPosition = () => {
+  const trigger = userMenuTriggerRef.value?.$el || userMenuTriggerRef.value
+  if (!trigger) return
+
+  const rect = trigger.getBoundingClientRect()
+  const viewportWidth = document.documentElement.clientWidth || window.innerWidth
+  const viewportHeight = document.documentElement.clientHeight || window.innerHeight
+  const menuHeight = userMenuDropdownRef.value?.offsetHeight || 0
+
+  // Borde derecho alineado con el trigger y apertura debajo con margen. Si
+  // no cabe abajo, abre arriba del trigger; un viewport diminuto lo deja
+  // dentro del margen superior.
+  const right = Math.max(USER_MENU_VIEWPORT_MARGIN, viewportWidth - rect.right)
+  const below = rect.bottom + USER_MENU_GAP
+  const above = rect.top - USER_MENU_GAP - menuHeight
+  const fitsBelow =
+    menuHeight === 0 || below + menuHeight <= viewportHeight - USER_MENU_VIEWPORT_MARGIN
+
+  userMenuPosition.value = {
+    top: `${fitsBelow ? below : Math.max(USER_MENU_VIEWPORT_MARGIN, above)}px`,
+    right: `${right}px`
+  }
+}
+
+const userMenuStyle = computed(() => userMenuPosition.value)
+
+const handleUserMenuViewportChange = () => {
+  if (!userMenuOpen.value) return
+  calculateUserMenuPosition()
+}
 
 // Verificación de seguridad para evitar errores cuando user es null
 const safeUser = computed(() => user.value || {})
@@ -708,15 +749,6 @@ const BuildingIcon = {
   template: `
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-    </svg>
-  `
-}
-
-const CogIcon = {
-  template: `
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   `
 }
@@ -930,20 +962,11 @@ const navigation = computed(() => {
       badge: null
     },
     {
-      name: 'Tipos de cita',
-      to: '/appointment-types',
-      icon: CogIcon,
-      roles: ['administrador'],
-      badge: null
-    },
-    {
-      // Catálogo maestro de especialidades (admin). La etiqueta difiere de la
-      // entrada clínica "Registros de Especialidad" (/specialty-records) a
-      // propósito: esta administra la taxonomía, aquella captura registros por
-      // paciente. Issue #210: ninguna de las dos usa la etiqueta desnuda
-      // "Especialidades", que no decía cuál superficie abría.
-      name: 'Catálogo de especialidades',
-      to: '/specialties',
+      // Los tres maestros administrativos del catálogo viven en un hub. Las
+      // rutas siguen existiendo para enlaces directos y para el escritorio de
+      // recepción; el menú ofrece una sola puerta.
+      name: 'Catálogos',
+      to: '/catalogs',
       icon: TagIcon,
       roles: ['administrador'],
       badge: null
@@ -984,13 +1007,6 @@ const navigation = computed(() => {
       icon: LockClosedIcon,
       roles: ['administrador'],
       permissions: ['manageAccountingLock'],
-      badge: null
-    },
-    {
-      name: 'Catálogo de procedimientos',
-      to: '/procedure-catalog',
-      icon: ClipboardDocumentListIcon,
-      roles: ['administrador'],
       badge: null
     },
     {
@@ -1159,9 +1175,18 @@ const getRoleLabel = role => {
   return labels[role] || role
 }
 
+// Destinos que el hub agrupó: conservan su título en el topbar aunque ya no
+// tengan entrada propia en la navegación.
+const catalogPageTitles = {
+  '/appointment-types': 'Tipos de cita',
+  '/specialties': 'Catálogo de especialidades',
+  '/procedure-catalog': 'Catálogo de procedimientos'
+}
+
 const getPageTitle = () => {
   const currentItem = navigation.value.find(item => isActiveNavPath(route.path, item.to))
-  return currentItem ? currentItem.name : 'OdontoSuite'
+
+  return currentItem ? currentItem.name : (catalogPageTitles[route.path] ?? 'OdontoSuite')
 }
 
 // Surfaces whose page renders its own visible title: the hero band on the
@@ -1176,6 +1201,7 @@ const pageTitledRoutes = [
   '/cash-register',
   '/cash-register/ready-to-bill',
   '/continuity',
+  '/catalogs',
   '/dashboard',
   '/environments',
   '/lab-cases',
@@ -1237,6 +1263,7 @@ const getPageDescription = () => {
     '/settings/branches': 'Sedes de la clínica',
     '/branch-transfers': 'Solicitudes de traslado entre sedes',
     '/settings/accounting-locks': 'Cierre contable por módulo',
+    '/catalogs': 'Catálogos maestros de la clínica',
     '/appointment-types': 'Tipos de citas disponibles',
     '/procedure-catalog': 'Catálogo clínico de procedimientos',
     '/procedure-catalog/': 'Detalle de procedimiento',
@@ -1288,9 +1315,15 @@ const handleLogout = async () => {
 
 // Close dropdowns when clicking outside
 const handleClickOutside = event => {
-  if (!event.target.closest('.relative')) {
-    closeUserMenu()
-  }
+  const { target } = event
+  if (!(target instanceof Node)) return
+
+  // El menú está teletransportado fuera del contenedor del trigger, así que
+  // ambos árboles cuentan como "dentro".
+  if (userMenuContainerRef.value?.contains(target)) return
+  if (userMenuDropdownRef.value?.contains(target)) return
+
+  closeUserMenu()
 }
 
 // Close user menu on Escape (WCAG 2.1.1)
@@ -1330,11 +1363,15 @@ onMounted(() => {
   // Add click outside + Escape listeners
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleUserMenuEscape)
+  window.addEventListener('resize', handleUserMenuViewportChange)
+  window.addEventListener('scroll', handleUserMenuViewportChange, true)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('keydown', handleUserMenuEscape)
+  window.removeEventListener('resize', handleUserMenuViewportChange)
+  window.removeEventListener('scroll', handleUserMenuViewportChange, true)
 })
 </script>
 

@@ -36,6 +36,15 @@ const LIST_ENDPOINT_OVERRIDES = {
   '/settings/branches': '/api/branches'
 }
 
+// The three administrative catalog desks moved under the `/catalogs` hub, so
+// they no longer have a sidebar entry of their own. They inherit the hub's
+// roles instead of falling back to every role the way an orphan route would.
+const HUB_CHILDREN = {
+  '/specialties': '/catalogs',
+  '/appointment-types': '/catalogs',
+  '/procedure-catalog': '/catalogs'
+}
+
 // --- app.js routes ----------------------------------------------------------
 
 const normalizeRoutePath = path => {
@@ -185,6 +194,12 @@ export const buildSample = (surface, surfacesByRoute) => {
 export const resolveRoles = (route, navigation, surfacesByRoute) => {
   const navItem = navigation.find(item => item.to === route.path)
   if (navItem) return { roles: navItem.roles, rolesSource: 'navigation' }
+
+  const hub = HUB_CHILDREN[route.path]
+  if (hub) {
+    const hubItem = navigation.find(item => item.to === hub)
+    if (hubItem) return { roles: [...hubItem.roles], rolesSource: 'hub' }
+  }
 
   if (route.path === '/login' || route.path === '/reset-password') {
     return { roles: ['anonymous'], rolesSource: 'route' }

@@ -1663,12 +1663,32 @@ class DashboardAppShellTest extends TestCase
         $source = (string) self::readFile(self::projectRootPath().self::APP_LAYOUT_FILE);
         // T6 — the payment-methods entry carries the accent every sibling
         // label already had. Route path and permission keys stay ASCII.
-        $labels = ['Dashboard', 'Calendario', 'Pacientes', 'Profesionales', 'Ambientes', 'Tipos de cita', 'Sucursales', 'Métodos de pago', 'Catálogo de procedimientos', 'Mis procedimientos', 'Business Intelligence', 'Caja', 'Planes de tratamiento', 'Presupuestos', 'Historias clínicas', 'Registros de especialidad', 'Análisis de IA'];
+        $labels = ['Dashboard', 'Calendario', 'Pacientes', 'Profesionales', 'Ambientes', 'Catálogos', 'Sucursales', 'Métodos de pago', 'Mis procedimientos', 'Catálogo de procedimientos', 'Business Intelligence', 'Caja', 'Planes de tratamiento', 'Presupuestos', 'Historias clínicas', 'Registros de especialidad', 'Análisis de IA'];
         $positions = array_map(fn (string $label): int => strpos($source, "name: '{$label}'"), $labels);
         $this->assertCount(17, array_filter($positions, fn (int|false $position): bool => $position !== false));
         $sorted = $positions;
         sort($sorted);
         $this->assertSame($sorted, $positions);
+    }
+
+    /**
+     * El hub de catálogos es la única puerta de nivel superior para los tres
+     * maestros administrativos. Las rutas siguen existiendo (enlaces directos y
+     * escritorio de recepción), pero el menú deja de ofrecer tres entradas
+     * hermanas que decían poco sobre lo que administraban.
+     */
+    public function test_catalog_masters_are_reached_through_the_hub_entry(): void
+    {
+        $source = (string) self::readFile(self::projectRootPath().self::APP_LAYOUT_FILE);
+
+        $this->assertStringContainsString("name: 'Catálogos'", $source);
+        $this->assertStringContainsString("to: '/catalogs'", $source);
+
+        $this->assertStringNotContainsString("name: 'Tipos de cita'", $source);
+        $this->assertStringNotContainsString("name: 'Catálogo de especialidades'", $source);
+        $this->assertStringNotContainsString("to: '/appointment-types',", $source);
+        $this->assertStringNotContainsString("to: '/specialties',", $source);
+        $this->assertStringNotContainsString("to: '/procedure-catalog',", $source);
     }
 
     /**

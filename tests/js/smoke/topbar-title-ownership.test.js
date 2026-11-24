@@ -106,6 +106,7 @@ afterEach(() => {
 describe('topbar title ownership (issue #208)', () => {
   const pageOwnedRoutes = [
     '/calendar',
+    '/catalogs',
     '/dashboard',
     '/professionals',
     '/specialties',
