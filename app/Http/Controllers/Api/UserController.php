@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Authorization\BranchAccess;
 use App\Events\UserCreated;
 use App\Events\UserUpdated;
 use App\Http\Controllers\Controller;
@@ -417,11 +418,25 @@ class UserController extends Controller
      * lookup instead of adding a route or a permission. Any other value — the
      * absent one included — keeps exactly the clinical list every professional
      * picker already consumes.
+     *
+     * citas-privacidad (T4): the lookup answers with the branch scope of the
+     * actor, so the professional picker of the appointment form only offers the
+     * people of their own sede. Group scope reads everyone or the sede it names.
      */
     public function active(Request $request): JsonResponse
     {
+        // La sede autoriza antes de la consulta: pedir otra responde 403.
+        $branchFilter = BranchAccess::effectiveFilter(
+            Auth::user(),
+            $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+        );
+
         try {
             $query = User::query()->visibleToBranch()->where('is_active', true);
+
+            if ($branchFilter !== null) {
+                $query->where('branch_id', $branchFilter);
+            }
 
             if ($request->input('role') === 'administrador') {
                 $query->where('role', 'administrador');
@@ -430,7 +445,7 @@ class UserController extends Controller
             }
 
             $users = $query
-                ->select('id', 'name', 'role', 'specialty')
+                ->select('id', 'name', 'role', 'specialty', 'branch_id')
                 ->get();
 
             return response()->json([

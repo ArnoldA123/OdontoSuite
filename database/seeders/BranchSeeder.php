@@ -6,13 +6,16 @@ use App\Models\Branch;
 use Illuminate\Database\Seeder;
 
 /**
- * Sprint 0 (B-CASH-1): poblar tabla branches con 3 sedes base.
+ * Sprint 0 (B-CASH-1): poblar tabla branches con 4 sedes base.
  * Patron updateOrCreate por `code` para idempotencia: re-ejecutar el seeder
  * (o un migrate:fresh --seed) no duplica filas, solo actualiza los campos
  * que cambiaron.
  *
- * Las 3 sedes son las mas comunes en Peru: sede central historica + 2
- * sedes de expansion. El admin puede crear mas desde la UI (Sprint 1).
+ * Las 3 sedes originales son las mas comunes en Peru: sede central historica
+ * + 2 sedes de expansion. Trujillo (`SC-TRU-01`) es la sede de prueba del
+ * dataset (citas-privacidad T3): es la sede que reciben los usuarios
+ * sembrados, mientras el resto de sedes sirve para probar el campo y el
+ * filtro de sede. El admin puede crear mas desde la UI (Sprint 1).
  */
 class BranchSeeder extends Seeder
 {
@@ -56,6 +59,19 @@ class BranchSeeder extends Seeder
                 'email' => 'sur@odontosuite.pe',
                 'timezone' => 'America/Lima',
                 'description' => 'Sede zona sur, foco en ortodoncia y estetica.',
+                'is_active' => true,
+            ],
+            [
+                'code' => 'SC-TRU-01',
+                'name' => 'Trujillo San Isidro',
+                'address' => 'Av. Juan Pablo II 512, Trujillo',
+                'city' => 'Trujillo',
+                'state' => 'La Libertad',
+                'country' => 'Peru',
+                'phone' => '+51 44 612-0004',
+                'email' => 'trujillo@odontosuite.pe',
+                'timezone' => 'America/Lima',
+                'description' => 'Sede de prueba del dataset: usuarios y agenda sembrados.',
                 'is_active' => true,
             ],
         ];

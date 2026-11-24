@@ -21,12 +21,24 @@ class CashRegisterSeeder extends Seeder
     {
         // Obtener datos necesarios
         $users = User::all();
-        $branches = Branch::all();
         $patients = Patient::all();
         $paymentMethods = PaymentMethod::all();
 
-        if ($users->isEmpty() || $branches->isEmpty() || $patients->isEmpty() || $paymentMethods->isEmpty()) {
+        if ($users->isEmpty() || $patients->isEmpty() || $paymentMethods->isEmpty()) {
             $this->command->warn('No hay suficientes datos para crear sesiones de caja. Ejecute otros seeders primero.');
+
+            return;
+        }
+
+        // La gaveta sigue a su duenio: la sede del usuario o, para el
+        // administrador de grupo, Trujillo (T3). `cash_register_sessions.
+        // branch_id` no admite nulos, asi que sin Trujillo se cae a cualquier
+        // sede del catalogo.
+        $fallbackBranchId = Branch::query()->where('code', 'SC-TRU-01')->value('id')
+            ?? Branch::query()->value('id');
+
+        if (! $fallbackBranchId) {
+            $this->command->warn('No hay sucursales. Ejecute BranchSeeder primero.');
 
             return;
         }
@@ -35,12 +47,12 @@ class CashRegisterSeeder extends Seeder
         for ($i = 0; $i < 30; $i++) {
             $date = Carbon::now()->subDays($i);
             $user = $users->random();
-            $branch = $branches->random();
+            $branchId = $user->branch_id ?? $fallbackBranchId;
 
             // Crear sesión de caja
             $session = CashRegisterSession::create([
                 'user_id' => $user->id,
-                'branch_id' => $branch->id,
+                'branch_id' => $branchId,
                 'opening_amount' => rand(50, 200),
                 'opened_at' => $date->copy()->setTime(8, 0),
                 'opening_notes' => 'Apertura de caja - '.$date->format('d/m/Y'),
@@ -127,6 +139,7 @@ class CashRegisterSeeder extends Seeder
         CashMovement::create([
             'cash_register_session_id' => $session->id,
             'created_by' => $session->user_id,
+            'branch_id' => $session->branch_id,
             'type' => 'deposit',
             'amount' => $session->opening_amount,
             'description' => 'Apertura de caja',
@@ -144,6 +157,7 @@ class CashRegisterSeeder extends Seeder
             CashMovement::create([
                 'cash_register_session_id' => $session->id,
                 'created_by' => $session->user_id,
+                'branch_id' => $session->branch_id,
                 'type' => $type,
                 'amount' => $amount,
                 'description' => $type === 'income' ?
@@ -160,6 +174,7 @@ class CashRegisterSeeder extends Seeder
             CashMovement::create([
                 'cash_register_session_id' => $session->id,
                 'created_by' => $session->user_id,
+                'branch_id' => $session->branch_id,
                 'type' => 'withdrawal',
                 'amount' => $session->closing_amount,
                 'description' => 'Cierre de caja',

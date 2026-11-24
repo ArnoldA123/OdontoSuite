@@ -2,11 +2,31 @@
 
 namespace Database\Seeders;
 
+use App\Models\Branch;
 use App\Models\DentalChair;
 use Illuminate\Database\Seeder;
 
 class EnvironmentSeeder extends Seeder
 {
+    /**
+     * Sede de cada ambiente por su codigo (citas-privacidad T3).
+     *
+     * Trujillo concentra los ambientes operativos porque alli viven los
+     * usuarios y las citas sembradas; Lima, Norte y Sur conservan uno cada una
+     * para que el campo y el filtro de sede se puedan probar. Se resuelve por
+     * `code`, nunca por id: las filas de `branches` pueden variar entre bases.
+     */
+    private const BRANCH_CODES = [
+        'AMB-001' => 'SC-TRU-01',
+        'AMB-002' => 'SC-TRU-01',
+        'AMB-003' => 'SC-TRU-01',
+        'AMB-004' => 'SC-LIM-01',
+        'AMB-005' => 'SC-NOR-01',
+        'AMB-006' => 'SC-SUR-01',
+        'AMB-007' => 'SC-TRU-01',
+        'AMB-008' => 'SC-TRU-01',
+    ];
+
     /**
      * Run the database seeds.
      */
@@ -79,10 +99,34 @@ class EnvironmentSeeder extends Seeder
             ],
         ];
 
+        $branchIds = Branch::query()
+            ->whereIn('code', array_values(array_unique(self::BRANCH_CODES)))
+            ->pluck('id', 'code');
+
+        $missing = [];
+
         foreach ($environments as $environment) {
-            DentalChair::firstOrCreate(
+            $data = $environment;
+            $branchCode = self::BRANCH_CODES[$environment['code']] ?? null;
+
+            if ($branchCode && isset($branchIds[$branchCode])) {
+                $data['branch_id'] = $branchIds[$branchCode];
+            } elseif ($branchCode) {
+                // Sin la sede no se borra una asignacion hecha a mano: se omite
+                // la columna del payload y se avisa por consola.
+                $missing[$branchCode] = true;
+            }
+
+            DentalChair::updateOrCreate(
                 ['code' => $environment['code']],
-                $environment
+                $data
+            );
+        }
+
+        if ($missing !== []) {
+            $this->command?->warn(
+                'Faltan sedes del catalogo ('.implode(', ', array_keys($missing))
+                .'): los ambientes afectados conservan su sede actual.'
             );
         }
     }

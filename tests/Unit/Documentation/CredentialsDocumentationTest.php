@@ -204,13 +204,38 @@ class CredentialsDocumentationTest extends TestCase
     }
 
     #[Test]
-    public function credentials_md_has_at_least_15_user_rows(): void
+    public function credentials_md_documents_exactly_the_nine_demo_users(): void
     {
         $content = file_get_contents(self::credentialsPath());
         // Cuenta filas de tabla que contienen backtick (username en formato `username`).
         // Ejemplo: "| Elizabet Cunia Cruz | elizabet+administrador@test.com | `elizabet` | administrador |"
         preg_match_all(self::USER_ROW, $content, $matches);
-        $this->assertGreaterThanOrEqual(15, count($matches[0]), 'CREDENTIALS.md should document at least 15 users');
+        $this->assertCount(9, $matches[0], 'CREDENTIALS.md must document exactly the nine retained demo users');
+    }
+
+    #[Test]
+    public function credentials_md_does_not_document_the_pruned_test_accounts(): void
+    {
+        $documented = self::documentedUsernames();
+
+        foreach (['ever', 'odontologo_test', 'implantologo_test', 'tecnico_test', 'asistente_test', 'finanzas_test'] as $pruned) {
+            $this->assertNotContains(
+                $pruned,
+                $documented,
+                "CREDENTIALS.md must not document the pruned account `{$pruned}`."
+            );
+        }
+    }
+
+    #[Test]
+    public function credentials_md_documents_the_cleaned_demo_names(): void
+    {
+        $content = file_get_contents(self::credentialsPath());
+
+        $this->assertStringContainsString('Gerencia OdontoSuite', $content);
+        $this->assertStringContainsString('Rosa Quispe Flores', $content);
+        $this->assertStringNotContainsString('Admin Test', $content);
+        $this->assertStringNotContainsString('Recepcionista Test', $content);
     }
 
     #[Test]

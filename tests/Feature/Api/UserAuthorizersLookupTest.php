@@ -72,9 +72,15 @@ class UserAuthorizersLookupTest extends TestCase
             ->assertJsonPath('meta.total', 1);
 
         $this->assertSame(
-            ['id', 'name', 'role', 'specialty'],
+            ['branch_id', 'id', 'name', 'role', 'specialty'],
             collect($response->json('data.0'))->keys()->sort()->values()->all(),
-            'The authorizer lookup keeps the shape of the previous clinical list.'
+            'The authorizer lookup keeps the shape of the previous clinical list plus the sede it now publishes.'
+        );
+
+        $this->assertSame(
+            $this->branch->id,
+            $response->json('data.0.branch_id'),
+            'The lookup publishes the sede so the SPA can read the authorizer scope.'
         );
     }
 

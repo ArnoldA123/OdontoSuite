@@ -31,10 +31,8 @@ class UserSpecialtySeederTest extends TestCase
     /** @var array<int, array{0: string, 1: string}> email => specialties.code */
     private const EXPECTED_PIVOT = [
         ['ever+odontologo@test.com', 'general'],
-        ['odontologo+odontologo@test.com', 'general'],
         ['brenda+odontologo@test.com', 'ortodoncia'],
         ['wilmer+implantologo@test.com', 'implantologia'],
-        ['implantologo+implantologo@test.com', 'implantologia'],
     ];
 
     /** @var array<int, string> legacy values that name a job, not a specialty */

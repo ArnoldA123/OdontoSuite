@@ -48,6 +48,24 @@
           </template>
         </UiInput>
       </div>
+      <div v-if="!isBranchRestricted" class="flex items-end">
+        <div class="w-full">
+          <label
+            for="environments-filter-branch"
+            class="mb-1 block text-xs font-medium text-theme-secondary"
+          >
+            Sede
+          </label>
+          <UiSelect
+            id="environments-filter-branch"
+            v-model="branchFilter"
+            :options="branchFilterOptions"
+            class="w-full"
+            data-branch-filter
+            @change="filterByBranch"
+          />
+        </div>
+      </div>
       <div class="flex items-end">
         <div class="w-full">
           <label
@@ -136,6 +154,9 @@
             <p class="font-mono text-xs text-theme-secondary">{{ row.code }}</p>
           </div>
         </template>
+        <template #cell-branch="{ row }">
+          <span class="text-theme-secondary" data-environment-branch>{{ branchName(row) }}</span>
+        </template>
         <template #cell-equipment="{ row }">
           <span class="text-theme-secondary">{{ row.equipment || 'Sin equipamiento' }}</span>
         </template>
@@ -218,6 +239,33 @@
             :error="createErrors.name"
             :disabled="creating"
           />
+        </div>
+      </fieldset>
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Sede
+        </legend>
+        <div data-field="branch" data-branch-field="create">
+          <UiSelect
+            v-model="newEnvironment.branch_id"
+            :options="branchFormOptions"
+            label="Sede"
+            class="w-full"
+            required
+            :disabled="creating || isBranchRestricted"
+            :error="createErrors.branch_id"
+            data-branch-select="create"
+          />
+          <p
+            v-if="createErrors.branch_id"
+            class="mt-1 text-sm text-systemRed-600"
+            data-branch-error="create"
+          >
+            {{ createErrors.branch_id }}
+          </p>
+          <p v-if="isBranchRestricted" class="mt-1 text-xs text-theme-secondary">
+            Fijada a la sede de tu sesión.
+          </p>
         </div>
       </fieldset>
       <fieldset class="space-y-3">
@@ -325,6 +373,33 @@
       </fieldset>
       <fieldset class="space-y-3">
         <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Sede
+        </legend>
+        <div data-field="branch" data-branch-field="edit">
+          <UiSelect
+            v-model="editingEnvironment.branch_id"
+            :options="branchFormOptions"
+            label="Sede"
+            class="w-full"
+            required
+            :disabled="updating || isBranchRestricted"
+            :error="editErrors.branch_id"
+            data-branch-select="edit"
+          />
+          <p
+            v-if="editErrors.branch_id"
+            class="mt-1 text-sm text-systemRed-600"
+            data-branch-error="edit"
+          >
+            {{ editErrors.branch_id }}
+          </p>
+          <p v-if="isBranchRestricted" class="mt-1 text-xs text-theme-secondary">
+            Fijada a la sede de tu sesión.
+          </p>
+        </div>
+      </fieldset>
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
           Descripción
         </legend>
         <div data-field="description">
@@ -402,6 +477,7 @@ import {
   PlusIcon
 } from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
+import { useAuth } from '../../composables/useAuth'
 import { useConfirm } from '../../composables/useConfirm'
 import { useErrorHandler } from '../../composables/useErrorHandler'
 import { usePermissions } from '../../composables/usePermissions'
@@ -424,6 +500,7 @@ import UiTextarea from '../../components/ui/UiTextarea.vue'
 
 const router = useRouter()
 const { get, post, put, delete: remove } = useApi()
+const { user } = useAuth()
 const { confirm } = useConfirm()
 const toast = useToast()
 const { handleError } = useErrorHandler()
@@ -441,6 +518,13 @@ const loadError = ref(false)
 const loadErrorMessage = ref('')
 const sourceRows = ref([])
 const searchQuery = ref('')
+// citas-privacidad (T4): la sede es una dimensión de la página. El actor
+// restringido ve la lista acotada por el API y no filtra; el alcance de grupo
+// elige entre las sedes activas.
+const branchFilter = ref('')
+const branches = ref([])
+const branchesLoaded = ref(false)
+const branchesLoading = ref(false)
 // One select for one axis: the operational status and the archive visibility
 // used to be two selects whose defaults read as the same "nothing filtered"
 // state (contract: no duplicated filter).
@@ -455,8 +539,36 @@ const newEnvironment = ref({
   name: '',
   description: '',
   equipment: '',
-  status: 'active'
+  status: 'active',
+  branch_id: ''
 })
+
+// The session's sede is the actor's affiliation (`users.branch_id`): with a
+// value the user operates only that sede, without one the reach is the group.
+const actorBranchId = computed(() => user.value?.branch_id ?? null)
+const isBranchRestricted = computed(() => actorBranchId.value !== null)
+
+const branchFormOptions = computed(() => {
+  const options = branches.value.map(branch => ({ value: branch.id, label: branch.name }))
+  if (!isBranchRestricted.value) return options
+  if (options.some(option => option.value === actorBranchId.value)) return options
+
+  // The catalog has not answered yet (or the sede is missing from it): the
+  // locked field still names the session sede instead of showing a placeholder.
+  return [
+    {
+      value: actorBranchId.value,
+      label: editingEnvironment.value?.branch?.name || 'Sede de tu sesión'
+    }
+  ]
+})
+
+const branchFilterOptions = computed(() => [
+  { value: '', label: 'Todas las sedes' },
+  ...branches.value.map(branch => ({ value: branch.id, label: branch.name }))
+])
+
+const branchName = row => row?.branch?.name || row?.branch_name || 'Sin sede'
 
 // The list reads one state select: the operational status values and the
 // archived visibility share the control because they are one question for the
@@ -490,6 +602,7 @@ const statusFieldOptions = ['active', 'inactive', 'maintenance'].map(value => ({
 
 const columns = [
   { key: 'name', label: 'Nombre' },
+  { key: 'branch', label: 'Sede' },
   { key: 'equipment', label: 'Equipamiento' },
   { key: 'status', label: 'Estado' }
 ]
@@ -507,7 +620,7 @@ const environments = computed(() =>
 )
 
 const hasActiveFilters = computed(
-  () => searchQuery.value.trim() !== '' || stateFilter.value !== 'all'
+  () => searchQuery.value.trim() !== '' || stateFilter.value !== 'all' || branchFilter.value !== ''
 )
 
 const emptyTitle = computed(() =>
@@ -571,6 +684,7 @@ const loadEnvironments = () => {
   const params = new URLSearchParams()
   if (statusFilter.value) params.set('status', statusFilter.value)
   if (archivedFilter.value !== 'exclude') params.set('archived', archivedFilter.value)
+  if (branchFilter.value !== '') params.set('branch_id', String(branchFilter.value))
   const query = params.toString()
 
   return fetchEnvironments(`/api/dental-chairs${query ? `?${query}` : ''}`)
@@ -581,6 +695,7 @@ const searchEnvironments = () => {
   fetchedArchived.value = archivedFilter.value
   const params = new URLSearchParams({ q: searchQuery.value.trim() })
   if (archivedFilter.value !== 'exclude') params.set('archived', archivedFilter.value)
+  if (branchFilter.value !== '') params.set('branch_id', String(branchFilter.value))
 
   return fetchEnvironments(`/api/dental-chairs/search?${params.toString()}`)
 }
@@ -616,6 +731,29 @@ const reloadCurrentView = () => {
   return loadEnvironments()
 }
 
+// A sede change narrows the population the server reads, so it always re-reads
+// (unlike the status axis, which stays a client-side filter over the rows).
+const filterByBranch = () => {
+  clearPendingSearch()
+  reloadCurrentView()
+}
+
+const loadBranches = async () => {
+  if (branchesLoaded.value || branchesLoading.value) return
+  branchesLoading.value = true
+  try {
+    const response = await get('/api/branches/active')
+    branches.value = response?.data || []
+    branchesLoaded.value = true
+  } catch {
+    // The selector is an aid, not the contract: the API keeps the sede rule.
+    // A failed read leaves the field empty and the 422 names the field.
+    branches.value = []
+  } finally {
+    branchesLoading.value = false
+  }
+}
+
 const retryLoad = () => {
   if (searchQuery.value.trim().length >= 2) {
     searchEnvironments()
@@ -628,6 +766,7 @@ const clearFilters = () => {
   clearPendingSearch()
   searchQuery.value = ''
   stateFilter.value = 'all'
+  branchFilter.value = ''
   loadEnvironments()
 }
 
@@ -646,8 +785,33 @@ const fieldErrors = error => {
   return Object.keys(mapped).length > 0 ? mapped : null
 }
 
+// A sede travels as a number or as null (the API answers 422 when group scope
+// omits it); the select stores `''` while nothing is chosen.
+const branchValue = value =>
+  value === '' || value === null || value === undefined ? null : Number(value)
+
+// A 403 is always the sede gate on this module, so it lands on the field it
+// belongs to instead of only as a toast; other rejections fall back to it.
+const saveErrors = error => {
+  const errors = fieldErrors(error)
+  if (errors) return errors
+  if (requestStatus(error) === 403) {
+    return {
+      branch_id:
+        error?.response?.data?.message ||
+        'No puede operar sobre otra sede. Su acceso está limitado a la sede asignada.'
+    }
+  }
+  return null
+}
+
 const openCreateModal = () => {
   createErrors.value = {}
+  newEnvironment.value = {
+    ...newEnvironment.value,
+    branch_id: isBranchRestricted.value ? actorBranchId.value : ''
+  }
+  loadBranches()
   showNewEnvironmentModal.value = true
 }
 
@@ -656,19 +820,23 @@ const createEnvironment = async () => {
   creating.value = true
   createErrors.value = {}
   try {
-    await post('/api/dental-chairs', newEnvironment.value)
+    await post('/api/dental-chairs', {
+      ...newEnvironment.value,
+      branch_id: branchValue(newEnvironment.value.branch_id)
+    })
     showNewEnvironmentModal.value = false
     createErrors.value = {}
     newEnvironment.value = {
       name: '',
       description: '',
       equipment: '',
-      status: 'active'
+      status: 'active',
+      branch_id: ''
     }
     toast.success('Ambiente creado exitosamente')
     reloadCurrentView()
   } catch (error) {
-    const errors = fieldErrors(error)
+    const errors = saveErrors(error)
     if (errors) {
       createErrors.value = errors
       return
@@ -681,7 +849,11 @@ const createEnvironment = async () => {
 
 const editEnvironment = environment => {
   editErrors.value = {}
-  editingEnvironment.value = { ...environment }
+  editingEnvironment.value = {
+    ...environment,
+    branch_id: environment.branch_id ?? (isBranchRestricted.value ? actorBranchId.value : '')
+  }
+  loadBranches()
   showEditEnvironmentModal.value = true
 }
 
@@ -694,14 +866,21 @@ const updateEnvironment = async () => {
   updating.value = true
   editErrors.value = {}
   try {
-    await put(`/api/dental-chairs/${editingEnvironment.value.id}`, editingEnvironment.value)
+    await put(`/api/dental-chairs/${editingEnvironment.value.id}`, {
+      name: editingEnvironment.value.name,
+      description: editingEnvironment.value.description,
+      equipment: editingEnvironment.value.equipment,
+      status: editingEnvironment.value.status,
+      is_active: editingEnvironment.value.is_active,
+      branch_id: branchValue(editingEnvironment.value.branch_id)
+    })
     showEditEnvironmentModal.value = false
     editingEnvironment.value = null
     editErrors.value = {}
     reloadCurrentView()
     toast.success('Ambiente actualizado exitosamente')
   } catch (error) {
-    const errors = fieldErrors(error)
+    const errors = saveErrors(error)
     if (errors) {
       editErrors.value = errors
       return
@@ -764,6 +943,9 @@ const reactivateEnvironment = async environment => {
 
 onMounted(() => {
   loadEnvironments()
+  // The sede filter only exists for group scope; a restricted session loads the
+  // catalog lazily, when its (locked) form field needs the label.
+  if (!isBranchRestricted.value) loadBranches()
 })
 
 onBeforeUnmount(() => {

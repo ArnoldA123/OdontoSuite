@@ -72,6 +72,12 @@
             <p class="mt-1 text-sm text-theme-secondary">Código: {{ environment.code }}</p>
             <dl class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6">
               <div class="border-t border-[color:var(--color-hairline)] py-3">
+                <dt class="text-xs font-medium text-theme-secondary">Sede</dt>
+                <dd class="mt-1 text-sm text-theme-primary" data-environment-branch>
+                  {{ environment.branch?.name || 'Sin sede' }}
+                </dd>
+              </div>
+              <div class="border-t border-[color:var(--color-hairline)] py-3">
                 <dt class="text-xs font-medium text-theme-secondary">Equipamiento</dt>
                 <dd class="mt-1 text-sm text-theme-primary">
                   {{ environment.equipment || 'Sin equipamiento' }}
@@ -104,6 +110,12 @@
                   <div class="border-t border-[color:var(--color-hairline)] py-3">
                     <dt class="text-xs font-medium text-theme-secondary">Código</dt>
                     <dd class="mt-1 text-sm text-theme-primary">{{ environment.code }}</dd>
+                  </div>
+                  <div class="border-t border-[color:var(--color-hairline)] py-3">
+                    <dt class="text-xs font-medium text-theme-secondary">Sede</dt>
+                    <dd class="mt-1 text-sm text-theme-primary">
+                      {{ environment.branch?.name || 'Sin sede' }}
+                    </dd>
                   </div>
                 </dl>
               </section>

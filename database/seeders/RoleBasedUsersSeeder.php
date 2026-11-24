@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Branch;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -9,12 +10,25 @@ use Illuminate\Support\Facades\Hash;
 class RoleBasedUsersSeeder extends Seeder
 {
     /**
+     * Sede de prueba del dataset (citas-privacidad T3): todos los usuarios
+     * sembrados se afilian a Trujillo para que el filtro de sede tenga una
+     * poblacion real que medir.
+     */
+    private const TEST_BRANCH_CODE = 'SC-TRU-01';
+
+    /**
+     * Unico usuario que conserva alcance de grupo (sin sede): es la cuenta con
+     * la que se sigue administrando el catalogo de sedes (ADR-0010).
+     */
+    private const GROUP_SCOPE_EMAIL = 'admin+administrador@test.com';
+
+    /**
      * Run the database seeds.
      */
     public function run(): void
     {
         $users = [
-            // Administradores
+            // Administradores: uno por sede y el de grupo (sin sede).
             [
                 'name' => 'Elizabet Cunia Cruz',
                 'username' => 'elizabet',
@@ -27,18 +41,7 @@ class RoleBasedUsersSeeder extends Seeder
                 'email_verified_at' => now(),
             ],
             [
-                'name' => 'Ever Huamán Cruz',
-                'username' => 'ever',
-                'email' => 'ever+administrador@test.com',
-                'phone' => '+51 987 654 002',
-                'password' => Hash::make('password123'),
-                'role' => 'administrador',
-                'specialty' => null,
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ],
-            [
-                'name' => 'Admin Test',
+                'name' => 'Gerencia OdontoSuite',
                 'username' => 'admin_test',
                 'email' => 'admin+administrador@test.com',
                 'phone' => '+51 987 654 003',
@@ -51,7 +54,7 @@ class RoleBasedUsersSeeder extends Seeder
 
             // Recepcionista
             [
-                'name' => 'Recepcionista Test',
+                'name' => 'Rosa Quispe Flores',
                 'username' => 'recepcionista_test',
                 'email' => 'recepcionista+recepcionista@test.com',
                 'phone' => '+51 987 654 004',
@@ -85,19 +88,8 @@ class RoleBasedUsersSeeder extends Seeder
                 'is_active' => true,
                 'email_verified_at' => now(),
             ],
-            [
-                'name' => 'Odontologo Test',
-                'username' => 'odontologo_test',
-                'email' => 'odontologo+odontologo@test.com',
-                'phone' => '+51 987 654 007',
-                'password' => Hash::make('password123'),
-                'role' => 'odontologo',
-                'specialty' => 'general',
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ],
 
-            // Implantólogos
+            // Implantólogo
             [
                 'name' => 'Wilmer Valderrama',
                 'username' => 'wilmer',
@@ -109,19 +101,8 @@ class RoleBasedUsersSeeder extends Seeder
                 'is_active' => true,
                 'email_verified_at' => now(),
             ],
-            [
-                'name' => 'Implantologo Test',
-                'username' => 'implantologo_test',
-                'email' => 'implantologo+implantologo@test.com',
-                'phone' => '+51 987 654 009',
-                'password' => Hash::make('password123'),
-                'role' => 'implantologo',
-                'specialty' => 'implantology',
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ],
 
-            // Técnicos Dentales
+            // Técnico Dental
             [
                 'name' => 'Sofia Villanueva',
                 'username' => 'sofia',
@@ -133,35 +114,13 @@ class RoleBasedUsersSeeder extends Seeder
                 'is_active' => true,
                 'email_verified_at' => now(),
             ],
-            [
-                'name' => 'Tecnico Test',
-                'username' => 'tecnico_test',
-                'email' => 'tecnico+tecnico@test.com',
-                'phone' => '+51 987 654 011',
-                'password' => Hash::make('password123'),
-                'role' => 'tecnico_dental',
-                'specialty' => 'dental_technician',
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ],
 
-            // Asistentes
+            // Asistente
             [
                 'name' => 'Azul Huamán Díaz',
                 'username' => 'azul',
                 'email' => 'azul+asistente@test.com',
                 'phone' => '+51 987 654 012',
-                'password' => Hash::make('password123'),
-                'role' => 'asistente',
-                'specialty' => 'assistant',
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ],
-            [
-                'name' => 'Asistente Test',
-                'username' => 'asistente_test',
-                'email' => 'asistente+asistente@test.com',
-                'phone' => '+51 987 654 013',
                 'password' => Hash::make('password123'),
                 'role' => 'asistente',
                 'specialty' => 'assistant',
@@ -181,17 +140,6 @@ class RoleBasedUsersSeeder extends Seeder
                 'is_active' => true,
                 'email_verified_at' => now(),
             ],
-            [
-                'name' => 'Finanzas Test',
-                'username' => 'finanzas_test',
-                'email' => 'finanzas+finanzas@test.com',
-                'phone' => '+51 987 654 015',
-                'password' => Hash::make('password123'),
-                'role' => 'finanzas',
-                'specialty' => 'finance',
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ],
         ];
 
         foreach ($users as $userData) {
@@ -201,6 +149,37 @@ class RoleBasedUsersSeeder extends Seeder
             );
         }
 
+        $this->assignTestBranch();
+
         $this->command->info('Usuarios con roles creados exitosamente.');
+    }
+
+    /**
+     * Afilia a Trujillo los usuarios sembrados que todavia no tienen sede.
+     *
+     * Una sede ya asignada (la del seeder o la que el administrador fijo a
+     * mano) nunca se pisa, y el administrador de grupo se queda sin sede a
+     * proposito. Si el seeder corre solo contra una base sin Trujillo no se
+     * inventa la fila: los usuarios quedan sin sede y se avisa por consola.
+     */
+    private function assignTestBranch(): void
+    {
+        $branchId = Branch::query()
+            ->where('code', self::TEST_BRANCH_CODE)
+            ->value('id');
+
+        if (! $branchId) {
+            $this->command?->warn(
+                'No existe la sede '.self::TEST_BRANCH_CODE
+                .' (Trujillo San Isidro): los usuarios sembrados quedan sin sede.'
+            );
+
+            return;
+        }
+
+        User::query()
+            ->whereNull('branch_id')
+            ->where('email', '!=', self::GROUP_SCOPE_EMAIL)
+            ->update(['branch_id' => $branchId]);
     }
 }

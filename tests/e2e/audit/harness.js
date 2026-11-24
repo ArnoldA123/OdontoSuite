@@ -21,10 +21,10 @@ export const ROLE_USERNAMES = Object.freeze({
   administrador: 'elizabet',
   recepcionista: 'recepcionista_test',
   odontologo: 'ever_odontologo',
-  implantologo: 'implantologo_test',
-  tecnico_dental: 'tecnico_test',
-  asistente: 'asistente_test',
-  finanzas: 'finanzas_test'
+  implantologo: 'wilmer',
+  tecnico_dental: 'sofia',
+  asistente: 'azul',
+  finanzas: 'milagros'
 })
 
 const ROLE_ORDER = Object.keys(ROLE_USERNAMES)

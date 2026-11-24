@@ -13,14 +13,17 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            // 1. Usuarios y roles
+            // 1. Catalogo de sedes. Va antes de los usuarios porque cada
+            //    usuario sembrado se afilia a la sede de prueba (T3).
+            BranchSeeder::class,           // Sprint 0 (B-CASH-1): 4 sedes
+
+            // 2. Usuarios y roles
             RoleBasedUsersSeeder::class,
 
-            // 2. Configuracion base (sucursales y metodos de pago)
-            BranchSeeder::class,           // Sprint 0 (B-CASH-1): 3 sedes
+            // 3. Configuracion base (metodos de pago; las sedes ya estan)
             PaymentMethodSeeder::class,    // Sprint 0 (B-CASH-2): 5 metodos del sistema
 
-            // 3. Configuracion clinica
+            // 4. Configuracion clinica
             SpecialtySeeder::class,
             UserSpecialtySeeder::class, // Issue #211: pivote desde specialty legacy
             DiagnosisCatalogSeeder::class, // F6 (#286): codigos CIE-10 del capitulo odontologico
@@ -28,32 +31,32 @@ class DatabaseSeeder extends Seeder
             EnvironmentSeeder::class,
             ProcedureCatalogSeeder::class, // depende de SpecialtySeeder
 
-            // 4. Pacientes
+            // 5. Pacientes
             PatientSeeder::class, // 100 pacientes
 
-            // 5. Citas y recordatorios
+            // 6. Citas y recordatorios
             SimpleAppointmentsSeeder::class, // 100 citas
             ReminderSchedulesSeeder::class,
 
-            // 6. Sistema de caja
+            // 7. Sistema de caja
             CashRegisterSeeder::class,
 
-            // 7. Citas completadas con pagos pendientes
+            // 8. Citas completadas con pagos pendientes
             CompletedAppointmentsSeeder::class,
 
-            // 7b. Piezas dentales (FK previa para endodoncia / rehabilitación /
+            // 8b. Piezas dentales (FK previa para endodoncia / rehabilitación /
             //     cirugía oral / implantología). Idempotente (32 FDI permanentes).
             DentalPieceSeeder::class,
 
-            // 7c. Superficies de cada pieza activa (#293 S1/S2): un
+            // 8c. Superficies de cada pieza activa (#293 S1/S2): un
             //     procedimiento de superficie exige su superficie. Idempotente
             //     (5 por pieza).
             ToothSurfaceSeeder::class,
 
-            // 8. Registros de especialidades
+            // 9. Registros de especialidades
             SpecialtyRecordSeeder::class,
 
-            // 9. Muestra clínica del instrumento de auditoría (#374):
+            // 10. Muestra clínica del instrumento de auditoría (#374):
             //    `/medical-records/:id` no tenía fila que medir sobre una base
             //    sembrada a secas. Idempotente (2 historias con su evolución).
             MedicalRecordSeeder::class,
