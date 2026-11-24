@@ -412,7 +412,8 @@ export function buildHourGrid({
   excludeAppointmentId = null,
   dayStart = DAY_START,
   dayEnd = DAY_END,
-  stepMinutes = SLOT_MINUTES
+  stepMinutes = SLOT_MINUTES,
+  now = null
 } = {}) {
   const spans = Array.isArray(appointments) ? appointments.map(toSpan).filter(Boolean) : null
   const unknown = spans === null
@@ -424,6 +425,14 @@ export function buildHourGrid({
   const to = clockToMinutes(dayEnd) ?? clockToMinutes(DAY_END)
   const step = Math.max(5, Number(stepMinutes) || SLOT_MINUTES)
   const day = toLocalDay(date)
+
+  // #531 — una casilla anterior a este instante no es elegible cuando la fecha
+  // es hoy: el backend exige un minuto de margen y el alta no puede proponer
+  // un valor que la API rechaza. `now` es inyectable para que las pruebas no
+  // dependan del reloj real; sin él la rejilla no juzga el pasado.
+  const clock = now instanceof Date && !Number.isNaN(now.getTime()) ? now : null
+  const today = clock ? new Date(clock.getFullYear(), clock.getMonth(), clock.getDate()) : null
+  const isToday = Boolean(day && today && day.getTime() === today.getTime())
 
   // La ventana nominal es 07:00–20:00, pero una cita a las 06:00 sigue siendo
   // una hora real: si la elegida cae fuera, la rejilla crece lo justo para que
@@ -463,6 +472,7 @@ export function buildHourGrid({
     const userBusy = slotStart ? latestEnd(userSpans, slotStart, slotEnd) : null
     const chairBusy = slotStart ? latestEnd(chairSpans, slotStart, slotEnd) : null
     const busy = [userBusy, chairBusy].filter(Boolean).sort()
+    const past = Boolean(isToday && clock && slotStart && slotStart.getTime() <= clock.getTime())
 
     const slot = {
       value: minutesToClock(minute),
@@ -470,11 +480,12 @@ export function buildHourGrid({
       hour: Math.floor(minute / 60),
       minute: minute % 60,
       block: blockOfMinute(minute),
-      disabled: busy.length > 0,
+      past,
+      disabled: past || busy.length > 0,
       busyUntil: busy.length > 0 ? formatTime(busy[busy.length - 1]) : null
     }
 
-    slot.reason = slot.disabled ? `Ocupado hasta ${slot.busyUntil}` : ''
+    slot.reason = past ? 'Ya pasó' : slot.disabled ? `Ocupado hasta ${slot.busyUntil}` : ''
     slot.ariaLabel = slot.disabled ? `${slot.label}, ${slot.reason.toLowerCase()}` : slot.label
     slot.index = slots.length
     slots.push(slot)

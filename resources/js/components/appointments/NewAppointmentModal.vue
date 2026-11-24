@@ -1429,7 +1429,8 @@ const hourGrid = computed(() =>
     excludeAppointmentId: props.appointment?.id ?? null,
     dayStart: DAY_START,
     dayEnd: DAY_END,
-    stepMinutes: SLOT_MINUTES
+    stepMinutes: SLOT_MINUTES,
+    now: new Date()
   })
 )
 
@@ -1457,6 +1458,33 @@ const chooseTime = slot => {
   form.time = slot.value
   validateField('time')
 }
+
+// El alta nace con una hora válida: si la precarga cayó en el pasado (o el día
+// cambió mientras el formulario estaba abierto), se adopta el primer hueco
+// libre. El usuario conserva su elección mientras siga siendo futura.
+const firstOpenSlot = computed(() => hourGrid.value.slots.find(slot => !slot.disabled) ?? null)
+
+const settleChosenTime = () => {
+  if (!props.modelValue || props.appointment) return
+  if (!form.date) return
+
+  const current = hourGrid.value.slots.find(slot => slot.value === form.time)
+  if (current && !current.past) return
+
+  const next = firstOpenSlot.value
+  if (next) {
+    form.time = next.value
+    activeTimeBlock.value = next.block
+  } else if (current?.past) {
+    form.time = ''
+  }
+}
+
+watch(
+  () => [props.modelValue, form.date, form.time, form.duration_minutes, availabilityStatus.value],
+  settleChosenTime,
+  { flush: 'post' }
+)
 
 // Flechas mueven, Enter elige (el botón nativo ya responde a Enter/Espacio).
 // El foco salta las casillas ocupadas: una flecha que aterriza en un control

@@ -643,3 +643,37 @@ describe('rankAppointmentTypes', () => {
     expect(rankAppointmentTypes(types, day).map(type => type.id)).toEqual([5, 6, 7, 8])
   })
 })
+
+describe('buildHourGrid — las horas que ya pasaron', () => {
+  const date = '2026-11-24'
+  const now = new Date(2026, 10, 24, 10, 30, 0)
+
+  it('disables today cells that already started and explains why', () => {
+    const grid = buildHourGrid({ appointments: [], date, durationMinutes: 30, now })
+
+    const past = grid.slots.find(slot => slot.value === '10:15')
+    const starting = grid.slots.find(slot => slot.value === '10:30')
+    const next = grid.slots.find(slot => slot.value === '10:45')
+
+    expect(past.past).toBe(true)
+    expect(past.disabled).toBe(true)
+    expect(past.reason).toBe('Ya pasó')
+    expect(starting.past).toBe(true)
+    expect(next.past).toBe(false)
+    expect(next.disabled).toBe(false)
+    expect(next.reason).toBe('')
+  })
+
+  it('does not judge the past on another day', () => {
+    const grid = buildHourGrid({ appointments: [], date: '2026-11-25', durationMinutes: 30, now })
+
+    expect(grid.slots.every(slot => slot.past === false)).toBe(true)
+    expect(grid.slots.every(slot => slot.disabled === false)).toBe(true)
+  })
+
+  it('keeps every cell open when the clock is not injected', () => {
+    const grid = buildHourGrid({ appointments: [], date, durationMinutes: 30 })
+
+    expect(grid.slots.every(slot => slot.past === false)).toBe(true)
+  })
+})

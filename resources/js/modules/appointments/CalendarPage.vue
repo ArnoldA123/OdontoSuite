@@ -1794,6 +1794,7 @@ import {
   dayTitle,
   initialCalendarView,
   isCalendarView,
+  nextAppointmentSlot,
   toLocalDateString,
   weekDays as buildWeekDays,
   monthDays as buildMonthDays,
@@ -1970,12 +1971,11 @@ export default {
         const minutes = Number.isInteger(minute) ? minute : 0
         return `${dateStr}T${pad(hour)}:${pad(minutes)}`
       }
-      if (currentView.value === 'day') {
-        const date = new Date(currentDate.value)
-        date.setHours(9, 0, 0, 0)
-        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-      }
-      return null
+
+      // La propuesta nace válida: hoy empieza en el siguiente cuarto de hora y
+      // una vista pasada cae en hoy. El formulario además corrige la hora si
+      // el hueco ya pasó mientras se llenaba.
+      return nextAppointmentSlot(currentDate.value)
     }
 
     const openNewAppointmentModal = () => {
