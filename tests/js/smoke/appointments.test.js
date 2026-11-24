@@ -160,6 +160,8 @@ import { useConsultation } from '../../../resources/js/composables/useConsultati
 import NewAppointmentModal from '../../../resources/js/components/appointments/NewAppointmentModal.vue'
 import Modal from '../../../resources/js/components/ui/Modal.vue'
 import DentalMotifLayer from '../../../resources/js/components/ui/DentalMotifLayer.vue'
+import { statusChipClasses } from '../../../resources/js/modules/appointments/appointmentStatus.js'
+import { formatTime } from '../../../resources/js/composables/useFormatters.js'
 import { globalToasts } from '../../../resources/js/composables/useToast.js'
 const router = createRouter({
   history: createMemoryHistory(),
@@ -536,7 +538,7 @@ describe('appointments drag reschedule smoke (T5)', () => {
     expect(moved.attributes('data-calendar-drag-state')).toBeUndefined()
     expect(moved.attributes('data-calendar-draggable')).toBe('1')
     expect(globalToasts.value.at(-1)?.type).toBe('success')
-    expect(wrapper.text()).not.toContain('Detalles de la Cita')
+    expect(document.querySelector('[data-calendar-detail]')).toBeNull()
     wrapper.unmount()
   })
 
@@ -555,7 +557,7 @@ describe('appointments drag reschedule smoke (T5)', () => {
 
     chip.element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     await nextTick()
-    expect(document.body.textContent).toContain('Detalles de la Cita')
+    expect(document.querySelector('[data-calendar-detail]')).not.toBeNull()
     wrapper.unmount()
   })
 
@@ -596,9 +598,9 @@ describe('appointments drag reschedule smoke (T5)', () => {
     expect(patchMock).not.toHaveBeenCalled()
     expect(globalToasts.value).toHaveLength(0)
     // T7: the details surface teleports through UiModal, so visibility is
-    // asserted on document.body (it was `wrapper.text()` when the modal was
-    // a hand-rolled div inside the page tree).
-    expect(document.body.textContent).not.toContain('Detalles de la Cita')
+    // asserted on the teleported hook (it was `wrapper.text()` when the modal
+    // was a hand-rolled div inside the page tree).
+    expect(document.querySelector('[data-calendar-detail]')).toBeNull()
     wrapper.unmount()
   })
 
@@ -626,7 +628,7 @@ describe('appointments drag reschedule smoke (T5)', () => {
     expect(
       wrapper.find(`[data-calendar-drop-target="2026-05-13-10"] ${chipSelector}`).exists()
     ).toBe(true)
-    expect(document.body.textContent).not.toContain('Detalles de la Cita')
+    expect(document.querySelector('[data-calendar-detail]')).toBeNull()
 
     // …but no longer silent: an informative (non-error) toast names the rule.
     const last = globalToasts.value.at(-1)
@@ -793,19 +795,22 @@ describe('T8b chip tint and compact time smoke (defects 2/3)', () => {
 
   const assertChipContract = (chip, view) => {
     const classes = chip.classes()
+    const [{ status }] = apiAppointments.value
+    const registryTokens = statusChipClasses(status).split(/\s+/).filter(Boolean)
 
     // Defect 2: the registry tint is the ONLY background/border-colour the
     // chip wears — no base or template token may compete with it in the
     // cascade (both would set background-color/border-color and the winner
-    // would be decided by stylesheet order).
+    // would be decided by stylesheet order). S3 moved the status identity
+    // into its own ramp, so the expected tint is read from the registry.
     expect(
       classes.filter(c => c.startsWith('bg-')),
       `${view}: single bg`
-    ).toEqual(['bg-accent-100'])
+    ).toEqual(registryTokens.filter(c => c.startsWith('bg-')))
     expect(
       classes.filter(c => c.startsWith('border-')),
       `${view}: single border colour`
-    ).toEqual(['border-accent-200'])
+    ).toEqual(registryTokens.filter(c => c.startsWith('border-')))
 
     // Defect 3: compact range, never the long locale form, full title.
     expect(chip.text(), `${view}: compact range`).toContain('10:00 - 10:30')
@@ -958,7 +963,7 @@ describe('appointments month view smoke (T6)', () => {
     expect(more.text()).toBe('+2 más')
 
     await chips[0].trigger('click')
-    expect(document.body.textContent).toContain('Detalles de la Cita')
+    expect(document.querySelector('[data-calendar-detail]')).not.toBeNull()
   })
 
   it('drills down from "N más" to the Day view for that date (T6/D8)', async () => {
@@ -1067,13 +1072,19 @@ describe('T7 details modal smoke', () => {
     expect(modal.props('title')).toBe('Detalles de la Cita')
     expect(wrapper.find('.bg-opacity-50').exists()).toBe(false)
 
-    // 2) content: summary from real AppointmentResource fields + the hook.
+    // 2) content: the header names the patient and the when-line; the body
+    //    carries the facts from the real AppointmentResource payload.
+    const dialog = document.querySelector('[role="dialog"]')
+    expect(dialog).not.toBeNull()
+    expect(dialog.textContent).toContain('Ana Pérez')
+    expect(dialog.textContent).toContain('10:00-10:30')
+    expect(dialog.textContent).toContain('Sillón A1')
+
     const details = document.querySelector('[data-calendar-detail]')
     expect(details).not.toBeNull()
-    expect(details.textContent).toContain('Ana Pérez')
     expect(details.textContent).toContain('Dra. Ruiz')
-    expect(details.textContent).toContain('Sillón A1')
-    expect(details.textContent).toContain('10:00')
+    expect(details.textContent).toContain('Limpieza')
+    expect(details.textContent).toContain('30 minutos')
     expect(details.textContent).toContain('Primera visita de control')
 
     // 3) status pill rendered from the appointmentStatus registry
@@ -1081,6 +1092,11 @@ describe('T7 details modal smoke', () => {
     const pill = details.querySelector('[data-status="scheduled"]')
     expect(pill).not.toBeNull()
     expect(pill.textContent).toContain('Programada')
+
+    // 4) the five-stage rail replaces the old button pile.
+    const rail = details.querySelector('[data-appointment-rail="steps"]')
+    expect(rail).not.toBeNull()
+    expect(rail.querySelectorAll('[data-appointment-rail-step]')).toHaveLength(5)
   })
 
   it('binds the appointment into NewAppointmentModal from the Editar action (T7 bugfix)', async () => {
@@ -1214,7 +1230,9 @@ describe('F1 custody actions smoke (#281)', () => {
     globalToasts.value.splice(0, globalToasts.value.length)
     postMock.mockReset()
     postMock.mockResolvedValue({ data: {} })
-    apiAppointments.value = [custodyAppointment('scheduled')]
+    // S5: la llegada se registra sobre una cita confirmada; programada
+    // conserva «Confirmar cita» como único primario.
+    apiAppointments.value = [custodyAppointment('confirmed')]
     localStorage.removeItem('user')
   })
 
@@ -1240,7 +1258,9 @@ describe('F1 custody actions smoke (#281)', () => {
 
     const arrival = document.querySelector('[data-calendar-action="check-in"]')
     expect(arrival).not.toBeNull()
-    expect(arrival.textContent).toContain('Marcar llegada')
+    expect(arrival.textContent).toContain('Registrar llegada')
+    expect(arrival.hasAttribute('data-appointment-primary')).toBe(true)
+    expect(document.querySelectorAll('[data-appointment-primary]')).toHaveLength(1)
 
     arrival.click()
     await flushPromises()
@@ -1267,12 +1287,12 @@ describe('F1 custody actions smoke (#281)', () => {
   })
 })
 
-// U3 — the calendar stages the day but does not start the act. Starting or
-// continuing a consultation belongs to `/my-day`; the details surface keeps
-// reception's check-in door and publishes a bridge to My Day only for
-// sessions that hold `view.my_day`.
-describe('U3 calendar clinical boundary', () => {
-  const appointment = status => ({
+// S1/S2/S5 — el detalle de la cita comunica el estado con un rail de cinco
+// etapas (o una franja de desenlace) y ofrece UNA acción primaria derivada del
+// estado. Las puertas de permiso siguen decidiendo si su botón existe, y las
+// horas de cada etapa salen sólo de campos publicados por la API.
+describe('detalle de cita: siguiente paso, rail y desenlaces', () => {
+  const appointment = (status, extra = {}) => ({
     id: 1,
     scheduled_at: '2026-05-13T10:00:00',
     ends_at: '2026-05-13T10:30:00',
@@ -1282,7 +1302,8 @@ describe('U3 calendar clinical boundary', () => {
     patient: { id: 7, first_name: 'Ana', last_name: 'Pérez' },
     user: { id: 2, name: 'Dra. Ruiz' },
     dental_chair: null,
-    appointment_type: { id: 3, name: 'Limpieza' }
+    appointment_type: { id: 3, name: 'Limpieza' },
+    ...extra
   })
 
   const defaultAppointments = apiAppointments.value
@@ -1296,21 +1317,7 @@ describe('U3 calendar clinical boundary', () => {
     return wrapper
   }
 
-  const openDetails = async wrapper => {
-    await wrapper.find('[data-calendar-appointment="1"]').trigger('click')
-    await nextTick()
-  }
-
-  beforeEach(async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
-    globalToasts.value.splice(0, globalToasts.value.length)
-    apiAppointments.value = [appointment('arrived')]
-    authRole.ref.value = 'administrador'
-    await router.push('/calendar')
-  })
-
-  afterEach(() => {
+  const unmountAll = () => {
     while (mounted.length) {
       const { wrapper, host } = mounted.pop()
       try {
@@ -1320,26 +1327,410 @@ describe('U3 calendar clinical boundary', () => {
       }
       host.remove()
     }
+  }
+
+  const openDetails = async status => {
+    apiAppointments.value = [appointment(status)]
+    const wrapper = mountPage()
+    await flushPromises()
+    await wrapper.find('[data-calendar-appointment="1"]').trigger('click')
+    await nextTick()
+    return wrapper
+  }
+
+  const primaries = () => document.querySelectorAll('[data-appointment-primary]')
+
+  beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    globalToasts.value.splice(0, globalToasts.value.length)
+    authRole.ref.value = 'administrador'
+    await router.push('/calendar')
+  })
+
+  afterEach(() => {
+    unmountAll()
     apiAppointments.value = defaultAppointments
     authRole.ref.value = 'administrador'
     vi.useRealTimers()
     localStorage.removeItem('user')
   })
 
-  it('never offers the clinical start, even to a clinical session', async () => {
-    const wrapper = mountPage()
-    await flushPromises()
-    await openDetails(wrapper)
+  // S5 — una transición por estado: el primario es la fase que sigue, y nunca
+  // hay dos fases en la misma pantalla.
+  it.each([
+    ['scheduled', 1, 'status-confirmed'],
+    ['confirmed', 1, 'check-in'],
+    ['arrived', 1, 'start-attention'],
+    ['in_consultation', 0, null],
+    ['in_progress', 0, null],
+    ['completed', 0, null],
+    ['cancelled', 0, null],
+    ['no_show', 0, null],
+    ['rescheduled', 0, null]
+  ])('%s publica exactamente %i acción(es) primaria(s)', async (status, expected, hook) => {
+    await openDetails(status)
 
-    expect(document.querySelector('[data-calendar-action="start-attention"]')).toBeNull()
-    expect(document.querySelector('[data-calendar-action="complete-consultation"]')).toBeNull()
-    expect(document.querySelector('[data-calendar-action="check-in"]')).toBeNull()
+    const primaryNodes = primaries()
+    expect(primaryNodes).toHaveLength(expected)
+    if (hook) {
+      expect(primaryNodes[0].getAttribute('data-calendar-action')).toBe(hook)
+    }
   })
 
-  it('bridges a clinical session to My Day and navigates there', async () => {
+  it('nunca publica dos botones de fase en el mismo estado', async () => {
+    const phaseHooks = ['status-confirmed', 'check-in', 'start-attention', 'announce']
+
+    for (const status of [
+      'scheduled',
+      'confirmed',
+      'arrived',
+      'in_consultation',
+      'in_progress',
+      'completed',
+      'cancelled',
+      'no_show',
+      'rescheduled'
+    ]) {
+      await openDetails(status)
+
+      const card = document.querySelector('[data-appointment-now]')
+      const rendered = card
+        ? [...card.querySelectorAll('[data-calendar-action]')]
+            .map(node => node.getAttribute('data-calendar-action'))
+            .filter(hook => phaseHooks.includes(hook))
+        : []
+
+      expect(rendered.length, status).toBeLessThanOrEqual(1)
+      expect(primaries().length, status).toBeLessThanOrEqual(1)
+
+      unmountAll()
+    }
+  })
+
+  it('no ofrece registrar la llegada antes de confirmar', async () => {
+    await openDetails('scheduled')
+
+    expect(document.querySelector('[data-calendar-action="check-in"]')).toBeNull()
+    expect(document.querySelector('[data-calendar-action="status-confirmed"]')).not.toBeNull()
+    expect(primaries()).toHaveLength(1)
+  })
+
+  it('publica la matriz de acciones de la tarjeta por estado', async () => {
+    const expected = {
+      scheduled: ['status-confirmed'],
+      confirmed: ['check-in'],
+      arrived: ['start-attention', 'my-day'],
+      in_consultation: ['my-day'],
+      in_progress: ['my-day'],
+      completed: [],
+      cancelled: [],
+      no_show: [],
+      rescheduled: []
+    }
+
+    for (const [status, hooks] of Object.entries(expected)) {
+      await openDetails(status)
+
+      const card = document.querySelector('[data-appointment-now]')
+      const rendered = hooks.length
+        ? [...card.querySelectorAll('[data-calendar-action]')].map(node =>
+            node.getAttribute('data-calendar-action')
+          )
+        : []
+      expect(rendered, status).toEqual(hooks)
+
+      unmountAll()
+    }
+  })
+
+  it('pinta la leyenda con las rampas nuevas de estado', async () => {
+    apiAppointments.value = [appointment('scheduled')]
+    mountPage()
+    await flushPromises()
+
+    const legend = document.querySelector('[data-calendar-legend]')
+    expect(legend).not.toBeNull()
+    const variants = [...legend.querySelectorAll('[data-variant]')].map(node =>
+      node.getAttribute('data-variant')
+    )
+    // Una píldora por valor de estado (el alias `in_consultation` no se repite).
+    expect(variants).toHaveLength(8)
+    expect(variants).toEqual(expect.arrayContaining(['indigo', 'orange', 'purple']))
+  })
+
+  it('guarda cancelar y eliminar en el menú de secundarias', async () => {
+    await openDetails('scheduled')
+
+    const menu = document.querySelector('[data-appointment-menu]')
+    expect(menu).not.toBeNull()
+    expect(menu.querySelector('[data-calendar-action="status-cancelled"]')).not.toBeNull()
+    expect(menu.querySelector('[data-calendar-action="delete"]')).not.toBeNull()
+    expect(menu.querySelector('[data-appointment-action="reschedule"]')).not.toBeNull()
+
+    // S1: ninguna destructiva se sienta junto al primario.
+    const now = document.querySelector('[data-appointment-now]')
+    expect(now.querySelector('[data-calendar-action="status-cancelled"]')).toBeNull()
+    expect(now.querySelector('[data-calendar-action="delete"]')).toBeNull()
+
+    // El disparador abre y cierra su panel.
+    expect(menu.style.display).toBe('none')
+    document.querySelector('[data-appointment-menu-trigger]').click()
+    await flushPromises()
+    expect(menu.style.display).not.toBe('none')
+    document.querySelector('[data-appointment-menu-trigger]').click()
+    await flushPromises()
+    expect(menu.style.display).toBe('none')
+  })
+
+  it('sube el relleno sólo en los estados que piden acción', async () => {
+    const cases = [
+      ['scheduled', 'bg-systemGray-100', false],
+      ['confirmed', 'bg-systemSteel-50', false],
+      ['arrived', 'bg-systemIndigo-100', true],
+      ['in_consultation', 'bg-systemYellow-100', true],
+      ['in_progress', 'bg-systemYellow-100', true],
+      ['completed', 'bg-systemGreen-50', false],
+      ['cancelled', 'bg-systemRed-50', false],
+      ['no_show', 'bg-systemOrange-50', false],
+      ['rescheduled', 'bg-systemPurple-50', false]
+    ]
+
+    for (const [status, wash, pulses] of cases) {
+      await openDetails(status)
+
+      const pill = document.querySelector(`[data-calendar-detail] [data-status="${status}"]`)
+      expect(pill, status).not.toBeNull()
+      expect(pill.className, status).toContain(wash)
+
+      // `rescheduled` is the one state without a dot; only the states that ask
+      // for an action pulse it.
+      const dot = pill.querySelector('.status-badge__dot')
+      if (dot) {
+        expect(dot.className.includes('motion-safe:animate-pulse-subtle'), status).toBe(pulses)
+      } else {
+        expect(pulses, `${status} needs a dot to pulse`).toBe(false)
+      }
+
+      unmountAll()
+    }
+  })
+
+  it('dibuja el rail sin halo ni pulso y con los conectores recortados', async () => {
+    await openDetails('arrived')
+
+    const rail = document.querySelector('[data-appointment-rail="steps"]')
+    expect(rail).not.toBeNull()
+    expect(rail.innerHTML).not.toContain('ring-4')
+    expect(rail.innerHTML).not.toContain('animate-pulse')
+
+    const connectors = rail.querySelectorAll('[data-appointment-rail-connector]')
+    expect(connectors).toHaveLength(4)
+    for (const connector of connectors) {
+      const style = connector.getAttribute('style') || ''
+      expect(style).toContain('left: calc(-50% + 14px)')
+      expect(style).toContain('right: calc(50% - 14px)')
+      expect(style).not.toContain('width')
+    }
+
+    // El nodo actual se rellena con el color del estado y un punto blanco.
+    const current = rail.querySelector('[aria-current="step"]')
+    expect(current).not.toBeNull()
+    expect(current.innerHTML).toContain('bg-systemIndigo-500')
+    expect(current.innerHTML).toContain('bg-white')
+    expect(current.innerHTML).not.toContain('ring-')
+  })
+
+  it('muestra sede y procedimiento cuando el payload los publica', async () => {
+    const factLabels = () =>
+      Array.from(document.querySelectorAll('[data-calendar-detail] dt')).map(node =>
+        node.textContent.trim()
+      )
+
+    apiAppointments.value = [
+      appointment('confirmed', {
+        branch: { id: 3, name: 'San Isidro' },
+        procedure: { id: 5, name: 'Resina compuesta', code: 'PROC-001' }
+      })
+    ]
     const wrapper = mountPage()
     await flushPromises()
-    await openDetails(wrapper)
+    await wrapper.find('[data-calendar-appointment="1"]').trigger('click')
+    await nextTick()
+
+    const detail = document.querySelector('[data-calendar-detail]')
+    expect(factLabels()).toContain('Sede')
+    expect(factLabels()).toContain('Procedimiento')
+    expect(detail.textContent).toContain('San Isidro')
+    expect(detail.textContent).toContain('Resina compuesta')
+    unmountAll()
+
+    // S6 — sin las relaciones precargadas, las dos filas no existen.
+    await openDetails('confirmed')
+    expect(factLabels()).not.toContain('Sede')
+    expect(factLabels()).not.toContain('Procedimiento')
+    expect(document.querySelector('[data-calendar-detail]').textContent).not.toContain('San Isidro')
+  })
+
+  it('marca la etapa actual de cada estado vivo en el rail', async () => {
+    const expected = {
+      scheduled: 'scheduled',
+      confirmed: 'confirmed',
+      arrived: 'arrived',
+      in_consultation: 'in_consultation',
+      completed: 'completed'
+    }
+
+    for (const [status, step] of Object.entries(expected)) {
+      await openDetails(status)
+
+      expect(document.querySelectorAll('[data-appointment-rail-step]')).toHaveLength(5)
+      const current = document.querySelector('[data-appointment-rail-step][aria-current="step"]')
+      expect(current, status).not.toBeNull()
+      expect(current.getAttribute('data-appointment-rail-step')).toBe(step)
+
+      unmountAll()
+    }
+  })
+
+  it('sustituye el rail por una franja de desenlace en los tres desenlaces', async () => {
+    for (const status of ['cancelled', 'no_show', 'rescheduled']) {
+      await openDetails(status)
+
+      const band = document.querySelector('[data-appointment-rail="outcome"]')
+      expect(band, status).not.toBeNull()
+      expect(document.querySelector('[data-appointment-rail-step]')).toBeNull()
+      expect(band.querySelector(`[data-status="${status}"]`), status).not.toBeNull()
+
+      unmountAll()
+    }
+  })
+
+  it('distingue con una píldora propia los cuatro estados que antes eran verdes', async () => {
+    const variants = new Set()
+
+    for (const status of ['scheduled', 'confirmed', 'arrived', 'rescheduled']) {
+      await openDetails(status)
+
+      const pill = document.querySelector(`[data-calendar-detail] [data-status="${status}"]`)
+      expect(pill, status).not.toBeNull()
+      variants.add(pill.getAttribute('data-variant'))
+
+      unmountAll()
+    }
+
+    expect(variants.size).toBe(4)
+    expect(variants.has('success')).toBe(false)
+  })
+
+  it('presenta el estado legacy in_progress igual que En consulta', async () => {
+    await openDetails('in_progress')
+
+    const pill = document.querySelector('[data-calendar-detail] [data-status="in_progress"]')
+    expect(pill.textContent).toContain('En consulta')
+    const current = document.querySelector('[data-appointment-rail-step][aria-current="step"]')
+    expect(current.getAttribute('data-appointment-rail-step')).toBe('in_consultation')
+    expect(primaries()).toHaveLength(0)
+    expect(document.querySelector('[data-calendar-action="my-day"]')).not.toBeNull()
+  })
+
+  it('no inventa horas de etapa: sólo las publicadas aparecen', async () => {
+    await openDetails('arrived')
+    expect(document.querySelectorAll('[data-appointment-rail-time]')).toHaveLength(0)
+    // The five rows always exist (alignment); their text is what is absent.
+    expect(document.querySelectorAll('[data-appointment-rail-time-slot]')).toHaveLength(5)
+    expect(
+      Array.from(document.querySelectorAll('[data-appointment-rail-time-slot]')).every(
+        node => node.textContent.trim() === ''
+      )
+    ).toBe(true)
+    expect(document.querySelector('[data-appointment-status-since]')).toBeNull()
+    unmountAll()
+
+    apiAppointments.value = [
+      appointment('arrived', {
+        created_at: '2026-05-13T09:12:00',
+        checked_in_at: '2026-05-13T10:02:00'
+      })
+    ]
+    const wrapper = mountPage()
+    await flushPromises()
+    await wrapper.find('[data-calendar-appointment="1"]').trigger('click')
+    await nextTick()
+
+    const times = Array.from(document.querySelectorAll('[data-appointment-rail-time]')).map(node =>
+      node.textContent.trim()
+    )
+    expect(times).toEqual([formatTime('2026-05-13T09:12:00'), formatTime('2026-05-13T10:02:00')])
+    expect(document.querySelector('[data-appointment-status-since]').textContent).toContain(
+      `Llegó a las ${formatTime('2026-05-13T10:02:00')}`
+    )
+  })
+
+  it('inicia la atención desde arrived con start.consultation', async () => {
+    postMock.mockClear()
+    await openDetails('arrived')
+
+    const start = document.querySelector('[data-calendar-action="start-attention"]')
+    expect(start).not.toBeNull()
+    expect(start.textContent).toContain('Iniciar atención')
+    expect(start.hasAttribute('data-appointment-primary')).toBe(true)
+    expect(primaries()).toHaveLength(1)
+    // Nunca las dos puertas a la vez.
+    expect(document.querySelector('[data-calendar-action="announce"]')).toBeNull()
+
+    const bridge = document.querySelector('[data-calendar-action="my-day"]')
+    expect(bridge).not.toBeNull()
+    expect(bridge.tagName).toBe('A')
+    expect(bridge.textContent.trim()).toBe('Ir a mi jornada')
+    expect(bridge.hasAttribute('data-appointment-primary')).toBe(false)
+
+    start.click()
+    await flushPromises()
+    expect(postMock).toHaveBeenCalledWith('/api/appointments/1/start-attention', {})
+    expect(globalToasts.value.at(-1)).toMatchObject({
+      type: 'success',
+      message: 'Atención iniciada.'
+    })
+    // La puerta recarga la agenda y cierra el detalle.
+    expect(document.querySelector('[data-calendar-detail]')).toBeNull()
+  })
+
+  it('anuncia al paciente cuando no puede iniciar la atención', async () => {
+    authRole.ref.value = 'recepcionista'
+    postMock.mockClear()
+
+    await openDetails('arrived')
+
+    expect(document.querySelector('[data-calendar-action="start-attention"]')).toBeNull()
+    const announce = document.querySelector('[data-calendar-action="announce"]')
+    expect(announce).not.toBeNull()
+    expect(announce.textContent).toContain('Anunciar paciente')
+    expect(announce.hasAttribute('data-appointment-primary')).toBe(true)
+    expect(primaries()).toHaveLength(1)
+    // Recepción no tiene Mi jornada: no queda un hueco vacío.
+    expect(document.querySelector('[data-calendar-action="my-day"]')).toBeNull()
+
+    announce.click()
+    await flushPromises()
+    expect(postMock).toHaveBeenCalledWith('/api/appointments/1/announce', {})
+    expect(globalToasts.value.at(-1)).toMatchObject({
+      type: 'success',
+      message: 'Paciente anunciado.'
+    })
+  })
+
+  it('no abre el cierre clínico desde la agenda', async () => {
+    await openDetails('arrived')
+
+    expect(document.querySelector('[data-calendar-action="complete-consultation"]')).toBeNull()
+    expect(document.querySelector('[data-calendar-action="start-consultation"]')).toBeNull()
+    expect(document.body.textContent).not.toContain('Cerrar atención')
+    expect(document.body.textContent).not.toContain('Firma')
+  })
+
+  it('bridges a consultation in progress to My Day and navigates there', async () => {
+    await openDetails('in_consultation')
 
     const bridge = document.querySelector('[data-calendar-action="my-day"]')
     expect(bridge).not.toBeNull()
@@ -1351,18 +1742,42 @@ describe('U3 calendar clinical boundary', () => {
     expect(router.currentRoute.value.path).toBe('/my-day')
   })
 
-  it('keeps reception check-in and hides the My Day bridge it cannot open', async () => {
+  it('keeps reception check-in and hides the doors it cannot open', async () => {
     authRole.ref.value = 'recepcionista'
-    apiAppointments.value = [appointment('confirmed')]
-    const wrapper = mountPage()
-    await flushPromises()
-    await openDetails(wrapper)
+
+    // Programada: sólo Confirmar cita; la llegada espera su turno.
+    await openDetails('scheduled')
+    expect(document.querySelector('[data-calendar-action="check-in"]')).toBeNull()
+    const confirm = document.querySelector('[data-calendar-action="status-confirmed"]')
+    expect(confirm.textContent).toContain('Confirmar cita')
+    expect(confirm.hasAttribute('data-appointment-primary')).toBe(true)
+    expect(document.querySelector('[data-calendar-action="my-day"]')).toBeNull()
+    unmountAll()
+
+    await openDetails('confirmed')
 
     const checkIn = document.querySelector('[data-calendar-action="check-in"]')
     expect(checkIn).not.toBeNull()
-    expect(checkIn.textContent).toContain('Marcar llegada')
+    expect(checkIn.textContent).toContain('Registrar llegada')
+    expect(checkIn.hasAttribute('data-appointment-primary')).toBe(true)
+    expect(document.querySelector('[data-calendar-action="status-confirmed"]')).toBeNull()
     expect(document.querySelector('[data-calendar-action="my-day"]')).toBeNull()
+    unmountAll()
+
+    // Recepción anuncia al profesional; la atención se inicia en otra puerta.
+    await openDetails('arrived')
+    const announce = document.querySelector('[data-calendar-action="announce"]')
+    expect(announce).not.toBeNull()
+    expect(announce.textContent).toContain('Anunciar paciente')
+    expect(announce.hasAttribute('data-appointment-primary')).toBe(true)
     expect(document.querySelector('[data-calendar-action="start-attention"]')).toBeNull()
+    expect(document.querySelector('[data-calendar-action="my-day"]')).toBeNull()
+    unmountAll()
+
+    // En consulta sin `view.my_day`: ni primario ni enlace, ningún hueco.
+    await openDetails('in_consultation')
+    expect(primaries()).toHaveLength(0)
+    expect(document.querySelector('[data-calendar-action="my-day"]')).toBeNull()
   })
 })
 

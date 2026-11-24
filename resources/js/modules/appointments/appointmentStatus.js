@@ -16,69 +16,141 @@
 // below is the single source of the tint (background + border colour).
 export const APPOINTMENT_CHIP_BASE_CLASSES = 'border'
 
+// S2 — the five stages a live appointment walks, in order. `railStep()`
+// answers the index of the current one.
+export const APPOINTMENT_RAIL_STAGES = [
+  { key: 'scheduled', label: 'Programada' },
+  { key: 'confirmed', label: 'Confirmada' },
+  { key: 'arrived', label: 'En espera' },
+  { key: 'in_consultation', label: 'En consulta' },
+  { key: 'completed', label: 'Completada' }
+]
+
+// S2 — statuses that leave the rail: the detail shows one outcome band
+// instead of the five stages.
+export const APPOINTMENT_TERMINAL_OUTCOMES = ['cancelled', 'no_show', 'rescheduled']
+
+// S2 — a rail stage publishes its time only from a field the API actually
+// returns. `confirmed_at` is not serialized by AppointmentResource today, so
+// that stage renders without a time; the consultation start has no published
+// field at all. Nothing is derived or invented.
+export const APPOINTMENT_STAGE_TIME_FIELDS = {
+  scheduled: 'created_at',
+  confirmed: 'confirmed_at',
+  arrived: 'checked_in_at',
+  in_consultation: null,
+  completed: 'completed_at'
+}
+
+const EN_CONSULTA = {
+  label: 'En consulta',
+  badgeVariant: 'warning',
+  showDot: true,
+  active: true,
+  chip: 'border-systemYellow-200 bg-systemYellow-50',
+  tone: 'bg-systemYellow-50 text-systemYellow-700',
+  rail: {
+    node: 'border-systemYellow-500',
+    dot: 'bg-systemYellow-500',
+    label: 'text-systemYellow-700'
+  }
+}
+
 export const APPOINTMENT_STATUSES = {
+  // One identity per status, never the brand accent: `accent-500` is the
+  // primary action's colour only.
   scheduled: {
     label: 'Programada',
-    badgeVariant: 'info',
+    badgeVariant: 'neutral',
     showDot: true,
-    chip: 'border-accent-200 bg-accent-100',
-    tone: 'bg-accent-100 text-accent-700'
+    active: false,
+    chip: 'border-systemGray-200 bg-systemGray-50',
+    tone: 'bg-systemGray-50 text-systemGray-700',
+    rail: {
+      node: 'border-systemGray-500',
+      dot: 'bg-systemGray-500',
+      label: 'text-systemGray-700'
+    }
   },
   confirmed: {
     label: 'Confirmada',
-    badgeVariant: 'success',
+    badgeVariant: 'info',
     showDot: true,
-    chip: 'border-systemGreen-200 bg-systemGreen-50',
-    tone: 'bg-systemGreen-50 text-systemGreen-700'
+    active: false,
+    chip: 'border-systemSteel-200 bg-systemSteel-50',
+    tone: 'bg-systemSteel-50 text-systemSteel-700',
+    rail: {
+      node: 'border-systemSteel-500',
+      dot: 'bg-systemSteel-500',
+      label: 'text-systemSteel-700'
+    }
   },
   arrived: {
     label: 'En espera',
-    badgeVariant: 'success',
+    badgeVariant: 'indigo',
     showDot: true,
-    chip: 'border-systemGreen-200 bg-systemGreen-50',
-    tone: 'bg-systemGreen-50 text-systemGreen-700'
+    active: true,
+    chip: 'border-systemIndigo-200 bg-systemIndigo-50',
+    tone: 'bg-systemIndigo-50 text-systemIndigo-700',
+    rail: {
+      node: 'border-systemIndigo-500',
+      dot: 'bg-systemIndigo-500',
+      label: 'text-systemIndigo-700'
+    }
   },
-  in_consultation: {
-    label: 'En consulta',
-    badgeVariant: 'warning',
-    showDot: true,
-    chip: 'border-systemYellow-200 bg-systemYellow-50',
-    tone: 'bg-systemYellow-50 text-systemYellow-700'
-  },
-  in_progress: {
-    label: 'En consulta',
-    badgeVariant: 'warning',
-    showDot: true,
-    chip: 'border-systemYellow-200 bg-systemYellow-50',
-    tone: 'bg-systemYellow-50 text-systemYellow-700'
-  },
+  in_consultation: { ...EN_CONSULTA },
+  in_progress: { ...EN_CONSULTA },
   completed: {
     label: 'Completada',
-    badgeVariant: 'neutral',
+    badgeVariant: 'success',
     showDot: true,
-    chip: 'border-hairline bg-theme-surface',
-    tone: 'bg-systemGray-100 text-systemGray-700'
+    active: false,
+    chip: 'border-systemGreen-200 bg-systemGreen-50',
+    tone: 'bg-systemGreen-50 text-systemGreen-700',
+    rail: {
+      node: 'border-systemGreen-500',
+      dot: 'bg-systemGreen-500',
+      label: 'text-systemGreen-700'
+    }
   },
   cancelled: {
     label: 'Cancelada',
     badgeVariant: 'error',
     showDot: true,
+    active: false,
     chip: 'border-systemRed-200 bg-systemRed-50',
-    tone: 'bg-systemRed-50 text-systemRed-700'
+    tone: 'bg-systemRed-50 text-systemRed-700',
+    rail: {
+      node: 'border-systemRed-500',
+      dot: 'bg-systemRed-500',
+      label: 'text-systemRed-700'
+    }
   },
   no_show: {
     label: 'No se presentó',
-    badgeVariant: 'neutral',
+    badgeVariant: 'orange',
     showDot: true,
-    chip: 'border-systemYellow-200 bg-systemYellow-50',
-    tone: 'bg-systemYellow-50 text-systemYellow-700'
+    active: false,
+    chip: 'border-dashed border-systemOrange-200 bg-systemOrange-50',
+    tone: 'bg-systemOrange-50 text-systemOrange-700',
+    rail: {
+      node: 'border-systemOrange-500',
+      dot: 'bg-systemOrange-500',
+      label: 'text-systemOrange-700'
+    }
   },
   rescheduled: {
     label: 'Reprogramada',
-    badgeVariant: 'warning',
+    badgeVariant: 'purple',
     showDot: false,
-    chip: 'border-accent-200 bg-accent-100',
-    tone: 'bg-accent-100 text-accent-700'
+    active: false,
+    chip: 'border-systemPurple-200 bg-systemPurple-50',
+    tone: 'bg-systemPurple-50 text-systemPurple-700',
+    rail: {
+      node: 'border-systemPurple-500',
+      dot: 'bg-systemPurple-500',
+      label: 'text-systemPurple-700'
+    }
   }
 }
 
@@ -111,4 +183,26 @@ export function statusChipClasses(status) {
 
 export function statusToneClasses(status) {
   return entryFor(status).tone
+}
+
+export function statusRailClasses(status) {
+  return entryFor(status).rail
+}
+
+export function statusIsActive(status) {
+  return entryFor(status).active
+}
+
+export function isTerminalOutcome(status) {
+  return APPOINTMENT_TERMINAL_OUTCOMES.includes(status)
+}
+
+// Index of the current stage in APPOINTMENT_RAIL_STAGES, or -1 for a status
+// that left the rail. `in_progress` is the DB twin of `in_consultation` and
+// walks the same stage; an unknown status falls back with the registry.
+export function railStep(status) {
+  if (isTerminalOutcome(status)) return -1
+  const key = status === 'in_progress' ? 'in_consultation' : status
+  const index = APPOINTMENT_RAIL_STAGES.findIndex(stage => stage.key === key)
+  return index === -1 ? railStep(FALLBACK_STATUS) : index
 }

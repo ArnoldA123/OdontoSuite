@@ -739,21 +739,21 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * U3 clinical boundary — the calendar MUST NOT open the consultation
-     * wizard nor start the attention. The only clinical door is `/my-day`;
-     * a calendar action that calls `startAttention`/`openForAppointment` (or
-     * mounts `ConsultationWizard`) duplicates it and can start an act from
-     * the scheduling desk.
+     * S4 — the calendar MAY start the attention through the existing
+     * `POST /api/appointments/{id}/start-attention` door, gated by
+     * `start.consultation`; it MUST NOT open the clinical consultation: no
+     * wizard mount, no closure door. The closure and its document live in
+     * `/my-day`, and a scheduling surface that mounts the wizard can walk an
+     * act it does not own.
      */
-    public function test_calendar_does_not_open_the_clinical_consultation(): void
+    public function test_calendar_starts_the_attention_without_opening_the_consultation(): void
     {
         $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
+        // The wizard and the closure stay forbidden file-wide.
         $forbidden = [
-            'startAttention',
-            'start-attention',
             'openForAppointment',
             'openConsultationWizard',
             'ConsultationWizard',
@@ -766,13 +766,38 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
                 0,
                 preg_match('#'.preg_quote($token, '#').'#', $src),
                 sprintf(
-                    '%s MUST NOT reference `%s`: the consultation wizard belongs to `/my-day` (U3). '
-                    .'The calendar schedules, reschedules, cancels, checks in and announces; it never starts the act.',
+                    '%s MUST NOT reference `%s`: the calendar may start the attention through its own '
+                    .'endpoint, but the clinical consultation and its closure belong to `/my-day` (S4).',
                     $path,
                     $token
                 )
             );
         }
+
+        // …and the one door it may use is the existing endpoint, gated by the
+        // same permission that gates the act.
+        $this->assertSame(
+            1,
+            preg_match(
+                '#<UiButton\b(?=[^>]*data-calendar-action="start-attention")(?=[^>]*can\.startConsultation\?\.value)(?=[^>]*@click="startAttention\(selectedAppointment\)")([^>]*)>#s',
+                $src
+            ),
+            sprintf(
+                '%s MUST start the attention through exactly one `<UiButton data-calendar-action="start-attention">` '
+                .'gated by `can.startConsultation?.value` and wired to `startAttention(selectedAppointment)` (S4/S5).',
+                $path
+            )
+        );
+
+        $this->assertStringContainsString(
+            'post(`/api/appointments/${appointment.id}/start-attention`, {})',
+            $src,
+            sprintf(
+                '%s MUST start the attention through the existing `POST /api/appointments/{id}/start-attention` '
+                .'endpoint (S4: no new routes, no wizard).',
+                $path
+            )
+        );
     }
 
     /**

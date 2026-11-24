@@ -1,0 +1,28 @@
+{
+  "title": "Detalle de cita y sistema de estados",
+  "brief": "Rediseño del detalle de una cita ya creada para la agenda de OdontoSuite. Recepción y profesionales tienen que saber en qué etapa está la cita y cuál es la única acción que toca, sin seis botones amontonados ni estados que compartan color. El modal resuelve la acción rápida; la página resuelve el registro completo con cronología de custodia; el tercer tablero fija el vocabulario de los ocho estados y la variante móvil.",
+  "artboards": [
+    {
+      "file": "01-modal-siguiente-paso.html",
+      "title": "Modal con siguiente paso",
+      "tradeoff": "Acción única y destructivas escondidas; el detalle clínico queda plegado en una página.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "02-pagina-linea-de-vida.html",
+      "title": "Página de cita con línea de vida",
+      "tradeoff": "Cronología completa y enlace propio; pide una ruta y navegación fuera de la agenda.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "03-estados-y-movil.html",
+      "title": "Sistema de estados y móvil",
+      "tradeoff": "Fija un color por estado y reserva el verde para la acción; no muestra la agenda en contexto.",
+      "width": 1440,
+      "height": 900
+    }
+  ],
+  "feature": "odd/tasks/detalle-cita-modal.md"
+}

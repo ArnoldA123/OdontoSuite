@@ -3,10 +3,17 @@ import {
   APPOINTMENT_STATUSES,
   APPOINTMENT_STATUS_KEYS,
   APPOINTMENT_CHIP_BASE_CLASSES,
+  APPOINTMENT_RAIL_STAGES,
+  APPOINTMENT_STAGE_TIME_FIELDS,
+  APPOINTMENT_TERMINAL_OUTCOMES,
+  isTerminalOutcome,
+  railStep,
   statusLabel,
   statusBadgeVariant,
   statusBadgeProps,
   statusChipClasses,
+  statusIsActive,
+  statusRailClasses,
   statusToneClasses
 } from '../../../resources/js/modules/appointments/appointmentStatus.js'
 
@@ -30,9 +37,17 @@ const API_STATUS_KEYS = [
 // carry it.
 const LEGACY_DB_STATUS_KEYS = ['in_progress']
 
-// Variant validator of components/ui/StatusBadge.vue (stricter of the two
-// badge primitives: Badge.vue accepts these plus 'default'/'primary').
-const STATUS_BADGE_VARIANTS = ['success', 'warning', 'error', 'info', 'neutral']
+// Variant validator of components/ui/StatusBadge.vue.
+const STATUS_BADGE_VARIANTS = [
+  'success',
+  'warning',
+  'error',
+  'info',
+  'neutral',
+  'indigo',
+  'purple',
+  'orange'
+]
 
 describe('appointmentStatus registry', () => {
   it('covers every status the API can return', () => {
@@ -51,10 +66,17 @@ describe('appointmentStatus registry', () => {
       expect(entry.label.length, key).toBeGreaterThan(0)
       expect(STATUS_BADGE_VARIANTS, key).toContain(entry.badgeVariant)
       expect(typeof entry.showDot, key).toBe('boolean')
+      expect(typeof entry.active, key).toBe('boolean')
       expect(typeof entry.chip, key).toBe('string')
       expect(entry.chip.length, key).toBeGreaterThan(0)
       expect(typeof entry.tone, key).toBe('string')
       expect(entry.tone.length, key).toBeGreaterThan(0)
+      expect(typeof entry.rail.node, key).toBe('string')
+      expect(typeof entry.rail.dot, key).toBe('string')
+      expect(typeof entry.rail.label, key).toBe('string')
+      for (const token of Object.values(entry.rail)) {
+        expect(token.length, `${key} rail token`).toBeGreaterThan(0)
+      }
     }
   })
 
@@ -69,21 +91,38 @@ describe('appointmentStatus registry', () => {
     expect(statusLabel('rescheduled')).toBe('Reprogramada')
   })
 
-  it('keeps the exact badge variants and dot flags currently shown', () => {
-    expect(statusBadgeProps('scheduled')).toEqual({ variant: 'info', showDot: true })
-    expect(statusBadgeProps('confirmed')).toEqual({ variant: 'success', showDot: true })
-    expect(statusBadgeProps('arrived')).toEqual({ variant: 'success', showDot: true })
+  it('gives every status its own badge variant, dot and pulse flags', () => {
+    expect(statusBadgeProps('scheduled')).toEqual({ variant: 'neutral', showDot: true })
+    expect(statusBadgeProps('confirmed')).toEqual({ variant: 'info', showDot: true })
+    expect(statusBadgeProps('arrived')).toEqual({ variant: 'indigo', showDot: true })
     expect(statusBadgeProps('in_consultation')).toEqual({ variant: 'warning', showDot: true })
-    expect(statusBadgeProps('completed')).toEqual({ variant: 'neutral', showDot: true })
+    expect(statusBadgeProps('completed')).toEqual({ variant: 'success', showDot: true })
     expect(statusBadgeProps('cancelled')).toEqual({ variant: 'error', showDot: true })
-    expect(statusBadgeProps('no_show')).toEqual({ variant: 'neutral', showDot: true })
-    expect(statusBadgeProps('rescheduled')).toEqual({ variant: 'warning', showDot: false })
+    expect(statusBadgeProps('no_show')).toEqual({ variant: 'orange', showDot: true })
+    expect(statusBadgeProps('rescheduled')).toEqual({ variant: 'purple', showDot: false })
 
     for (const key of APPOINTMENT_STATUS_KEYS) {
       expect(STATUS_BADGE_VARIANTS, key).toContain(statusBadgeVariant(key))
     }
-    expect(statusBadgeVariant('scheduled')).toBe('info')
-    expect(statusBadgeVariant('rescheduled')).toBe('warning')
+    expect(statusBadgeVariant('scheduled')).toBe('neutral')
+    expect(statusBadgeVariant('rescheduled')).toBe('purple')
+
+    // S3 — only the two states that ask for an action are active; the rest
+    // keep the soft tint and a still dot.
+    expect(statusIsActive('arrived')).toBe(true)
+    expect(statusIsActive('in_consultation')).toBe(true)
+    expect(statusIsActive('in_progress')).toBe(true)
+    for (const key of [
+      'scheduled',
+      'confirmed',
+      'completed',
+      'cancelled',
+      'no_show',
+      'rescheduled'
+    ]) {
+      expect(statusIsActive(key), key).toBe(false)
+    }
+    expect(statusIsActive('voided')).toBe(false)
   })
 
   it('keeps the exact chip class tokens currently shown', () => {
@@ -92,25 +131,126 @@ describe('appointmentStatus registry', () => {
     // + border colour fought the registry tint in the cascade (all chips
     // computed white). Base is shape-only now; the tint lives in `chip`.
     expect(APPOINTMENT_CHIP_BASE_CLASSES).toBe('border')
-    expect(statusChipClasses('scheduled')).toBe('border-accent-200 bg-accent-100')
-    expect(statusChipClasses('confirmed')).toBe('border-systemGreen-200 bg-systemGreen-50')
-    expect(statusChipClasses('arrived')).toBe('border-systemGreen-200 bg-systemGreen-50')
+    expect(statusChipClasses('scheduled')).toBe('border-systemGray-200 bg-systemGray-50')
+    expect(statusChipClasses('confirmed')).toBe('border-systemSteel-200 bg-systemSteel-50')
+    expect(statusChipClasses('arrived')).toBe('border-systemIndigo-200 bg-systemIndigo-50')
     expect(statusChipClasses('in_consultation')).toBe('border-systemYellow-200 bg-systemYellow-50')
-    expect(statusChipClasses('completed')).toBe('border-hairline bg-theme-surface')
+    expect(statusChipClasses('completed')).toBe('border-systemGreen-200 bg-systemGreen-50')
     expect(statusChipClasses('cancelled')).toBe('border-systemRed-200 bg-systemRed-50')
-    expect(statusChipClasses('no_show')).toBe('border-systemYellow-200 bg-systemYellow-50')
-    expect(statusChipClasses('rescheduled')).toBe('border-accent-200 bg-accent-100')
+    expect(statusChipClasses('no_show')).toBe(
+      'border-dashed border-systemOrange-200 bg-systemOrange-50'
+    )
+    expect(statusChipClasses('rescheduled')).toBe('border-systemPurple-200 bg-systemPurple-50')
   })
 
   it('keeps the exact tone class tokens currently shown', () => {
-    expect(statusToneClasses('scheduled')).toBe('bg-accent-100 text-accent-700')
-    expect(statusToneClasses('confirmed')).toBe('bg-systemGreen-50 text-systemGreen-700')
-    expect(statusToneClasses('arrived')).toBe('bg-systemGreen-50 text-systemGreen-700')
+    expect(statusToneClasses('scheduled')).toBe('bg-systemGray-50 text-systemGray-700')
+    expect(statusToneClasses('confirmed')).toBe('bg-systemSteel-50 text-systemSteel-700')
+    expect(statusToneClasses('arrived')).toBe('bg-systemIndigo-50 text-systemIndigo-700')
     expect(statusToneClasses('in_consultation')).toBe('bg-systemYellow-50 text-systemYellow-700')
-    expect(statusToneClasses('completed')).toBe('bg-systemGray-100 text-systemGray-700')
+    expect(statusToneClasses('completed')).toBe('bg-systemGreen-50 text-systemGreen-700')
     expect(statusToneClasses('cancelled')).toBe('bg-systemRed-50 text-systemRed-700')
-    expect(statusToneClasses('no_show')).toBe('bg-systemYellow-50 text-systemYellow-700')
-    expect(statusToneClasses('rescheduled')).toBe('bg-accent-100 text-accent-700')
+    expect(statusToneClasses('no_show')).toBe('bg-systemOrange-50 text-systemOrange-700')
+    expect(statusToneClasses('rescheduled')).toBe('bg-systemPurple-50 text-systemPurple-700')
+  })
+
+  it('keeps the brand accent out of every status identity', () => {
+    // S3: the accent green belongs to the primary action, never to a state.
+    for (const key of APPOINTMENT_STATUS_KEYS) {
+      const entry = APPOINTMENT_STATUSES[key]
+      const identity = [entry.chip, entry.tone, ...Object.values(entry.rail)].join(' ')
+      expect(identity, key).not.toMatch(/accent/)
+      expect(statusRailClasses(key).dot, key).not.toMatch(/accent/)
+    }
+  })
+
+  it('gives the four former-green statuses four distinct identities', () => {
+    const formerGreen = ['scheduled', 'confirmed', 'arrived', 'rescheduled']
+    const chips = formerGreen.map(statusChipClasses)
+
+    expect(new Set(chips).size).toBe(formerGreen.length)
+    for (const key of formerGreen) {
+      expect(statusChipClasses(key), key).not.toMatch(/accent|systemGreen/)
+    }
+  })
+})
+
+// S3 — En consulta is the only state that pulses, and the legacy `in_progress`
+// enum travels with the same presentation as `in_consultation`.
+describe('in_progress aliases in_consultation', () => {
+  it('presents both DB keys with the same identity', () => {
+    expect(statusLabel('in_progress')).toBe(statusLabel('in_consultation'))
+    expect(statusBadgeProps('in_progress')).toEqual(statusBadgeProps('in_consultation'))
+    expect(statusChipClasses('in_progress')).toBe(statusChipClasses('in_consultation'))
+    expect(statusToneClasses('in_progress')).toBe(statusToneClasses('in_consultation'))
+    expect(statusRailClasses('in_progress')).toEqual(statusRailClasses('in_consultation'))
+    expect(statusIsActive('in_progress')).toBe(statusIsActive('in_consultation'))
+  })
+})
+
+// S2 — the rail vocabulary: five ordered stages, the outcomes that leave the
+// rail, and the step index of every status.
+describe('appointment rail vocabulary', () => {
+  it('orders the five live stages', () => {
+    expect(APPOINTMENT_RAIL_STAGES.map(stage => stage.key)).toEqual([
+      'scheduled',
+      'confirmed',
+      'arrived',
+      'in_consultation',
+      'completed'
+    ])
+    expect(APPOINTMENT_RAIL_STAGES.map(stage => stage.label)).toEqual([
+      'Programada',
+      'Confirmada',
+      'En espera',
+      'En consulta',
+      'Completada'
+    ])
+  })
+
+  it('declares only the outcomes that replace the rail', () => {
+    expect([...APPOINTMENT_TERMINAL_OUTCOMES].sort()).toEqual([
+      'cancelled',
+      'no_show',
+      'rescheduled'
+    ])
+    for (const key of APPOINTMENT_TERMINAL_OUTCOMES) {
+      expect(isTerminalOutcome(key), key).toBe(true)
+    }
+    for (const stage of APPOINTMENT_RAIL_STAGES) {
+      expect(isTerminalOutcome(stage.key), stage.key).toBe(false)
+    }
+    expect(isTerminalOutcome('completed')).toBe(false)
+    expect(isTerminalOutcome('in_progress')).toBe(false)
+    expect(isTerminalOutcome('voided')).toBe(false)
+  })
+
+  it('answers the current step of every status', () => {
+    expect(railStep('scheduled')).toBe(0)
+    expect(railStep('confirmed')).toBe(1)
+    expect(railStep('arrived')).toBe(2)
+    expect(railStep('in_consultation')).toBe(3)
+    expect(railStep('in_progress')).toBe(3)
+    expect(railStep('completed')).toBe(4)
+    for (const outcome of APPOINTMENT_TERMINAL_OUTCOMES) {
+      expect(railStep(outcome), outcome).toBe(-1)
+    }
+    // An unknown status falls back with the registry's scheduled entry.
+    expect(railStep('voided')).toBe(0)
+  })
+
+  it('takes stage times only from fields the API publishes', () => {
+    const publishedFields = ['created_at', 'confirmed_at', 'checked_in_at', 'completed_at']
+
+    expect(Object.keys(APPOINTMENT_STAGE_TIME_FIELDS).sort()).toEqual(
+      APPOINTMENT_RAIL_STAGES.map(stage => stage.key).sort()
+    )
+    for (const [stage, field] of Object.entries(APPOINTMENT_STAGE_TIME_FIELDS)) {
+      if (field === null) continue
+      expect(publishedFields, `${stage} must read a published field`).toContain(field)
+    }
+    // The consultation start has no published field: no time is invented for it.
+    expect(APPOINTMENT_STAGE_TIME_FIELDS.in_consultation).toBeNull()
   })
 })
 
@@ -146,8 +286,9 @@ describe('appointment chip anatomy contract (T8b defect 2)', () => {
     }
   })
 
-  it('keeps the neutral completed entry on the theme surface tint', () => {
-    expect(statusChipClasses('completed')).toBe('border-hairline bg-theme-surface')
+  it('keeps the cancelled-no-show chip dashed', () => {
+    expect(statusChipClasses('no_show').split(/\s+/)).toContain('border-dashed')
+    expect(statusChipClasses('cancelled').split(/\s+/)).not.toContain('border-dashed')
   })
 })
 
@@ -166,21 +307,22 @@ describe('unknown status fallback', () => {
   })
 
   it('falls back to the scheduled presentation for badges and classes', () => {
-    expect(statusBadgeVariant('voided')).toBe('info')
-    expect(statusBadgeProps('voided')).toEqual({ variant: 'info', showDot: true })
-    expect(statusBadgeProps(undefined)).toEqual({ variant: 'info', showDot: true })
-    expect(statusChipClasses('voided')).toBe('border-accent-200 bg-accent-100')
-    expect(statusChipClasses(undefined)).toBe('border-accent-200 bg-accent-100')
-    expect(statusToneClasses('voided')).toBe('bg-accent-100 text-accent-700')
-    expect(statusToneClasses(null)).toBe('bg-accent-100 text-accent-700')
+    expect(statusBadgeVariant('voided')).toBe('neutral')
+    expect(statusBadgeProps('voided')).toEqual({ variant: 'neutral', showDot: true })
+    expect(statusBadgeProps(undefined)).toEqual({ variant: 'neutral', showDot: true })
+    expect(statusChipClasses('voided')).toBe('border-systemGray-200 bg-systemGray-50')
+    expect(statusChipClasses(undefined)).toBe('border-systemGray-200 bg-systemGray-50')
+    expect(statusToneClasses('voided')).toBe('bg-systemGray-50 text-systemGray-700')
+    expect(statusToneClasses(null)).toBe('bg-systemGray-50 text-systemGray-700')
+    expect(statusIsActive('voided')).toBe(false)
   })
 
   it('ignores prototype-inherited keys such as constructor and toString', () => {
     expect(statusLabel('constructor')).toBe('constructor')
     expect(statusLabel('toString')).toBe('toString')
     expect(statusLabel('__proto__')).toBe('__proto__')
-    expect(statusBadgeProps('constructor')).toEqual({ variant: 'info', showDot: true })
-    expect(statusChipClasses('toString')).toBe('border-accent-200 bg-accent-100')
-    expect(statusToneClasses('__proto__')).toBe('bg-accent-100 text-accent-700')
+    expect(statusBadgeProps('constructor')).toEqual({ variant: 'neutral', showDot: true })
+    expect(statusChipClasses('toString')).toBe('border-systemGray-200 bg-systemGray-50')
+    expect(statusToneClasses('__proto__')).toBe('bg-systemGray-50 text-systemGray-700')
   })
 })

@@ -538,9 +538,11 @@ página pinta su propia versión.
 
 - **Para qué:** etiqueta corta con color semántico (estado, contador,
   categoría).
-- **Variantes (7):** `default`, `primary`, `success`, `warning`, `error`,
-  `info`, `neutral`. Patrón iOS relleno: fondo del paso `100`, texto del `700` y
-  borde del `200`.
+- **Variantes (10):** `default`, `primary`, `success`, `warning`, `error`,
+  `info`, `neutral`, `indigo`, `purple`, `orange`. Patrón iOS relleno: fondo del
+  paso `100`, texto del `700` y borde del `200`. Las tres últimas son aditivas
+  (2026-11-23) para los estados de cita que antes compartían el verde del
+  acento.
 - **`info` no usa acero**: la variante resuelve `systemBlue`, que es el alias
   retirado del acento, así que se lee `#c9e7dc` / `#084c3b` / `#93cdb9`. El tono
   acero (`systemSteel`) lo usan `StatusBadge` y el Kanban de planes; el `Toast`
@@ -557,15 +559,19 @@ página pinta su propia versión.
 ### 7.6 `StatusBadge.vue`
 
 - **Para qué:** estado de una entidad, legible por lector de pantalla.
-- **Variantes (5):** `success` (`systemGreen-50` / `systemGreen-700`), `warning`
+- **Variantes (8):** `success` (`systemGreen-50` / `systemGreen-700`), `warning`
   (`systemYellow-50` / `systemYellow-700`), `error` (`systemRed-50` /
   `systemRed-700`), `info` (`systemSteel-50` / `systemSteel-700`), `neutral`
-  (`systemGray-100` / `systemGray-700`).
+  (`systemGray-100` / `systemGray-700`), más `indigo`, `purple` y `orange` (paso
+  `50` / `700` y punto `500`) para los estados de cita.
 - **Tamaños (2):** `sm` 20 px con `px-2 py-0.5`, `md` 24 px con `px-2.5 py-1`;
   borde transparente y sin sombra.
 - **Contrato:** siempre `rounded-full`, `font-medium`, `role="status"` y
   `aria-label="Estado: <label>"`; `showDot` pinta un punto de 6 px con el paso
-  `500` de la misma rampa; sin transform (es decorativo) y transición de 200 ms.
+  `500` de la misma rampa; `emphasis` elige el relleno (`soft` = paso `50`,
+  `strong` = paso `100`) y `pulse` anima el punto con
+  `motion-safe:animate-pulse-subtle` (solo lo usa la cita en sus estados que
+  piden acción); sin transform propio y transición de 200 ms.
 - **Source:** `resources/js/components/ui/StatusBadge.vue`.
 
 ### 7.7 `Modal.vue`

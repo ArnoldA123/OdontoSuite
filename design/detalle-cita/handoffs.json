@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "chosen": "01-modal-siguiente-paso.html",
+  "handoffs": {
+    "01-modal-siguiente-paso.html": {
+      "status": "implemented",
+      "queued": false,
+      "sentAt": "2026-11-23T22:56:11.347Z",
+      "startedAt": "2026-11-23T22:56:29.155Z",
+      "implementedAt": "2026-11-23T23:22:18.823Z",
+      "note": "Rail de 5 etapas, un color por estado y una sola acción primaria en el modal de la agenda; destructivas en el menú ⋯.",
+      "previewUrl": "http://127.0.0.1:8000/"
+    }
+  }
+}

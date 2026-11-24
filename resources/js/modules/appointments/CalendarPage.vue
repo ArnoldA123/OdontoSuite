@@ -606,143 +606,280 @@
     <UiModal
       :model-value="!!selectedAppointment"
       title="Detalles de la Cita"
-      size="lg"
+      size="3xl"
+      labelledby="appointment-detail-title"
       @update:model-value="closeDetails"
       @close="closeDetails"
     >
-      <div v-if="selectedAppointment" data-calendar-detail class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="text-sm font-medium text-theme-secondary">Paciente</label>
-            <p class="text-theme-primary">
+      <template #header>
+        <div v-if="selectedAppointment" class="flex w-full items-start justify-between gap-4">
+          <div class="min-w-0">
+            <div class="mb-1.5 flex flex-wrap items-center gap-2 text-xs text-theme-secondary">
+              <time
+                :datetime="selectedAppointment.scheduled_at"
+                class="text-sm font-semibold text-theme-primary"
+                style="font-feature-settings: 'tnum' 1"
+              >
+                {{ appointmentTimeRange(selectedAppointment) }}
+              </time>
+              <template v-if="selectedAppointment.dental_chair?.name">
+                <span class="h-[3px] w-[3px] rounded-full bg-systemGray-400" aria-hidden="true" />
+                <span>Sillón {{ selectedAppointment.dental_chair?.name }}</span>
+              </template>
+              <template v-if="selectedAppointment.appointment_type?.name">
+                <span class="h-[3px] w-[3px] rounded-full bg-systemGray-400" aria-hidden="true" />
+                <span>{{ selectedAppointment.appointment_type?.name }}</span>
+              </template>
+            </div>
+            <h2
+              id="appointment-detail-title"
+              class="truncate text-2xl font-semibold text-theme-primary"
+            >
               {{ selectedAppointment.patient?.first_name }}
               {{ selectedAppointment.patient?.last_name }}
+            </h2>
+            <p v-if="patientMetaLine" class="mt-1 text-sm text-theme-secondary">
+              {{ patientMetaLine }}
             </p>
           </div>
-          <div>
-            <label class="text-sm font-medium text-theme-secondary">Profesional</label>
-            <p class="text-theme-primary">
-              {{ selectedAppointment.user?.name }}
-            </p>
-          </div>
+          <UiButton
+            variant="ghost"
+            size="sm"
+            aria-label="Cerrar detalle de la cita"
+            data-appointment-detail-close
+            @click="closeDetails"
+          >
+            <template #icon-left>
+              <XMarkIcon class="h-4 w-4" aria-hidden="true" />
+            </template>
+          </UiButton>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="text-sm font-medium text-theme-secondary">Fecha y Hora</label>
-            <p class="text-theme-primary" style="font-feature-settings: 'tnum' 1">
-              {{ formatDateTime(selectedAppointment.scheduled_at) }}
-            </p>
-            <p class="text-sm text-theme-secondary" style="font-feature-settings: 'tnum' 1">
-              {{ appointmentTimeRange(selectedAppointment) }}
-            </p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-theme-secondary">Duración</label>
-            <p class="text-theme-primary">{{ selectedAppointment.duration_minutes }} minutos</p>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div v-if="selectedAppointment.appointment_type?.name">
-            <label class="text-sm font-medium text-theme-secondary">Tipo de Cita</label>
-            <p class="text-theme-primary">
-              {{ selectedAppointment.appointment_type.name }}
-            </p>
-          </div>
-          <div v-if="selectedAppointment.dental_chair?.name">
-            <label class="text-sm font-medium text-theme-secondary">Sillón Dental</label>
-            <p class="text-theme-primary">Sillón {{ selectedAppointment.dental_chair.name }}</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-theme-secondary">Estado</label>
+      </template>
+
+      <div v-if="selectedAppointment" data-calendar-detail class="space-y-5">
+        <section class="border-b border-hairline pb-5" aria-label="Etapas de la cita">
+          <AppointmentStageRail :status="selectedAppointment.status" :times="railTimes" />
+          <div
+            v-if="!isTerminalOutcome(selectedAppointment.status)"
+            class="mt-3.5 flex flex-wrap items-center justify-between gap-3"
+          >
             <UiStatusBadge
               :variant="getStatusBadgeProps(selectedAppointment.status).variant"
               :label="getStatusText(selectedAppointment.status)"
               :show-dot="getStatusBadgeProps(selectedAppointment.status).showDot"
+              :emphasis="statusIsActive(selectedAppointment.status) ? 'strong' : 'soft'"
+              :pulse="statusIsActive(selectedAppointment.status)"
               :data-status="selectedAppointment.status"
             />
+            <span
+              v-if="statusSince"
+              class="text-xs text-theme-secondary"
+              data-appointment-status-since
+              style="font-feature-settings: 'tnum' 1"
+            >
+              {{ statusSince }}
+            </span>
+          </div>
+        </section>
+
+        <section
+          v-if="nowCopy"
+          class="rounded-ios border border-hairline bg-theme-surface p-4"
+          data-appointment-now
+        >
+          <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">Ahora</p>
+          <h3 class="mt-1.5 text-lg font-semibold text-theme-primary">{{ nowCopy.title }}</h3>
+          <p class="mt-1 text-sm text-theme-secondary">{{ nowCopy.description }}</p>
+
+          <div
+            v-if="primaryAction || (showMyDayLink && can.viewMyDay?.value)"
+            class="mt-4 flex flex-wrap items-center gap-2.5"
+          >
+            <UiButton
+              v-if="selectedAppointment.status === 'scheduled'"
+              variant="primary"
+              data-calendar-action="status-confirmed"
+              :data-appointment-primary="primaryAction === 'status-confirmed' ? '' : null"
+              @click="changeStatus(selectedAppointment, 'confirmed')"
+            >
+              Confirmar cita
+            </UiButton>
+            <UiButton
+              v-if="can.checkInAppointment?.value && selectedAppointment.status === 'confirmed'"
+              variant="primary"
+              data-calendar-action="check-in"
+              :data-appointment-primary="primaryAction === 'check-in' ? '' : null"
+              @click="markArrival(selectedAppointment)"
+            >
+              Registrar llegada
+            </UiButton>
+            <UiButton
+              v-if="can.startConsultation?.value && selectedAppointment.status === 'arrived'"
+              variant="primary"
+              data-calendar-action="start-attention"
+              :data-appointment-primary="primaryAction === 'start-attention' ? '' : null"
+              @click="startAttention(selectedAppointment)"
+            >
+              Iniciar atención
+            </UiButton>
+            <UiButton
+              v-else-if="can.announcePatient?.value && selectedAppointment.status === 'arrived'"
+              variant="primary"
+              data-calendar-action="announce"
+              :data-appointment-primary="primaryAction === 'announce' ? '' : null"
+              @click="announcePatient(selectedAppointment)"
+            >
+              Anunciar paciente
+            </UiButton>
+            <template v-if="showMyDayLink">
+              <RouterLink
+                v-if="can.viewMyDay?.value"
+                to="/my-day"
+                data-calendar-action="my-day"
+                class="inline-flex items-center rounded-ios px-1 py-1 text-sm font-medium text-theme-accent transition-colors duration-200 hover:underline [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+              >
+                Ir a mi jornada
+              </RouterLink>
+            </template>
+          </div>
+        </section>
+
+        <section aria-labelledby="appointment-facts-title" class="space-y-3">
+          <h3 id="appointment-facts-title" class="text-sm font-semibold text-theme-primary">
+            Datos de la cita
+          </h3>
+          <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div v-if="selectedAppointment.user?.name">
+              <dt class="text-xs text-theme-secondary">Profesional</dt>
+              <dd class="text-sm text-theme-primary">{{ selectedAppointment.user?.name }}</dd>
+            </div>
+            <div v-if="selectedAppointment.appointment_type?.name">
+              <dt class="text-xs text-theme-secondary">Tipo de cita</dt>
+              <dd class="text-sm text-theme-primary">
+                {{ selectedAppointment.appointment_type?.name }}
+              </dd>
+            </div>
+            <div v-if="selectedAppointment.procedure?.name">
+              <dt class="text-xs text-theme-secondary">Procedimiento</dt>
+              <dd class="text-sm text-theme-primary">
+                {{ selectedAppointment.procedure?.name }}
+              </dd>
+            </div>
+            <div v-if="selectedAppointment.dental_chair?.name">
+              <dt class="text-xs text-theme-secondary">Sillón</dt>
+              <dd class="text-sm text-theme-primary">
+                Sillón {{ selectedAppointment.dental_chair?.name }}
+              </dd>
+            </div>
+            <div v-if="selectedAppointment.branch?.name">
+              <dt class="text-xs text-theme-secondary">Sede</dt>
+              <dd class="text-sm text-theme-primary">{{ selectedAppointment.branch?.name }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-theme-secondary">Duración</dt>
+              <dd class="text-sm text-theme-primary">
+                {{ selectedAppointment.duration_minutes }} minutos
+              </dd>
+            </div>
+          </dl>
+          <div v-if="selectedAppointment.notes">
+            <p class="text-xs text-theme-secondary">Notas</p>
+            <p class="text-sm text-theme-primary">{{ selectedAppointment.notes }}</p>
+          </div>
+          <div v-if="selectedAppointment.treatment_notes">
+            <p class="text-xs text-theme-secondary">Notas de tratamiento</p>
+            <p class="text-sm text-theme-primary">{{ selectedAppointment.treatment_notes }}</p>
+          </div>
+        </section>
+      </div>
+
+      <template #footer>
+        <div
+          v-if="selectedAppointment"
+          class="flex w-full flex-wrap items-center justify-between gap-3"
+        >
+          <p
+            v-if="selectedAppointment.created_at"
+            class="text-xs text-theme-secondary"
+            data-appointment-created-meta
+          >
+            Creada ·
+            <span style="font-feature-settings: 'tnum' 1">
+              {{ formatDateTime(selectedAppointment.created_at) }}
+            </span>
+          </p>
+          <div class="ml-auto flex items-center gap-2">
+            <UiButton
+              v-if="can.editAppointment?.value"
+              variant="secondary"
+              data-calendar-action="edit"
+              @click="editAppointment(selectedAppointment)"
+            >
+              Editar
+            </UiButton>
+            <div ref="detailsMenuRef" class="relative" @keydown.esc.stop="closeMenu">
+              <UiButton
+                variant="icon"
+                size="sm"
+                aria-label="Más acciones"
+                aria-haspopup="menu"
+                :aria-expanded="menuOpen"
+                data-appointment-menu-trigger
+                @click="toggleMenu"
+              >
+                <template #icon-left>
+                  <EllipsisHorizontalIcon class="h-4 w-4" aria-hidden="true" />
+                </template>
+              </UiButton>
+              <div
+                v-show="menuOpen"
+                role="menu"
+                aria-label="Más acciones de la cita"
+                data-appointment-menu
+                class="absolute bottom-full right-0 z-dropdown mb-2 w-[232px] rounded-control border border-hairline bg-theme-surface-elevated p-1.5 shadow-large"
+                @click="closeMenu"
+              >
+                <UiButton
+                  v-if="can.editAppointment?.value"
+                  variant="ghost"
+                  full-width
+                  class="rounded-md"
+                  style="justify-content: flex-start"
+                  data-appointment-action="reschedule"
+                  @click="openReschedule(selectedAppointment)"
+                >
+                  Reagendar
+                </UiButton>
+                <p v-if="showCancelAction" class="px-2.5 pt-1.5 pb-1 text-xs text-theme-secondary">
+                  Cancelar pide motivo.
+                </p>
+                <UiButton
+                  v-if="showCancelAction"
+                  variant="ghost"
+                  full-width
+                  class="rounded-md"
+                  style="justify-content: flex-start; color: var(--color-danger-text)"
+                  data-calendar-action="status-cancelled"
+                  @click="changeStatus(selectedAppointment, 'cancelled')"
+                >
+                  Cancelar cita
+                </UiButton>
+                <UiButton
+                  v-if="can.deleteAppointment?.value"
+                  variant="ghost"
+                  full-width
+                  class="rounded-md"
+                  style="justify-content: flex-start; color: var(--color-danger-text)"
+                  data-calendar-action="delete"
+                  @click="deleteAppointment(selectedAppointment)"
+                >
+                  Eliminar
+                </UiButton>
+              </div>
+            </div>
           </div>
         </div>
-        <div v-if="selectedAppointment.notes">
-          <label class="text-sm font-medium text-theme-secondary">Notas</label>
-          <p class="text-theme-primary">
-            {{ selectedAppointment.notes }}
-          </p>
-        </div>
-        <div v-if="selectedAppointment.treatment_notes">
-          <label class="text-sm font-medium text-theme-secondary">Notas de Tratamiento</label>
-          <p class="text-theme-primary">
-            {{ selectedAppointment.treatment_notes }}
-          </p>
-        </div>
-        <div class="flex flex-wrap gap-2 pt-2 border-t border-hairline">
-          <UiButton
-            v-if="selectedAppointment.status === 'scheduled'"
-            size="sm"
-            variant="secondary"
-            data-calendar-action="status-confirmed"
-            @click="changeStatus(selectedAppointment, 'confirmed')"
-          >
-            Confirmar cita
-          </UiButton>
-          <UiButton
-            v-if="
-              can.checkInAppointment?.value &&
-              (selectedAppointment.status === 'confirmed' ||
-                selectedAppointment.status === 'scheduled')
-            "
-            size="sm"
-            variant="secondary"
-            data-calendar-action="check-in"
-            @click="markArrival(selectedAppointment)"
-          >
-            Marcar llegada
-          </UiButton>
-          <UiButton
-            v-if="can.announcePatient?.value && selectedAppointment.status === 'arrived'"
-            size="sm"
-            variant="secondary"
-            data-calendar-action="announce"
-            @click="announcePatient(selectedAppointment)"
-          >
-            Anunciar paciente
-          </UiButton>
-          <RouterLink
-            v-if="can.viewMyDay?.value"
-            to="/my-day"
-            data-calendar-action="my-day"
-            class="inline-flex items-center rounded-ios px-3 py-2 text-sm font-medium text-systemBlue-600 transition-colors hover:text-systemBlue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2"
-          >
-            Ir a mi jornada
-          </RouterLink>
-          <UiButton
-            v-if="!['cancelled', 'completed'].includes(selectedAppointment.status)"
-            size="sm"
-            variant="danger"
-            data-calendar-action="status-cancelled"
-            @click="changeStatus(selectedAppointment, 'cancelled')"
-          >
-            Cancelar Cita
-          </UiButton>
-        </div>
-        <div class="flex justify-end gap-3 pt-4">
-          <UiButton
-            v-if="can.editAppointment?.value"
-            variant="secondary"
-            data-calendar-action="edit"
-            @click="editAppointment(selectedAppointment)"
-          >
-            Editar
-          </UiButton>
-          <UiButton
-            v-if="can.deleteAppointment?.value"
-            variant="danger"
-            data-calendar-action="delete"
-            @click="deleteAppointment(selectedAppointment)"
-          >
-            Eliminar
-          </UiButton>
-        </div>
-      </div>
+      </template>
     </UiModal>
 
     <!-- #394: cancelar pide confirmación y motivo; el motivo se guarda en la
@@ -840,11 +977,13 @@ import {
   CheckCircleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  EllipsisHorizontalIcon,
   ExclamationTriangleIcon,
   PlusIcon,
   XMarkIcon
 } from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
+import AppointmentStageRail from './AppointmentStageRail.vue'
 import { useConsultation } from '../../composables/useConsultation'
 import { useConfirm } from '../../composables/useConfirm'
 import {
@@ -854,7 +993,10 @@ import {
 } from '../../composables/useFormatters'
 import {
   APPOINTMENT_CHIP_BASE_CLASSES,
+  APPOINTMENT_STAGE_TIME_FIELDS,
   APPOINTMENT_STATUS_KEYS,
+  isTerminalOutcome,
+  statusIsActive,
   statusLabel,
   statusBadgeProps,
   statusBadgeVariant,
@@ -898,14 +1040,16 @@ export default {
     CheckCircleIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
+    EllipsisHorizontalIcon,
     ExclamationTriangleIcon,
     PlusIcon,
     XMarkIcon,
-    NewAppointmentModal
+    NewAppointmentModal,
+    AppointmentStageRail
   },
   setup() {
     const route = useRoute()
-    const { get, del, patch, normalizeError } = useApi()
+    const { get, post, del, patch, normalizeError } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
     const { privateChannel, echo } = useEcho()
@@ -949,6 +1093,23 @@ export default {
 
     const markArrival = appointment => runCustodyAction(requestArrival, appointment)
     const announcePatient = appointment => runCustodyAction(requestAnnouncement, appointment)
+
+    // S4/S5 — el acto se inicia por su propia puerta: el arranque no pasa por
+    // el composable de la consulta, sólo por el endpoint existente.
+    const startAttention = async appointment => {
+      try {
+        await post(`/api/appointments/${appointment.id}/start-attention`, {})
+        toast.success('Atención iniciada.')
+        await loadAppointments()
+        selectedAppointment.value = null
+      } catch (error) {
+        toast.error(
+          error?.response?.data?.error?.message ||
+            error?.response?.data?.message ||
+            'No se pudo iniciar la atención'
+        )
+      }
+    }
 
     const editingAppointment = ref(null)
     const newAppointmentPrefill = ref(null)
@@ -1433,6 +1594,132 @@ export default {
       selectedAppointment.value = null
     }
 
+    // --- Detalle: rail, siguiente paso y menú de secundarias -------------
+    //
+    // S1/S5: el detalle publica UNA acción primaria derivada del estado. El
+    // resto vive en el menú «⋯» o como enlace de texto; cancelar y eliminar
+    // nunca se sientan al lado del primario.
+    const menuOpen = ref(false)
+    const detailsMenuRef = ref(null)
+
+    const closeMenu = () => {
+      menuOpen.value = false
+    }
+
+    const toggleMenu = () => {
+      menuOpen.value = !menuOpen.value
+    }
+
+    const handleDetailsPointerDown = event => {
+      if (!menuOpen.value) return
+      if (detailsMenuRef.value?.contains(event.target)) return
+      closeMenu()
+    }
+
+    watch(selectedAppointment, closeMenu)
+
+    // S5: la agenda no inicia el acto clínico; el enlace a Mi jornada es el
+    // único puente y existe una sola vez en el marcado.
+    const showMyDayLink = computed(() =>
+      ['arrived', 'in_consultation', 'in_progress'].includes(selectedAppointment.value?.status)
+    )
+
+    // S2: una etapa muestra hora sólo si la API publica el campo que la
+    // respalda. Nada se deduce ni se inventa.
+    const railTimes = computed(() => {
+      const appointment = selectedAppointment.value
+      if (!appointment) return {}
+
+      return Object.fromEntries(
+        Object.entries(APPOINTMENT_STAGE_TIME_FIELDS).map(([stage, field]) => [
+          stage,
+          field ? (appointment[field] ?? null) : null
+        ])
+      )
+    })
+
+    // S5: el primario por estado, siempre una acción que la agenda puede
+    // cerrar. Cada puerta de permiso decide si existe; sin primario no hay
+    // botón, sólo el enlace a Mi jornada cuando corresponde.
+    const primaryAction = computed(() => {
+      const status = selectedAppointment.value?.status
+      if (status === 'scheduled') return 'status-confirmed'
+      if (status === 'confirmed') return can.checkInAppointment?.value ? 'check-in' : null
+      if (status === 'arrived') {
+        if (can.startConsultation?.value) return 'start-attention'
+        return can.announcePatient?.value ? 'announce' : null
+      }
+      return null
+    })
+
+    const nowCopy = computed(() => {
+      const status = selectedAppointment.value?.status
+      if (status === 'scheduled') {
+        return {
+          title: 'La cita espera confirmación',
+          description: 'Confirma con el paciente; la llegada se registra en el paso siguiente.'
+        }
+      }
+      if (status === 'confirmed') {
+        return can.checkInAppointment?.value
+          ? {
+              title: 'El paciente está citado',
+              description: 'Registra la llegada cuando aparezca por recepción.'
+            }
+          : {
+              title: 'El paciente está citado',
+              description: 'Recepción registra la llegada cuando el paciente aparezca.'
+            }
+      }
+      if (status === 'arrived') {
+        return {
+          title: 'El paciente está en sala de espera',
+          description:
+            primaryAction.value === 'start-attention'
+              ? 'Inicia la atención cuando pase al sillón; el cierre se documenta en Mi jornada.'
+              : 'Anuncia al profesional responsable; la atención se inicia desde Mi jornada.'
+        }
+      }
+      if (status === 'in_consultation' || status === 'in_progress') {
+        return {
+          title: 'La atención está en curso',
+          description: 'El cierre clínico se documenta en Mi jornada.'
+        }
+      }
+      return null
+    })
+
+    // Sólo campos publicados: sin edad, historia ni teléfono inventados.
+    const patientMetaLine = computed(() => {
+      const patient = selectedAppointment.value?.patient
+      if (!patient) return ''
+      const parts = []
+      if (patient.document_number) parts.push(`Doc. ${patient.document_number}`)
+      if (patient.phone) parts.push(patient.phone)
+      if (patient.email) parts.push(patient.email)
+      return parts.join(' · ')
+    })
+
+    const statusSince = computed(() => {
+      const appointment = selectedAppointment.value
+      if (!appointment) return ''
+      if (appointment.status === 'arrived' && appointment.checked_in_at) {
+        return `Llegó a las ${formatTime(appointment.checked_in_at)}`
+      }
+      if (appointment.status === 'completed' && appointment.completed_at) {
+        return `Cerrada a las ${formatTime(appointment.completed_at)}`
+      }
+      return ''
+    })
+
+    const showCancelAction = computed(
+      () =>
+        !!selectedAppointment.value &&
+        !['cancelled', 'completed'].includes(selectedAppointment.value.status)
+    )
+
+    const openReschedule = appointment => editAppointment(appointment)
+
     // T7 D1/D9 — quiet empty-state copy per view (one short title + one
     // precise sentence), rendered instead of the grids when the loaded range
     // has zero appointments. #395 S5: with active filters the empty block
@@ -1792,6 +2079,7 @@ export default {
     onMounted(() => {
       // #397 S7: el affordance del scroll horizontal se remide con el viewport.
       window.addEventListener('resize', readWeekScrollState)
+      document.addEventListener('pointerdown', handleDetailsPointerDown)
       nextTick(readWeekScrollState)
 
       // `?date=YYYY-MM-DD` abre la agenda en ese día: es el destino de la
@@ -1841,6 +2129,7 @@ export default {
 
     onUnmounted(() => {
       window.removeEventListener('resize', readWeekScrollState)
+      document.removeEventListener('pointerdown', handleDetailsPointerDown)
 
       // Drag en curso: no dejar listeners de ventana huérfanos al desmontar.
       if (dragSession) {
@@ -1920,6 +2209,21 @@ export default {
       getStatusClasses,
       getStatusText,
       getStatusBadgeProps,
+      isTerminalOutcome,
+      statusIsActive,
+      railTimes,
+      primaryAction,
+      nowCopy,
+      patientMetaLine,
+      statusSince,
+      showMyDayLink,
+      startAttention,
+      menuOpen,
+      detailsMenuRef,
+      toggleMenu,
+      closeMenu,
+      showCancelAction,
+      openReschedule,
       selectAppointment,
       closeDetails,
       emptyStateCopy,

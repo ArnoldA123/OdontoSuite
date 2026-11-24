@@ -31,7 +31,18 @@ const props = defineProps({
     type: String,
     default: 'default',
     validator: value =>
-      ['default', 'primary', 'success', 'warning', 'error', 'info', 'neutral'].includes(value)
+      [
+        'default',
+        'primary',
+        'success',
+        'warning',
+        'error',
+        'info',
+        'neutral',
+        'indigo',
+        'purple',
+        'orange'
+      ].includes(value)
   },
   size: {
     type: String,
@@ -76,7 +87,10 @@ const badgeClasses = computed(() => {
     warning: ['bg-systemYellow-100 text-systemYellow-700', 'border border-systemYellow-200'],
     error: ['bg-systemRed-100 text-systemRed-700', 'border border-systemRed-200'],
     info: ['bg-systemBlue-100 text-systemBlue-700', 'border border-systemBlue-200'],
-    neutral: ['bg-theme-surface text-theme-secondary', 'border border-theme']
+    neutral: ['bg-theme-surface text-theme-secondary', 'border border-theme'],
+    indigo: ['bg-systemIndigo-100 text-systemIndigo-700', 'border border-systemIndigo-200'],
+    purple: ['bg-systemPurple-100 text-systemPurple-700', 'border border-systemPurple-200'],
+    orange: ['bg-systemOrange-100 text-systemOrange-700', 'border border-systemOrange-200']
   }
 
   // Dot variant
