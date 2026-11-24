@@ -1,0 +1,1986 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calendario · Tablero de salas</title>
+    <style>
+      :root {
+        --accent: #0f7a5f;
+        --accent-hover: #0a5f49;
+        --accent-light: #f2f8f5;
+        --accent-100: #c9e7dc;
+        --accent-200: #93cdb9;
+        --accent-700: #084c3b;
+        --canvas: #f7f6f4;
+        --surface: #ffffff;
+        --label: #1a1917;
+        --label-2: #5c5a55;
+        --label-3: rgba(26, 24, 20, 0.3);
+        --border: #c9c5bd;
+        --border-light: #edebe7;
+        --hairline: rgba(26, 24, 20, 0.1);
+        --g50: #f7f6f4;
+        --g100: #edebe7;
+        --g200: #dcd8d2;
+        --g300: #d2cec7;
+        --g400: #b5b0a8;
+        --g500: #908b82;
+        --g600: #635e57;
+        --g700: #3b3833;
+        --steel-50: #eef3f8;
+        --steel-100: #dbe5ef;
+        --steel-200: #bed0e0;
+        --steel-500: #4a7191;
+        --steel-700: #2b4459;
+        --green-50: #e8f5e9;
+        --green-100: #cdedcf;
+        --green-200: #a4d8a8;
+        --green-500: #34c759;
+        --green-700: #1a6530;
+        --yellow-50: #fff9d6;
+        --yellow-100: #fff1ad;
+        --yellow-200: #ffe57f;
+        --yellow-500: #ffcc00;
+        --yellow-700: #7a5200;
+        --red-50: #ffebea;
+        --red-100: #ffd9d7;
+        --red-200: #ffb8b3;
+        --red-500: #ff3b30;
+        --red-700: #a50e10;
+        --orange-50: #fff1e5;
+        --orange-100: #ffe2c7;
+        --orange-200: #ffd09d;
+        --orange-500: #ff9500;
+        --orange-700: #9a2700;
+        --indigo-50: #efe9ff;
+        --indigo-100: #dfd2ff;
+        --indigo-200: #c8b6ff;
+        --indigo-500: #5856d6;
+        --indigo-700: #2d2b80;
+        --purple-50: #f6e9ff;
+        --purple-100: #ecd2ff;
+        --purple-200: #dfaeff;
+        --purple-500: #af52de;
+        --purple-700: #55276f;
+        --r-ios: 10px;
+        --r-ctl: 12px;
+        --r-modal: 14px;
+        --r-card: 16px;
+        --e1: 0 1px 3px rgba(92, 90, 85, 0.04);
+        --e2: 0 2px 8px rgba(92, 90, 85, 0.06), 0 1px 2px rgba(92, 90, 85, 0.04);
+        --e3: 0 8px 16px rgba(92, 90, 85, 0.08), 0 2px 6px rgba(92, 90, 85, 0.06);
+        --e4: 0 16px 24px rgba(92, 90, 85, 0.12), 0 4px 8px rgba(92, 90, 85, 0.08);
+        --focus: 0 0 0 3px rgba(15, 122, 95, 0.2);
+        --dur-fast: 120ms;
+        --dur-normal: 200ms;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+      }
+      body {
+        background: var(--canvas);
+        color: var(--label);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        font-size: 15px;
+        line-height: 22px;
+        -webkit-font-smoothing: antialiased;
+      }
+      h1,
+      h2,
+      h3,
+      p,
+      ul,
+      li {
+        margin: 0;
+        padding: 0;
+      }
+      ul {
+        list-style: none;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: 0;
+        cursor: pointer;
+      }
+      :focus-visible {
+        outline: none;
+        box-shadow: var(--focus);
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ---------- shell ---------- */
+      .app {
+        display: flex;
+        min-height: 100vh;
+      }
+      .rail {
+        width: 64px;
+        flex: 0 0 64px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 14px 0 18px;
+        background: var(--surface);
+        border-right: 1px solid var(--hairline);
+      }
+      .brand {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--r-ios);
+        background: var(--accent);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .rail-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 18px;
+      }
+      .rail-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--r-ios);
+        display: grid;
+        place-items: center;
+        color: var(--g500);
+        transition:
+          background var(--dur-fast) var(--ease-ios),
+          color var(--dur-fast) var(--ease-ios);
+      }
+      .rail-btn:hover {
+        background: var(--g100);
+        color: var(--label);
+      }
+      .rail-btn.is-active {
+        background: var(--accent-light);
+        color: var(--accent);
+      }
+      .rail-foot {
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+      .avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 9999px;
+        background: var(--accent-100);
+        color: var(--accent-700);
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      /* ---------- page ---------- */
+      .page {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 16px 26px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      .eyebrow {
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--label-2);
+      }
+      h1 {
+        font-size: 24px;
+        line-height: 32px;
+        letter-spacing: -0.015em;
+        font-weight: 650;
+        margin-top: 2px;
+      }
+      .head-tools {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .seg {
+        display: flex;
+        padding: 3px;
+        gap: 2px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: var(--r-ios);
+        box-shadow: var(--e1);
+      }
+      .seg-btn {
+        padding: 5px 12px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--label-2);
+        transition:
+          background var(--dur-fast) var(--ease-ios),
+          color var(--dur-fast) var(--ease-ios);
+      }
+      .seg-btn:hover {
+        color: var(--label);
+      }
+      .seg-btn[aria-pressed='true'] {
+        background: var(--label);
+        color: #fff;
+      }
+      .stepper {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: var(--r-ios);
+        box-shadow: var(--e1);
+        padding: 3px;
+      }
+      .icon-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        color: var(--label-2);
+        transition:
+          background var(--dur-fast) var(--ease-ios),
+          color var(--dur-fast) var(--ease-ios);
+      }
+      .icon-btn:hover {
+        background: var(--g100);
+        color: var(--label);
+      }
+      .btn-ghost {
+        height: 30px;
+        padding: 0 12px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--label);
+      }
+      .btn-ghost:hover {
+        background: var(--g100);
+      }
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 36px;
+        padding: 0 16px;
+        border-radius: var(--r-ios);
+        background: var(--accent);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        box-shadow:
+          var(--e3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+        transition:
+          transform var(--dur-fast) var(--ease-ios),
+          background var(--dur-fast) var(--ease-ios);
+      }
+      .btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+      }
+      .btn-primary:active {
+        transform: translateY(1px);
+      }
+
+      /* ---------- week strip ---------- */
+      .week {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .day {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1px;
+        padding: 9px 12px 10px;
+        border-radius: var(--r-ios);
+        border: 1px solid transparent;
+        text-align: left;
+        transition:
+          background var(--dur-fast) var(--ease-ios),
+          border-color var(--dur-fast) var(--ease-ios),
+          box-shadow var(--dur-fast) var(--ease-ios);
+      }
+      .day:hover {
+        background: var(--surface);
+        border-color: var(--hairline);
+      }
+      .day .dw {
+        font-size: 11px;
+        line-height: 15px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--label-2);
+      }
+      .day .dn {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        font-size: 19px;
+        line-height: 24px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      .day .dc {
+        font-size: 11px;
+        line-height: 15px;
+        color: var(--label-2);
+      }
+      .day.is-selected {
+        background: var(--surface);
+        border-color: var(--accent-200);
+        box-shadow: var(--e2);
+      }
+      .day.is-selected .dn {
+        color: var(--accent);
+      }
+      .day.is-selected .dc {
+        color: var(--accent-hover);
+        font-weight: 600;
+      }
+      .day .closed {
+        color: var(--g500);
+      }
+
+      /* ---------- meta ---------- */
+      .meta {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--label-2);
+      }
+      .meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-left: auto;
+        flex-wrap: wrap;
+      }
+      .legend li {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11.5px;
+      }
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 9999px;
+        background: currentColor;
+        flex: 0 0 auto;
+      }
+
+      /* ---------- live, toolbar ---------- */
+      .live {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        height: 22px;
+        padding: 0 9px;
+        border-radius: 9999px;
+        background: var(--accent-light);
+        color: var(--accent-700);
+        font-size: 10.5px;
+        line-height: 14px;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+      .live::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 9999px;
+        background: var(--accent);
+        animation: livePulse 2.4s var(--ease-ios) infinite;
+      }
+      @keyframes livePulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.35;
+        }
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .chips {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 30px;
+        padding: 0 11px;
+        border-radius: 9999px;
+        border: 1px solid var(--hairline);
+        background: var(--surface);
+        box-shadow: var(--e1);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--label-2);
+        transition:
+          border-color var(--dur-fast) var(--ease-ios),
+          background var(--dur-fast) var(--ease-ios),
+          color var(--dur-fast) var(--ease-ios);
+      }
+      .filter-chip:hover {
+        border-color: var(--g300);
+        color: var(--label);
+      }
+      .filter-chip[aria-pressed='true'] {
+        background: var(--accent-light);
+        border-color: var(--accent-200);
+        color: var(--accent-700);
+      }
+      .filter-chip .n {
+        font-size: 11px;
+        font-weight: 650;
+        color: var(--label-2);
+        font-variant-numeric: tabular-nums;
+      }
+      .filter-chip[aria-pressed='true'] .n {
+        color: var(--accent-hover);
+      }
+      .groupby {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        line-height: 15px;
+        color: var(--label-2);
+      }
+      .groupby-seg {
+        display: flex;
+        gap: 2px;
+        padding: 3px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: 9px;
+        box-shadow: var(--e1);
+      }
+      .groupby-btn {
+        height: 24px;
+        padding: 0 10px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--label-2);
+      }
+      .groupby-btn:hover {
+        color: var(--label);
+      }
+      .groupby-btn[aria-pressed='true'] {
+        background: var(--g100);
+        color: var(--label);
+      }
+      .btn-bordered {
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        box-shadow: var(--e1);
+      }
+      .today-pill {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        padding: 0 6px;
+        border-radius: 9999px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 9px;
+        line-height: 15px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      /* ---------- workspace ---------- */
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 318px;
+        gap: 16px;
+        align-items: start;
+      }
+      .board-shell {
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: var(--r-card);
+        box-shadow: var(--e1);
+        overflow: hidden;
+      }
+      .board-scroll {
+        overflow-x: auto;
+      }
+      .board {
+        min-width: 720px;
+      }
+      .board-head {
+        display: grid;
+        grid-template-columns: 56px repeat(4, minmax(0, 1fr));
+        border-bottom: 1px solid var(--border-light);
+      }
+      .board-head {
+        background: var(--surface);
+      }
+      .corner {
+        position: sticky;
+        left: 0;
+        z-index: 3;
+        display: grid;
+        place-items: end center;
+        padding: 10px 0 8px;
+        background: var(--surface);
+        font-size: 10px;
+        line-height: 14px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--label-2);
+      }
+      .chair {
+        padding: 10px 12px 9px;
+        border-left: 1px solid var(--hairline);
+      }
+      .chair-top {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .chair-name {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 650;
+      }
+      .chair-pill {
+        padding: 1px 7px;
+        border-radius: 9999px;
+        background: var(--g100);
+        color: var(--g600);
+        font-size: 10.5px;
+        line-height: 15px;
+        font-weight: 600;
+      }
+      .chair-bar {
+        margin-top: 7px;
+        height: 4px;
+        border-radius: 9999px;
+        background: var(--g100);
+        overflow: hidden;
+      }
+      .chair-bar > span {
+        display: block;
+        height: 100%;
+        border-radius: 9999px;
+        background: var(--accent);
+      }
+      .chair-bar-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 7px;
+      }
+      .chair-bar-row .chair-bar {
+        flex: 1 1 auto;
+        margin: 0;
+      }
+      .chair-pct {
+        font-size: 10px;
+        line-height: 14px;
+        font-weight: 650;
+        color: var(--label-2);
+        font-variant-numeric: tabular-nums;
+      }
+      .chair-now {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 6px;
+        font-size: 10.5px;
+        line-height: 14px;
+        font-weight: 600;
+        color: var(--label-2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .chair-now::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 9999px;
+        background: currentColor;
+        flex: 0 0 auto;
+      }
+      .chair-now[data-s='busy'] {
+        color: var(--yellow-700);
+      }
+      .chair-now[data-s='free'] {
+        color: var(--green-700);
+      }
+      .chair-now[data-s='wait'] {
+        color: var(--indigo-700);
+      }
+      .board-body {
+        position: relative;
+        display: grid;
+        grid-template-columns: 56px minmax(0, 1fr);
+      }
+      .gutter {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        height: 648px;
+        background: var(--surface);
+        border-right: 1px solid var(--border-light);
+      }
+      .gutter span {
+        position: absolute;
+        right: 8px;
+        transform: translateY(-50%);
+        font-size: 10.5px;
+        line-height: 14px;
+        color: var(--label-2);
+        font-variant-numeric: tabular-nums;
+      }
+      .cols {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        height: 648px;
+        background: repeating-linear-gradient(
+          to bottom,
+          var(--border-light) 0 1px,
+          transparent 1px 72px
+        );
+      }
+      .col {
+        position: relative;
+        border-left: 1px solid var(--hairline);
+      }
+      .col:hover {
+        background: rgba(247, 246, 244, 0.6);
+      }
+      .now {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 158px;
+        z-index: 4;
+        border-top: 1.5px solid var(--accent);
+        pointer-events: none;
+      }
+      .now::before {
+        content: '';
+        position: absolute;
+        left: 47px;
+        top: -4px;
+        width: 7px;
+        height: 7px;
+        border-radius: 9999px;
+        background: var(--accent);
+      }
+      .now-pill {
+        position: absolute;
+        left: 6px;
+        top: -9px;
+        padding: 1px 5px;
+        border-radius: 6px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 10px;
+        line-height: 14px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ---------- appointment ---------- */
+      .appt {
+        position: absolute;
+        left: 5px;
+        right: 5px;
+        top: var(--top);
+        height: calc(var(--h) - 5px);
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        padding: 4px 7px 4px 8px;
+        border-radius: 8px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-left: 3px solid var(--status);
+        box-shadow: var(--e1);
+        overflow: hidden;
+        transition:
+          transform var(--dur-fast) var(--ease-ios),
+          box-shadow var(--dur-fast) var(--ease-ios);
+      }
+      .appt:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--e2);
+      }
+      .appt-t {
+        font-size: 10.5px;
+        line-height: 13px;
+        color: var(--label-2);
+        font-variant-numeric: tabular-nums;
+      }
+      .appt-p {
+        font-size: 12px;
+        line-height: 15px;
+        font-weight: 650;
+        letter-spacing: -0.005em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .appt-x {
+        font-size: 11px;
+        line-height: 14px;
+        color: var(--label-2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .appt-f {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10.5px;
+        line-height: 13px;
+        color: var(--label-2);
+      }
+      .appt-f .who {
+        width: 15px;
+        height: 15px;
+        border-radius: 9999px;
+        background: var(--g100);
+        color: var(--g600);
+        display: grid;
+        place-items: center;
+        font-size: 8.5px;
+        font-weight: 700;
+        flex: 0 0 auto;
+      }
+      .appt[data-state='completed'] {
+        background: var(--g50);
+        border-color: var(--hairline);
+        border-left-color: var(--green-500);
+      }
+      .appt[data-state='completed'] .appt-p {
+        color: var(--g600);
+      }
+      .appt[data-state='in_consultation'] {
+        border-left-color: var(--yellow-500);
+        background: linear-gradient(0deg, var(--surface), var(--surface)) padding-box;
+        box-shadow:
+          var(--e2),
+          0 0 0 1px var(--yellow-100) inset;
+      }
+      .appt[data-state='arrived'] {
+        border-left-color: var(--indigo-500);
+      }
+      .state-tag {
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 0 5px;
+        border-radius: 5px;
+        font-size: 9.5px;
+        line-height: 13px;
+        font-weight: 650;
+      }
+      .state-tag[data-state='in_consultation'] {
+        background: var(--yellow-50);
+        color: var(--yellow-700);
+      }
+      .state-tag[data-state='arrived'] {
+        background: var(--indigo-50);
+        color: var(--indigo-700);
+      }
+      .appt[data-state='cancelled'] {
+        border-left-color: var(--red-500);
+        background: var(--red-50);
+      }
+
+      .appt:has(.state-tag) .appt-x {
+        display: none;
+      }
+      .appt.short {
+        padding: 3px 7px 3px 8px;
+      }
+      .appt.short .appt-t {
+        line-height: 12px;
+      }
+      .appt.short .appt-x {
+        display: none;
+      }
+      .appt.tiny {
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
+        padding: 0 7px 0 8px;
+      }
+      .appt.tiny .appt-t {
+        font-size: 10px;
+        line-height: 12px;
+        flex: 0 0 auto;
+      }
+      .appt.tiny .appt-p {
+        font-size: 11.5px;
+        line-height: 14px;
+      }
+      .appt.tiny .appt-x,
+      .appt.tiny .appt-f,
+      .appt.tiny .state-tag {
+        display: none;
+      }
+      .appt[data-state='cancelled'] .appt-p {
+        color: var(--red-700);
+        text-decoration: line-through;
+        text-decoration-thickness: 1px;
+      }
+
+      .free-slot {
+        position: absolute;
+        left: 5px;
+        right: 5px;
+        top: var(--top);
+        height: calc(var(--h) - 5px);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 0 8px;
+        border-radius: 8px;
+        border: 1px dashed var(--g300);
+        background: rgba(247, 246, 244, 0.5);
+        color: var(--label-2);
+        font-size: 10.5px;
+        line-height: 14px;
+        font-weight: 600;
+        text-align: left;
+        transition:
+          background var(--dur-fast) var(--ease-ios),
+          border-color var(--dur-fast) var(--ease-ios),
+          color var(--dur-fast) var(--ease-ios);
+      }
+      .free-slot:hover {
+        background: var(--accent-light);
+        border-color: var(--accent-200);
+        color: var(--accent-700);
+      }
+      .free-slot .add {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--accent);
+        white-space: nowrap;
+      }
+      .now-band {
+        position: absolute;
+        left: 56px;
+        right: 0;
+        top: 144px;
+        height: 72px;
+        background: rgba(242, 248, 245, 0.55);
+        pointer-events: none;
+      }
+      .scroll-hint {
+        display: none;
+        margin: 0;
+        padding: 7px 12px;
+        border-bottom: 1px solid var(--border-light);
+        font-size: 11px;
+        line-height: 15px;
+        color: var(--label-2);
+        background: var(--surface);
+      }
+
+      /* ---------- side ---------- */
+      .side {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: var(--r-card);
+        box-shadow: var(--e1);
+        padding: 14px 14px 12px;
+      }
+      .panel-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-light);
+      }
+      .panel-head h2 {
+        font-size: 12.5px;
+        line-height: 16px;
+        font-weight: 650;
+      }
+      .count {
+        margin-left: auto;
+        min-width: 20px;
+        height: 18px;
+        padding: 0 6px;
+        border-radius: 9999px;
+        background: var(--g100);
+        color: var(--g600);
+        font-size: 10.5px;
+        line-height: 18px;
+        font-weight: 650;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+      .count.is-live {
+        background: var(--indigo-50);
+        color: var(--indigo-700);
+      }
+      .queue li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-light);
+      }
+      .queue li:last-child {
+        border-bottom: 0;
+        padding-bottom: 2px;
+      }
+      .init {
+        width: 28px;
+        height: 28px;
+        flex: 0 0 28px;
+        border-radius: 9999px;
+        background: var(--g100);
+        color: var(--g600);
+        display: grid;
+        place-items: center;
+        font-size: 10.5px;
+        font-weight: 700;
+      }
+      .q-main {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+      .q-name {
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 650;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .q-meta {
+        font-size: 11px;
+        line-height: 15px;
+        color: var(--label-2);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .q-meta.is-wait {
+        color: var(--indigo-700);
+      }
+      .btn-mini {
+        flex: 0 0 auto;
+        height: 26px;
+        padding: 0 8px;
+        border-radius: 7px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--label);
+        transition: background var(--dur-fast) var(--ease-ios);
+      }
+      .btn-mini:hover {
+        background: var(--g100);
+      }
+      .btn-mini.is-accent {
+        border-color: transparent;
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn-mini.is-accent:hover {
+        background: var(--accent-hover);
+      }
+      .btn-mini.is-icon {
+        width: 26px;
+        padding: 0;
+        display: grid;
+        place-items: center;
+        color: var(--label-2);
+      }
+      .empty-note {
+        padding: 12px 0 4px;
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--label-2);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition-duration: 1ms !important;
+          animation-duration: 1ms !important;
+        }
+        .appt:hover,
+        .btn-primary:hover {
+          transform: none;
+        }
+      }
+      @media (max-width: 1180px) {
+        .workspace {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .side {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 900px) {
+        .rail {
+          display: none;
+        }
+        .head-tools .btn-bordered {
+          display: none;
+        }
+        .page {
+          padding: 18px 16px;
+        }
+        .side {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .week {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        .legend {
+          margin-left: 0;
+        }
+        .scroll-hint {
+          display: flex;
+        }
+        .now {
+          display: none;
+        }
+        .now-band {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <nav class="rail" aria-label="Navegación principal">
+        <span class="brand" aria-hidden="true">O</span>
+        <ul class="rail-list">
+          <li>
+            <button class="rail-btn" aria-label="Panel">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="7" height="7" rx="2" />
+                <rect x="14" y="3" width="7" height="7" rx="2" />
+                <rect x="3" y="14" width="7" height="7" rx="2" />
+                <rect x="14" y="14" width="7" height="7" rx="2" />
+              </svg>
+            </button>
+          </li>
+          <li>
+            <button class="rail-btn is-active" aria-label="Calendario" aria-current="page">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="5" width="18" height="16" rx="3" />
+                <path d="M8 3v4M16 3v4M3 10h18" />
+              </svg>
+            </button>
+          </li>
+          <li>
+            <button class="rail-btn" aria-label="Pacientes">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="9" cy="8" r="3.2" />
+                <path d="M3.5 19c.6-3.2 2.9-4.8 5.5-4.8s4.9 1.6 5.5 4.8" />
+                <path d="M16 6.2a3 3 0 0 1 0 5.6M17.5 14.6c2 .5 3.2 2 3.5 4.4" />
+              </svg>
+            </button>
+          </li>
+          <li>
+            <button class="rail-btn" aria-label="Caja">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="6" width="18" height="13" rx="3" />
+                <path d="M3 11h18M16 15h2" />
+              </svg>
+            </button>
+          </li>
+          <li>
+            <button class="rail-btn" aria-label="Reportes">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 20V6M10 20v-7M16 20V9M22 20H2" />
+              </svg>
+            </button>
+          </li>
+        </ul>
+        <div class="rail-foot">
+          <button class="rail-btn" aria-label="Configuración">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+              <circle cx="16" cy="7" r="2" />
+              <circle cx="10" cy="17" r="2" />
+            </svg>
+          </button>
+          <span class="avatar" aria-hidden="true">AR</span>
+        </div>
+      </nav>
+
+      <main class="page">
+        <header class="head">
+          <div>
+            <p class="eyebrow">Calendario · Sede San Isidro</p>
+            <h1>Miércoles 18 de noviembre</h1>
+          </div>
+          <div class="head-tools">
+            <div class="seg" role="group" aria-label="Vista del calendario">
+              <button class="seg-btn" aria-pressed="true">Día</button>
+              <button class="seg-btn" aria-pressed="false">Semana</button>
+              <button class="seg-btn" aria-pressed="false">Mes</button>
+            </div>
+            <div class="stepper">
+              <button class="icon-btn" aria-label="Día anterior">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M14 6l-6 6 6 6" />
+                </svg>
+              </button>
+              <button class="btn-ghost">Hoy</button>
+              <button class="icon-btn" aria-label="Día siguiente">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M10 6l6 6-6 6" />
+                </svg>
+              </button>
+            </div>
+            <button class="icon-btn btn-bordered" aria-label="Actualizar la agenda">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M20 12a8 8 0 1 1-2.4-5.6" />
+                <path d="M20 4.5V9h-4.5" />
+              </svg>
+            </button>
+            <button class="btn-primary">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Nueva cita
+            </button>
+          </div>
+        </header>
+
+        <nav class="week" aria-label="Días de la semana">
+          <button class="day" aria-label="Lunes 16, 6 citas">
+            <span class="dw">Lun</span>
+            <span class="dn">16</span>
+            <span class="dc">6 citas</span>
+          </button>
+          <button class="day" aria-label="Martes 17, 7 citas">
+            <span class="dw">Mar</span>
+            <span class="dn">17</span>
+            <span class="dc">7 citas</span>
+          </button>
+          <button
+            class="day is-selected"
+            aria-current="date"
+            aria-label="Miércoles 18 de noviembre, 24 citas, hoy"
+          >
+            <span class="dw">Mié</span>
+            <span class="dn">18</span>
+            <span class="dc">24 citas</span>
+            <span class="today-pill">hoy</span>
+          </button>
+          <button class="day" aria-label="Jueves 19, 21 citas">
+            <span class="dw">Jue</span>
+            <span class="dn">19</span>
+            <span class="dc">21 citas</span>
+          </button>
+          <button class="day" aria-label="Viernes 20, 19 citas">
+            <span class="dw">Vie</span>
+            <span class="dn">20</span>
+            <span class="dc">19 citas</span>
+          </button>
+          <button class="day" aria-label="Sábado 21, 8 citas">
+            <span class="dw">Sáb</span>
+            <span class="dn">21</span>
+            <span class="dc">8 citas</span>
+          </button>
+          <button class="day" aria-label="Domingo 22, cerrado">
+            <span class="dw">Dom</span>
+            <span class="dn">22</span>
+            <span class="dc closed">cerrado</span>
+          </button>
+        </nav>
+
+        <div class="toolbar">
+          <div class="chips" role="group" aria-label="Filtrar por profesional">
+            <button class="filter-chip" aria-pressed="true">
+              Todos
+              <span class="n">24</span>
+            </button>
+            <button class="filter-chip" aria-pressed="false">
+              <span class="dot" style="color: var(--accent)"></span>
+              Dr. Paredes
+              <span class="n">7</span>
+            </button>
+            <button class="filter-chip" aria-pressed="false">
+              <span class="dot" style="color: var(--indigo-500)"></span>
+              Dra. Núñez
+              <span class="n">6</span>
+            </button>
+            <button class="filter-chip" aria-pressed="false">
+              <span class="dot" style="color: var(--steel-500)"></span>
+              Dr. Salazar
+              <span class="n">5</span>
+            </button>
+            <button class="filter-chip" aria-pressed="false">
+              <span class="dot" style="color: var(--purple-500)"></span>
+              Dra. Ríos
+              <span class="n">5</span>
+            </button>
+          </div>
+          <div class="groupby">
+            <span id="groupby-label">Agrupar por</span>
+            <div class="groupby-seg" role="group" aria-labelledby="groupby-label">
+              <button class="groupby-btn" aria-pressed="true">Sillón</button>
+              <button class="groupby-btn" aria-pressed="false">Profesional</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="meta">
+          <span class="live">En vivo · 10:12</span>
+          <span class="meta-item">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 20V9a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v11" />
+              <path d="M3 20h18M9 12h6" />
+            </svg>
+            4 sillones operativos
+          </span>
+          <span class="meta-item">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+            Ocupación de hoy
+            <strong class="num" style="font-weight: 600; color: var(--label)">78%</strong>
+          </span>
+          <ul class="legend" aria-label="Estados de cita">
+            <li>
+              <span class="dot" style="background: var(--g400)"></span>
+              Programada
+            </li>
+            <li>
+              <span class="dot" style="background: var(--steel-500)"></span>
+              Confirmada
+            </li>
+            <li>
+              <span class="dot" style="background: var(--indigo-500)"></span>
+              En sala
+            </li>
+            <li>
+              <span class="dot" style="background: var(--yellow-500)"></span>
+              En consulta
+            </li>
+            <li>
+              <span class="dot" style="background: var(--green-500)"></span>
+              Completada
+            </li>
+          </ul>
+        </div>
+
+        <div class="workspace">
+          <div class="board-shell">
+            <p class="scroll-hint">Desliza para ver los cuatro sillones →</p>
+            <div class="board-scroll">
+              <section class="board" aria-label="Agenda del miércoles por sillón">
+                <div class="board-head">
+                  <div class="corner">Hora</div>
+                  <article class="chair">
+                    <div class="chair-top">
+                      <span class="chair-name">Sillón 1</span>
+                      <span class="chair-pill">Cirugía</span>
+                    </div>
+                    <div class="chair-bar-row">
+                      <div class="chair-bar"><span style="width: 78%"></span></div>
+                      <span class="chair-pct">78%</span>
+                    </div>
+                    <p class="chair-now" data-s="busy">En consulta · Dr. Paredes</p>
+                  </article>
+                  <article class="chair">
+                    <div class="chair-top">
+                      <span class="chair-name">Sillón 2</span>
+                      <span class="chair-pill">Ortodoncia</span>
+                    </div>
+                    <div class="chair-bar-row">
+                      <div class="chair-bar"><span style="width: 62%"></span></div>
+                      <span class="chair-pct">62%</span>
+                    </div>
+                    <p class="chair-now" data-s="busy">En consulta · Dra. Núñez</p>
+                  </article>
+                  <article class="chair">
+                    <div class="chair-top">
+                      <span class="chair-name">Sillón 3</span>
+                      <span class="chair-pill">Rehabilitación</span>
+                    </div>
+                    <div class="chair-bar-row">
+                      <div class="chair-bar"><span style="width: 70%"></span></div>
+                      <span class="chair-pct">70%</span>
+                    </div>
+                    <p class="chair-now" data-s="free">Libre hasta las 11:30</p>
+                  </article>
+                  <article class="chair">
+                    <div class="chair-top">
+                      <span class="chair-name">Sillón 4</span>
+                      <span class="chair-pill">Higiene</span>
+                    </div>
+                    <div class="chair-bar-row">
+                      <div class="chair-bar"><span style="width: 58%"></span></div>
+                      <span class="chair-pct">58%</span>
+                    </div>
+                    <p class="chair-now" data-s="wait">En espera · Diego Fernández</p>
+                  </article>
+                </div>
+
+                <div class="board-body">
+                  <div class="now-band" aria-hidden="true"></div>
+                  <div class="gutter" aria-hidden="true">
+                    <span class="num" style="top: 8px; transform: none">08:00</span>
+                    <span class="num" style="top: 72px">09:00</span>
+                    <span class="num" style="top: 144px">10:00</span>
+                    <span class="num" style="top: 216px">11:00</span>
+                    <span class="num" style="top: 288px">12:00</span>
+                    <span class="num" style="top: 360px">13:00</span>
+                    <span class="num" style="top: 432px">14:00</span>
+                    <span class="num" style="top: 504px">15:00</span>
+                    <span class="num" style="top: 576px">16:00</span>
+                    <span class="num" style="top: 640px">17:00</span>
+                  </div>
+
+                  <div class="cols">
+                    <div class="col">
+                      <article
+                        class="appt"
+                        data-state="in_consultation"
+                        style="--top: 36px; --h: 72px; --status: var(--yellow-500)"
+                        aria-label="En consulta, 08:30 a 09:30, Endodoncia 36, Luis Ramírez Ccahuana"
+                      >
+                        <span class="appt-t num">08:30 – 09:30</span>
+                        <span class="appt-p">Luis Ramírez Ccahuana</span>
+                        <span class="appt-x">Endodoncia · pieza 36</span>
+                        <span class="state-tag" data-state="in_consultation">Quedan 18 min</span>
+                        <span class="appt-f">
+                          <span class="who">AP</span>
+                          Dr. Paredes
+                        </span>
+                      </article>
+                      <article
+                        class="appt"
+                        data-state="confirmed"
+                        style="--top: 126px; --h: 72px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 09:45 a 10:45, Exodoncia 38, Jorge Salazar Paredes"
+                      >
+                        <span class="appt-t num">09:45 – 10:45</span>
+                        <span class="appt-p">Jorge Salazar Paredes</span>
+                        <span class="appt-x">Exodoncia · pieza 38</span>
+                        <span class="appt-f">
+                          <span class="who">AP</span>
+                          Dr. Paredes
+                        </span>
+                      </article>
+                      <article
+                        class="appt"
+                        data-state="scheduled"
+                        style="--top: 216px; --h: 72px; --status: var(--g400)"
+                        aria-label="Programada, 11:00 a 12:00, Rehabilitación oral, Rosa Huamán Vega"
+                      >
+                        <span class="appt-t num">11:00 – 12:00</span>
+                        <span class="appt-p">Rosa Huamán Vega</span>
+                        <span class="appt-x">Rehabilitación oral</span>
+                        <span class="appt-f">
+                          <span class="who">BS</span>
+                          Dr. Salazar
+                        </span>
+                      </article>
+                      <article
+                        class="appt short"
+                        data-state="arrived"
+                        style="--top: 324px; --h: 54px; --status: var(--indigo-500)"
+                        aria-label="En sala, 12:30 a 13:15, Control post-operatorio, Diego Fernández Loayza"
+                      >
+                        <span class="appt-t num">12:30 – 13:15</span>
+                        <span class="appt-p">Diego Fernández Loayza</span>
+                        <span class="state-tag" data-state="arrived">Espera 4 min</span>
+                      </article>
+                      <button
+                        class="free-slot"
+                        style="--top: 390px; --h: 54px"
+                        aria-label="Sillón 1 libre de 13:15 a 14:00, agendar cita"
+                      >
+                        <span>Libre · 45 min</span>
+                        <span class="add">+ Agendar</span>
+                      </button>
+                      <article
+                        class="appt"
+                        data-state="confirmed"
+                        style="--top: 432px; --h: 108px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 14:00 a 15:30, Cirugía guiada, Milagros Chávez Ríos"
+                      >
+                        <span class="appt-t num">14:00 – 15:30</span>
+                        <span class="appt-p">Milagros Chávez Ríos</span>
+                        <span class="appt-x">Cirugía guiada · pieza 46</span>
+                        <span class="appt-f">
+                          <span class="who">AP</span>
+                          Dr. Paredes · S1
+                        </span>
+                      </article>
+                      <article
+                        class="appt"
+                        data-state="scheduled"
+                        style="--top: 576px; --h: 54px; --status: var(--g400)"
+                        aria-label="Programada, 16:00 a 16:45, Retiro de puntos, Katherine Rojas Palomino"
+                      >
+                        <span class="appt-t num">16:00 – 16:45</span>
+                        <span class="appt-p">Katherine Rojas Palomino</span>
+                      </article>
+                    </div>
+
+                    <div class="col">
+                      <article
+                        class="appt short"
+                        data-state="completed"
+                        style="--top: 0px; --h: 54px; --status: var(--green-500)"
+                        aria-label="Completada, 08:00 a 08:45, Control de ortodoncia, Ana Torres Quispe"
+                      >
+                        <span class="appt-t num">08:00 – 08:45</span>
+                        <span class="appt-p">Ana Torres Quispe</span>
+                        <span class="appt-f">
+                          <span class="who">VN</span>
+                          Dra. Núñez
+                        </span>
+                      </article>
+                      <article
+                        class="appt tiny"
+                        data-state="confirmed"
+                        style="--top: 72px; --h: 36px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 09:00 a 09:30, Control de ortodoncia, Katherine Rojas Palomino"
+                      >
+                        <span class="appt-t num">09:00</span>
+                        <span class="appt-p">Katherine Rojas Palomino</span>
+                      </article>
+                      <article
+                        class="appt"
+                        data-state="in_consultation"
+                        style="--top: 144px; --h: 72px; --status: var(--yellow-500)"
+                        aria-label="En consulta, 10:00 a 11:00, Instalación de brackets, Carlos Mendoza Ataucuri"
+                      >
+                        <span class="appt-t num">10:00 – 11:00</span>
+                        <span class="appt-p">Carlos Mendoza Ataucuri</span>
+                        <span class="appt-x">Instalación de brackets</span>
+                        <span class="state-tag" data-state="in_consultation">Quedan 48 min</span>
+                      </article>
+                      <button
+                        class="free-slot"
+                        style="--top: 216px; --h: 72px"
+                        aria-label="Sillón 2 libre de 11:00 a 12:00, agendar cita"
+                      >
+                        <span>Libre · 60 min</span>
+                        <span class="add">+ Agendar</span>
+                      </button>
+                      <article
+                        class="appt tiny"
+                        data-state="scheduled"
+                        style="--top: 288px; --h: 36px; --status: var(--g400)"
+                        aria-label="Programada, 12:00 a 12:30, Ajuste de arco, Ana Torres Quispe"
+                      >
+                        <span class="appt-t num">12:00</span>
+                        <span class="appt-p">Ana Torres Quispe</span>
+                      </article>
+                      <article
+                        class="appt short"
+                        data-state="confirmed"
+                        style="--top: 468px; --h: 54px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 14:30 a 15:15, Control de ortodoncia, Katherine Rojas Palomino"
+                      >
+                        <span class="appt-t num">14:30 – 15:15</span>
+                        <span class="appt-p">Katherine Rojas Palomino</span>
+                        <span class="appt-f">
+                          <span class="who">VN</span>
+                          Dra. Núñez
+                        </span>
+                      </article>
+                      <article
+                        class="appt"
+                        data-state="scheduled"
+                        style="--top: 540px; --h: 54px; --status: var(--g400)"
+                        aria-label="Programada, 15:30 a 16:15, Retiro de aparato, Carlos Mendoza Ataucuri"
+                      >
+                        <span class="appt-t num">15:30 – 16:15</span>
+                        <span class="appt-p">Carlos Mendoza Ataucuri</span>
+                      </article>
+                    </div>
+
+                    <div class="col">
+                      <article
+                        class="appt"
+                        data-state="completed"
+                        style="--top: 0px; --h: 72px; --status: var(--green-500)"
+                        aria-label="Completada, 08:00 a 09:00, Preparación de corona, Rosa Huamán Vega"
+                      >
+                        <span class="appt-t num">08:00 – 09:00</span>
+                        <span class="appt-p">Rosa Huamán Vega</span>
+                        <span class="appt-x">Preparación de corona</span>
+                        <span class="appt-f">
+                          <span class="who">BS</span>
+                          Dr. Salazar
+                        </span>
+                      </article>
+                      <article
+                        class="appt"
+                        data-state="confirmed"
+                        style="--top: 108px; --h: 72px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 09:30 a 10:30, Impresión digital, Milagros Chávez Ríos"
+                      >
+                        <span class="appt-t num">09:30 – 10:30</span>
+                        <span class="appt-p">Milagros Chávez Ríos</span>
+                        <span class="appt-x">Impresión digital</span>
+                        <span class="appt-f">
+                          <span class="who">BS</span>
+                          Dr. Salazar
+                        </span>
+                      </article>
+                      <button
+                        class="free-slot"
+                        style="--top: 180px; --h: 72px"
+                        aria-label="Sillón 3 libre de 10:30 a 11:30, agendar cita"
+                      >
+                        <span>Libre · 60 min</span>
+                        <span class="add">+ Agendar</span>
+                      </button>
+                      <article
+                        class="appt short"
+                        data-state="scheduled"
+                        style="--top: 252px; --h: 54px; --status: var(--g400)"
+                        aria-label="Programada, 11:30 a 12:15, Prueba de estructura, Carlos Mendoza Ataucuri"
+                      >
+                        <span class="appt-t num">11:30 – 12:15</span>
+                        <span class="appt-p">Carlos Mendoza Ataucuri</span>
+                        <span class="appt-x">Prueba de estructura</span>
+                      </article>
+                      <article
+                        class="appt"
+                        data-state="scheduled"
+                        style="--top: 360px; --h: 72px; --status: var(--g400)"
+                        aria-label="Programada, 13:00 a 14:00, Rehabilitación oral, Jorge Salazar Paredes"
+                      >
+                        <span class="appt-t num">13:00 – 14:00</span>
+                        <span class="appt-p">Jorge Salazar Paredes</span>
+                        <span class="appt-x">Rehabilitación oral</span>
+                      </article>
+                      <article
+                        class="appt short"
+                        data-state="confirmed"
+                        style="--top: 504px; --h: 54px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 15:00 a 15:45, Cementado de corona, Rosa Huamán Vega"
+                      >
+                        <span class="appt-t num">15:00 – 15:45</span>
+                        <span class="appt-p">Rosa Huamán Vega</span>
+                        <span class="appt-x">Cementado de corona</span>
+                      </article>
+                    </div>
+
+                    <div class="col">
+                      <article
+                        class="appt tiny"
+                        data-state="completed"
+                        style="--top: 18px; --h: 36px; --status: var(--green-500)"
+                        aria-label="Completada, 08:15 a 08:45, Profilaxis, Mateo Ríos Salas"
+                      >
+                        <span class="appt-t num">08:15</span>
+                        <span class="appt-p">Mateo Ríos Salas</span>
+                      </article>
+                      <article
+                        class="appt short"
+                        data-state="arrived"
+                        style="--top: 72px; --h: 54px; --status: var(--indigo-500)"
+                        aria-label="En sala, 09:00 a 09:45, Limpieza dental, Diego Fernández Loayza"
+                      >
+                        <span class="appt-t num">09:00 – 09:45</span>
+                        <span class="appt-p">Diego Fernández Loayza</span>
+                        <span class="state-tag" data-state="arrived">Espera 11 min</span>
+                      </article>
+                      <article
+                        class="appt tiny"
+                        data-state="confirmed"
+                        style="--top: 180px; --h: 36px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 10:30 a 11:00, Sellantes, Valentina Chávez Ruda"
+                      >
+                        <span class="appt-t num">10:30</span>
+                        <span class="appt-p">Valentina Chávez Ruda</span>
+                      </article>
+                      <button
+                        class="free-slot"
+                        style="--top: 216px; --h: 72px"
+                        aria-label="Sillón 4 libre de 11:00 a 12:00, agendar cita"
+                      >
+                        <span>Libre · 60 min</span>
+                        <span class="add">+ Agendar</span>
+                      </button>
+                      <article
+                        class="appt"
+                        data-state="scheduled"
+                        style="--top: 288px; --h: 72px; --status: var(--g400)"
+                        aria-label="Programada, 12:00 a 13:00, Blanqueamiento, Ana Torres Quispe"
+                      >
+                        <span class="appt-t num">12:00 – 13:00</span>
+                        <span class="appt-p">Ana Torres Quispe</span>
+                        <span class="appt-x">Blanqueamiento</span>
+                      </article>
+                      <article
+                        class="appt tiny"
+                        data-state="scheduled"
+                        style="--top: 432px; --h: 36px; --status: var(--g400)"
+                        aria-label="Programada, 14:00 a 14:30, Control de higiene, Mateo Ríos Salas"
+                      >
+                        <span class="appt-t num">14:00</span>
+                        <span class="appt-p">Mateo Ríos Salas</span>
+                      </article>
+                      <article
+                        class="appt tiny"
+                        data-state="cancelled"
+                        style="--top: 504px; --h: 36px; --status: var(--red-500)"
+                        aria-label="Cancelada, 15:00 a 15:30, Limpieza dental, Valentina Chávez Ruda"
+                      >
+                        <span class="appt-t num">15:00</span>
+                        <span class="appt-p">Valentina Chávez Ruda</span>
+                      </article>
+                      <article
+                        class="appt short"
+                        data-state="confirmed"
+                        style="--top: 576px; --h: 54px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 16:00 a 16:45, Limpieza dental, Jorge Salazar Paredes"
+                      >
+                        <span class="appt-t num">16:00 – 16:45</span>
+                        <span class="appt-p">Jorge Salazar Paredes</span>
+                      </article>
+                    </div>
+                  </div>
+
+                  <div class="now" aria-hidden="true">
+                    <span class="now-pill num">10:12</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <aside class="side" aria-label="Pendientes de hoy">
+            <section class="panel">
+              <header class="panel-head">
+                <h2>En sala ahora</h2>
+                <span class="count is-live">2</span>
+              </header>
+              <ul class="queue">
+                <li>
+                  <span class="init" aria-hidden="true">RH</span>
+                  <div class="q-main">
+                    <p class="q-name">Rosa Huamán Vega</p>
+                    <p class="q-meta is-wait">S3 · espera 11 min</p>
+                  </div>
+                  <button class="btn-mini is-accent">Anunciar</button>
+                </li>
+                <li>
+                  <span class="init" aria-hidden="true">DF</span>
+                  <div class="q-main">
+                    <p class="q-name">Diego Fernández Loayza</p>
+                    <p class="q-meta is-wait">S4 · espera 4 min</p>
+                  </div>
+                  <button class="btn-mini is-accent">Anunciar</button>
+                </li>
+              </ul>
+            </section>
+
+            <section class="panel">
+              <header class="panel-head">
+                <h2>Sin confirmar</h2>
+                <span class="count">3</span>
+              </header>
+              <ul class="queue">
+                <li>
+                  <span class="init" aria-hidden="true">CM</span>
+                  <div class="q-main">
+                    <p class="q-name">Carlos Mendoza Ataucuri</p>
+                    <p class="q-meta">14:00 · recordatorio enviado</p>
+                  </div>
+                  <button class="btn-mini is-icon" aria-label="Llamar a Carlos Mendoza">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"
+                      />
+                    </svg>
+                  </button>
+                </li>
+                <li>
+                  <span class="init" aria-hidden="true">JP</span>
+                  <div class="q-main">
+                    <p class="q-name">Katherine Rojas Palomino</p>
+                    <p class="q-meta">15:30 · sin respuesta</p>
+                  </div>
+                  <button class="btn-mini is-icon" aria-label="Llamar a Katherine Rojas">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"
+                      />
+                    </svg>
+                  </button>
+                </li>
+                <li>
+                  <span class="init" aria-hidden="true">MR</span>
+                  <div class="q-main">
+                    <p class="q-name">Mateo Ríos Salas</p>
+                    <p class="q-meta">16:30 · recordatorio enviado</p>
+                  </div>
+                  <button class="btn-mini is-icon" aria-label="Llamar a Mateo Ríos">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"
+                      />
+                    </svg>
+                  </button>
+                </li>
+              </ul>
+            </section>
+
+            <section class="panel">
+              <header class="panel-head">
+                <h2>Laboratorio listo</h2>
+                <span class="count">1</span>
+              </header>
+              <ul class="queue">
+                <li>
+                  <span class="init" aria-hidden="true">RH</span>
+                  <div class="q-main">
+                    <p class="q-name">Rosa Huamán Vega</p>
+                    <p class="q-meta">Corona de zirconio · 26</p>
+                  </div>
+                  <button class="btn-mini">Colocar</button>
+                </li>
+              </ul>
+            </section>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
