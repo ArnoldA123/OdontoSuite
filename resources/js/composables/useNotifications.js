@@ -4,6 +4,80 @@ const notifications = ref([])
 const notificationId = ref(0)
 const STORAGE_KEY = 'odonto_suite_notifications'
 const MAX_NOTIFICATIONS = 100
+const DEFAULT_DURATION = 5000
+const ERROR_DURATION = 8000
+
+// Un temporizador por notificación viva. La superficie visible también arma el
+// suyo (NotificationToast), que es el que rescata las filas rehidratadas
+// desde localStorage: aquí se cancela al retirar y al reiniciar una clave.
+const timers = new Map()
+
+const clearTimer = id => {
+  const timer = timers.get(id)
+  if (timer) {
+    clearTimeout(timer)
+    timers.delete(id)
+  }
+}
+
+const removeNotification = id => {
+  clearTimer(id)
+  const index = notifications.value.findIndex(n => n.id === id)
+  if (index > -1) {
+    notifications.value.splice(index, 1)
+    saveToStorage()
+  }
+}
+
+const scheduleExpiry = notification => {
+  clearTimer(notification.id)
+
+  // `persistent: true` y `duration: 0` son peticiones explícitas; el resto
+  // caduca. Una fila rehidratada sin temporizador quedaba en pantalla para
+  // siempre, que es el «toast atascado» que este cambio retira.
+  if (notification.persistent === true || !(Number(notification.duration) > 0)) {
+    return
+  }
+
+  timers.set(
+    notification.id,
+    setTimeout(() => {
+      removeNotification(notification.id)
+    }, Number(notification.duration))
+  )
+}
+
+const clearTimers = () => {
+  timers.forEach(timer => clearTimeout(timer))
+  timers.clear()
+}
+
+const durationFor = (type, options) => {
+  if (options.duration !== undefined) return Number(options.duration)
+  return type === 'error' ? ERROR_DURATION : DEFAULT_DURATION
+}
+
+// Una notificación guardada ya caducada no vuelve a aparecer al recargar: el
+// temporizador que la retiraba vivía en la sesión anterior.
+const isExpired = notification => {
+  if (notification?.persistent === true) return false
+  const duration = Number(notification?.duration ?? DEFAULT_DURATION)
+  if (!Number.isFinite(duration) || duration <= 0) return false
+  const created = Date.parse(notification?.timestamp ?? '')
+  if (Number.isNaN(created)) return false
+  return created + duration <= Date.now()
+}
+
+const hydrate = list =>
+  (Array.isArray(list) ? list : [])
+    .filter(notification => notification && !isExpired(notification))
+    .slice(0, MAX_NOTIFICATIONS)
+    .map(notification => ({
+      ...notification,
+      key: notification.key ?? null,
+      revision: notification.revision ?? 0,
+      persistent: notification.persistent === true
+    }))
 
 // Cargar notificaciones desde localStorage al iniciar
 const loadFromStorage = () => {
@@ -17,7 +91,7 @@ const loadFromStorage = () => {
     const stored = window.localStorage.getItem(STORAGE_KEY)
     if (stored) {
       const parsed = JSON.parse(stored)
-      notifications.value = parsed.notifications || []
+      notifications.value = hydrate(parsed.notifications)
       notificationId.value = parsed.lastId || 0
     }
   } catch (error) {
@@ -50,10 +124,55 @@ if (typeof window !== 'undefined') {
 
 export function useNotifications() {
   const addNotification = (message, type = 'success', options = {}) => {
+    const key = options.key ?? options.dedupeKey ?? null
+    const duration = durationFor(type, options)
+    const persistent = options.persistent === true
+    const title = options.title || getDefaultTitle(type)
+
+    // La misma clave es el mismo hecho: se actualiza la fila viva y se
+    // reinicia su cuenta en vez de apilar un aviso idéntico. Dos capas que
+    // publican el mismo evento comparten clave y, por tanto, una sola fila.
+    if (key !== null) {
+      const existing = notifications.value.find(item => item.key === key)
+      if (existing) {
+        Object.assign(existing, {
+          title,
+          message,
+          type,
+          category: options.category || existing.category || 'system',
+          read: false,
+          timestamp: new Date().toISOString(),
+          action: options.action || null,
+          sound: options.sound !== false,
+          persistent,
+          duration,
+          data: options.data || null,
+          key,
+          revision: (existing.revision ?? 0) + 1
+        })
+
+        // La fila actualizada vuelve al frente para que se lea en la pila.
+        notifications.value = [
+          existing,
+          ...notifications.value.filter(item => item.id !== existing.id)
+        ]
+        saveToStorage()
+        scheduleExpiry(existing)
+
+        if (existing.sound && options.playSound !== false) {
+          playSound(type)
+        }
+
+        return existing.id
+      }
+    }
+
     const id = ++notificationId.value
     const notification = {
       id,
-      title: options.title || getDefaultTitle(type),
+      key,
+      revision: 0,
+      title,
       message,
       type,
       category: options.category || 'system',
@@ -61,8 +180,8 @@ export function useNotifications() {
       timestamp: new Date().toISOString(),
       action: options.action || null,
       sound: options.sound !== false, // Por defecto activado
-      persistent: options.persistent || false,
-      duration: options.duration || (type === 'error' ? 8000 : 5000),
+      persistent,
+      duration,
       data: options.data || null
     }
 
@@ -70,6 +189,9 @@ export function useNotifications() {
 
     // Limitar número máximo de notificaciones
     if (notifications.value.length > MAX_NOTIFICATIONS) {
+      for (const dropped of notifications.value.slice(MAX_NOTIFICATIONS)) {
+        clearTimer(dropped.id)
+      }
       notifications.value = notifications.value.slice(0, MAX_NOTIFICATIONS)
     }
 
@@ -81,22 +203,9 @@ export function useNotifications() {
       playSound(type)
     }
 
-    // Auto remove after duration (solo si no es persistente)
-    if (!notification.persistent) {
-      setTimeout(() => {
-        removeNotification(id)
-      }, notification.duration)
-    }
+    scheduleExpiry(notification)
 
     return id
-  }
-
-  const removeNotification = id => {
-    const index = notifications.value.findIndex(n => n.id === id)
-    if (index > -1) {
-      notifications.value.splice(index, 1)
-      saveToStorage()
-    }
   }
 
   const markAsRead = id => {
@@ -123,16 +232,19 @@ export function useNotifications() {
   }
 
   const clearByCategory = category => {
+    notifications.value.filter(n => n.category === category).forEach(n => clearTimer(n.id))
     notifications.value = notifications.value.filter(n => n.category !== category)
     saveToStorage()
   }
 
   const clearAll = () => {
+    clearTimers()
     notifications.value = []
     saveToStorage()
   }
 
   const clearRead = () => {
+    notifications.value.filter(n => n.read).forEach(n => clearTimer(n.id))
     notifications.value = notifications.value.filter(n => !n.read)
     saveToStorage()
   }

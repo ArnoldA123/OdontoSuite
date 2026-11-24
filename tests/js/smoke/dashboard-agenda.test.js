@@ -232,11 +232,14 @@ describe('guard de eco de la difusión (shell)', () => {
     await flushPromises()
   }
 
+  // T1: el sobre que difunde una cita es operativo; no trae paciente.
   const appointmentEvent = id => ({
     appointment: {
       id,
-      scheduled_at: '2026-12-03T09:00:00',
-      patient: { full_name: 'Ana Pérez' }
+      user_id: 8,
+      status: 'scheduled',
+      scheduled_at: '2026-12-03T09:00:00+00:00',
+      updated_at: '2026-12-03T08:00:00+00:00'
     }
   })
 
@@ -281,8 +284,11 @@ describe('guard de eco de la difusión (shell)', () => {
     await emit('appointment.created', appointmentEvent(9999))
 
     expect(notifications.value.length).toBe(before + 1)
-    expect(notifications.value[0].title).toBe('Nueva cita programada')
-    expect(notifications.value[0].message).toContain('Ana Pérez')
+    // La copia es neutral: el sobre no trae paciente y no se inventa uno.
+    expect(notifications.value[0].title).toBe('Nueva cita agregada')
+    expect(notifications.value[0].message).toBe('Cita creada en la agenda.')
+    expect(notifications.value[0].message).not.toContain('Paciente')
+    expect(notifications.value[0].message).not.toContain('undefined')
 
     wrapper.unmount()
   })

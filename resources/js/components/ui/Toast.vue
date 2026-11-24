@@ -52,12 +52,29 @@
           </svg>
         </button>
       </div>
+
+      <!-- Barra de progreso: arranca al montar, se reinicia cuando cambia la
+           clave o la duración y desaparece con el toast. -->
+      <div
+        v-if="progress && !persistent && duration > 0"
+        :key="`${toastKey ?? 'toast'}:${duration}`"
+        class="toast-progress"
+        :style="{ animationDuration: `${duration}ms` }"
+        data-toast-progress
+        aria-hidden="true"
+      />
     </div>
   </Transition>
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import {
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  InformationCircleIcon,
+  XCircleIcon
+} from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   type: {
@@ -66,9 +83,12 @@ const props = defineProps({
     validator: value => ['success', 'error', 'warning', 'info'].includes(value)
   },
   title: String,
+  icon: { type: Boolean, default: true },
   duration: { type: Number, default: 5000 },
   dismissible: { type: Boolean, default: true },
   persistent: { type: Boolean, default: false },
+  progress: { type: Boolean, default: true },
+  toastKey: { type: [String, Number], default: null },
   position: {
     type: String,
     default: 'top-right',
@@ -88,6 +108,7 @@ const emit = defineEmits(['dismiss', 'close'])
 
 // State
 const visible = ref(false)
+const mounted = ref(false)
 const timeoutId = ref(null)
 
 const dismissLabel = computed(() => 'Cerrar notificación')
@@ -134,10 +155,10 @@ const toastClasses = computed(() => {
 
 const iconComponent = computed(() => {
   const icons = {
-    success: 'CheckCircleIcon',
-    error: 'XCircleIcon',
-    warning: 'ExclamationTriangleIcon',
-    info: 'InformationCircleIcon'
+    success: CheckCircleIcon,
+    error: XCircleIcon,
+    warning: ExclamationTriangleIcon,
+    info: InformationCircleIcon
   }
   return icons[props.type]
 })
@@ -151,7 +172,8 @@ const dismissButtonClasses = computed(() => [
 
 // Auto-dismiss timer
 const startTimer = () => {
-  if (props.persistent || props.duration <= 0) return
+  clearTimer()
+  if (props.persistent || !(props.duration > 0)) return
 
   timeoutId.value = setTimeout(() => {
     handleDismiss()
@@ -163,6 +185,11 @@ const clearTimer = () => {
     clearTimeout(timeoutId.value)
     timeoutId.value = null
   }
+}
+
+const restartTimer = () => {
+  if (!mounted.value) return
+  startTimer()
 }
 
 // Event handlers
@@ -179,11 +206,17 @@ const handleDismiss = () => {
 
 // Lifecycle
 onMounted(() => {
+  mounted.value = true
   visible.value = true
   startTimer()
 })
 
+// La misma clave actualizada (o una duración nueva) rearma la cuenta en vez
+// de heredar el temporizador anterior.
+watch(() => [props.toastKey, props.duration, props.persistent], restartTimer)
+
 onUnmounted(() => {
+  mounted.value = false
   clearTimer()
 })
 </script>
@@ -248,6 +281,28 @@ button:focus-visible {
   @apply text-current;
 }
 
+.toast-progress {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  background-color: currentColor;
+  opacity: 0.45;
+  transform-origin: left center;
+  animation-name: toast-progress-shrink;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes toast-progress-shrink {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .toast {
@@ -289,6 +344,10 @@ button {
 
   .toast:hover {
     transform: none;
+  }
+
+  .toast-progress {
+    animation: none;
   }
 }
 </style>
