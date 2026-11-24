@@ -5,17 +5,18 @@ namespace Tests\Unit\DesignSystem;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Navigation guard for the specialties domain (issue #210).
+ * Navigation guard for the specialties domain (issue #210, catalog hub).
  *
- * Two surfaces of the same domain live in the sidebar: the clinical entry that
- * captures records per patient (`/specialty-records`) and the admin catalog
- * that owns the taxonomy (`/specialties`). A bare "Especialidades" label in
- * either entry makes an administrator guess which one is which, so the rule is
- * pinned here: one unambiguous label per route, and neither entry reuses the
- * other's vocabulary.
+ * Two surfaces of the same domain used to live in the sidebar: the clinical
+ * entry that captures records per patient (`/specialty-records`) and the admin
+ * catalog that owns the taxonomy (`/specialties`). The catalog hub now groups
+ * the three administrative masters behind one «Catálogos» entry, so the rule
+ * changes shape without losing its point:
  *
- * Routes and roles are pinned too because the fix is cosmetic by contract: the
- * issue accepts a label rename only when paths and permissions stay untouched.
+ *   - the clinical entry keeps its own unambiguous label and roles;
+ *   - the catalog masters no longer have top-level sibling entries;
+ *   - the hub is the single door and stays administrator-only;
+ *   - no entry reuses the bare "Especialidades" label.
  */
 class SpecialtiesNavigationDisambiguationTest extends TestCase
 {
@@ -23,13 +24,16 @@ class SpecialtiesNavigationDisambiguationTest extends TestCase
 
     private const CLINICAL_ROUTE = '/specialty-records';
 
-    private const CATALOG_ROUTE = '/specialties';
+    private const HUB_ROUTE = '/catalogs';
 
     private const CLINICAL_LABEL = 'Registros de especialidad';
 
-    private const CATALOG_LABEL = 'Catálogo de especialidades';
+    private const HUB_LABEL = 'Catálogos';
 
     private const AMBIGUOUS_LABEL = 'Especialidades';
+
+    /** @var array<int, string> */
+    private const CATALOG_ROUTES = ['/appointment-types', '/specialties', '/procedure-catalog'];
 
     private static function appLayoutSource(): string
     {
@@ -95,7 +99,7 @@ class SpecialtiesNavigationDisambiguationTest extends TestCase
         $this->assertArrayHasKey(
             self::CLINICAL_ROUTE,
             $items,
-            'The sidebar MUST keep the clinical records route: the fix renames a label, never a path.'
+            'The sidebar MUST keep the clinical records route: the hub groups catalogs, not clinical records.'
         );
         $this->assertSame(
             self::CLINICAL_LABEL,
@@ -104,20 +108,50 @@ class SpecialtiesNavigationDisambiguationTest extends TestCase
         );
     }
 
-    public function test_the_catalog_entry_keeps_its_own_master_label(): void
+    public function test_the_catalog_masters_have_no_top_level_navigation_entries(): void
     {
         $items = self::navigationItems();
 
-        $this->assertArrayHasKey(
-            self::CATALOG_ROUTE,
-            $items,
-            'The sidebar MUST keep the admin catalog route.'
-        );
+        foreach (self::CATALOG_ROUTES as $route) {
+            $this->assertArrayNotHasKey(
+                $route,
+                $items,
+                sprintf(
+                    'The catalog master `%s` MUST be reached through the hub; the sidebar keeps one entry.',
+                    $route
+                )
+            );
+        }
+    }
+
+    public function test_the_hub_is_the_single_catalog_door(): void
+    {
+        $items = self::navigationItems();
+
+        $this->assertArrayHasKey(self::HUB_ROUTE, $items, 'The sidebar MUST offer the catalog hub.');
+        $this->assertSame(self::HUB_LABEL, $items[self::HUB_ROUTE]['label']);
         $this->assertSame(
-            self::CATALOG_LABEL,
-            $items[self::CATALOG_ROUTE]['label'],
-            'The catalog entry MUST be labeled "'.self::CATALOG_LABEL.'".'
+            ['administrador'],
+            $items[self::HUB_ROUTE]['roles'],
+            'The catalog hub MUST stay administrator-only: its three destinations are administration desks.'
         );
+
+        foreach ($items as $route => $item) {
+            if ($route === self::HUB_ROUTE) {
+                continue;
+            }
+
+            $this->assertNotSame(
+                'Catálogo de especialidades',
+                $item['label'],
+                'The retired specialties entry MUST NOT survive as a second catalog door.'
+            );
+            $this->assertNotSame(
+                'Tipos de cita',
+                $item['label'],
+                'The retired appointment-types entry MUST NOT survive as a second catalog door.'
+            );
+        }
     }
 
     public function test_no_navigation_entry_uses_the_ambiguous_bare_label(): void
@@ -137,7 +171,7 @@ class SpecialtiesNavigationDisambiguationTest extends TestCase
         );
     }
 
-    public function test_both_entries_keep_their_routes_and_role_permissions(): void
+    public function test_the_clinical_entry_keeps_its_role_contract(): void
     {
         $items = self::navigationItems();
 
@@ -147,11 +181,6 @@ class SpecialtiesNavigationDisambiguationTest extends TestCase
             'The clinical records entry MUST list the desks that hold `manage.specialty_record`: '
             .'issue #210 froze the label and the path, and issue #313 closed the laboratory desk '
             .'out of the module because it publishes the surgical narrative.'
-        );
-        $this->assertSame(
-            ['administrador'],
-            $items[self::CATALOG_ROUTE]['roles'],
-            'The admin catalog entry MUST stay administrator-only.'
         );
     }
 }

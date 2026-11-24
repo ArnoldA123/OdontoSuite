@@ -1,37 +1,35 @@
 <template>
-  <AppLayout>
-    <!-- Canonical page header: one component, one anatomy. -->
-    <PageHeader
-      kicker="Catálogo"
-      title="Especialidades"
-      subtitle="Taxonomía de procedimientos y profesionales"
-      class="mb-6"
-    >
-      <template #actions>
-        <UiButton
-          variant="secondary"
-          data-refresh-specialties
-          :disabled="loading"
-          @click="loadSpecialties"
-        >
-          <template #icon-left>
-            <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
-          </template>
-          Actualizar
-        </UiButton>
-        <UiButton v-if="can.manageSpecialties?.value" data-new-specialty @click="openCreate">
-          <template #icon-left>
-            <PlusIcon class="h-4 w-4" aria-hidden="true" />
-          </template>
-          Nueva especialidad
-        </UiButton>
-      </template>
-    </PageHeader>
+  <CatalogPageShell
+    kicker="Catálogo"
+    title="Especialidades"
+    subtitle="Taxonomía de procedimientos y profesionales"
+    list-label="Especialidades"
+    kpi-label="Resumen de especialidades"
+    loading-label="Cargando especialidades..."
+    content-class="bg-canvas"
+    :state="listState"
+  >
+    <template #actions>
+      <UiButton
+        variant="secondary"
+        data-refresh-specialties
+        :disabled="loading"
+        @click="loadSpecialties"
+      >
+        <template #icon-left>
+          <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
+        </template>
+        Actualizar
+      </UiButton>
+      <UiButton v-if="can.manageSpecialties?.value" data-new-specialty @click="openCreate">
+        <template #icon-left>
+          <PlusIcon class="h-4 w-4" aria-hidden="true" />
+        </template>
+        Nueva especialidad
+      </UiButton>
+    </template>
 
-    <section
-      aria-label="Resumen de especialidades"
-      class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
-    >
+    <template #kpis>
       <UiCard
         variant="glass"
         padding="sm"
@@ -95,188 +93,194 @@
         </p>
         <p class="mt-1 text-xs text-theme-secondary">Vinculados en el catálogo</p>
       </UiCard>
-    </section>
+    </template>
 
-    <UiFilterBar :columns="4" class="mb-6" data-specialties-filters>
-      <div class="sm:col-span-2">
-        <UiInput
-          v-model="searchQuery"
-          data-specialties-search
-          placeholder="Buscar por nombre, código o descripción..."
-          class="w-full"
-          @input="onSearchInput"
-        >
-          <template #prefix>
-            <MagnifyingGlassIcon class="h-5 w-5 text-theme-secondary" aria-hidden="true" />
-          </template>
-        </UiInput>
-      </div>
-      <div class="flex items-end">
-        <div class="w-full">
-          <label
-            for="specialties-filter-status"
-            class="mb-1 block text-xs font-medium text-theme-secondary"
-          >
-            Estado
-          </label>
-          <UiSelect
-            id="specialties-filter-status"
-            v-model="statusFilter"
-            :options="STATUS_FILTER_OPTIONS"
-            placeholder="Todos los estados"
+    <template #filters>
+      <UiFilterBar :columns="4" data-specialties-filters>
+        <div class="sm:col-span-2">
+          <UiInput
+            v-model="searchQuery"
+            data-specialties-search
+            placeholder="Buscar por nombre, código o descripción..."
             class="w-full"
-            data-status-filter
-            @change="loadSpecialties"
-          />
+            @input="onSearchInput"
+          >
+            <template #prefix>
+              <MagnifyingGlassIcon class="h-5 w-5 text-theme-secondary" aria-hidden="true" />
+            </template>
+          </UiInput>
         </div>
-      </div>
-      <div v-if="hasActiveFilters" class="flex items-end">
-        <UiButton variant="secondary" class="w-full" data-filters-clear @click="clearFilters">
-          Limpiar filtros
-        </UiButton>
-      </div>
-    </UiFilterBar>
+        <div class="flex items-end">
+          <div class="w-full">
+            <label
+              for="specialties-filter-status"
+              class="mb-1 block text-xs font-medium text-theme-secondary"
+            >
+              Estado
+            </label>
+            <UiSelect
+              id="specialties-filter-status"
+              v-model="statusFilter"
+              :options="STATUS_FILTER_OPTIONS"
+              placeholder="Todos los estados"
+              class="w-full"
+              data-status-filter
+              @change="loadSpecialties"
+            />
+          </div>
+        </div>
+        <div v-if="hasActiveFilters" class="flex items-end">
+          <UiButton variant="secondary" class="w-full" data-filters-clear @click="clearFilters">
+            Limpiar filtros
+          </UiButton>
+        </div>
+      </UiFilterBar>
+    </template>
 
-    <section aria-label="Especialidades" class="space-y-4">
+    <template #heading>
       <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
         <h2 class="text-2xl font-semibold text-label">Todas las especialidades</h2>
         <p class="text-sm text-theme-secondary">Código, uso y estado de cada especialidad</p>
       </div>
+    </template>
 
-      <div data-specialties-list>
-        <div v-if="loading" data-specialties-loading>
-          <UiSkeleton variant="table" animation="wave" aria-label="Cargando especialidades..." />
-        </div>
-
-        <div
-          v-else-if="loadError"
-          data-specialties-error
-          role="alert"
-          class="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-panel)] border border-hairline bg-systemRed-50 p-5"
-        >
-          <div class="flex min-w-0 items-center gap-3">
-            <ExclamationTriangleIcon
-              class="h-6 w-6 flex-shrink-0 text-systemRed-600"
-              aria-hidden="true"
-            />
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-theme-primary">
-                No pudimos cargar las especialidades
-              </p>
-              <p class="text-sm text-theme-secondary">Revisa tu conexión y vuelve a intentarlo.</p>
-            </div>
-          </div>
-          <UiButton variant="primary" size="sm" data-specialties-retry @click="loadSpecialties">
-            Reintentar
-          </UiButton>
-        </div>
-
-        <div v-else-if="specialties.length === 0" data-specialties-empty>
-          <UiEmptyState
-            :title="emptyStateTitle"
-            :description="emptyStateDescription"
-            :icon="AcademicCapIcon"
-          >
-            <template #action>
-              <UiButton v-if="hasActiveFilters" variant="secondary" @click="clearFilters">
-                Limpiar filtros
-              </UiButton>
-              <UiButton v-else-if="can.manageSpecialties?.value" @click="openCreate">
-                Nueva especialidad
-              </UiButton>
-            </template>
-          </UiEmptyState>
-        </div>
-
-        <UiDataTable
-          v-else
-          :data="specialties"
-          :columns="columns"
-          :searchable="false"
-          :show-header="false"
-          :pagination="false"
-          data-specialties-table
-        >
-          <template #cell-name="{ row }">
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-theme-primary" data-row-specialty-name>
-                {{ row.name }}
-              </p>
-              <p class="font-mono text-xs text-theme-secondary" data-row-specialty-code>
-                {{ row.code }}
-              </p>
-            </div>
-          </template>
-
-          <template #cell-procedures="{ row }">
-            <div class="min-w-0" data-row-procedures>
-              <p class="text-sm text-theme-primary tabular-nums">
-                {{ countProcedures(row) }}
-              </p>
-              <p v-if="countProcedures(row) === 0" class="text-xs text-theme-secondary">
-                Sin procedimientos
-              </p>
-            </div>
-          </template>
-
-          <template #cell-professionals="{ row }">
-            <div class="min-w-0" data-row-professionals>
-              <p class="text-sm text-theme-primary tabular-nums">
-                {{ countProfessionals(row) }}
-              </p>
-              <p v-if="countProfessionals(row) === 0" class="text-xs text-theme-secondary">
-                Sin profesionales
-              </p>
-            </div>
-          </template>
-
-          <template #cell-status="{ row }">
-            <UiStatusBadge
-              :variant="getStatusVariant(row.is_active)"
-              :label="getStatusLabel(row.is_active)"
-              size="sm"
-            />
-          </template>
-
-          <template #actions="{ row }">
-            <UiButton
-              variant="ghost"
-              size="sm"
-              :class="ROW_ACTION_PALETTE.view.classes"
-              data-row-action="view"
-              @click="openDetail(row)"
-            >
-              Ver ficha
-            </UiButton>
-            <UiButton
-              v-if="can.manageSpecialties?.value"
-              variant="ghost"
-              size="sm"
-              :class="ROW_ACTION_PALETTE.edit.classes"
-              data-row-action="edit"
-              @click="openEdit(row)"
-            >
-              Editar
-            </UiButton>
-            <UiButton
-              v-if="can.manageSpecialties?.value"
-              variant="ghost"
-              size="sm"
-              :class="
-                row.is_active
-                  ? ROW_ACTION_PALETTE.archive.classes
-                  : ROW_ACTION_PALETTE.reactivate.classes
-              "
-              data-row-action="toggle"
-              @click="toggleSpecialty(row)"
-            >
-              {{ row.is_active ? 'Desactivar' : 'Activar' }}
-            </UiButton>
-          </template>
-        </UiDataTable>
+    <template #loading>
+      <div data-specialties-loading>
+        <UiSkeleton variant="table" animation="wave" aria-label="Cargando especialidades..." />
       </div>
-    </section>
-  </AppLayout>
+    </template>
+
+    <template #error>
+      <div
+        data-specialties-error
+        role="alert"
+        class="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-panel)] border border-hairline bg-systemRed-50 p-5"
+      >
+        <div class="flex min-w-0 items-center gap-3">
+          <ExclamationTriangleIcon
+            class="h-6 w-6 flex-shrink-0 text-systemRed-600"
+            aria-hidden="true"
+          />
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-theme-primary">
+              No pudimos cargar las especialidades
+            </p>
+            <p class="text-sm text-theme-secondary">Revisa tu conexión y vuelve a intentarlo.</p>
+          </div>
+        </div>
+        <UiButton variant="primary" size="sm" data-specialties-retry @click="loadSpecialties">
+          Reintentar
+        </UiButton>
+      </div>
+    </template>
+
+    <template #empty>
+      <div data-specialties-empty>
+        <UiEmptyState
+          :title="emptyStateTitle"
+          :description="emptyStateDescription"
+          :icon="AcademicCapIcon"
+        >
+          <template #action>
+            <UiButton v-if="hasActiveFilters" variant="secondary" @click="clearFilters">
+              Limpiar filtros
+            </UiButton>
+            <UiButton v-else-if="can.manageSpecialties?.value" @click="openCreate">
+              Nueva especialidad
+            </UiButton>
+          </template>
+        </UiEmptyState>
+      </div>
+    </template>
+
+    <template #table>
+      <UiDataTable
+        :data="specialties"
+        :columns="columns"
+        :searchable="false"
+        :show-header="false"
+        :pagination="false"
+        data-specialties-table
+      >
+        <template #cell-name="{ row }">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-theme-primary" data-row-specialty-name>
+              {{ row.name }}
+            </p>
+            <p class="font-mono text-xs text-theme-secondary" data-row-specialty-code>
+              {{ row.code }}
+            </p>
+          </div>
+        </template>
+
+        <template #cell-procedures="{ row }">
+          <div class="min-w-0" data-row-procedures>
+            <p class="text-sm text-theme-primary tabular-nums">
+              {{ countProcedures(row) }}
+            </p>
+            <p v-if="countProcedures(row) === 0" class="text-xs text-theme-secondary">
+              Sin procedimientos
+            </p>
+          </div>
+        </template>
+
+        <template #cell-professionals="{ row }">
+          <div class="min-w-0" data-row-professionals>
+            <p class="text-sm text-theme-primary tabular-nums">
+              {{ countProfessionals(row) }}
+            </p>
+            <p v-if="countProfessionals(row) === 0" class="text-xs text-theme-secondary">
+              Sin profesionales
+            </p>
+          </div>
+        </template>
+
+        <template #cell-status="{ row }">
+          <UiStatusBadge
+            :variant="getStatusVariant(row.is_active)"
+            :label="getStatusLabel(row.is_active)"
+            size="sm"
+          />
+        </template>
+
+        <template #actions="{ row }">
+          <UiButton
+            variant="ghost"
+            size="sm"
+            :class="ROW_ACTION_PALETTE.view.classes"
+            data-row-action="view"
+            @click="openDetail(row)"
+          >
+            Ver ficha
+          </UiButton>
+          <UiButton
+            v-if="can.manageSpecialties?.value"
+            variant="ghost"
+            size="sm"
+            :class="ROW_ACTION_PALETTE.edit.classes"
+            data-row-action="edit"
+            @click="openEdit(row)"
+          >
+            Editar
+          </UiButton>
+          <UiButton
+            v-if="can.manageSpecialties?.value"
+            variant="ghost"
+            size="sm"
+            :class="
+              row.is_active
+                ? ROW_ACTION_PALETTE.archive.classes
+                : ROW_ACTION_PALETTE.reactivate.classes
+            "
+            data-row-action="toggle"
+            @click="toggleSpecialty(row)"
+          >
+            {{ row.is_active ? 'Desactivar' : 'Activar' }}
+          </UiButton>
+        </template>
+      </UiDataTable>
+    </template>
+  </CatalogPageShell>
 
   <UiModal v-model="showDetail" title="Ficha de la especialidad" size="md" data-specialty-detail>
     <div v-if="detailSpecialty" class="space-y-4">
@@ -347,8 +351,7 @@ import { useErrorHandler } from '../../composables/useErrorHandler'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { ROW_ACTION_PALETTE } from '../../design-system/rowActionPalette'
-import AppLayout from '../../components/layout/AppLayout.vue'
-import PageHeader from '../../components/layout/PageHeader.vue'
+import CatalogPageShell from '../../components/catalogs/CatalogPageShell.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
@@ -399,6 +402,14 @@ const columns = [
 const hasActiveFilters = computed(
   () => searchQuery.value.trim() !== '' || statusFilter.value !== ''
 )
+
+const listState = computed(() => {
+  if (loading.value) return 'loading'
+  if (loadError.value) return 'error'
+  if (specialties.value.length === 0) return 'empty'
+
+  return 'ready'
+})
 
 const kpisUnavailable = computed(() => loading.value || loadError.value || kpis.value === null)
 

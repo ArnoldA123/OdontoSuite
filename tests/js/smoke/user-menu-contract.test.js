@@ -56,7 +56,7 @@ const mountShell = async () => {
 const openMenu = async wrapper => {
   await wrapper.get(USER_MENU_TRIGGER).trigger('click')
   await flushPromises()
-  return wrapper.get(USER_MENU)
+  return document.body.querySelector(USER_MENU)
 }
 
 beforeEach(() => {
@@ -76,16 +76,16 @@ describe('user menu contract (issue #380)', () => {
   it('opens from the trigger and lists exactly one menu item: Cerrar Sesión', async () => {
     const wrapper = await mountShell()
 
-    expect(wrapper.find(USER_MENU).exists()).toBe(false)
+    expect(document.body.querySelector(USER_MENU)).toBeNull()
 
     const menu = await openMenu(wrapper)
 
-    expect(menu.attributes('role')).toBe('menu')
-    expect(menu.attributes('aria-label')).toBe('Menú de usuario')
+    expect(menu.getAttribute('role')).toBe('menu')
+    expect(menu.getAttribute('aria-label')).toBe('Menú de usuario')
 
-    const items = menu.findAll('button')
+    const items = Array.from(menu.querySelectorAll('button'))
     expect(items).toHaveLength(1)
-    expect(items[0].text()).toBe('Cerrar Sesión')
+    expect(items[0].textContent.trim()).toBe('Cerrar Sesión')
 
     wrapper.unmount()
   })
@@ -94,8 +94,8 @@ describe('user menu contract (issue #380)', () => {
     const wrapper = await mountShell()
     const menu = await openMenu(wrapper)
 
-    expect(menu.text()).toContain('Ana Admin')
-    expect(menu.text()).toContain('ana@test.com')
+    expect(menu.textContent).toContain('Ana Admin')
+    expect(menu.textContent).toContain('ana@test.com')
 
     wrapper.unmount()
   })
@@ -105,7 +105,7 @@ describe('user menu contract (issue #380)', () => {
     const menu = await openMenu(wrapper)
 
     for (const label of REMOVED_LABELS) {
-      expect(menu.text()).not.toContain(label)
+      expect(menu.textContent).not.toContain(label)
       expect(wrapper.text()).not.toContain(label)
     }
 
@@ -119,7 +119,7 @@ describe('user menu contract (issue #380)', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
     await flushPromises()
 
-    expect(wrapper.find(USER_MENU).exists()).toBe(false)
+    expect(document.body.querySelector(USER_MENU)).toBeNull()
 
     wrapper.unmount()
   })

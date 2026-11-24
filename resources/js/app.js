@@ -124,6 +124,15 @@ const routes = [
     component: () => import('./modules/appointment-types/AppointmentTypeDetailPage.vue'),
     beforeEnter: requireAuth
   },
+  // Los tres maestros administrativos del catálogo se abren desde un hub. Las
+  // rutas hijas siguen existiendo para enlaces directos y para el escritorio
+  // de recepción.
+  {
+    path: '/catalogs',
+    name: 'catalogs',
+    component: () => import('./modules/catalogs/CatalogsPage.vue'),
+    beforeEnter: requireAuth
+  },
   // Catálogo maestro de especialidades (admin). La taxonomía que ordena el
   // catálogo de procedimientos y las especialidades de los profesionales.
   {
