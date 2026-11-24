@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// F4 (#310) — the reception desk of continuity renders the two populations the
-// queue publishes, the recall metric verbatim, and the complete load states.
+// «Unificar Pendientes por paciente» — the desk publishes ONE row per patient.
+// The four sources (overdue controls, continuity requests, quotations and
+// treatment plans) merge by patient, and every pending keeps its own action.
 // Transports and authorization are mocked: the page only consumes their
 // contracts.
 const harness = vi.hoisted(() => ({
@@ -49,7 +50,7 @@ vi.mock('../../../resources/js/composables/useAuth', () => ({
   })
 }))
 
-// S9 — the two write actions are gated on `manage.continuity`. A mutable handle
+// S9 — the write actions are gated on `manage.continuity`. A mutable handle
 // lets one test mount the same page as a clinician who may only read it.
 // S15 — `view.continuity` gates the queue itself: finance reaches this desk for
 // its commercial answers without that grant.
@@ -71,6 +72,10 @@ vi.mock('../../../resources/js/composables/useToast', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/continuity/ContinuityPage.vue'
 
+// ------------------------------------------------ fixtures
+
+// The queue publishes the patient both as `patient_id` and as the embedded
+// patient; the desk groups by the first and falls back to the second.
 const recall = (id, patient, reason, dueDate, months = 6) => ({
   id,
   patient_id: id + 100,
@@ -115,6 +120,8 @@ const queuePayload = (recalls, requests) => ({
   meta: { date: '2026-10-23' }
 })
 
+// Luis holds two sources (a request and a plan), Ana holds a control and a
+// quotation: both must collapse into a single row.
 const fullPayload = () =>
   queuePayload(
     [
@@ -191,12 +198,14 @@ const localIso = (year, monthIndex, day) => new Date(year, monthIndex, day, 10, 
 
 const quotationItem = (
   id,
+  patientId,
   patientName,
   status = 'sent',
   total = 149.9,
   createdAt = localIso(2026, 9, 3)
 ) => ({
   id,
+  patient_id: patientId,
   patient_name: patientName,
   total_amount: total,
   status,
@@ -205,17 +214,35 @@ const quotationItem = (
 
 const planItem = (
   id,
+  patientId,
   patientName,
   status = 'proposed',
   cost = 249.5,
   createdAt = localIso(2026, 9, 2)
 ) => ({
   id,
+  patient_id: patientId,
   patient_name: patientName,
   title: 'Plan de tratamiento',
   final_cost: cost,
   status,
   created_at: createdAt
+})
+
+// Ana (patient 131) owns both the overdue control and a quotation; Luis
+// (patient 241) owns the request and a plan; Marta (261) only a quotation.
+const mergedPending = () => ({
+  quotations: {
+    count: 2,
+    items: [
+      quotationItem(11, 131, 'Ana Torres', 'sent', 149.9, localIso(2026, 9, 3)),
+      quotationItem(12, 261, 'Marta Díaz', 'viewed', 89, localIso(2026, 9, 1))
+    ]
+  },
+  treatment_plans: {
+    count: 1,
+    items: [planItem(21, 241, 'Luis Rojas', 'proposed', 249.5, localIso(2026, 9, 2))]
+  }
 })
 
 // Modals teleport to <body>, so their fields are queried from the document.
@@ -250,6 +277,18 @@ const submitSchedule = async () => {
   await flushPromises()
 }
 
+const deskRows = wrapper => wrapper.findAll('[data-continuity-table="pending"] tbody tr')
+
+const desk = wrapper => wrapper.find('[data-continuity-section="pending"]')
+
+const rowFor = (wrapper, patientName) => {
+  const row = deskRows(wrapper).find(
+    candidate => candidate.find('[data-continuity-patient]').text() === patientName
+  )
+  expect(row, `row for ${patientName} must exist`).toBeTruthy()
+  return row
+}
+
 beforeEach(() => {
   localStorage.setItem('auth_token', 'test-token')
   localStorage.setItem(
@@ -277,7 +316,6 @@ describe('continuity desk', () => {
     expect(wrapper.find('[data-page-header]').exists()).toBe(true)
     expect(wrapper.find('[data-page-header-title]').text()).toBe('Pendientes')
 
-    // S15 - the page names the three populations it resolves.
     const hero = wrapper.find('[data-page-header]').text()
     expect(hero).toContain('Pendientes')
     expect(hero).toContain('Recalls vencidos')
@@ -286,7 +324,9 @@ describe('continuity desk', () => {
 
     expect(wrapper.find('[data-kpi-card="recalls"] [data-kpi-value]').text()).toBe('2')
     expect(wrapper.find('[data-kpi-card="requests"] [data-kpi-value]').text()).toBe('1')
-    expect(wrapper.find('[data-kpi-card="total"] [data-kpi-value]').text()).toBe('3')
+    // Three patients: Ana, María and Luis. «Total en cola» counted sources.
+    expect(wrapper.find('[data-kpi-card="patients"] [data-kpi-value]').text()).toBe('3')
+    expect(wrapper.find('[data-kpi-card="patients"]').text()).toContain('Pacientes con pendientes')
     expect(wrapper.find('[data-kpi-card="compliance"] [data-kpi-value]').text()).toBe('67%')
 
     wrapper.unmount()
@@ -304,54 +344,114 @@ describe('continuity desk', () => {
     wrapper.unmount()
   })
 
-  it('renders both populations with their mapped columns', async () => {
-    mockApi(fullPayload())
+  it('paints one row per patient, never one row per source', async () => {
+    mockApi(fullPayload(), 0.6667, mergedPending())
 
     const wrapper = await mountPage()
 
-    const recalls = wrapper.find('[data-continuity-section="recalls"]')
-    expect(recalls.find('[data-continuity-table="recalls"]').exists()).toBe(true)
-    const recallText = recalls.text()
-    expect(recallText).toContain('Ana Torres')
-    expect(recallText).toContain('Control semestral')
-    expect(recallText).toContain('01 oct. 2026')
-    expect(recallText).toContain('6 meses')
-    expect(recallText).toContain('María Quispe')
-    expect(recallText).toContain('12 meses')
-    expect(recallText).toContain('Vencidos y sin cita agendada')
-    // Unit A2 fills this column; T2 only has to publish it.
-    expect(recallText).toContain('Acciones')
+    const rows = deskRows(wrapper)
+    // Ana (control + quotation), María (control), Luis (request + plan) and
+    // Marta (quotation) are four patients, not six sources.
+    expect(rows).toHaveLength(4)
 
-    const requests = wrapper.find('[data-continuity-section="requests"]')
-    expect(requests.find('[data-continuity-table="requests"]').exists()).toBe(true)
-    const requestText = requests.text()
-    expect(requestText).toContain('Luis Rojas')
-    expect(requestText).toContain('Próxima sesión')
-    expect(requestText).toContain('02 nov. 2026, 09:00 – 09:30')
-    expect(requestText).toContain('30 min')
-    expect(requestText).toContain('Atención')
-    expect(requestText).toContain('Conducta pendiente de materializar')
-    expect(requestText).toContain('Acciones')
+    const ana = rowFor(wrapper, 'Ana Torres')
+    expect(ana.findAll('[data-continuity-label]')).toHaveLength(2)
+    expect(ana.find('[data-continuity-label="recall"]').text()).toBe('Control')
+    expect(ana.find('[data-continuity-label="quotation"]').text()).toBe('Presupuesto')
+    // No action is lost when a patient holds several pendings.
+    expect(ana.text()).toContain('Agendar control')
+    expect(ana.text()).toContain('Ver presupuesto')
+
+    const luis = rowFor(wrapper, 'Luis Rojas')
+    expect(luis.find('[data-continuity-label="request"]').text()).toBe('Solicitud')
+    expect(luis.find('[data-continuity-label="plan"]').text()).toBe('Plan')
+    expect(luis.text()).toContain('Agendar')
+    expect(luis.text()).toContain('Descartar')
+    expect(luis.text()).toContain('Ver plan')
+
+    // The patient name is painted once per patient, not once per pending.
+    expect(wrapper.findAll('[data-continuity-patient]')).toHaveLength(4)
+    expect(
+      wrapper.findAll('[data-continuity-patient]').filter(node => node.text() === 'Ana Torres')
+    ).toHaveLength(1)
 
     wrapper.unmount()
   })
 
-  it('renders the two empty states when both arrays come back empty', async () => {
+  it('names the detail of the most urgent pending with its date, reason and amount', async () => {
+    mockApi(fullPayload(), 0.6667, mergedPending())
+
+    const wrapper = await mountPage()
+
+    const ana = rowFor(wrapper, 'Ana Torres')
+    // The overdue control wins the detail over the quotation.
+    expect(ana.text()).toContain('Control semestral')
+    expect(ana.text()).toContain('01 oct. 2026')
+    expect(ana.text()).toContain('6 meses')
+    expect(ana.text()).toContain('+1 más')
+
+    const luis = rowFor(wrapper, 'Luis Rojas')
+    // A request beats the plan: its preferred window is the clinical date.
+    expect(luis.text()).toContain('Próxima sesión')
+    expect(luis.text()).toContain('02 nov. 2026, 09:00 – 09:30')
+    expect(luis.text()).toContain('+1 más')
+
+    const marta = rowFor(wrapper, 'Marta Díaz')
+    expect(marta.text()).toContain('Presupuesto')
+    expect(marta.text()).toContain('01 oct. 2026')
+    expect(marta.text()).toContain('Visto')
+    expect(normalize(marta.text())).toContain('S/ 89.00')
+
+    wrapper.unmount()
+  })
+
+  it('groups by the embedded patient and by the name when the id is absent', async () => {
+    const legacyRecall = recall(31, ['Ana', 'Torres'], 'Control semestral', '2026-10-01', 6)
+    delete legacyRecall.patient_id
+    legacyRecall.patient.id = 131
+
+    const firstCollected = quotationItem(11, undefined, 'María Quispe')
+    delete firstCollected.patient_id
+    const secondCollected = quotationItem(12, undefined, 'María Quispe', 'viewed')
+    delete secondCollected.patient_id
+
+    mockApi(queuePayload([legacyRecall], []), 0.6667, {
+      quotations: { count: 2, items: [firstCollected, secondCollected] }
+    })
+
+    const wrapper = await mountPage()
+
+    expect(deskRows(wrapper)).toHaveLength(2)
+
+    const ana = rowFor(wrapper, 'Ana Torres')
+    expect(ana.find('[data-continuity-label="recall"]').exists()).toBe(true)
+    expect(ana.text()).toContain('Agendar control')
+
+    // Two quotations of the same patient (no id, same name) are one row with
+    // both actions, not one row each.
+    const maria = rowFor(wrapper, 'María Quispe')
+    expect(maria.findAll('[data-continuity-pending-view="quotations"]')).toHaveLength(2)
+
+    wrapper.unmount()
+  })
+
+  it('renders a single empty state when every source comes back empty', async () => {
     mockApi(emptyPayload())
 
     const wrapper = await mountPage()
 
-    expect(wrapper.find('[data-continuity-empty="recalls"]').exists()).toBe(true)
-    expect(wrapper.find('[data-continuity-empty="requests"]').exists()).toBe(true)
-    expect(wrapper.find('[data-continuity-table="recalls"]').exists()).toBe(false)
-    expect(wrapper.find('[data-continuity-table="requests"]').exists()).toBe(false)
+    expect(wrapper.find('[data-continuity-empty="pending"]').exists()).toBe(true)
+    expect(wrapper.find('[data-continuity-table="pending"]').exists()).toBe(false)
+    expect(wrapper.find('[data-continuity-section="pending"]').text()).toContain(
+      'Sin pendientes por paciente'
+    )
 
     wrapper.unmount()
   })
 
   it('reports a failed load and refetches the queue from the retry button', async () => {
     // Module state is a singleton: start from a known empty queue so the retry
-    // panel is the only section surface left after the failure.
+    // panel is the only desk surface left after the failure.
     mockApi(emptyPayload())
     const primer = await mountPage()
     primer.unmount()
@@ -366,8 +466,8 @@ describe('continuity desk', () => {
     expect(panel.exists()).toBe(true)
     expect(panel.attributes('role')).toBe('alert')
     expect(panel.text()).toContain('No se pudo conectar con el servidor.')
-    expect(wrapper.find('[data-continuity-table="recalls"]').exists()).toBe(false)
-    expect(wrapper.find('[data-continuity-empty="recalls"]').exists()).toBe(false)
+    expect(wrapper.find('[data-continuity-table="pending"]').exists()).toBe(false)
+    expect(wrapper.find('[data-continuity-empty="pending"]').exists()).toBe(false)
 
     const before = queueCalls()
     mockApi(fullPayload())
@@ -376,7 +476,7 @@ describe('continuity desk', () => {
 
     expect(queueCalls()).toBe(before + 1)
     expect(wrapper.find('[data-continuity-error]').exists()).toBe(false)
-    expect(wrapper.find('[data-continuity-table="recalls"]').exists()).toBe(true)
+    expect(wrapper.find('[data-continuity-table="pending"]').exists()).toBe(true)
 
     wrapper.unmount()
   })
@@ -446,7 +546,7 @@ describe('continuity desk actions', () => {
     wrapper.unmount()
   })
 
-  it('schedules an overdue recall through its own door', async () => {
+  it('schedules an overdue control through its own door', async () => {
     mockApi(fullPayload())
     harness.post.mockResolvedValue({
       data: {
@@ -461,6 +561,7 @@ describe('continuity desk actions', () => {
     await openSchedule(wrapper, 'recall')
 
     expect(bodyField('[data-schedule-title]').textContent).toContain('Agendar cita de control')
+    expect(bodyField('[data-schedule-patient]').textContent).toContain('Ana Torres')
     expect(bodyField('[data-sc-scheduled-at] input').value).toMatch(/^\d{4}-\d{2}-\d{2}T09:00$/)
 
     await chooseOption('[data-sc-user]', 'Dra. Elena Paredes')
@@ -479,7 +580,7 @@ describe('continuity desk actions', () => {
     wrapper.unmount()
   })
 
-  it('maps a slot conflict onto the chair field and keeps the row in the queue', async () => {
+  it('maps a slot conflict onto the chair field and keeps the row in the desk', async () => {
     mockApi(fullPayload())
     harness.post.mockRejectedValue({
       response: {
@@ -505,7 +606,7 @@ describe('continuity desk actions', () => {
 
     // The composable only reloads on success, so the row never left the desk.
     expect(queueCalls()).toBe(before)
-    expect(wrapper.find('[data-continuity-table="requests"]').text()).toContain('Luis Rojas')
+    expect(rowFor(wrapper, 'Luis Rojas').text()).toContain('Solicitud')
     expect(bodyField('[data-schedule-modal]')).toBeTruthy()
 
     wrapper.unmount()
@@ -547,73 +648,12 @@ describe('continuity desk actions', () => {
   })
 })
 
-// S15 - the desk absorbs the commercial pending answers the dashboard used to
-// publish. The section reads GET /api/dashboard/pending, whose payload key is
-// the visibility contract: an absent subset means the role cannot read that
-// module, so its rows never render and no zero is invented for it.
+// The commercial answers share the row with the patient's control or request.
+// Their payload key is the visibility contract: an absent subset means the role
+// cannot read that module, so no row is invented for it.
 describe('continuity pending answers', () => {
-  const pendingSection = wrapper => wrapper.find('[data-continuity-section="pending"]')
-
-  it('renders the merged answers with type badges sorted by registration date', async () => {
-    mockApi(fullPayload(), 0.6667, {
-      quotations: {
-        count: 2,
-        items: [
-          quotationItem(11, 'Ana Torres Quispe', 'viewed', 149.9, localIso(2026, 9, 3)),
-          quotationItem(12, 'Luis Rojas', 'sent', 89, localIso(2026, 9, 1))
-        ]
-      },
-      treatment_plans: {
-        count: 1,
-        items: [planItem(21, 'Marta Díaz', 'proposed', 249.5, localIso(2026, 9, 2))]
-      }
-    })
-
-    const wrapper = await mountPage()
-
-    const section = pendingSection(wrapper)
-    expect(section.exists()).toBe(true)
-    expect(section.text()).toContain('Esperando respuesta')
-    expect(section.text()).toContain('Presupuestos y planes de tratamiento')
-
-    const rows = section.findAll('[data-continuity-table="pending"] tbody tr')
-    expect(rows).toHaveLength(3)
-
-    // Sorted by registration date ascending: 1 oct, 2 oct, 3 oct.
-    expect(rows[0].text()).toContain('Luis Rojas')
-    expect(rows[0].text()).toContain('01 oct. 2026')
-    expect(rows[1].text()).toContain('Marta Díaz')
-    expect(rows[1].text()).toContain('02 oct. 2026')
-    expect(rows[2].text()).toContain('Ana Torres Quispe')
-    expect(rows[2].text()).toContain('03 oct. 2026')
-
-    // Row anatomy: type badge, amount (per-type field), status badge.
-    expect(normalize(rows[0].text())).toContain('S/ 89.00')
-    expect(rows[0].text()).toContain('Presupuesto')
-    expect(rows[0].text()).toContain('Enviado')
-    expect(normalize(rows[1].text())).toContain('S/ 249.50')
-    expect(rows[1].text()).toContain('Plan de tratamiento')
-    expect(rows[1].text()).toContain('Propuesto')
-    expect(rows[2].text()).toContain('Visto')
-
-    // One action per row, none at the section level.
-    for (const row of rows) {
-      expect(row.findAll('button')).toHaveLength(1)
-    }
-    expect(section.text()).not.toContain('Ver todos')
-
-    // The queue above keeps working: its own endpoint is asked exactly once.
-    expect(queueCalls()).toBe(1)
-    expect(pendingCalls()).toBe(1)
-
-    wrapper.unmount()
-  })
-
-  it('routes each answer to its module list', async () => {
-    mockApi(fullPayload(), 0.6667, {
-      quotations: { count: 1, items: [quotationItem(11, 'Ana Torres Quispe')] },
-      treatment_plans: { count: 1, items: [planItem(21, 'Marta Díaz')] }
-    })
+  it('opens each answer in its own module list', async () => {
+    mockApi(fullPayload(), 0.6667, mergedPending())
 
     const wrapper = await mountPage()
 
@@ -628,23 +668,24 @@ describe('continuity pending answers', () => {
     await flushPromises()
     expect(wrapper.vm.$router.currentRoute.value.path).toBe('/treatment-plans')
 
+    expect(queueCalls()).toBe(1)
+    expect(pendingCalls()).toBe(1)
+
     wrapper.unmount()
   })
 
   it('renders only the readable subset and invents no zero for the absent one', async () => {
     mockApi(fullPayload(), 0.6667, {
-      treatment_plans: { count: 1, items: [planItem(21, 'Marta Díaz')] }
+      treatment_plans: { count: 1, items: [planItem(21, 241, 'Luis Rojas')] }
     })
 
     const wrapper = await mountPage()
 
-    const section = pendingSection(wrapper)
-    expect(section.exists()).toBe(true)
-    expect(section.findAll('[data-continuity-pending-type]')).toHaveLength(1)
-    expect(section.text()).toContain('Plan de tratamiento')
-    expect(section.find('[data-continuity-pending-view="quotations"]').exists()).toBe(false)
-    expect(section.find('[data-continuity-pending-view="treatment-plans"]').exists()).toBe(true)
-    expect(section.text()).not.toContain('0 respondidas')
+    expect(desk(wrapper).exists()).toBe(true)
+    expect(wrapper.findAll('[data-continuity-label="plan"]')).toHaveLength(1)
+    expect(wrapper.findAll('[data-continuity-label="quotation"]')).toHaveLength(0)
+    expect(wrapper.find('[data-continuity-pending-view="quotations"]').exists()).toBe(false)
+    expect(wrapper.find('[data-continuity-pending-view="treatment-plans"]').exists()).toBe(true)
 
     // No half is announced as empty: the missing key is invisible.
     expect(wrapper.find('[data-continuity-empty="pending"]').exists()).toBe(false)
@@ -652,35 +693,7 @@ describe('continuity pending answers', () => {
     wrapper.unmount()
   })
 
-  it('hides the whole section when the payload carries neither subset', async () => {
-    mockApi(fullPayload(), 0.6667, {})
-
-    const wrapper = await mountPage()
-
-    expect(pendingSection(wrapper).exists()).toBe(false)
-    expect(wrapper.find('[data-continuity-empty="pending"]').exists()).toBe(false)
-    expect(pendingCalls()).toBe(1)
-
-    wrapper.unmount()
-  })
-
-  it('renders the shared empty state when every readable subset has no items', async () => {
-    mockApi(fullPayload(), 0.6667, {
-      quotations: { count: 0, items: [] },
-      treatment_plans: { count: 0, items: [] }
-    })
-
-    const wrapper = await mountPage()
-
-    const empty = wrapper.find('[data-continuity-empty="pending"]')
-    expect(empty.exists()).toBe(true)
-    expect(empty.text()).toContain('Sin respuestas pendientes')
-    expect(wrapper.find('[data-continuity-table="pending"]').exists()).toBe(false)
-
-    wrapper.unmount()
-  })
-
-  it('keeps the queue mounted when the answers fail and retries only that resource', async () => {
+  it('keeps the rows mounted when the answers fail and retries only that resource', async () => {
     let pendingAttempt = 0
     harness.get.mockImplementation(async url => {
       if (url === '/api/patient-recalls/metrics') return metricsPayload(0.6667)
@@ -689,9 +702,7 @@ describe('continuity pending answers', () => {
         if (pendingAttempt === 1) {
           throw { response: { data: { message: 'No se pudo conectar con el servidor.' } } }
         }
-        return {
-          data: { quotations: { count: 1, items: [quotationItem(11, 'Ana Torres Quispe')] } }
-        }
+        return { data: { quotations: { count: 1, items: [quotationItem(11, 131, 'Ana Torres')] } } }
       }
       return fullPayload()
     })
@@ -704,9 +715,10 @@ describe('continuity pending answers', () => {
     expect(error.text()).toContain('No pudimos cargar las respuestas pendientes')
     expect(error.text()).toContain('No se pudo conectar con el servidor.')
 
-    // The queue above answered 200 and stays mounted: its own error is absent.
+    // The queue answered 200: its rows stay on screen and its own error is
+    // absent, so a commercial failure never blanks the desk.
     expect(wrapper.find('[data-continuity-error]').exists()).toBe(false)
-    expect(wrapper.find('[data-continuity-table="recalls"]').exists()).toBe(true)
+    expect(deskRows(wrapper)).toHaveLength(3)
     expect(queueCalls()).toBe(1)
 
     await wrapper.find('[data-continuity-pending-retry]').trigger('click')
@@ -715,7 +727,8 @@ describe('continuity pending answers', () => {
     expect(pendingCalls()).toBe(2)
     expect(queueCalls()).toBe(1)
     expect(wrapper.find('[data-continuity-pending-error]').exists()).toBe(false)
-    expect(wrapper.find('[data-continuity-table="pending"]').exists()).toBe(true)
+    // Ana keeps her row and gains the quotation action on it.
+    expect(rowFor(wrapper, 'Ana Torres').text()).toContain('Ver presupuesto')
 
     wrapper.unmount()
   })
@@ -726,18 +739,17 @@ describe('continuity pending answers', () => {
     const wrapper = await mountPage()
 
     expect(wrapper.find('[data-continuity-error]').exists()).toBe(true)
-    expect(wrapper.find('[data-continuity-pending-error]').exists()).toBe(true)
 
     const before = pendingCalls()
     mockApi(fullPayload(), 0.6667, {
-      quotations: { count: 1, items: [quotationItem(11, 'Ana Torres Quispe')] }
+      quotations: { count: 1, items: [quotationItem(11, 131, 'Ana Torres')] }
     })
     await wrapper.find('[data-continuity-retry]').trigger('click')
     await flushPromises()
     await flushPromises()
 
     expect(wrapper.find('[data-continuity-error]').exists()).toBe(false)
-    expect(wrapper.find('[data-continuity-table="recalls"]').exists()).toBe(true)
+    expect(deskRows(wrapper)).toHaveLength(3)
     // The queue retry never re-issues the pending resource.
     expect(pendingCalls()).toBe(before)
 
@@ -745,18 +757,18 @@ describe('continuity pending answers', () => {
   })
 })
 
-// S15 - finance reads quotations but holds no `view.continuity`. The same desk
+// S15 — finance reads quotations but holds no `view.continuity`. The same desk
 // must serve it without a queue (and without a 403), showing only the
-// commercial answers; the reverse (queue, no answers) is the continuity desks'
+// commercial rows; the reverse (queue, no answers) is the continuity desks'
 // case already covered above.
 describe('continuity desk for finance', () => {
   beforeEach(() => {
     harness.canViewContinuity = false
   })
 
-  it('does not call the queue and renders no queue section, KPI or error', async () => {
+  it('does not call the queue and renders no queue KPI or error', async () => {
     mockApi(fullPayload(), 0.6667, {
-      quotations: { count: 1, items: [quotationItem(11, 'Ana Torres Quispe')] }
+      quotations: { count: 1, items: [quotationItem(11, 131, 'Ana Torres Quispe')] }
     })
 
     const wrapper = await mountPage()
@@ -769,19 +781,17 @@ describe('continuity desk for finance', () => {
     expect(wrapper.find('[data-continuity-kpis]').exists()).toBe(false)
     expect(wrapper.find('[data-continuity-error]').exists()).toBe(false)
     expect(wrapper.find('[data-continuity-loading]').exists()).toBe(false)
-    expect(wrapper.find('[data-continuity-section="recalls"]').exists()).toBe(false)
-    expect(wrapper.find('[data-continuity-section="requests"]').exists()).toBe(false)
 
     // No invented zero: the page body never advertises the queue it cannot read.
     const body = wrapper.find('[data-continuity]')
     expect(body.text()).not.toContain('Recalls vencidos')
-    expect(body.text()).not.toContain('Sin recalls vencidos')
+    expect(body.text()).not.toContain('Sin pendientes por paciente')
     expect(body.text()).toContain('Presupuestos y planes de tratamiento esperando respuesta.')
 
-    // The commercial answers are the whole desk for this session.
-    const section = wrapper.find('[data-continuity-section="pending"]')
-    expect(section.exists()).toBe(true)
-    expect(section.text()).toContain('Ana Torres Quispe')
+    // The commercial rows are the whole desk for this session.
+    expect(desk(wrapper).exists()).toBe(true)
+    expect(deskRows(wrapper)).toHaveLength(1)
+    expect(rowFor(wrapper, 'Ana Torres Quispe').text()).toContain('Ver presupuesto')
     expect(wrapper.find('[data-continuity-empty="pending"]').exists()).toBe(false)
 
     wrapper.unmount()
@@ -789,7 +799,7 @@ describe('continuity desk for finance', () => {
 
   it('refreshes only the commercial answers from the hero control', async () => {
     mockApi(fullPayload(), 0.6667, {
-      quotations: { count: 1, items: [quotationItem(11, 'Ana Torres Quispe')] }
+      quotations: { count: 1, items: [quotationItem(11, 131, 'Ana Torres Quispe')] }
     })
 
     const wrapper = await mountPage()
@@ -810,7 +820,7 @@ describe('continuity desk for finance', () => {
 
     const wrapper = await mountPage()
 
-    expect(wrapper.find('[data-continuity-section="pending"]').exists()).toBe(false)
+    expect(desk(wrapper).exists()).toBe(false)
     expect(wrapper.find('[data-continuity-empty="pending"]').exists()).toBe(false)
     // The hero still names the desk: the empty body is a permission boundary,
     // not an error.

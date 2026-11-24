@@ -5,12 +5,18 @@ namespace Tests\Unit\DesignSystem;
 use PHPUnit\Framework\TestCase;
 
 /**
- * S15 — the continuity desk becomes "Pendientes" and absorbs the commercial
- * pending answers the dashboard used to publish.
+ * S15 — the continuity desk becomes "Pendientes".
  *
- * Source-inspection guards for the renamed hero, the third section, its merged
- * row model, the tolerant load/retry and the navigation copy. DOM behavior is
- * covered by tests/js/smoke/continuity.test.js.
+ * The desk used to paint one table per source, so the same patient could show up
+ * four times with the actions scattered between the rows. The contract that
+ * replaced it is one section and one row per patient: the queue (overdue
+ * controls and continuity requests) plus the commercial answers merge by
+ * `patientKey`, and every pending keeps its own chip and its own action.
+ *
+ * Source-inspection guards for the single section, the grouped row model, the
+ * chip vocabulary, the per-item actions, the patient KPI, the tolerant load and
+ * the navigation copy. DOM behavior is covered by
+ * tests/js/smoke/continuity.test.js.
  */
 class ContinuityPendingSectionTest extends TestCase
 {
@@ -31,6 +37,14 @@ class ContinuityPendingSectionTest extends TestCase
         $this->assertNotSame('', $src, 'ContinuityPage.vue must exist');
 
         return $src;
+    }
+
+    /** Every `data-continuity-section` key the page declares, in order. */
+    private function sectionKeys(string $src): array
+    {
+        preg_match_all('/data-continuity-section="([^"]+)"/', $src, $matches);
+
+        return $matches[1];
     }
 
     public function test_header_is_named_pendientes_and_states_its_three_populations(): void
@@ -54,9 +68,15 @@ class ContinuityPendingSectionTest extends TestCase
         $this->assertStringNotContainsString('Cola de continuidad', $src);
     }
 
-    public function test_the_three_sections_and_their_hooks_survive(): void
+    public function test_the_desk_publishes_one_section_and_the_queue_sections_are_gone(): void
     {
         $src = $this->pageSource();
+
+        $this->assertSame(
+            ['pending'],
+            $this->sectionKeys($src),
+            'Pendientes paints one section named "pending"; the per-source sections are retired.'
+        );
 
         foreach ([
             'data-continuity',
@@ -69,7 +89,10 @@ class ContinuityPendingSectionTest extends TestCase
             'data-continuity-section="pending"',
             'data-continuity-table="pending"',
             'data-continuity-empty="pending"',
+            'data-continuity-pending-state',
+            'data-continuity-pending-loading',
             'data-continuity-pending-error',
+            'data-continuity-pending-error-message',
             'data-continuity-pending-retry',
             'data-continuity-pending-view',
         ] as $hook) {
@@ -80,10 +103,138 @@ class ContinuityPendingSectionTest extends TestCase
             );
         }
 
-        // The two queue sections keep their own table and row actions.
+        // A returning `recalls`/`requests` table would paint the patient twice.
+        $this->assertStringNotContainsString('data-continuity-section="recalls"', $src);
+        $this->assertStringNotContainsString('data-continuity-section="requests"', $src);
+        $this->assertStringNotContainsString('data-continuity-table="recalls"', $src);
+        $this->assertStringNotContainsString('data-continuity-table="requests"', $src);
+        $this->assertStringNotContainsString('data-continuity-empty="recalls"', $src);
+        $this->assertStringNotContainsString('data-continuity-empty="requests"', $src);
+    }
+
+    public function test_the_grouped_table_reads_pending_rows_with_the_patient_as_its_key(): void
+    {
+        $src = $this->pageSource();
+
+        $this->assertMatchesRegularExpression(
+            '/<UiDataTable[\s\S]*?:data="pendingRows"[\s\S]*?row-key="key"[\s\S]*?:show-header="false"[\s\S]*?data-continuity-table="pending"/',
+            $src,
+            'The desk renders the grouped rows through UiDataTable, keyed by the patient row.'
+        );
+
+        foreach ([
+            "label: 'Paciente'",
+            "label: 'Pendientes'",
+            "label: 'Detalle'",
+        ] as $column) {
+            $this->assertStringContainsString(
+                $column,
+                $src,
+                "The grouped table declares its {$column} column."
+            );
+        }
+
+        $this->assertStringContainsString(
+            'Una fila por paciente con sus controles, solicitudes y respuestas pendientes',
+            $src,
+            'The section states the grouping in its own copy.'
+        );
+    }
+
+    public function test_rows_merge_by_patient_so_no_row_repeats_the_same_patient(): void
+    {
+        $src = $this->pageSource();
+
+        // One map keyed by the patient: a second pending joins the first row
+        // instead of pushing a new one.
+        $this->assertStringContainsString('const groups = new Map()', $src);
+        $this->assertStringContainsString('const group = groups.get(item.patientKey) || {', $src);
+        $this->assertStringContainsString('groups.set(item.patientKey, group)', $src);
+
+        $this->assertSame(
+            1,
+            substr_count($src, 'patientRows.push('),
+            'The row list is filled once per group, never once per pending.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/for \(const group of groups\.values\(\)\) \{[\s\S]*?patientRows\.push\(\{/',
+            $src,
+            'The push lives inside the loop over the patient groups, not inside the items loop.'
+        );
+        $this->assertStringContainsString('key: `patient-${item.patientKey}`', $src);
+        $this->assertStringContainsString(
+            'const pendingRows = computed(() => buildPendingRows())',
+            $src,
+            'The table reads the grouped derivation, not the raw queues.'
+        );
+
+        foreach ([
+            'queue.value.recalls',
+            'queue.value.requests',
+            'pendingQuotations.value?.items',
+            'pendingTreatmentPlans.value?.items',
+        ] as $source) {
+            $this->assertStringContainsString(
+                $source,
+                $src,
+                "The grouping feeds from {$source}."
+            );
+        }
+    }
+
+    public function test_every_pending_keeps_its_chip_and_its_own_action(): void
+    {
+        $src = $this->pageSource();
+
+        foreach ([
+            "recall: { label: 'Control'",
+            "request: { label: 'Solicitud'",
+            "quotation: { label: 'Presupuesto'",
+            "plan: { label: 'Plan'",
+        ] as $source) {
+            $this->assertStringContainsString(
+                $source,
+                $src,
+                "The grouped row carries the {$source} chip vocabulary."
+            );
+        }
+
+        $this->assertStringContainsString('v-for="label in row.labels"', $src);
+        $this->assertStringContainsString(':data-continuity-label="label.key"', $src);
+        $this->assertStringContainsString('v-for="row in entry.items"', $src);
+
+        // One action per pending: a patient with a control and a quotation keeps
+        // both doors, and the commercial answers stay read-only.
         $this->assertStringContainsString('data-continuity-schedule="recall"', $src);
         $this->assertStringContainsString('data-continuity-schedule="request"', $src);
         $this->assertStringContainsString('data-continuity-dismiss', $src);
+        $this->assertStringContainsString('@click.stop="openSchedule(\'recall\', row.payload)"', $src);
+        $this->assertStringContainsString('@click.stop="openSchedule(\'request\', row.payload)"', $src);
+        $this->assertStringContainsString('@click.stop="openPending(row)"', $src);
+
+        $this->assertStringContainsString("route: '/quotations'", $src);
+        $this->assertStringContainsString("route: '/treatment-plans'", $src);
+    }
+
+    public function test_the_kpi_strip_counts_patients_and_keeps_the_queue_numbers(): void
+    {
+        $src = $this->pageSource();
+
+        $this->assertStringContainsString("key: 'recalls'", $src);
+        $this->assertStringContainsString("key: 'requests'", $src);
+        $this->assertStringContainsString("key: 'compliance'", $src);
+        $this->assertStringContainsString("key: 'patients'", $src);
+        $this->assertStringContainsString(
+            "label: 'Pacientes con pendientes'",
+            $src,
+            'The patient KPI is named for the population the table groups.'
+        );
+        $this->assertStringContainsString(
+            'value: formatNumber(pendingRows.value.length)',
+            $src,
+            'The patient KPI counts grouped rows, so one patient with two pendings counts once.'
+        );
+        $this->assertStringContainsString("caption: 'Una fila por paciente'", $src);
     }
 
     public function test_pending_section_reads_its_own_door_with_a_tolerant_retry(): void
@@ -139,49 +290,12 @@ class ContinuityPendingSectionTest extends TestCase
         $this->assertStringContainsString(
             'Boolean(pendingQuotations.value || pendingTreatmentPlans.value)',
             $src,
-            'The section must stay hidden while no readable subset exists.'
+            'The commercial half must stay hidden while no readable subset exists.'
         );
         $this->assertStringContainsString(
             'v-if="pendingLoading || hasPendingGroups || pendingError"',
             $src,
-            'The section renders only while loading, with a readable subset, or on its own error.'
-        );
-    }
-
-    public function test_pending_rows_merge_both_types_with_amount_status_and_one_action(): void
-    {
-        $src = $this->pageSource();
-
-        foreach (["typeLabel: 'Presupuesto'", "typeLabel: 'Plan de tratamiento'"] as $label) {
-            $this->assertStringContainsString(
-                $label,
-                $src,
-                "The merged rows must carry the type copy {$label}."
-            );
-        }
-
-        $this->assertStringContainsString('readAmount: item => item?.total_amount', $src);
-        $this->assertStringContainsString('readAmount: item => item?.final_cost', $src);
-        $this->assertStringContainsString('formatPENLabel(amount)', $src);
-        $this->assertStringContainsString("'N/D'", $src);
-        $this->assertStringContainsString('rows.sort((a, b) => a.sortTime - b.sortTime)', $src);
-
-        foreach (["sent: 'Enviado'", "viewed: 'Visto'", "proposed: 'Propuesto'"] as $status) {
-            $this->assertStringContainsString(
-                $status,
-                $src,
-                "The merged rows must label the {$status} status."
-            );
-        }
-
-        // One row-level action per answer, routed to its module list.
-        $this->assertStringContainsString('@click.stop="openPending(row)"', $src);
-        $this->assertStringContainsString("route: '/quotations'", $src);
-        $this->assertStringContainsString("route: '/treatment-plans'", $src);
-        $this->assertMatchesRegularExpression(
-            '/const openPending = row => \{[\s\S]*?router\.push\(destination\)/',
-            $src,
-            'The row action must navigate with router.push (no invented deep links).'
+            'The commercial state renders only while loading, with a readable subset, or on its own error.'
         );
     }
 
@@ -190,15 +304,16 @@ class ContinuityPendingSectionTest extends TestCase
         $src = $this->pageSource();
 
         $this->assertMatchesRegularExpression(
-            '/<UiDataTable[\s\S]*?:data="pendingRows"[\s\S]*?:show-header="false"/',
-            $src,
-            'The pending answers must render through UiDataTable with the header bar off, like the queue sections.'
-        );
-        $this->assertMatchesRegularExpression(
             '/<UiSectionEmpty\b[\s\S]*?data-continuity-empty="pending"/',
             $src,
             'The empty case must render through the shared UiSectionEmpty primitive.'
         );
+        $this->assertMatchesRegularExpression(
+            '/<UiSectionEmpty\b[\s\S]*?title="Sin pendientes por paciente"/',
+            $src,
+            'The empty case names the grouped population, not a single source.'
+        );
+        $this->assertStringContainsString('data-continuity-pending-state', $src);
     }
 
     public function test_navigation_and_topbar_copy_describe_the_new_contents(): void
