@@ -17,10 +17,14 @@ use PHPUnit\Framework\TestCase;
  *
  * The canonical contract, guarded here:
  *
- *   (a) every surface imports and renders the shared `PageHeader`;
+ *   (a) every surface imports and renders the shared `PageHeader`, con una
+ *       excepción declarada (T5a): `/calendar` posee una banda compacta de
+ *       125 px (`data-calendar-frame` + `<header data-calendar-header>`)
+ *       porque la tarjeta medía 175 px antes de la rejilla;
  *   (b) no surface keeps header markup of its own (`<header>` element,
  *       `data-*-hero` hook, `text-3xl font-bold`, `text-4xl` outside the
- *       component, `elevation-1`);
+ *       component, `elevation-1`) — salvo el único `<header>` compacto del
+ *       calendario;
  *   (c) no surface offers a back action inside its header ("Volver" is not a
  *       page action: none of the nine is a child of another);
  *   (d) no surface paints the brand glyph or the dental motif inside its
@@ -56,7 +60,10 @@ class SurfaceHeaderHomogeneityTest extends TestCase
         ],
         '/calendar' => [
             'page' => '/resources/js/modules/appointments/CalendarPage.vue',
-            'kicker' => 'Agenda',
+            // El rediseño del calendario (T4) titula la cejilla con la
+            // superficie y la sede que la agenda muestra: se declara como
+            // expresión, igual que el título de las dos superficies con saludo.
+            'kicker' => null,
             'title' => null,
             'cta' => 'Nueva cita',
         ],
@@ -123,6 +130,24 @@ class SurfaceHeaderHomogeneityTest extends TestCase
      */
     private static function headerBlock(string $source, string $label): string
     {
+        // T5a: el calendario abre con su propia banda compacta de 125 px
+        // declarados (title 24/32 + contexto + fila de herramientas), no con
+        // la tarjeta PageHeader: la banda no es una tarjeta ni lleva sombra.
+        if ($label === '/calendar') {
+            $matched = preg_match(
+                '#<header\b[^>]*data-calendar-header[^>]*>[\s\S]*?</header>#',
+                $source,
+                $matches
+            );
+            self::assertSame(
+                1,
+                $matched,
+                "{$label} must render one compact <header data-calendar-header>...</header> block."
+            );
+
+            return $matches[0];
+        }
+
         $matched = preg_match('#<PageHeader\b[\s\S]*?</PageHeader>#', $source, $matches);
         self::assertSame(1, $matched, "{$label} must render one <PageHeader>...</PageHeader> block.");
 
@@ -144,6 +169,23 @@ class SurfaceHeaderHomogeneityTest extends TestCase
     {
         $source = self::read($surface['page']);
 
+        if ($route === '/calendar') {
+            // Excepción declarada (T5a): el calendario posee una banda única
+            // más densa que la anatomía compartida, y no monta la tarjeta.
+            self::assertStringContainsString(
+                'data-calendar-frame',
+                $source,
+                "{$route} must render its compact page band (data-calendar-frame)."
+            );
+            self::assertStringNotContainsString(
+                'PageHeader',
+                $source,
+                "{$route} must not mount PageHeader: its band is the compact header (T5a)."
+            );
+
+            return;
+        }
+
         self::assertMatchesRegularExpression(
             "/import\s+PageHeader\s+from\s+['\"][^'\"]*components\\/layout\\/PageHeader\\.vue['\"]/",
             $source,
@@ -161,11 +203,25 @@ class SurfaceHeaderHomogeneityTest extends TestCase
     {
         $source = self::read($surface['page']);
 
-        self::assertDoesNotMatchRegularExpression(
-            '#<header\b#',
-            $source,
-            "{$route} must not open a <header> element: the page header is PageHeader."
-        );
+        if ($route === '/calendar') {
+            // Una sola banda propia, y es la declarada: ningún otro <header>.
+            self::assertSame(
+                1,
+                preg_match_all('#<header\b#', $source),
+                "{$route} must open exactly one <header> element (the compact page band)."
+            );
+            self::assertMatchesRegularExpression(
+                '#<header\b[^>]*data-calendar-header#',
+                $source,
+                "{$route} header must be the compact band (data-calendar-header)."
+            );
+        } else {
+            self::assertDoesNotMatchRegularExpression(
+                '#<header\b#',
+                $source,
+                "{$route} must not open a <header> element: the page header is PageHeader."
+            );
+        }
         self::assertDoesNotMatchRegularExpression(
             '/data-[a-z0-9-]+-hero\b/',
             $source,
@@ -268,6 +324,51 @@ class SurfaceHeaderHomogeneityTest extends TestCase
         $source = self::read($surface['page']);
         $header = self::headerBlock($source, $route);
 
+        if ($route === '/calendar') {
+            // T5a: la banda propia declara la cejilla y el título como texto
+            // del header (mismos datos que ataba la tarjeta: `headerKicker` y
+            // `headerTitle`), no como props del componente retirado.
+            self::assertMatchesRegularExpression(
+                '#data-calendar-kicker[\s\S]*?\{\{\s*headerKicker\s*\}\}#',
+                $header,
+                "{$route} must paint the dynamic kicker from `headerKicker`."
+            );
+            self::assertMatchesRegularExpression(
+                '#<h1\b[^>]*data-calendar-title[\s\S]*?\{\{\s*headerTitle\s*\}\}#',
+                $header,
+                "{$route} must paint its period title as the page <h1>."
+            );
+            self::assertStringContainsString(
+                'const headerKicker = computed',
+                $source,
+                "{$route} must declare the `headerKicker` computed it paints."
+            );
+            self::assertStringContainsString(
+                'const headerTitle = computed',
+                $source,
+                "{$route} must declare the `headerTitle` computed it paints."
+            );
+
+            return;
+        }
+
+        if ($surface['kicker'] === null) {
+            // A dynamic kicker is always bound from a computed named
+            // `headerKicker`: the same contract as an expression title.
+            self::assertStringContainsString(
+                ':kicker="headerKicker"',
+                $header,
+                "{$route} must bind its dynamic kicker from `headerKicker`."
+            );
+            self::assertStringContainsString(
+                'const headerKicker = computed',
+                $source,
+                "{$route} must declare the `headerKicker` computed it binds."
+            );
+
+            return;
+        }
+
         self::assertStringContainsString(
             'kicker="'.$surface['kicker'].'"',
             $header,
@@ -288,6 +389,18 @@ class SurfaceHeaderHomogeneityTest extends TestCase
     {
         $source = self::read(self::SURFACES[$route]['page']);
         $header = self::headerBlock($source, $route);
+
+        if ($route === '/calendar') {
+            // T5a: la banda compacta no gasta 110 px en el rótulo; el botón se
+            // anuncia por `aria-label` y conserva su hook de acción.
+            self::assertMatchesRegularExpression(
+                '#<UiButton\b(?=[^>]*variant="secondary")(?=[^>]*data-calendar-action="refresh")(?=[^>]*aria-label="Actualizar[^"]*")[^>]*>#s',
+                $header,
+                "{$route} must offer «Actualizar» as a secondary icon action in its compact band."
+            );
+
+            return;
+        }
 
         self::assertDataContainsRefreshAction($header, $route);
     }

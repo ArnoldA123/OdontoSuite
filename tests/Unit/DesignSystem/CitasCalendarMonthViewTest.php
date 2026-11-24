@@ -103,10 +103,16 @@ class CitasCalendarMonthViewTest extends ModuleAppShellTestCase
             preg_match('#data-calendar-month-grid#', $slice),
             sprintf('%s month body MUST be one quiet surface behind the `data-calendar-month-grid` hook (T6).', self::CALENDAR_PATH)
         );
+        // T6 (rediseño del calendario, corrección de esquinas): el radio de la
+        // tarjeta del calendario es `--radius-card-lg` (16 px) en las tres
+        // vistas. Antes el tablero del Día usaba `rounded-card`, una clase que
+        // no existe en la escala de radios y por lo tanto pintaba 0 px, así que
+        // convivían 22 px en la tarjeta de la semana/mes, 90° en la rejilla del
+        // Día y 10 px en sus controles. La guarda se repunta al token único.
         $this->assertSame(
             1,
-            preg_match('#style="border: 1px solid var\(--color-hairline\); border-radius: var\(--radius-panel\)"#', $slice),
-            sprintf('%s month panel MUST use the canvas hairline + --radius-panel grammar (T6 quiet surface, same as Day/Week).', self::CALENDAR_PATH)
+            preg_match('#style="border: 1px solid var\(--color-hairline\); border-radius: var\(--radius-card-lg\)"#', $slice),
+            sprintf('%s month panel MUST use the canvas hairline + --radius-card-lg grammar (T6 quiet surface, same card radius as Day/Week).', self::CALENDAR_PATH)
         );
 
         // Header row: same Spanish short names as the week view, one hook per cell.
@@ -167,17 +173,15 @@ class CitasCalendarMonthViewTest extends ModuleAppShellTestCase
             sprintf('%s month chips MUST derive status styling from the registry via `getAppointmentClasses` (T6; no template colour map).', self::CALENDAR_PATH)
         );
 
-        // Compact chip content: compact time RANGE with tnum + patient name.
-        // T8b defect 3: the start-only `formatTime(appointment.scheduled_at)`
-        // became `chipTimeRange(appointment)` so Day, Week and Month chips all
-        // render the same compact `HH:mm - HH:mm` (the long es-PE locale form
-        // clipped the Week chip: "08:00 a. m.-0…"); the full patient + locale
-        // range moved to the chip `title` and the details modal keeps the
-        // locale format.
+        // Compact chip content: hora de inicio con tnum + paciente.
+        // T5b: la celda del mes mide ~150 px; el rango `HH:mm - HH:mm` se comía
+        // el ancho del nombre ("19:00 - 19:30 Ar…"), así que el bloque del mes
+        // imprime la hora de inicio y deja el rango completo en el `title` (lo
+        // que ya hacía el bloque compacto del Día).
         $this->assertSame(
             1,
-            preg_match('#chipTimeRange\(appointment\)#', $slice),
-            sprintf('%s month chips MUST show the compact range via `chipTimeRange` (T8b defect 3 compact anatomy, all three views).', self::CALENDAR_PATH)
+            preg_match('#formatTime\(appointment\.scheduled_at\)#', $slice),
+            sprintf('%s month chips MUST show the start time via `formatTime(appointment.scheduled_at)` (T5b compact anatomy).', self::CALENDAR_PATH)
         );
         $this->assertSame(
             1,

@@ -193,6 +193,20 @@ export function statusIsActive(status) {
   return entryFor(status).active
 }
 
+// Day board — two presentation rules that depend on the status identity and
+// therefore live with it: a cancelled block is struck through so it reads as
+// cancelled at a glance, and a completed block dims its secondary line so the
+// live blocks keep the contrast.
+export function statusBlockTitleClasses(status) {
+  return status === 'cancelled'
+    ? 'text-systemRed-700 line-through decoration-1'
+    : 'text-theme-primary'
+}
+
+export function statusBlockMetaClasses(status) {
+  return status === 'completed' ? 'text-systemGray-600' : 'text-theme-secondary'
+}
+
 export function isTerminalOutcome(status) {
   return APPOINTMENT_TERMINAL_OUTCOMES.includes(status)
 }

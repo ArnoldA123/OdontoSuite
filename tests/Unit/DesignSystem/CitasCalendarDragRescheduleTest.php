@@ -71,56 +71,59 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
     }
 
     /**
-     * T5 drag wiring contract — BOTH grids (Day + Week) bind the chip and
-     * cell hooks: chips carry `:data-calendar-draggable="appointment.id"`
-     * plus the `data-calendar-drag-state` active marker, and every hour cell
-     * exposes `:data-calendar-drop-target="`${date}-${hour}`"` with the
+     * T5 drag wiring contract — the Week grid binds the chip and cell hooks:
+     * chips carry `:data-calendar-draggable="appointment.id"` plus the
+     * `data-calendar-drag-state` active marker, and every hour cell exposes
+     * `:data-calendar-drop-target="`${date}-${hour}`"` with the
      * `data-calendar-drop-active` hover marker driven by `dropHoverSlot`.
      *
-     * The hooks are the test/audit surface for the whole feature (the Vitest
-     * smoke suite drives the real pointer lifecycle through them), so their
-     * count and binding expressions are pinned, not just their presence.
+     * Contract change (T4 day board): the Day body is a resource board whose
+     * blocks are positioned by minute inside a column per ambiente — a drop
+     * slot keyed by hour would point at every column at once, so the board is
+     * not a drag surface. Dragging and dropping stays on the Week grid (and
+     * Month stays click-only); rescheduling from the board goes through the
+     * details modal's «Reagendar», which is the same endpoint.
      */
-    public function test_drag_hooks_bound_on_both_grids(): void
+    public function test_drag_hooks_bound_on_the_week_grid(): void
     {
         $src = self::calendarSource();
 
         $this->assertSame(
-            2,
+            1,
             preg_match_all('#:data-calendar-draggable\s*=\s*"appointment\.id"#', $src),
             sprintf(
-                '%s Day and Week chips MUST carry `:data-calendar-draggable="appointment.id"` (T5 drag wiring).',
+                '%s Week chips MUST carry `:data-calendar-draggable="appointment.id"` (T5 drag wiring).',
                 self::CALENDAR_PATH
             )
         );
 
         $this->assertSame(
-            2,
+            1,
             preg_match_all(
                 '#:data-calendar-drag-state="\s*draggingAppointmentId === appointment\.id \? \'active\' : null\s*"#',
                 $src
             ),
             sprintf(
-                '%s chips MUST bind the active drag marker to `draggingAppointmentId` (T5 drag wiring).',
+                '%s Week chips MUST bind the active drag marker to `draggingAppointmentId` (T5 drag wiring).',
                 self::CALENDAR_PATH
             )
         );
 
         $this->assertSame(
-            2,
+            1,
             preg_match_all(
                 '#:data-calendar-drop-target\s*=\s*"`\$\{[\w.]+\}-\$\{hour\}`"#',
                 $src
             ),
             sprintf(
-                '%s Day and Week hour cells MUST expose `:data-calendar-drop-target="`${date}-${hour}`"` '
+                '%s Week hour cells MUST expose `:data-calendar-drop-target="`${date}-${hour}`"` '
                 .'(T5 drop targets; the key format is the pure-module slot key).',
                 self::CALENDAR_PATH
             )
         );
 
         $this->assertSame(
-            2,
+            1,
             preg_match_all(
                 '#:data-calendar-drop-active="\s*dropHoverSlot === `\$\{[\w.]+\}-\$\{hour\}` \? \'\' : null\s*"#',
                 $src
@@ -132,10 +135,10 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
         );
 
         $this->assertSame(
-            2,
+            1,
             preg_match_all('#@pointerdown\s*=\s*"onChipPointerDown\(\$event, appointment\)"#', $src),
             sprintf(
-                '%s Day and Week chips MUST arm the drag via `@pointerdown="onChipPointerDown($event, appointment)"` (T5).',
+                '%s Week chips MUST arm the drag via `@pointerdown="onChipPointerDown($event, appointment)"` (T5).',
                 self::CALENDAR_PATH
             )
         );

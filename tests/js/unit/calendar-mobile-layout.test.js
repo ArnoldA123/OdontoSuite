@@ -87,10 +87,7 @@ vi.mock('../../../resources/js/composables/useAuth', async () => {
 
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/appointments/CalendarPage.vue'
-import {
-  MOBILE_VIEW_BREAKPOINT_PX,
-  initialViewForWidth
-} from '../../../resources/js/modules/appointments/calendarDateMath.js'
+import { initialCalendarView } from '../../../resources/js/modules/appointments/calendarDateMath.js'
 
 const router = createRouter({
   history: createMemoryHistory(),
@@ -129,22 +126,19 @@ const mountAt = async width => {
 const isPressed = (wrapper, view) =>
   wrapper.find(`[data-calendar-view="${view}"]`).attributes('aria-pressed')
 
-describe('initialViewForWidth (#397 S7)', () => {
-  it('abre en día por debajo del punto de quiebre de escritorio', () => {
-    expect(MOBILE_VIEW_BREAKPOINT_PX).toBe(768)
-    expect(initialViewForWidth(390)).toBe('day')
-    expect(initialViewForWidth(767)).toBe('day')
-  })
-
-  it('conserva la semana desde el punto de quiebre', () => {
-    expect(initialViewForWidth(768)).toBe('week')
-    expect(initialViewForWidth(1440)).toBe('week')
-  })
-
-  it('cae a semana cuando el ancho no se puede medir', () => {
-    for (const width of [undefined, null, 0, -1, NaN, 'sin-ancho']) {
-      expect(initialViewForWidth(width), String(width)).toBe('week')
+// T6 — la vista inicial ya no depende del ancho del viewport: la agenda abre
+// en Día en cualquier ventana y sólo la preferencia guardada la cambia.
+describe('vista inicial por preferencia (T6)', () => {
+  it('abre en día sin preferencia guardada, a cualquier ancho', () => {
+    for (const stored of [null, undefined, '', 'semana', 0]) {
+      expect(initialCalendarView(stored), String(stored)).toBe('day')
     }
+  })
+
+  it('respeta una vista guardada válida', () => {
+    expect(initialCalendarView('day')).toBe('day')
+    expect(initialCalendarView('week')).toBe('week')
+    expect(initialCalendarView('month')).toBe('month')
   })
 })
 
@@ -156,6 +150,7 @@ describe('agenda móvil (#397 S7)', () => {
 
   afterEach(() => {
     restoreViewportWidth()
+    window.localStorage.clear()
     vi.useRealTimers()
   })
 
@@ -175,11 +170,11 @@ describe('agenda móvil (#397 S7)', () => {
     wrapper.unmount()
   })
 
-  it('a 1440 px abre en «Semana»', async () => {
+  it('a 1440 px también abre en «Día»', async () => {
     const wrapper = await mountAt(DESKTOP_WIDTH)
 
-    expect(isPressed(wrapper, 'week')).toBe('true')
-    expect(wrapper.find('[data-calendar-week-grid]').exists()).toBe(true)
+    expect(isPressed(wrapper, 'day')).toBe('true')
+    expect(wrapper.find('[data-calendar-week-grid]').exists()).toBe(false)
 
     wrapper.unmount()
   })
@@ -207,7 +202,12 @@ describe('agenda móvil (#397 S7)', () => {
     expect(dayMinWidth).toBeGreaterThanOrEqual(96)
 
     // La cabecera de días se mueve con la rejilla: no queda cortada en el borde.
-    expect(grid.findAll('[data-calendar-slot-day]')).toHaveLength(7 * 16)
+    // T5b: la ventana arranca a las 07:00 y mide 84 px por hora.
+    const hourHeight = Number(grid.attributes('data-calendar-week-hour-height'))
+    expect(hourHeight).toBe(84)
+    expect(Number(grid.attributes('data-calendar-week-start-hour'))).toBe(7)
+    const slotDays = grid.findAll('[data-calendar-slot-day]')
+    expect(slotDays).toHaveLength(7 * 13)
 
     const { style } = grid.element
     expect(style.minWidth).toBe(`${hourWidth + dayMinWidth * 7}px`)

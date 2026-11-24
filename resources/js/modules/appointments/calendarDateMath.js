@@ -10,21 +10,22 @@ import { formatDate } from '../../composables/useFormatters'
 
 export const WEEK_DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
-// Issue 397 (S7): a 390 px la rejilla semanal comprimía cada día a 38 px y el chip a
-// «1.». La vista con la que abre la agenda depende del ancho del viewport: por
-// debajo del punto de quiebre de escritorio abre en día, que es la vista donde
-// hora y paciente se leen. El selector de vista sigue ofreciendo «Semana» a
-// mano, y ahí la rejilla vive en su propio scroll horizontal.
-export const MOBILE_VIEW_BREAKPOINT_PX = 768
-export const MOBILE_DEFAULT_VIEW = 'day'
-export const DESKTOP_DEFAULT_VIEW = 'week'
+// T6: la agenda abre en Día —también en escritorio— porque es la vista donde
+// hora, paciente y ambiente se leen de un vistazo; Semana y Mes se eligen a
+// mano desde el mismo segmentado. La vista elegida se recuerda en
+// `localStorage` y esta resolución es la única puerta: cualquier valor que no
+// sea una vista real (vacío, manipulado, de una versión anterior) cae al valor
+// por omisión.
+export const CALENDAR_VIEWS = ['day', 'week', 'month']
+export const DEFAULT_CALENDAR_VIEW = 'day'
+export const CALENDAR_VIEW_STORAGE_KEY = 'calendar-view'
 
-// A viewport that cannot be measured (SSR, a width of 0) keeps the desktop
-// behaviour: the breakpoint decides for measurable widths only.
-export function initialViewForWidth(width, breakpoint = MOBILE_VIEW_BREAKPOINT_PX) {
-  const measured = Number(width)
-  if (!Number.isFinite(measured) || measured <= 0) return DESKTOP_DEFAULT_VIEW
-  return measured < breakpoint ? MOBILE_DEFAULT_VIEW : DESKTOP_DEFAULT_VIEW
+export function isCalendarView(value) {
+  return CALENDAR_VIEWS.includes(value)
+}
+
+export function initialCalendarView(stored) {
+  return isCalendarView(stored) ? stored : DEFAULT_CALENDAR_VIEW
 }
 
 export function buildHours(startHour = 6, endHour = 21) {
@@ -116,6 +117,22 @@ export function periodTitle(date, view) {
     default:
       return ''
   }
+}
+
+// Day board header: the visible day is the page title and reads as a sentence
+// ("Miércoles 18 de noviembre"), so the year is dropped and the locale's
+// comma is written as a space. Both changes are copy, not formatting: the
+// date still comes from the canonical module.
+export function dayTitle(date) {
+  const label = formatDate(date, {
+    weekday: 'long',
+    year: undefined,
+    month: 'long',
+    day: 'numeric'
+  })
+  if (!label) return ''
+  const capitalized = label.charAt(0).toUpperCase() + label.slice(1)
+  return capitalized.replace(/,\s*/, ' ')
 }
 
 export function dateRangeForView(date, view) {

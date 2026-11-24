@@ -181,13 +181,15 @@ class CitasCalendarEmptyStateTest extends ModuleAppShellTestCase
                 sprintf('%s MUST define the per-view empty title "%s" (T7/D9 copy).', self::CALENDAR_PATH, $title)
             );
         }
+        // T8: el bloque sin tarjeta recibe la copia por props (antes la pintaba
+        // en su propio párrafo); la fuente sigue siendo `emptyStateCopy`.
         $this->assertStringContainsString(
-            '{{ emptyStateCopy.title }}',
+            ':title="emptyStateCopy.title"',
             $slice,
             sprintf('%s empty block MUST render the title from `emptyStateCopy` (T7).', self::CALENDAR_PATH)
         );
         $this->assertStringContainsString(
-            '{{ emptyStateCopy.description }}',
+            ':description="emptyStateCopy.description"',
             $slice,
             sprintf('%s empty block MUST render the description from `emptyStateCopy` (T7: one title + one sentence).', self::CALENDAR_PATH)
         );
@@ -227,7 +229,24 @@ class CitasCalendarEmptyStateTest extends ModuleAppShellTestCase
             preg_match('#\\#[0-9a-fA-F]{3,8}\\b|rgb\\(|rgba\\(|hsl\\(#', $slice),
             sprintf('%s empty slice MUST use design-token utilities only — no raw colour literals (T7 quiet language).', self::CALENDAR_PATH)
         );
-        $this->assertStringContainsString('var(--color-hairline)', $slice, sprintf('%s empty block MUST use the hairline token (quiet shell grammar).', self::CALENDAR_PATH));
-        $this->assertStringContainsString('var(--radius-panel)', $slice, sprintf('%s empty block MUST use the --radius-panel token (quiet shell grammar).', self::CALENDAR_PATH));
+        // T8 (un solo marco): el bloque vacío es CONTENIDO de una tarjeta —el
+        // tablero del día o la tarjeta de la superficie—, así que ya no pinta
+        // borde, fondo ni radio propios: eso producía dos marcos anidados con
+        // doble radio. El hairline y el radio de 16 son los de la tarjeta que
+        // lo aloja, y se declaran en la superficie (assertados más arriba).
+        $this->assertSame(
+            0,
+            preg_match('#border:\s*1px|background:\s*var\(--color-canvas\)|border-radius:#', $slice),
+            sprintf(
+                '%s empty block MUST NOT paint its own frame (T8: the hosting card is the only rounded border; '
+                .'a nested card read as two frames and a double radius).',
+                self::CALENDAR_PATH
+            )
+        );
+        $this->assertStringContainsString(
+            '<CalendarEmptyBlock',
+            $slice,
+            sprintf('%s empty block MUST ride the card-less `CalendarEmptyBlock` (T8).', self::CALENDAR_PATH)
+        );
     }
 }
