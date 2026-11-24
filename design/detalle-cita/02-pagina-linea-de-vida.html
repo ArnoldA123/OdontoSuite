@@ -45,8 +45,8 @@
         --elevation-3: 0 8px 16px rgba(92, 90, 85, 0.08), 0 2px 6px rgba(92, 90, 85, 0.06);
         --focus: 0 0 0 3px rgba(15, 122, 95, 0.2);
         --ease: cubic-bezier(0.4, 0, 0.2, 1);
-        --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-          sans-serif;
+        --font:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       }
 
       * {
@@ -72,7 +72,9 @@
       }
 
       .tnum {
-        font-feature-settings: 'tnum' 1, 'lnum' 1;
+        font-feature-settings:
+          'tnum' 1,
+          'lnum' 1;
       }
 
       .app {
@@ -766,17 +768,44 @@
   <body>
     <div class="app">
       <aside class="sidebar">
-        <div class="brand"><span class="brand-mark">O</span> OdontoSuite</div>
+        <div class="brand">
+          <span class="brand-mark">O</span>
+          OdontoSuite
+        </div>
         <div class="nav-label">Operación</div>
-        <div class="nav-item"><span class="nav-dot"></span> Mi día</div>
-        <div class="nav-item active"><span class="nav-dot"></span> Calendario</div>
-        <div class="nav-item"><span class="nav-dot"></span> Pacientes</div>
-        <div class="nav-item"><span class="nav-dot"></span> Pendientes</div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Mi día
+        </div>
+        <div class="nav-item active">
+          <span class="nav-dot"></span>
+          Calendario
+        </div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Pacientes
+        </div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Pendientes
+        </div>
         <div class="nav-label">Clínica</div>
-        <div class="nav-item"><span class="nav-dot"></span> Historias</div>
-        <div class="nav-item"><span class="nav-dot"></span> Planes</div>
-        <div class="nav-item"><span class="nav-dot"></span> Presupuestos</div>
-        <div class="nav-item"><span class="nav-dot"></span> Laboratorio</div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Historias
+        </div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Planes
+        </div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Presupuestos
+        </div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Laboratorio
+        </div>
       </aside>
 
       <div class="main">
@@ -835,9 +864,10 @@
           <section class="rail-card" aria-labelledby="rail-title">
             <div class="rail-head">
               <h2 id="rail-title">Etapas de la cita</h2>
-              <span class="pill"
-                ><span class="dot" aria-hidden="true"></span> En consulta · desde 14:11</span
-              >
+              <span class="pill">
+                <span class="dot" aria-hidden="true"></span>
+                En consulta · desde 14:11
+              </span>
             </div>
             <ol class="rail">
               <li class="step done">
@@ -925,8 +955,9 @@
                     <div>
                       <p class="event-title">Cita creada</p>
                       <p class="event-detail">
-                        Camila Rojas <span class="tag">Recepción</span> · Programada para el
-                        04/11 a las 14:00.
+                        Camila Rojas
+                        <span class="tag">Recepción</span>
+                        · Programada para el 04/11 a las 14:00.
                       </p>
                     </div>
                   </li>
@@ -946,8 +977,9 @@
                     <div>
                       <p class="event-title">Confirmada por llamada</p>
                       <p class="event-detail">
-                        Camila Rojas <span class="tag">Recepción</span> · la paciente confirmó
-                        asistencia.
+                        Camila Rojas
+                        <span class="tag">Recepción</span>
+                        · la paciente confirmó asistencia.
                       </p>
                     </div>
                   </li>
@@ -967,7 +999,9 @@
                     <div>
                       <p class="event-title">Llegada registrada</p>
                       <p class="event-detail">
-                        Camila Rojas <span class="tag">Recepción</span> · pasa a sala de espera.
+                        Camila Rojas
+                        <span class="tag">Recepción</span>
+                        · pasa a sala de espera.
                       </p>
                     </div>
                   </li>
@@ -987,8 +1021,9 @@
                     <div>
                       <p class="event-title">Paciente anunciada</p>
                       <p class="event-detail">
-                        Camila Rojas <span class="tag">Recepción</span> · aviso enviado a la Dra.
-                        Mendoza.
+                        Camila Rojas
+                        <span class="tag">Recepción</span>
+                        · aviso enviado a la Dra. Mendoza.
                       </p>
                     </div>
                   </li>
@@ -998,8 +1033,9 @@
                     <div>
                       <p class="event-title">Atención iniciada</p>
                       <p class="event-detail">
-                        Dra. Lucía Mendoza <span class="tag pro">Profesional</span> · la atención
-                        está abierta.
+                        Dra. Lucía Mendoza
+                        <span class="tag pro">Profesional</span>
+                        · la atención está abierta.
                       </p>
                     </div>
                   </li>
@@ -1007,8 +1043,9 @@
               </section>
 
               <p class="note">
-                <strong>Al cerrar la atención</strong> se firma la evolución con CIE-10, se descuentan
-                los materiales del recetario y se registra el cargo de la cita.
+                <strong>Al cerrar la atención</strong>
+                se firma la evolución con CIE-10, se descuentan los materiales del recetario y se
+                registra el cargo de la cita.
               </p>
             </div>
 

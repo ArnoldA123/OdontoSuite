@@ -62,8 +62,8 @@
         --elevation-4: 0 16px 24px rgba(92, 90, 85, 0.12), 0 4px 8px rgba(92, 90, 85, 0.08);
         --focus: 0 0 0 3px rgba(15, 122, 95, 0.2);
         --ease: cubic-bezier(0.4, 0, 0.2, 1);
-        --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-          sans-serif;
+        --font:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       }
 
       * {
@@ -89,8 +89,9 @@
       }
 
       .mono {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-          'Courier New', monospace;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+          monospace;
       }
 
       .wrap {
@@ -688,27 +689,39 @@
         <header class="head">
           <h1>Un estado, un color</h1>
           <p>
-            El rail comunica <strong>posición</strong>; la píldora comunica
-            <strong>estado</strong>. El verde de marca queda reservado para la acción primaria,
-            así que ningún estado compite con el botón que hay que pulsar.
+            El rail comunica
+            <strong>posición</strong>
+            ; la píldora comunica
+            <strong>estado</strong>
+            . El verde de marca queda reservado para la acción primaria, así que ningún estado
+            compite con el botón que hay que pulsar.
           </p>
         </header>
 
         <div class="group-label">
-          Dentro del rail <small>5 etapas, un solo camino</small>
+          Dentro del rail
+          <small>5 etapas, un solo camino</small>
         </div>
         <div class="rows">
           <div class="row">
             <div>
-              <span class="chip s-scheduled"><span class="dot"></span> Programada</span>
+              <span class="chip s-scheduled">
+                <span class="dot"></span>
+                Programada
+              </span>
               <span class="chip-key mono">scheduled</span>
             </div>
-            <div class="meaning">Agendada, aún sin confirmar. Es el único estado editable libre.</div>
+            <div class="meaning">
+              Agendada, aún sin confirmar. Es el único estado editable libre.
+            </div>
             <div class="next">Confirmar</div>
           </div>
           <div class="row">
             <div>
-              <span class="chip s-confirmed"><span class="dot"></span> Confirmada</span>
+              <span class="chip s-confirmed">
+                <span class="dot"></span>
+                Confirmada
+              </span>
               <span class="chip-key mono">confirmed</span>
             </div>
             <div class="meaning">La paciente confirmó; todavía no ha llegado a la sede.</div>
@@ -716,7 +729,10 @@
           </div>
           <div class="row">
             <div>
-              <span class="chip s-arrived"><span class="dot"></span> En espera</span>
+              <span class="chip s-arrived">
+                <span class="dot"></span>
+                En espera
+              </span>
               <span class="chip-key mono">arrived</span>
             </div>
             <div class="meaning">Llegó y está en sala de espera. Recepción la puede anunciar.</div>
@@ -724,7 +740,10 @@
           </div>
           <div class="row">
             <div>
-              <span class="chip s-consultation"><span class="dot"></span> En consulta</span>
+              <span class="chip s-consultation">
+                <span class="dot"></span>
+                En consulta
+              </span>
               <span class="chip-key mono">in_consultation</span>
             </div>
             <div class="meaning">Atención abierta; falta documentar y firmar el cierre.</div>
@@ -732,7 +751,10 @@
           </div>
           <div class="row">
             <div>
-              <span class="chip s-completed"><span class="dot"></span> Completada</span>
+              <span class="chip s-completed">
+                <span class="dot"></span>
+                Completada
+              </span>
               <span class="chip-key mono">completed</span>
             </div>
             <div class="meaning">Acto cerrado, evolución firmada y cargo emitido.</div>
@@ -741,12 +763,16 @@
         </div>
 
         <div class="group-label">
-          Fuera del rail <small>desenlaces: el rail se sustituye por una franja</small>
+          Fuera del rail
+          <small>desenlaces: el rail se sustituye por una franja</small>
         </div>
         <div class="rows">
           <div class="row">
             <div>
-              <span class="chip s-cancelled"><span class="dot"></span> Cancelada</span>
+              <span class="chip s-cancelled">
+                <span class="dot"></span>
+                Cancelada
+              </span>
               <span class="chip-key mono">cancelled</span>
             </div>
             <div class="meaning">Se anuló con motivo registrado y el horario quedó libre.</div>
@@ -754,7 +780,10 @@
           </div>
           <div class="row">
             <div>
-              <span class="chip s-noshow"><span class="dot"></span> No se presentó</span>
+              <span class="chip s-noshow">
+                <span class="dot"></span>
+                No se presentó
+              </span>
               <span class="chip-key mono">no_show</span>
             </div>
             <div class="meaning">Pasó la ventana de espera sin llegada. Borde discontinuo.</div>
@@ -762,7 +791,10 @@
           </div>
           <div class="row">
             <div>
-              <span class="chip s-rescheduled"><span class="dot"></span> Reprogramada</span>
+              <span class="chip s-rescheduled">
+                <span class="dot"></span>
+                Reprogramada
+              </span>
               <span class="chip-key mono">rescheduled</span>
             </div>
             <div class="meaning">Se movió a otro horario; esta fila es el rastro del cambio.</div>
@@ -772,27 +804,46 @@
 
         <div class="callout">
           <div class="old-chips">
-            <span class="old-chip"><span class="dot"></span> Programada</span>
-            <span class="old-chip"><span class="dot"></span> Confirmada</span>
-            <span class="old-chip"><span class="dot"></span> En espera</span>
-            <span class="old-chip"><span class="dot"></span> Reprogramada</span>
+            <span class="old-chip">
+              <span class="dot"></span>
+              Programada
+            </span>
+            <span class="old-chip">
+              <span class="dot"></span>
+              Confirmada
+            </span>
+            <span class="old-chip">
+              <span class="dot"></span>
+              En espera
+            </span>
+            <span class="old-chip">
+              <span class="dot"></span>
+              Reprogramada
+            </span>
           </div>
           <p>
             Antes estas cuatro píldoras eran el mismo verde del acento.
-            <strong>Ahora ninguna se repite</strong> y <span class="mono">in_progress</span> (legacy)
-            se presenta como «En consulta» sin cambiar la fila.
+            <strong>Ahora ninguna se repite</strong>
+            y
+            <span class="mono">in_progress</span>
+            (legacy) se presenta como «En consulta» sin cambiar la fila.
           </p>
         </div>
 
         <div class="rule">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
             <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4" />
-            <path d="M9 5.5v4l2.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+            <path
+              d="M9 5.5v4l2.5 1.5"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linecap="round"
+            />
           </svg>
           <p>
-            <strong>Regla de oro:</strong> en una vista hay un solo color de estado visible (el del
-            estado actual) y un solo botón verde. Los estados cumplidos del rail son grafito, no
-            arcoíris.
+            <strong>Regla de oro:</strong>
+            en una vista hay un solo color de estado visible (el del estado actual) y un solo botón
+            verde. Los estados cumplidos del rail son grafito, no arcoíris.
           </p>
         </div>
       </main>
@@ -836,7 +887,10 @@
               </div>
 
               <div class="mobile-status">
-                <span class="chip s-arrived"><span class="dot"></span> En espera</span>
+                <span class="chip s-arrived">
+                  <span class="dot"></span>
+                  En espera
+                </span>
                 <span class="step-count">Paso 3 de 5 · 14:02</span>
               </div>
 

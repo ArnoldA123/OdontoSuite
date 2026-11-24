@@ -55,8 +55,8 @@
         --modal-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         --focus: 0 0 0 3px rgba(15, 122, 95, 0.2);
         --ease: cubic-bezier(0.4, 0, 0.2, 1);
-        --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-          sans-serif;
+        --font:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       }
 
       * {
@@ -83,7 +83,9 @@
       }
 
       .tnum {
-        font-feature-settings: 'tnum' 1, 'lnum' 1;
+        font-feature-settings:
+          'tnum' 1,
+          'lnum' 1;
       }
 
       /* ---------- Agenda de fondo (contexto inerte) ---------- */
@@ -764,17 +766,44 @@
   <body>
     <div class="agenda" aria-hidden="true">
       <aside class="sidebar">
-        <div class="brand"><span class="brand-mark">O</span> OdontoSuite</div>
+        <div class="brand">
+          <span class="brand-mark">O</span>
+          OdontoSuite
+        </div>
         <div class="nav-label">Operación</div>
-        <div class="nav-item"><span class="nav-dot"></span> Mi día</div>
-        <div class="nav-item active"><span class="nav-dot"></span> Calendario</div>
-        <div class="nav-item"><span class="nav-dot"></span> Pacientes</div>
-        <div class="nav-item"><span class="nav-dot"></span> Pendientes</div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Mi día
+        </div>
+        <div class="nav-item active">
+          <span class="nav-dot"></span>
+          Calendario
+        </div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Pacientes
+        </div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Pendientes
+        </div>
         <div class="nav-label">Clínica</div>
-        <div class="nav-item"><span class="nav-dot"></span> Historias</div>
-        <div class="nav-item"><span class="nav-dot"></span> Planes</div>
-        <div class="nav-item"><span class="nav-dot"></span> Presupuestos</div>
-        <div class="nav-item"><span class="nav-dot"></span> Laboratorio</div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Historias
+        </div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Planes
+        </div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Presupuestos
+        </div>
+        <div class="nav-item">
+          <span class="nav-dot"></span>
+          Laboratorio
+        </div>
       </aside>
       <div class="main">
         <header class="topbar">
@@ -798,14 +827,26 @@
           <div class="slot col-head">Sillón 3 · Dra. Ríos</div>
           <div class="hour">14:00</div>
           <div class="slot">
-            <div class="chip"><strong>Ana Torres</strong>14:00 · Resina 2.6</div>
-            <div class="chip dim"><strong>Luis Paredes</strong>14:40 · Control</div>
+            <div class="chip">
+              <strong>Ana Torres</strong>
+              14:00 · Resina 2.6
+            </div>
+            <div class="chip dim">
+              <strong>Luis Paredes</strong>
+              14:40 · Control
+            </div>
           </div>
           <div class="slot">
-            <div class="chip dim"><strong>María Quispe</strong>14:20 · Endodoncia</div>
+            <div class="chip dim">
+              <strong>María Quispe</strong>
+              14:20 · Endodoncia
+            </div>
           </div>
           <div class="slot">
-            <div class="chip dim"><strong>Jorge Tello</strong>14:00 · Limpieza</div>
+            <div class="chip dim">
+              <strong>Jorge Tello</strong>
+              14:00 · Limpieza
+            </div>
           </div>
           <div class="hour">15:00</div>
           <div class="slot"></div>
@@ -892,7 +933,10 @@
         </ol>
 
         <div class="status-line">
-          <span class="pill"><span class="dot" aria-hidden="true"></span> En espera</span>
+          <span class="pill">
+            <span class="dot" aria-hidden="true"></span>
+            En espera
+          </span>
           <span class="status-since tnum">Llegó a las 14:02 · recepción</span>
         </div>
       </div>
@@ -934,8 +978,8 @@
         </section>
 
         <p class="note">
-          <strong>Nota de recepción:</strong> pide control de la sensibilidad al frío después de la
-          restauración.
+          <strong>Nota de recepción:</strong>
+          pide control de la sensibilidad al frío después de la restauración.
         </p>
       </div>
 
