@@ -609,6 +609,29 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-11-24 (calendario: tablero por ambiente, semana por bloques y marco
+  armonizado)** — La vista Día de `/calendar` deja de ser una rejilla de una
+  columna y pasa a tablero por recurso: columnas por **ambiente** (o por
+  profesional con «Agrupar por»), filas por hora, franja de siete días,
+  pastillas de profesional con su censo, línea de «ahora», huecos agendables de
+  30–120 min y panel de pendientes (en sala, sin confirmar, laboratorio listo)
+  que solo ocupa columna desde 1600 px y cuando tiene contenido. Semana pinta
+  bloques posicionados por minuto (84 px por hora, desde las 07:00) con la
+  misma anatomía del Día; Mes muestra tres bloques y «+N más» con salto al día.
+  Los solapes se reparten en carriles (máximo tres visibles) y una jornada de
+  40 citas no apila ni desborda. La geometría vive en `calendarBoardMath.js`,
+  puro y con pruebas propias. `/calendar` usa ancho completo por ruta
+  (`router/layoutContent.js`), abre en Día y recuerda la vista elegida; la
+  tarjeta conserva radio 16 y los bloques, chips y huecos usan 10. Aire medido:
+  franja → herramientas 12 px, herramientas → leyenda 8 px, banda → tablero
+  20 px. **Vocabulario**: toda la interfaz dice «ambiente» en lugar de «sillón»
+  (alta de cita, continuidad, agenda, dashboard, ambientes y comando de
+  diagnóstico, #526); `dental_chairs`, `dental_chair_id` y
+  `/api/dental-chairs` no cambian. Pruebas: **232** de Vitest en 12 archivos y
+  **208** guards de PHPUnit; ESLint, Prettier y Pint limpios. Sin rutas,
+  migraciones, permisos ni dependencias nuevas; el conteo de composables no
+  cambia (la lógica nueva vive en el módulo de citas).
+
 - **2026-11-23 (detalle de cita: un estado, un color y una sola acción)** — El
   detalle de la cita deja de ser una lista de campos con seis botones.
   `appointmentStatus.js` gana una identidad por estado (gris, acero, índigo,

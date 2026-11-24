@@ -14,7 +14,9 @@ import {
   statusChipClasses,
   statusIsActive,
   statusRailClasses,
-  statusToneClasses
+  statusToneClasses,
+  statusBlockTitleClasses,
+  statusBlockMetaClasses
 } from '../../../resources/js/modules/appointments/appointmentStatus.js'
 
 // Statuses the API can return: the ones accepted by
@@ -289,6 +291,22 @@ describe('appointment chip anatomy contract (T8b defect 2)', () => {
   it('keeps the cancelled-no-show chip dashed', () => {
     expect(statusChipClasses('no_show').split(/\s+/)).toContain('border-dashed')
     expect(statusChipClasses('cancelled').split(/\s+/)).not.toContain('border-dashed')
+  })
+})
+
+describe('day board block copy (T4)', () => {
+  // El tablero del día marca la cancelación en el título (tachado) y baja el
+  // contraste de la línea secundaria de una cita completada.
+  it('tacha la cita cancelada y deja el resto con el label primario', () => {
+    expect(statusBlockTitleClasses('cancelled')).toContain('line-through')
+    expect(statusBlockTitleClasses('cancelled')).toContain('text-systemRed-700')
+    expect(statusBlockTitleClasses('scheduled')).toBe('text-theme-primary')
+    expect(statusBlockTitleClasses('completed')).toBe('text-theme-primary')
+  })
+
+  it('atenúa el texto secundario de una cita completada', () => {
+    expect(statusBlockMetaClasses('completed')).toBe('text-systemGray-600')
+    expect(statusBlockMetaClasses('confirmed')).toBe('text-theme-secondary')
   })
 })
 

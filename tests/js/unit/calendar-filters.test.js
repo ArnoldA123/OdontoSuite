@@ -3,10 +3,12 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// #395 S5: the agenda offers filters by professional, chair and branch, drawn
-// from the populations the session can read, and applies them to the same
-// range read. The mock filters the appointment rows by the params it receives,
-// so the surface is proven against a faithful `GET /api/appointments`.
+// T5a — la barra de tres selects de Semana y Mes desaparece: el profesional se
+// filtra con las mismas pastillas del tablero (sobre las filas ya leídas) y la
+// sede y el ambiente quedan como selectores compactos en la banda de la
+// página. Esta prueba fija el contrato medido: ninguna vista ofrece un select
+// de profesional, las pastillas conservan su censo y sólo la sede/ambiente
+// vuelven a pedir el rango.
 const apiState = vi.hoisted(() => ({
   reads: [],
   failChairs: false,
@@ -16,8 +18,8 @@ const apiState = vi.hoisted(() => ({
     { id: 9, name: 'Dr. Vega' }
   ],
   chairs: [
-    { id: 4, name: 'Sillón 1' },
-    { id: 5, name: 'Sillón 2' }
+    { id: 4, name: 'Ambiente 1' },
+    { id: 5, name: 'Ambiente 2' }
   ],
   branches: [
     { id: 1, name: 'Sede Lima' },
@@ -35,7 +37,7 @@ const apiState = vi.hoisted(() => ({
       dental_chair_id: 4,
       patient: { id: 7, first_name: 'Ana', last_name: 'Pérez' },
       user: { id: 2, name: 'Dra. Ruiz' },
-      dental_chair: { id: 4, name: 'Sillón 1' },
+      dental_chair: { id: 4, name: 'Ambiente 1' },
       appointment_type: { id: 3, name: 'Limpieza' }
     },
     {
@@ -49,7 +51,7 @@ const apiState = vi.hoisted(() => ({
       dental_chair_id: 5,
       patient: { id: 8, first_name: 'Luis', last_name: 'Gómez' },
       user: { id: 3, name: 'Dr. Silva' },
-      dental_chair: { id: 5, name: 'Sillón 2' },
+      dental_chair: { id: 5, name: 'Ambiente 2' },
       appointment_type: { id: 3, name: 'Limpieza' }
     }
   ]
@@ -67,7 +69,7 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
       if (url.startsWith('/api/dental-chairs/active')) {
         if (apiState.failChairs) {
           throw {
-            response: { status: 500, data: { message: 'Los sillones no están disponibles' } }
+            response: { status: 500, data: { message: 'Los ambientes no están disponibles' } }
           }
         }
         return { data: clone(apiState.chairs), meta: {} }
@@ -76,8 +78,8 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
       if (url === '/api/appointments') {
         const rows = apiState.appointments.filter(
           row =>
-            (!params?.user_id || row.user.id === params.user_id) &&
-            (!params?.dental_chair_id || row.dental_chair.id === params.dental_chair_id)
+            (!params?.user_id || row.user_id === params.user_id) &&
+            (!params?.dental_chair_id || row.dental_chair_id === params.dental_chair_id)
         )
         return { data: clone(rows), meta: {} }
       }
@@ -105,7 +107,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
 
-const authState = vi.hoisted(() => ({ permissions: null }))
+const authState = vi.hoisted(() => ({ permissions: null, branchId: null }))
 vi.mock('../../../resources/js/composables/useAuth', async () => {
   const { computed } = await import('vue')
   return {
@@ -114,6 +116,7 @@ vi.mock('../../../resources/js/composables/useAuth', async () => {
         id: 1,
         name: 'Test User',
         role: 'administrador',
+        branch_id: authState.branchId,
         permissions: authState.permissions ?? [
           'manage.appointment',
           'complete.appointment',
@@ -151,8 +154,13 @@ const mountPage = () => mount(Page, { global: { plugins: [router, uiComponents] 
 const appointmentReads = () => apiState.reads.filter(read => read.url === '/api/appointments')
 const lastAppointmentRead = () => appointmentReads().at(-1)
 
-// The filter is a `UiSelect`: the first button is its trigger, the option is
-// one of the buttons it renders while its listbox is open.
+const chipIds = wrapper =>
+  wrapper
+    .findAll('[data-calendar-appointment]')
+    .map(chip => chip.attributes('data-calendar-appointment'))
+
+// El filtro compacto es un `UiSelect`: el primer botón es su disparador y la
+// opción es uno de los botones que pinta con su lista abierta.
 const chooseFilter = async (wrapper, key, label) => {
   const container = wrapper.find(`[data-calendar-filter="${key}"]`)
   expect(container.exists(), `${key} filter is rendered`).toBe(true)
@@ -167,7 +175,7 @@ const chooseFilter = async (wrapper, key, label) => {
   await flushPromises()
 }
 
-describe('calendar filters (#395 S5)', () => {
+describe('calendar filters (T5a: pastillas compartidas + compactos)', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
@@ -178,143 +186,103 @@ describe('calendar filters (#395 S5)', () => {
       { id: 2, name: 'Sede Surco' }
     ]
     authState.permissions = null
+    authState.branchId = null
+    // T6 — la agenda abre en Día; esta prueba mide los compactos y el rango de
+    // Semana/Mes, así que declara esa preferencia como estado de partida.
+    window.localStorage.setItem('calendar-view', 'week')
   })
 
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  it('offers the three filters with their Spanish labels', async () => {
+  it('filters the professional with the same pills as the board, never with a select', async () => {
     const wrapper = mountPage()
     await flushPromises()
 
-    expect(wrapper.find('[data-calendar-filters]').exists()).toBe(true)
-    expect(wrapper.find('[data-calendar-filter="professional"]').exists()).toBe(true)
-    expect(wrapper.find('[data-calendar-filter="chair"]').exists()).toBe(true)
-    expect(wrapper.find('[data-calendar-filter="branch"]').exists()).toBe(true)
+    // Semana es la vista inicial a 1024 px: no hay barra de tres selects.
+    expect(wrapper.find('[data-calendar-filter="professional"]').exists()).toBe(false)
+    expect(wrapper.find('[data-calendar-filters]').text()).not.toContain('Profesional')
 
-    const labels = wrapper.find('[data-calendar-filters]').text()
-    expect(labels).toContain('Profesional')
-    expect(labels).toContain('Sillón')
-    expect(labels).toContain('Sede')
-
-    // Nothing chosen yet: there is nothing to clear.
-    expect(wrapper.find('[data-calendar-clear-filters]').exists()).toBe(false)
+    const pills = wrapper.find('[data-calendar-professional-pills]')
+    expect(pills.exists()).toBe(true)
+    expect(pills.find('[data-calendar-professional-pill="all"]').text()).toContain('2')
+    expect(pills.find('[data-calendar-professional-pill="2"]').text()).toContain('Dra. Ruiz')
+    expect(pills.find('[data-calendar-professional-pill="3"]').text()).toContain('Dr. Silva')
 
     wrapper.unmount()
   })
 
-  it('mounts the filter bar primitive without swallowing the view switcher or the date nav', async () => {
+  it('narrows the week with a pill without re-reading the range', async () => {
     const wrapper = mountPage()
     await flushPromises()
 
-    const bar = wrapper.get('[data-calendar-filters]')
+    const before = appointmentReads().length
+    expect(chipIds(wrapper).sort()).toEqual(['1', '2'])
 
-    expect(bar.attributes('role')).toBe('search')
-    expect(bar.find('[data-calendar-filter="professional"]').exists()).toBe(true)
-    expect(bar.find('[data-calendar-filter="chair"]').exists()).toBe(true)
-    expect(bar.find('[data-calendar-filter="branch"]').exists()).toBe(true)
-
-    // Only the filters travel into the bar: the view switcher and the date nav
-    // stay in the header they belong to.
-    expect(bar.find('[data-calendar-view-switcher]').exists()).toBe(false)
-    expect(bar.find('[data-calendar-nav="prev"]').exists()).toBe(false)
-    expect(bar.find('[data-calendar-nav="today"]').exists()).toBe(false)
-    expect(wrapper.find('[data-calendar-view-switcher]').exists()).toBe(true)
-    expect(wrapper.find('[data-calendar-nav="next"]').exists()).toBe(true)
-
-    wrapper.unmount()
-  })
-
-  it('offers «Limpiar filtros» inside the bar and clears the read in one go', async () => {
-    const wrapper = mountPage()
+    await wrapper.find('[data-calendar-professional-pill="2"]').trigger('click')
     await flushPromises()
 
-    await chooseFilter(wrapper, 'professional', 'Dr. Vega')
-
-    const clear = wrapper.get('[data-calendar-filters] [data-calendar-clear-filters]')
-
-    expect(clear.text()).toBe('Limpiar filtros')
-
-    await clear.trigger('click')
-    await flushPromises()
-
-    const cleared = lastAppointmentRead()
-    expect(cleared.params).not.toHaveProperty('user_id')
-    expect(wrapper.find('[data-calendar-filters] [data-calendar-clear-filters]').exists()).toBe(
-      false
+    expect(chipIds(wrapper)).toEqual(['1'])
+    expect(wrapper.find('[data-calendar-professional-pill="2"]').attributes('aria-pressed')).toBe(
+      'true'
     )
+    // Las pastillas conservan el censo completo: filtrar no recorta la lista.
+    expect(wrapper.find('[data-calendar-professional-pill="3"]').exists()).toBe(true)
+    expect(appointmentReads().length).toBe(before)
 
-    wrapper.unmount()
-  })
-
-  it('re-reads the range with the chosen professional, without navigating', async () => {
-    const wrapper = mountPage()
+    await wrapper.find('[data-calendar-professional-pill="all"]').trigger('click')
     await flushPromises()
-
-    const before = lastAppointmentRead()
-    const routeBefore = router.currentRoute.value.fullPath
-    expect(wrapper.find('[data-calendar-appointment="1"]').exists()).toBe(true)
-    expect(wrapper.find('[data-calendar-appointment="2"]').exists()).toBe(true)
-
-    await chooseFilter(wrapper, 'professional', 'Dra. Ruiz')
-
-    const after = lastAppointmentRead()
-    expect(after.params.user_id).toBe(2)
-    // Same period, same surface: the filter narrows the read, it does not move
-    // the agenda.
-    expect(after.params.start_date).toBe(before.params.start_date)
-    expect(after.params.end_date).toBe(before.params.end_date)
-    expect(router.currentRoute.value.fullPath).toBe(routeBefore)
-
-    expect(wrapper.find('[data-calendar-appointment="1"]').exists()).toBe(true)
-    expect(wrapper.find('[data-calendar-appointment="2"]').exists()).toBe(false)
-    expect(wrapper.find('[data-calendar-empty]').exists()).toBe(false)
+    expect(chipIds(wrapper).sort()).toEqual(['1', '2'])
 
     wrapper.unmount()
   })
 
-  it('shows the filter empty state — not the agenda one — and clears it', async () => {
+  it('shows the filtered empty block — not the period one — when the filters converge on nothing', async () => {
     const wrapper = mountPage()
     await flushPromises()
 
     const initial = lastAppointmentRead()
 
-    await chooseFilter(wrapper, 'professional', 'Dr. Vega')
+    // Dr. Silva sólo tiene la cita del día 14; al acotar el rango al ambiente 1
+    // la lectura devuelve únicamente la cita de Dra. Ruiz y la selección queda
+    // sin filas sin que el período esté vacío.
+    await wrapper.find('[data-calendar-professional-pill="3"]').trigger('click')
+    await flushPromises()
+    await chooseFilter(wrapper, 'chair', 'Ambiente 1')
 
-    const filtered = lastAppointmentRead()
-    expect(filtered.params.user_id).toBe(9)
-    expect(filtered.params.start_date).toBe(initial.params.start_date)
-
-    const empty = wrapper.find('[data-calendar-empty]')
+    const empty = wrapper.find('[data-calendar-filtered-empty]')
     expect(empty.exists()).toBe(true)
-    expect(empty.attributes('data-calendar-empty-scope')).toBe('filtered')
     expect(empty.text()).toContain('Sin citas para estos filtros')
-    expect(empty.text()).toContain('Dr. Vega')
-    expect(empty.text()).not.toContain('Sin citas esta semana')
+    expect(empty.text()).toContain('Dr. Silva')
+    expect(wrapper.find('[data-calendar-empty]').exists()).toBe(false)
+    // El período no se movió: el filtro es una vista sobre la misma lectura.
+    expect(lastAppointmentRead().params.start_date).toBe(initial.params.start_date)
 
-    await wrapper.find('[data-calendar-empty-clear-filters]').trigger('click')
+    await empty.find('[data-calendar-clear-filters]').trigger('click')
     await flushPromises()
 
-    const cleared = lastAppointmentRead()
-    expect(cleared.params).not.toHaveProperty('user_id')
-    expect(cleared.params.start_date).toBe(initial.params.start_date)
-    expect(wrapper.find('[data-calendar-empty]').exists()).toBe(false)
-    expect(wrapper.find('[data-calendar-appointment="1"]').exists()).toBe(true)
-    expect(wrapper.find('[data-calendar-appointment="2"]').exists()).toBe(true)
+    expect(wrapper.find('[data-calendar-filtered-empty]').exists()).toBe(false)
+    expect(chipIds(wrapper).sort()).toEqual(['1', '2'])
 
     wrapper.unmount()
   })
 
-  it('applies the chair and the branch to the same range read', async () => {
+  it('keeps the chair and branch as compact selectors that re-read the range', async () => {
     const wrapper = mountPage()
     await flushPromises()
 
-    await chooseFilter(wrapper, 'chair', 'Sillón 2')
+    const filters = wrapper.find('[data-calendar-filters]')
+    expect(filters.attributes('aria-label')).toBe('Filtros de la agenda')
+    expect(filters.find('[data-calendar-filter="chair"]').exists()).toBe(true)
+    expect(filters.find('[data-calendar-filter="branch"]').exists()).toBe(true)
+    // Sin etiquetas apiladas: los compactos viven en la banda, no en una barra.
+    expect(filters.findAll('label')).toHaveLength(0)
+
+    await chooseFilter(wrapper, 'chair', 'Ambiente 2')
 
     expect(lastAppointmentRead().params.dental_chair_id).toBe(5)
-    expect(wrapper.find('[data-calendar-appointment="2"]').exists()).toBe(true)
-    expect(wrapper.find('[data-calendar-appointment="1"]').exists()).toBe(false)
+    expect(chipIds(wrapper)).toEqual(['2'])
 
     await chooseFilter(wrapper, 'branch', 'Sede Surco')
 
@@ -325,54 +293,56 @@ describe('calendar filters (#395 S5)', () => {
     wrapper.unmount()
   })
 
-  it('keeps the filter applied while the period moves', async () => {
+  it('offers «Limpiar filtros» once something is chosen and clears the read', async () => {
     const wrapper = mountPage()
     await flushPromises()
 
-    await chooseFilter(wrapper, 'professional', 'Dra. Ruiz')
-    const filtered = lastAppointmentRead()
+    expect(wrapper.find('[data-calendar-clear-filters]').exists()).toBe(false)
 
-    await wrapper.find('[data-calendar-nav="next"]').trigger('click')
+    await chooseFilter(wrapper, 'chair', 'Ambiente 2')
+    const clear = wrapper.get('[data-calendar-clear-filters]')
+    expect(clear.text()).toBe('Limpiar filtros')
+
+    await clear.trigger('click')
     await flushPromises()
 
-    const moved = lastAppointmentRead()
-    expect(moved.params.user_id).toBe(2)
-    expect(moved.params.start_date).not.toBe(filtered.params.start_date)
+    const cleared = lastAppointmentRead()
+    expect(cleared.params).not.toHaveProperty('dental_chair_id')
+    expect(cleared.params).not.toHaveProperty('user_id')
+    expect(wrapper.find('[data-calendar-clear-filters]').exists()).toBe(false)
 
     wrapper.unmount()
   })
 
-  it('hides only the filter whose population cannot be read', async () => {
+  it('hides only the compact filter whose population cannot be read', async () => {
     apiState.failChairs = true
 
     const wrapper = mountPage()
     await flushPromises()
 
-    expect(wrapper.find('[data-calendar-filter="professional"]').exists()).toBe(true)
     expect(wrapper.find('[data-calendar-filter="chair"]').exists()).toBe(false)
     expect(wrapper.find('[data-calendar-filter="branch"]').exists()).toBe(true)
-
-    // The failed lookup never becomes the agenda's load error and never breaks
-    // the range read (#396 lesson).
+    expect(wrapper.find('[data-calendar-professional-pills]').exists()).toBe(true)
     expect(wrapper.find('[data-calendar-error]').exists()).toBe(false)
-    expect(wrapper.find('[data-calendar-appointment="1"]').exists()).toBe(true)
+    expect(chipIds(wrapper).sort()).toEqual(['1', '2'])
 
     wrapper.unmount()
   })
 
-  it('does not offer the branch filter when the session only sees one branch', async () => {
+  it('does not offer the branch filter to a session that only reads one branch', async () => {
     apiState.branches = [{ id: 1, name: 'Sede Lima' }]
+    authState.branchId = 1
 
     const wrapper = mountPage()
     await flushPromises()
 
     expect(wrapper.find('[data-calendar-filter="branch"]').exists()).toBe(false)
-    expect(wrapper.find('[data-calendar-filter="professional"]').exists()).toBe(true)
+    expect(wrapper.find('[data-calendar-filter="chair"]').exists()).toBe(true)
 
     wrapper.unmount()
   })
 
-  it('does not read populations the role cannot see and offers no filter then', async () => {
+  it('does not read populations the role cannot see and still offers the pills', async () => {
     authState.permissions = ['manage.appointment']
 
     const wrapper = mountPage()
@@ -384,7 +354,23 @@ describe('calendar filters (#395 S5)', () => {
       apiState.reads.some(read => read.url === '/api/dental-chairs/active?status=active')
     ).toBe(false)
     expect(apiState.reads.some(read => read.url === '/api/branches/active')).toBe(false)
-    expect(wrapper.find('[data-calendar-appointment="1"]').exists()).toBe(true)
+    // El censo de las pastillas sale de las filas de la agenda, no del lookup.
+    expect(wrapper.find('[data-calendar-professional-pill="2"]').exists()).toBe(true)
+    expect(chipIds(wrapper).sort()).toEqual(['1', '2'])
+
+    wrapper.unmount()
+  })
+
+  it('does not offer the chair compact in Day, where the columns are the chairs', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+
+    await wrapper.find('[data-calendar-view="day"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-calendar-filter="chair"]').exists()).toBe(false)
+    expect(wrapper.find('[data-calendar-professional-pills]').exists()).toBe(true)
+    expect(wrapper.find('[data-calendar-week-strip]').exists()).toBe(true)
 
     wrapper.unmount()
   })

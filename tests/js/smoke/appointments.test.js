@@ -169,13 +169,21 @@ const router = createRouter({
 })
 beforeEach(() => {
   if (authRole.ref) authRole.ref.value = 'administrador'
+  // T6 — la agenda abre en Día. Las medidas de este archivo son de la Semana
+  // (chips por minuto, arrastre, franja de huecos) y del Mes, que se abren a
+  // mano: la preferencia declarada aquí es el estado de partida, no el
+  // comportamiento por omisión (eso lo fijan `calendar-responsive.test.js` y
+  // `calendar-mobile-layout.test.js`).
+  window.localStorage.setItem('calendar-view', 'week')
 })
 
 describe('appointments smoke', () => {
   it('mounts CalendarPage.vue and renders content', async () => {
     const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
     await flushPromises()
-    expect(wrapper.text()).toContain('Agenda')
+    // La cejilla nombra la superficie y la sede que la agenda está mostrando.
+    expect(wrapper.find('[data-page-header-kicker]').text()).toContain('Calendario')
+    expect(wrapper.find('[data-page-header-title]').exists()).toBe(true)
     wrapper.unmount()
   })
 
@@ -303,24 +311,41 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
   })
 
   it('populates the Fecha y Hora input from the clicked slot in Day view', async () => {
-    const wrapper = mountPage()
-    await flushPromises()
+    // T5a: el tablero sólo ofrece huecos de 30 a 120 min. La cita por omisión
+    // deja el día en dos huecos mayores, así que este caso monta una cita de
+    // 60 min a las 09:00 y deja el de 07:00–08:00 agendable.
+    const defaultAppointments = apiAppointments.value
+    apiAppointments.value = [
+      {
+        ...defaultAppointments[0],
+        scheduled_at: '2026-05-13T09:00:00',
+        ends_at: '2026-05-13T10:00:00',
+        duration_minutes: 60
+      }
+    ]
 
-    await wrapper.find('[data-calendar-view="day"]').trigger('click')
-    await flushPromises()
+    try {
+      const wrapper = mountPage()
+      await flushPromises()
 
-    const slot = wrapper.find('button[data-calendar-slot]')
-    expect(slot.exists()).toBe(true)
-    const key = slot.attributes('data-calendar-slot')
+      await wrapper.find('[data-calendar-view="day"]').trigger('click')
+      await flushPromises()
 
-    await slot.trigger('click')
-    await flushPromises()
+      const slot = wrapper.find('button[data-calendar-slot]')
+      expect(slot.exists()).toBe(true)
+      const key = slot.attributes('data-calendar-slot')
 
-    const input = { date: dateInput(), time: timeInput() }
-    expect(input.date, 'the modal form must render its date input').not.toBeNull()
-    expect(input.time, 'the modal hour grid must mark the prefilled slot').not.toBeNull()
-    expect(input.date.value).toBe(expectedPrefill(key).date)
-    expect(selectedTime()).toBe(expectedPrefill(key).time)
+      await slot.trigger('click')
+      await flushPromises()
+
+      const input = { date: dateInput(), time: timeInput() }
+      expect(input.date, 'the modal form must render its date input').not.toBeNull()
+      expect(input.time, 'the modal hour grid must mark the prefilled slot').not.toBeNull()
+      expect(input.date.value).toBe(expectedPrefill(key).date)
+      expect(selectedTime()).toBe(expectedPrefill(key).time)
+    } finally {
+      apiAppointments.value = defaultAppointments
+    }
   })
 
   // Order-independence regressions: the prefill must survive every reopen
@@ -499,6 +524,14 @@ describe('appointments drag reschedule smoke (T5)', () => {
     localStorage.removeItem('user')
   })
 
+  // T5b: el bloque de la semana se posiciona por minuto dentro de su columna de
+  // día (una hora = 84 px), así que su `top` es la prueba de dónde quedó:
+  // 10:00 -> 252 px y 14:00 -> 588 px sobre la ventana que arranca a las 07:00.
+  const chipTop = wrapper =>
+    Math.round(Number.parseFloat(wrapper.get(chipSelector).element.style.top))
+  const WEEK_TOP_10 = 252
+  const WEEK_TOP_14 = 588
+
   it('drags a chip past the threshold and PATCHes reschedule keeping the duration (T5)', async () => {
     const wrapper = mountPage()
     await flushPromises()
@@ -532,9 +565,10 @@ describe('appointments drag reschedule smoke (T5)', () => {
     })
 
     const moved = wrapper.find(
-      '[data-calendar-drop-target="2026-05-13-14"] [data-calendar-appointment="1"]'
+      '[data-calendar-week-column="2026-05-13"] [data-calendar-appointment="1"]'
     )
     expect(moved.exists()).toBe(true)
+    expect(chipTop(wrapper)).toBe(WEEK_TOP_14)
     expect(moved.attributes('data-calendar-drag-state')).toBeUndefined()
     expect(moved.attributes('data-calendar-draggable')).toBe('1')
     expect(globalToasts.value.at(-1)?.type).toBe('success')
@@ -577,8 +611,9 @@ describe('appointments drag reschedule smoke (T5)', () => {
     await flushPromises()
 
     expect(patchMock).not.toHaveBeenCalled()
-    const home = wrapper.find(`[data-calendar-drop-target="2026-05-13-10"] ${chipSelector}`)
+    const home = wrapper.find(chipSelector)
     expect(home.exists()).toBe(true)
+    expect(chipTop(wrapper)).toBe(WEEK_TOP_10)
     expect(home.attributes('data-calendar-drag-state')).toBeUndefined()
     wrapper.unmount()
   })
@@ -625,9 +660,7 @@ describe('appointments drag reschedule smoke (T5)', () => {
 
     // client-side rejection: no request, chip rolled back, no details modal
     expect(patchMock).not.toHaveBeenCalled()
-    expect(
-      wrapper.find(`[data-calendar-drop-target="2026-05-13-10"] ${chipSelector}`).exists()
-    ).toBe(true)
+    expect(chipTop(wrapper)).toBe(WEEK_TOP_10)
     expect(document.querySelector('[data-calendar-detail]')).toBeNull()
 
     // …but no longer silent: an informative (non-error) toast names the rule.
@@ -651,16 +684,12 @@ describe('appointments drag reschedule smoke (T5)', () => {
     await flushPromises()
 
     expect(patchMock).toHaveBeenCalledTimes(1)
-    expect(
-      wrapper.find(`[data-calendar-drop-target="2026-05-13-10"] ${chipSelector}`).exists()
-    ).toBe(true)
-    expect(
-      wrapper.find(`[data-calendar-drop-target="2026-05-13-14"] ${chipSelector}`).exists()
-    ).toBe(false)
+    expect(chipTop(wrapper)).toBe(WEEK_TOP_10)
+    expect(chipTop(wrapper)).toBe(WEEK_TOP_10)
 
     const lastToast = globalToasts.value.at(-1)
     expect(lastToast?.type).toBe('error')
-    expect(lastToast?.message).toContain('sillón A1')
+    expect(lastToast?.message).toContain('ambiente A1')
     expect(lastToast?.message).toContain('Luis García')
     wrapper.unmount()
   })
@@ -689,9 +718,7 @@ describe('appointments drag reschedule smoke (T5)', () => {
     dispatchPointer(window, 'pointerup', { clientX: 150, clientY: 240 })
     await flushPromises()
 
-    expect(
-      wrapper.find(`[data-calendar-drop-target="2026-05-13-10"] ${chipSelector}`).exists()
-    ).toBe(true)
+    expect(chipTop(wrapper)).toBe(WEEK_TOP_10)
     expect(globalToasts.value.at(-1)?.message).toContain('al menos 1 minuto en el futuro')
     wrapper.unmount()
   })
@@ -710,9 +737,7 @@ describe('appointments drag reschedule smoke (T5)', () => {
     dispatchPointer(window, 'pointerup', { clientX: 150, clientY: 240 })
     await flushPromises()
 
-    expect(
-      wrapper.find(`[data-calendar-drop-target="2026-05-13-10"] ${chipSelector}`).exists()
-    ).toBe(true)
+    expect(chipTop(wrapper)).toBe(WEEK_TOP_10)
     expect(globalToasts.value.at(-1)?.type).toBe('error')
     wrapper.unmount()
   })
@@ -747,7 +772,8 @@ describe('appointments drag reschedule smoke (T5)', () => {
     expect(chip.attributes('data-calendar-drag-state')).toBeUndefined()
 
     const cells = wrapper.findAll('[data-calendar-drop-target]')
-    expect(cells.length).toBe(112) // 7 week days x 16 hour rows
+    // 7 días x 13 horas: la ventana de la semana arranca a las 07:00.
+    expect(cells.length).toBe(7 * 13)
     cells.forEach(cell => {
       expect(cell.attributes('data-calendar-drop-active')).toBeUndefined()
     })
@@ -793,7 +819,7 @@ describe('T8b chip tint and compact time smoke (defects 2/3)', () => {
     localStorage.removeItem('user')
   })
 
-  const assertChipContract = (chip, view) => {
+  const assertChipContract = (chip, view, { time = '10:00 - 10:30' } = {}) => {
     const classes = chip.classes()
     const [{ status }] = apiAppointments.value
     const registryTokens = statusChipClasses(status).split(/\s+/).filter(Boolean)
@@ -812,8 +838,10 @@ describe('T8b chip tint and compact time smoke (defects 2/3)', () => {
       `${view}: single border colour`
     ).toEqual(registryTokens.filter(c => c.startsWith('border-')))
 
-    // Defect 3: compact range, never the long locale form, full title.
-    expect(chip.text(), `${view}: compact range`).toContain('10:00 - 10:30')
+    // Defect 3: compact range, never the long locale form, full title. En el
+    // tablero del día un bloque de 30 min imprime sólo su hora de inicio (el
+    // rango completo sigue en el `title`), porque su alto es el de esos 30 min.
+    expect(chip.text(), `${view}: compact range`).toContain(time)
     expect(chip.text(), `${view}: no locale meridiem`).not.toMatch(/a\. m\.|p\. m\./)
     expect(chip.attributes('title'), `${view}: full title`).toContain('Ana Pérez')
     expect(chip.attributes('title'), `${view}: full title range`).toContain('10:30')
@@ -836,7 +864,8 @@ describe('T8b chip tint and compact time smoke (defects 2/3)', () => {
 
     const chip = wrapper.find('[data-calendar-appointment="1"]')
     expect(chip.exists()).toBe(true)
-    assertChipContract(chip, 'day')
+    expect(chip.attributes('data-calendar-block-tier')).toBe('compact')
+    assertChipContract(chip, 'day', { time: '10:00' })
   })
 
   it('carries the registry tint + compact time on the Month chip', async () => {
@@ -847,7 +876,7 @@ describe('T8b chip tint and compact time smoke (defects 2/3)', () => {
 
     const chip = wrapper.find('[data-calendar-appointment="1"]')
     expect(chip.exists()).toBe(true)
-    assertChipContract(chip, 'month')
+    assertChipContract(chip, 'month', { time: '10:00' })
   })
 })
 
@@ -975,9 +1004,14 @@ describe('appointments month view smoke (T6)', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-calendar-view="day"]').attributes('aria-pressed')).toBe('true')
-    expect(wrapper.text()).toContain('miércoles, 13 de mayo de 2026')
+    // El tablero titula con el día visible, sin año: la fecha es el título.
+    expect(wrapper.text()).toContain('Miércoles 13 de mayo')
     expect(wrapper.findAll('[data-calendar-month-day]')).toHaveLength(0)
-    expect(wrapper.find('button[data-calendar-slot="2026-05-13-9"]').exists()).toBe(true)
+    // Los huecos agendables del recurso declaran su hora de inicio real: la
+    // agenda del día ocupa 09:00–13:30, así que el primer hueco abre 07:00.
+    const slot = wrapper.find('button[data-calendar-slot="2026-05-13-7"]')
+    expect(slot.exists()).toBe(true)
+    expect(slot.attributes('data-calendar-free-slot-start')).toBe('07:00')
   })
 
   it('drills down from the day-number header to the Day view for that date (T6)', async () => {
@@ -989,7 +1023,7 @@ describe('appointments month view smoke (T6)', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-calendar-view="day"]').attributes('aria-pressed')).toBe('true')
-    expect(wrapper.text()).toContain('miércoles, 20 de mayo de 2026')
+    expect(wrapper.text()).toContain('Miércoles 20 de mayo')
   })
 })
 
@@ -1078,7 +1112,9 @@ describe('T7 details modal smoke', () => {
     expect(dialog).not.toBeNull()
     expect(dialog.textContent).toContain('Ana Pérez')
     expect(dialog.textContent).toContain('10:00-10:30')
-    expect(dialog.textContent).toContain('Sillón A1')
+    // El recurso del tablero se llama «ambiente» y su nombre es el de la fila.
+    expect(dialog.textContent).toContain('Ambiente')
+    expect(dialog.textContent).toContain('A1')
 
     const details = document.querySelector('[data-calendar-detail]')
     expect(details).not.toBeNull()
@@ -1444,19 +1480,33 @@ describe('detalle de cita: siguiente paso, rail y desenlaces', () => {
     }
   })
 
-  it('pinta la leyenda con las rampas nuevas de estado', async () => {
+  it('pinta la leyenda compacta con las rampas nuevas de estado', async () => {
     apiAppointments.value = [appointment('scheduled')]
     mountPage()
     await flushPromises()
 
     const legend = document.querySelector('[data-calendar-legend]')
     expect(legend).not.toBeNull()
-    const variants = [...legend.querySelectorAll('[data-variant]')].map(node =>
-      node.getAttribute('data-variant')
+    // T5b: una sola línea de puntos y etiquetas con los cinco estados que se
+    // leen en el bloque; los tres desenlaces salen de la leyenda.
+    const entries = [...legend.querySelectorAll('[data-status]')]
+    expect(entries).toHaveLength(5)
+    expect(entries.map(entry => entry.getAttribute('data-status'))).toEqual([
+      'scheduled',
+      'confirmed',
+      'arrived',
+      'in_progress',
+      'completed'
+    ])
+    const dots = entries.map(entry => entry.querySelector('span').className)
+    expect(dots).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('bg-systemIndigo-500'),
+        expect.stringContaining('bg-systemYellow-500')
+      ])
     )
-    // Una píldora por valor de estado (el alias `in_consultation` no se repite).
-    expect(variants).toHaveLength(8)
-    expect(variants).toEqual(expect.arrayContaining(['indigo', 'orange', 'purple']))
+    expect(entries[0].className).toContain('text-[10px]')
+    expect(legend.querySelectorAll('[data-variant]')).toHaveLength(0)
   })
 
   it('guarda cancelar y eliminar en el menú de secundarias', async () => {

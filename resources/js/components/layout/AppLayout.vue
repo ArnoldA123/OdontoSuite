@@ -249,7 +249,11 @@
         data-app-chrome="topbar"
         :data-topbar-title-owner="pageOwnsTitle ? 'page' : 'topbar'"
       >
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div
+          :class="contentContainerClass"
+          data-app-chrome-content
+          :data-app-content-width="contentWidthMode"
+        >
           <div class="flex justify-between items-center py-4">
             <div class="flex items-center gap-4">
               <div>
@@ -445,7 +449,11 @@
       </header>
 
       <main class="py-6 lg:py-8">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div
+          :class="contentContainerClass"
+          data-app-content
+          :data-app-content-width="contentWidthMode"
+        >
           <slot />
         </div>
       </main>
@@ -492,6 +500,7 @@ import {
 import ToastContainer from '../ToastContainer.vue'
 import NotificationToast from '../ui/NotificationToast.vue'
 import NotificationCenter from '../NotificationCenter.vue'
+import { isFullWidthLayout } from '../../router/layoutContent'
 import { ArrowsRightLeftIcon, BellIcon, SunIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -579,6 +588,23 @@ function matchesCanvasRoute(path) {
 }
 
 const isCanvasRoute = computed(() => matchesCanvasRoute(route.path))
+
+// T6 — el ancho del contenido es una propiedad de la ruta. Por omisión todas
+// las páginas conservan la columna centrada de 1.280 px; la agenda del
+// calendario pide contenido fluido porque reparte una columna por ambiente más
+// el panel del turno, y en una ventana ancha esa columna deja media pantalla
+// vacía mientras el tablero saca scroll horizontal.
+// (`resources/js/router/layoutContent.js` es la lista; la guarda
+// `tests/js/unit/app-shell-width.test.js` la cruza con la tabla de `app.js`.)
+const contentWidthMode = computed(() => (isFullWidthLayout(route) ? 'full' : 'bounded'))
+
+// El padding lateral es el mismo en los dos modos: lo único que cambia es el
+// tope de ancho y su centrado.
+const contentContainerClass = computed(() =>
+  contentWidthMode.value === 'full'
+    ? 'w-full px-4 sm:px-6 lg:px-8'
+    : 'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'
+)
 
 // Detail routes (`/medical-records/12`) keep the module's nav item active and
 // the module's topbar title; an exact-match test left both on the shell

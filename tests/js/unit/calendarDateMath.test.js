@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   WEEK_DAY_NAMES,
   buildHours,
+  dayTitle,
   toLocalDateString,
   weekDays,
   monthDays,
@@ -248,6 +249,20 @@ describe('periodTitle', () => {
   it('returns an empty string for unknown views', () => {
     expect(periodTitle(d(2026, 2, 1), 'agenda')).toBe('')
     expect(periodTitle(d(2026, 2, 1), undefined)).toBe('')
+  })
+})
+
+describe('dayTitle', () => {
+  // El título del tablero nombra el día visible como una frase: sin año y sin
+  // la coma del locale. La fecha sigue saliendo del módulo de formato.
+  it('titula el día visible sin año y con mayúscula inicial', () => {
+    expect(dayTitle(d(2026, 11, 18))).toBe('Miércoles 18 de noviembre')
+    expect(dayTitle(d(2026, 5, 13))).toBe('Miércoles 13 de mayo')
+    expect(dayTitle(d(2026, 2, 1))).toBe('Domingo 1 de febrero')
+  })
+
+  it('devuelve una cadena vacía ante una fecha ilegible', () => {
+    expect(dayTitle('no-es-fecha')).toBe('')
   })
 })
 

@@ -37,7 +37,7 @@ namespace Tests\Unit\DesignSystem;
  * `<button>` hit areas with `data-calendar-slot` hooks + modal prefill,
  * and `data-calendar-appointment` chips driven only by the registry. The
  * shared content chrome dropped `UiCard variant="glass"` for the quiet
- * canvas + hairline + --radius-panel + --elevation-2 surface
+ * canvas + hairline + --radius-card-lg + --elevation-2 surface
  * (`data-calendar-shell="grid"`).
  *
  * Contract-change note (T6): the Month view body was rebuilt in the quiet
@@ -50,6 +50,13 @@ namespace Tests\Unit\DesignSystem;
  * Implementation note: regex delimiters are `#` (NOT `/`) because the path
  * patterns contain forward slashes; using `/` as delimiter would force
  * every `/` in the path to be escaped `\/`, which is brittle and error-prone.
+ *
+ * Contract-change note (T5a): la superficie abre con una sola banda compacta
+ * (`data-calendar-frame` + `<header data-calendar-header>`) en lugar de la
+ * tarjeta `PageHeader`, la leyenda pasa a una línea de puntos de 7 px y
+ * etiquetas de 10 px, y la barra de tres selects desaparece (pastillas de
+ * profesional + selects compactos de ambiente/sede). El hueco agendable del
+ * tablero se limita a 30–120 min (`gapIsBookable`).
  *
  * Contract-change note (U3): the calendar no longer opens the clinical
  * consultation. Starting or continuing an attention belongs to `/my-day`,
@@ -77,20 +84,20 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * CITAS-CAL-001 — the legend MUST cover all 7 status enum values.
+     * CITAS-CAL-001 — la leyenda cubre los cinco estados que se leen en el
+     * bloque del calendario: Programada, Confirmada, En espera, En consulta y
+     * Completada.
      *
-     * Contract updated for the T3 calendar-shell redesign: the legend row
-     * (`data-calendar-legend`) is DRIVEN by the `appointmentStatus.js`
-     * registry (T2), so the enum values can no longer be pinned as literal
-     * `data-status="X"` attributes on hardcoded `<UiStatusBadge>` tags. The
-     * 7-value guarantee is repointed at its two new load-bearing points:
+     * T5b: la leyenda de ocho estados ocupaba una línea densa que competía con
+     * las pastillas y el «En vivo». Cancelada, No se presentó y Reprogramada se
+     * explican solas en el bloque y salen de la leyenda. La garantía se
+     * sostiene en dos puntos:
      *
-     *   1) the registry MUST define every enum key (source of truth), and
-     *   2) the legend MUST iterate the registry key list — `legendStatuses`
-     *      = `APPOINTMENT_STATUS_KEYS` minus `in_consultation`, the twin of
-     *      the legacy `in_progress` DB value in the registry — binding
-     *      `:data-status` from the loop key, so the rendered pills still
-     *      carry exactly the 7 pinned values.
+     *   1) el registro `appointmentStatus.js` define cada clave (fuente única),
+     *      y
+     *   2) la leyenda itera `legendStatuses` = claves del registro filtradas por
+     *      los cinco estados canónicos (`LEGEND_STATUS_KEYS`), atando
+     *      `:data-status` desde la clave del bucle.
      */
     public function test_calendar_status_legend_renders_all_seven_enum_values(): void
     {
@@ -104,11 +111,9 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
         $requiredEnumValues = [
             'scheduled',
             'confirmed',
+            'arrived',
             'in_progress',
             'completed',
-            'cancelled',
-            'no_show',
-            'rescheduled',
         ];
 
         // 1) the registry (T2 source of truth) defines every pinned key.
@@ -132,23 +137,33 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             1,
             preg_match('#data-calendar-legend#', $src),
             sprintf(
-                '%s MUST keep the `data-calendar-legend` hook on the legend row (CITAS-CAL-001 / T3 shell contract).',
+                '%s MUST keep the `data-calendar-legend` hook on the legend line (CITAS-CAL-001).',
                 $path
             )
         );
 
-        // 3) the legend list derives from the registry keys minus the
-        //    documented alias twin — not from an inline literal list.
+        // 3) the legend list derives from the registry keys filtered by the
+        //    five canonical states — not from an inline literal list.
         $this->assertSame(
             1,
             preg_match(
-                "#legendStatuses\s*=\s*APPOINTMENT_STATUS_KEYS\.filter\(\s*key\s*=>\s*key\s*!==\s*['\"]in_consultation['\"]\s*\)#",
+                "#LEGEND_STATUS_KEYS\s*=\s*\['scheduled',\s*'confirmed',\s*'arrived',\s*'in_progress',\s*'completed'\]#",
                 $src
             ),
             sprintf(
-                '%s MUST derive `legendStatuses` from `APPOINTMENT_STATUS_KEYS` excluding only the '
-                .'`in_consultation` alias of `in_progress` (CITAS-CAL-001). The legend shows one pill '
-                .'per pinned enum value; a different filter silently changes the 7-value legend.',
+                '%s MUST declare the five canonical legend states in `LEGEND_STATUS_KEYS` (T5b).',
+                $path
+            )
+        );
+        $this->assertSame(
+            1,
+            preg_match(
+                "#legendStatuses\s*=\s*APPOINTMENT_STATUS_KEYS\.filter\(\s*key\s*=>\s*LEGEND_STATUS_KEYS\.includes\(\s*key\s*\)\s*\)#",
+                $src
+            ),
+            sprintf(
+                '%s MUST derive `legendStatuses` from `APPOINTMENT_STATUS_KEYS` filtered by '
+                .'`LEGEND_STATUS_KEYS` (CITAS-CAL-001 / T5b: five states, no dense band).',
                 $path
             )
         );
@@ -173,65 +188,93 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * CITAS-CAL-001 — the legend pills MUST consume the shared pill
-     * primitive with registry-driven presentation (the dashboard's single
-     * pill system: `<UiBadge :variant="..." size="sm">` + label slot).
+     * CITAS-CAL-001 — la leyenda del registro es una sola línea compacta de
+     * puntos y etiquetas (T5a), no una banda de píldoras. La regla que importa
+     * se conserva: el color del punto y la etiqueta salen del registro
+     * `appointmentStatus.js`, nunca de un literal del template.
      *
-     * Contract updated for the T3 redesign (was:
-     * `test_calendar_uses_ui_status_badge_for_legend`, which counted ≥ 7
-     * literal `<UiStatusBadge variant="...">` tags): the old hardcoded
-     * legend row is gone by design, so the rule repointed is the one that
-     * mattered — no hardcoded variant/label literal on a legend pill. The
-     * variant MUST be bound from `statusBadgeVariant` and the label MUST
-     * come from `statusLabel` (both from the T2 registry).
+     * Contract updated for T5a (was: pills via
+     * `<UiBadge :variant="statusBadgeVariant(...)">`): la banda de ocho
+     * píldoras medía una banda entera de chrome, así que la leyenda pasó a
+     * puntos de 7 px y etiquetas de 10 px al final de la fila de herramientas.
      */
-    public function test_calendar_legend_pills_are_registry_driven(): void
+    public function test_calendar_legend_is_a_registry_driven_single_line(): void
     {
         $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // Pill primitive + registry-bound variant.
+        // El punto consume la rampa del registro para cada estado.
         $this->assertSame(
             1,
-            preg_match('#<UiBadge\b[^>]*:variant\s*=\s*"statusBadgeVariant\(\w+\)"#', $src),
+            preg_match('#:class\s*=\s*"statusRailClasses\(\w+\)\.dot"#', $src),
             sprintf(
-                '%s legend MUST render pills via `<UiBadge :variant="statusBadgeVariant(...)">` '
-                .'(CITAS-CAL-001). Variants come from the appointmentStatus registry, not the template.',
+                '%s legend MUST paint each dot from `statusRailClasses(status).dot` (CITAS-CAL-001). '
+                .'The colour comes from the appointmentStatus registry, not the template.',
                 $path
             )
         );
 
-        // Label from the registry.
+        // La etiqueta sale del registro.
         $this->assertSame(
             1,
             preg_match('#\{\{\s*statusLabel\(\w+\)\s*\}\}#', $src),
             sprintf(
-                '%s legend MUST render pill labels via `{{ statusLabel(...) }}` (CITAS-CAL-001). '
+                '%s legend MUST render labels via `{{ statusLabel(...) }}` (CITAS-CAL-001). '
                 .'Labels come from the appointmentStatus registry, not the template.',
                 $path
             )
         );
 
-        // No hardcoded variant literal on any pill in the legend row.
+        // Puntos de 7 px y etiquetas de 10 px: una sola línea.
+        $this->assertSame(
+            1,
+            preg_match('#class="h-\[7px\] w-\[7px\] rounded-full"#', $src),
+            sprintf(
+                '%s legend dots MUST be 7 px (T5a single-line legend).',
+                $path
+            )
+        );
+        $this->assertSame(
+            1,
+            preg_match('#text-\[10px\] leading-\[14px\]#', $src),
+            sprintf(
+                '%s legend labels MUST be 10 px on a 14 px line (T5a single-line legend).',
+                $path
+            )
+        );
+
+        // La leyenda no es una banda: vive dentro de la fila de herramientas y
+        // no pinta ninguna píldora con variante.
+        $tools = strpos($src, 'data-calendar-tools');
+        $legendStart = strpos($src, 'data-calendar-legend', (int) $tools);
+        $this->assertNotFalse($tools, sprintf('%s MUST keep the tools row.', $path));
+        $this->assertNotFalse($legendStart, sprintf('%s MUST keep the legend hook inside the tools row.', $path));
+        $legendEnd = strpos($src, '</div>', $legendStart);
+        $this->assertNotFalse($legendEnd, sprintf('%s legend line MUST close.', $path));
+
         $this->assertSame(
             0,
-            preg_match('#<UiBadge\b[^>]*(?<!:)variant\s*=\s*["\']#', $src),
+            preg_match(
+                '#<UiBadge\b#',
+                substr($src, $legendStart, $legendEnd - $legendStart)
+            ),
             sprintf(
-                '%s MUST NOT hardcode a variant literal on a legend pill (CITAS-CAL-001). '
-                .'Bind `:variant` from the appointmentStatus registry instead.',
+                '%s MUST NOT paint badge pills in the compact legend (T5a): dots + labels only.',
                 $path
             )
         );
     }
 
     /**
-     * T3 shell contract — the page opener is the shared `PageHeader` (one
-     * header anatomy for the nine surfaces); the calendar keeps its own
-     * `data-calendar-*` hooks on the toolbar and the grid. The header carries
-     * no illustration: the dental motif survives only in the empty state.
+     * T5a shell contract — la superficie abre con una sola banda compacta
+     * propia (`data-calendar-frame` + `<header data-calendar-header>`), no con
+     * la tarjeta `PageHeader`: los tres controles de chrome que medía la
+     * auditoría se reducen a una banda de 125 px declarados. La leyenda vive
+     * en la fila de herramientas, no dentro del contenido, y ninguna barra de
+     * tres selects queda en el cuerpo.
      */
-    public function test_calendar_shell_header_landmarks(): void
+    public function test_calendar_shell_opens_with_one_compact_band(): void
     {
         $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
@@ -239,41 +282,45 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
 
         $this->assertSame(
             1,
+            preg_match('#data-calendar-frame#', $src),
+            sprintf('%s MUST open with the single compact band (`data-calendar-frame`, T5a).', $path)
+        );
+        $this->assertSame(
+            1,
+            preg_match('#<header\b[^>]*data-calendar-header#', $src),
+            sprintf('%s MUST keep its compact `<header data-calendar-header>` (T5a).', $path)
+        );
+        $this->assertSame(
+            0,
             preg_match('#<PageHeader\b#', $src),
             sprintf(
-                '%s MUST mount the shared `<PageHeader>` as the page opener (T3 shell contract).',
+                '%s MUST NOT mount the card `PageHeader` any more (T5a: the band is 24/32 with a hairline, no shadow).',
                 $path
             )
         );
         $this->assertSame(
             0,
-            preg_match('#<(header|section|main)\b[^>]*data-calendar-shell\s*=\s*"hero"#', $src),
+            preg_match('#<UiFilterBar\b#', $src),
             sprintf(
-                '%s MUST NOT keep a hand-built hero landmark: the header is the shared component.',
+                '%s MUST NOT render the three-select filter bar (T5a: professional pills + compact chair/sede selects).',
                 $path
             )
         );
         $this->assertSame(
             1,
-            preg_match('#<UiFilterBar\b[\s\S]*?data-calendar-filters#', $src),
-            sprintf(
-                '%s filters MUST live outside the header, on the page body (T3 shell contract).',
-                $path
-            )
+            preg_match('#data-calendar-toolbar[^>]*data-calendar-tools#', $src),
+            sprintf('%s MUST keep one tools row inside the band (T5a).', $path)
+        );
+        $this->assertSame(
+            0,
+            preg_match('#<(header|section|main)\b[^>]*data-calendar-shell\s*=\s*"hero"#', $src),
+            sprintf('%s MUST NOT keep a hand-built hero landmark.', $path)
         );
         $this->assertSame(
             0,
             preg_match('#<DentalMotifLayer\b#', $src),
             sprintf(
                 '%s MUST NOT paint the dental motif: empty states match the shared primitive.',
-                $path
-            )
-        );
-        $this->assertSame(
-            0,
-            preg_match('#<DentalMotifLayer\b[^>]*variant\s*=\s*"hero"#', $src),
-            sprintf(
-                '%s MUST NOT paint the hero motif inside the header (T3 shell contract).',
                 $path
             )
         );
@@ -541,13 +588,17 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * T4 grid contract — the Day and Week bodies MUST share ONE slot-lookup
-     * helper. The duplicated `getAppointmentsForHour` /
-     * `getAppointmentsForDayAndHour` pair (identical except for the date
-     * input) is gone by design: both grids call
-     * `appointmentsForSlot(dateStr, hour)`.
+     * T4 grid contract — the Week body keeps ONE slot-lookup helper and the Day
+     * board groups its blocks by resource.
+     *
+     * Contract change (T5b week blocks): la semana ya no apila píldoras dentro
+     * de celdas de una hora; pinta un bloque posicionado por minuto en su
+     * columna de día, así que el único lookup es `weekDayAppointments(date)`.
+     * El par duplicado `getAppointmentsForHour` / `getAppointmentsForDayAndHour`
+     * y el antiguo `appointmentsForSlot` quedan prohibidos: una sola lectura
+     * por día, sin dos implementaciones de la misma búsqueda.
      */
-    public function test_day_week_grids_share_one_slot_lookup_helper(): void
+    public function test_week_grid_keeps_the_slot_lookup_and_day_board_groups_by_resource(): void
     {
         $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
@@ -557,23 +608,60 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             0,
             preg_match('#getAppointmentsForHour|getAppointmentsForDayAndHour#', $src),
             sprintf(
-                '%s MUST NOT keep the duplicated `getAppointmentsForHour` / `getAppointmentsForDayAndHour` pair (T4). '
-                .'Both grids share the single `appointmentsForSlot(dateStr, hour)` helper.',
+                '%s MUST NOT keep the duplicated `getAppointmentsForHour` / `getAppointmentsForDayAndHour` pair (T4).',
                 $path
             )
         );
 
         $this->assertSame(
+            0,
+            preg_match('#appointmentsForSlot#', $src),
+            sprintf(
+                '%s MUST NOT keep the hour-cell `appointmentsForSlot` lookup (T5b: the week '
+                .'positions blocks per day).',
+                $path
+            )
+        );
+        $this->assertSame(
             1,
-            preg_match_all('#const appointmentsForSlot = #', $src),
-            sprintf('%s MUST define exactly one `appointmentsForSlot` helper (T4).', $path)
+            preg_match('#const weekDayAppointments = #', $src),
+            sprintf('%s MUST define exactly one `weekDayAppointments` helper (T5b week body).', $path)
         );
 
         $this->assertGreaterThanOrEqual(
-            2,
-            preg_match_all('#appointmentsForSlot\(#', $src),
+            1,
+            preg_match_all('#weekDayAppointments\(day\.date\)#', $src),
+            sprintf('%s MUST render the Week blocks from `weekDayAppointments(day.date)` (T5b).', $path)
+        );
+
+        // El tablero del día agrupa por recurso con el módulo puro.
+        $this->assertSame(
+            1,
+            preg_match('#boardColumns = computed\(#', $src),
             sprintf(
-                '%s MUST call `appointmentsForSlot(...)` from both the Day and the Week grid (T4).',
+                '%s Day board MUST derive its columns from a `boardColumns` computed (T4 day board).',
+                $path
+            )
+        );
+        $this->assertSame(
+            1,
+            preg_match("#from './calendarBoardMath'#", $src),
+            sprintf(
+                '%s MUST import the board geometry from the pure `./calendarBoardMath` module (T4: '
+                .'window, gaps and grouping test without a DOM).',
+                $path
+            )
+        );
+        $this->assertSame(
+            1,
+            preg_match('#groupByChair\(#', $src),
+            sprintf('%s Day board MUST group by ambiente through `groupByChair` (T4).', $path)
+        );
+        $this->assertSame(
+            1,
+            preg_match('#groupByProfessional\(#', $src),
+            sprintf(
+                '%s Day board MUST offer the professional grouping through `groupByProfessional` (T4).',
                 $path
             )
         );
@@ -582,11 +670,17 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
     /**
      * T4 click-to-create contract — every slot hit area is a real `<button>`
      * (keyboard: Enter/Space) gated by the same `can.createAppointment`
-     * permission as the "Nueva cita" CTA, carrying the
-     * `data-calendar-slot="<date>-<hour>"` hook (plus the
-     * `data-calendar-slot-day` column hook in the Week grid) and wiring
-     * `openSlotCreate`. The prefill reaches `NewAppointmentModal` through the
-     * existing `initialDate` prop (`:initial-date="newAppointmentPrefill"`).
+     * permission as the "Nueva cita" CTA, carrying a `data-calendar-slot` hook
+     * and wiring `openSlotCreate`. The prefill reaches `NewAppointmentModal`
+     * through the existing `initialDate` prop
+     * (`:initial-date="newAppointmentPrefill"`).
+     *
+     * Contract change (T4 day board): the Day hit areas are the bookable holes
+     * of each resource column, so their key names the day and the gap's start
+     * hour (`${dayDateString}-${slot.hour}`) and they also publish the exact
+     * start minute (`data-calendar-free-slot-start`) — a 45-minute hole that
+     * opens at 13:15 is not booked at 13:00. The Week grid keeps the
+     * `${day.date}-${hour}` cell key.
      */
     public function test_click_to_create_slot_contract(): void
     {
@@ -596,25 +690,59 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
 
         // The gate sits ON the button tag that carries the slot hook: when
         // the user cannot create appointments the hit area does not render.
+        // T5a adds `gapIsBookable(slot)` to the Day gate: a hole longer than
+        // 120 minutes is declared, never offered as a three-hour button.
         $this->assertSame(
-            2,
+            1,
             preg_match_all(
                 '#<button\b[^>]*v-if\s*=\s*"can\.createAppointment\?\.value"[^>]*:data-calendar-slot\s*=#s',
                 $src
             ),
             sprintf(
-                '%s Day and Week slot hit areas MUST be real `<button>` elements gated by `can.createAppointment?.value` '
-                .'(T4 click-to-create; Enter/Space come from native button semantics).',
+                '%s Week hit area MUST be a real `<button>` gated by `can.createAppointment?.value` (T4).',
+                $path
+            )
+        );
+        $this->assertSame(
+            1,
+            preg_match_all(
+                '#<button\b[^>]*v-if\s*=\s*"can\.createAppointment\?\.value && gapIsBookable\(slot\)"[^>]*:data-calendar-slot\s*=#s',
+                $src
+            ),
+            sprintf(
+                '%s Day hit area MUST gate on `can.createAppointment?.value && gapIsBookable(slot)` (T5a).',
                 $path
             )
         );
 
-        // Hook format contract: data-calendar-slot="<date>-<hour>".
+        // Hook format contract: data-calendar-slot="<date>-<hour>". The Week
+        // grid keys its cell by the hour row; the Day board keys the hole by
+        // its start hour and publishes the exact minute next to it.
         $this->assertSame(
-            2,
-            preg_match_all('#:data-calendar-slot\s*=\s*"`\$\{[\w.]+\}-\$\{hour\}`"#', $src),
+            1,
+            preg_match_all('#:data-calendar-slot\s*=\s*"`\$\{day\.date\}-\$\{hour\}`"#', $src),
             sprintf(
-                '%s MUST bind `:data-calendar-slot="`${date}-${hour}`"` in both the Day and the Week grid (T4).',
+                '%s Week grid MUST bind `:data-calendar-slot="`${day.date}-${hour}`"` (T4).',
+                $path
+            )
+        );
+        $this->assertSame(
+            1,
+            preg_match_all(
+                '#:data-calendar-slot\s*=\s*"`\$\{dayDateString\}-\$\{slot\.hour\}`"#',
+                $src
+            ),
+            sprintf(
+                '%s Day board MUST bind `:data-calendar-slot="`${dayDateString}-${slot.hour}`"` on its '
+                .'bookable holes (T4).',
+                $path
+            )
+        );
+        $this->assertSame(
+            1,
+            preg_match('#:data-calendar-free-slot-start\s*=\s*"timeAtMinutes\(slot\.startMinutes\)"#', $src),
+            sprintf(
+                '%s Day board holes MUST publish their exact start minute through `data-calendar-free-slot-start` (T4).',
                 $path
             )
         );
