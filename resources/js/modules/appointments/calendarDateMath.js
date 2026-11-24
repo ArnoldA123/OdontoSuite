@@ -44,6 +44,62 @@ export function toLocalDateString(date) {
   return `${year}-${month}-${day}`
 }
 
+// La ventana de la rejilla del alta (07:00–20:00, pasos de 15). Se repiten aquí
+// para que el alta pueda proponer una hora válida sin importar el composable
+// de disponibilidad desde el módulo de fechas.
+const FIRST_APPOINTMENT_MINUTES = 7 * 60
+const LAST_APPOINTMENT_MINUTES = 19 * 60 + 45
+
+const clockLabel = minutes => {
+  const hours = String(Math.floor(minutes / 60)).padStart(2, '0')
+  const rest = String(minutes % 60).padStart(2, '0')
+  return `${hours}:${rest}`
+}
+
+/**
+ * Propone un inicio válido para el alta de cita.
+ *
+ * Issue 531 pintaba la fecha de la vista a las 09:00, así que abrir «Nueva cita» un
+ * día a las 10:30 proponía una hora que el backend rechaza por pasada. En el
+ * día de hoy propone el siguiente cuarto de hora (la API exige al menos un
+ * minuto de margen) y, si ya no queda ventana, el día siguiente a las 07:00.
+ * Un día futuro conserva las 09:00; una vista en el pasado propone hoy.
+ *
+ * @param {Date|string|null} viewDate día que se está mirando
+ * @param {Date} now reloj de referencia (inyectable para las pruebas)
+ * @returns {string} valor `YYYY-MM-DDTHH:mm` que entiende el formulario
+ */
+export function nextAppointmentSlot(viewDate = null, now = new Date()) {
+  const clock = now instanceof Date && !Number.isNaN(now.getTime()) ? now : new Date()
+  const today = new Date(clock.getFullYear(), clock.getMonth(), clock.getDate())
+
+  let target = today
+  if (viewDate) {
+    const parsed = viewDate instanceof Date ? new Date(viewDate) : new Date(`${viewDate}T00:00:00`)
+    if (!Number.isNaN(parsed.getTime())) {
+      target = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+    }
+  }
+
+  if (target.getTime() < today.getTime()) {
+    target = today
+  }
+
+  if (target.getTime() === today.getTime()) {
+    const nowMinutes = clock.getHours() * 60 + clock.getMinutes()
+    const next = Math.max(FIRST_APPOINTMENT_MINUTES, Math.ceil((nowMinutes + 1) / 15) * 15)
+
+    if (next <= LAST_APPOINTMENT_MINUTES) {
+      return `${toLocalDateString(target)}T${clockLabel(next)}`
+    }
+
+    const tomorrow = addDays(target, 1)
+    return `${toLocalDateString(tomorrow)}T${clockLabel(FIRST_APPOINTMENT_MINUTES)}`
+  }
+
+  return `${toLocalDateString(target)}T09:00`
+}
+
 const addDays = (date, amount) => {
   const result = new Date(date)
   result.setDate(date.getDate() + amount)

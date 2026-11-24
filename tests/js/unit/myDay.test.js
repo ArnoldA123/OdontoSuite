@@ -34,6 +34,14 @@ vi.mock('../../../resources/js/composables/useToast', () => ({
   useToast: () => toastMock
 }))
 
+vi.mock('../../../resources/js/composables/usePermissions', () => ({
+  usePermissions: () => ({
+    can: {
+      viewMyDay: { value: true }
+    }
+  })
+}))
+
 import { useMyDay } from '../../../resources/js/composables/useMyDay.js'
 
 const appointment = (id, status = 'arrived') => ({

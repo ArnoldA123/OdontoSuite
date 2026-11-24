@@ -188,7 +188,25 @@ class DashboardPendingTest extends TestCase
 
         $this->assertIsString($response->json('meta.message'));
         $this->assertNotNull($response->json('meta.generated_at'));
-        $this->assertTrue($response->json('meta.cached'));
+        $this->assertFalse($response->json('meta.cached'), 'La sección no se cachea: se lee para ver lo que acaba de cambiar.');
+    }
+
+    public function test_a_quotation_sent_after_a_read_appears_on_the_next_read(): void
+    {
+        $admin = $this->userWithRole('administrador');
+        $patient = $this->patient();
+        $fixturePlan = $this->plan($admin, $patient, 'draft', now()->subHours(2));
+
+        $first = $this->actingAs($admin, 'sanctum')->getJson('/api/dashboard/pending');
+        $first->assertOk();
+        $this->assertSame(0, $first->json('data.quotations.count'));
+
+        $quotation = $this->quotation($admin, $patient, $fixturePlan, 'sent', now());
+
+        $second = $this->actingAs($admin, 'sanctum')->getJson('/api/dashboard/pending');
+        $second->assertOk();
+        $this->assertSame(1, $second->json('data.quotations.count'));
+        $this->assertSame($quotation->id, $second->json('data.quotations.items.0.id'));
     }
 
     public function test_items_cap_at_five_most_recent_while_count_stays_total(): void

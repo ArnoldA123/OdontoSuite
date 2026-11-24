@@ -273,7 +273,7 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    vi.setSystemTime(new Date(2026, 4, 13, 0, 0, 0))
     globalToasts.value.splice(0, globalToasts.value.length)
     localStorage.removeItem('user')
   })
@@ -357,10 +357,11 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
 
     await wrapper.find('[data-calendar-action="new-appointment"]').trigger('click')
     await flushPromises()
-    // button open carries no slot context
+    // button open carries no slot context: the resource stays unset, while the
+    // form proposes a valid start (today at the next slot) instead of a past 09:00.
     expect(formRoot()).not.toBeNull()
-    expect(dateInput().value).toBe('')
-    expect(selectedTime()).toBeNull()
+    expect(dateInput().value).toBe('2026-05-13')
+    expect(selectedTime()).toBe('07:00')
 
     // close through the modal cancel button
     const cancel = Array.from(document.querySelectorAll('button')).find(
@@ -504,7 +505,7 @@ describe('appointments drag reschedule smoke (T5)', () => {
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    vi.setSystemTime(new Date(2026, 4, 13, 0, 0, 0))
     patchMock.mockReset()
     patchMock.mockResolvedValue({ data: {}, meta: { message: 'Cita reprogramada exitosamente' } })
     globalToasts.value.splice(0, globalToasts.value.length)
@@ -800,7 +801,7 @@ describe('T8b chip tint and compact time smoke (defects 2/3)', () => {
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    vi.setSystemTime(new Date(2026, 4, 13, 0, 0, 0))
     localStorage.removeItem('user')
   })
 
@@ -927,7 +928,7 @@ describe('appointments month view smoke (T6)', () => {
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    vi.setSystemTime(new Date(2026, 4, 13, 0, 0, 0))
     apiAppointments.value = busyDay
   })
 
@@ -1072,7 +1073,7 @@ describe('T7 details modal smoke', () => {
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    vi.setSystemTime(new Date(2026, 4, 13, 0, 0, 0))
     globalToasts.value.splice(0, globalToasts.value.length)
     apiAppointments.value = [t7Appointment]
     deleteMock.mockClear()
@@ -1262,7 +1263,7 @@ describe('F1 custody actions smoke (#281)', () => {
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    vi.setSystemTime(new Date(2026, 4, 13, 0, 0, 0))
     globalToasts.value.splice(0, globalToasts.value.length)
     postMock.mockReset()
     postMock.mockResolvedValue({ data: {} })
@@ -1378,7 +1379,7 @@ describe('detalle de cita: siguiente paso, rail y desenlaces', () => {
 
   beforeEach(async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    vi.setSystemTime(new Date(2026, 4, 13, 0, 0, 0))
     globalToasts.value.splice(0, globalToasts.value.length)
     authRole.ref.value = 'administrador'
     await router.push('/calendar')
@@ -1902,7 +1903,7 @@ describe('T7 empty range smoke', () => {
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    vi.setSystemTime(new Date(2026, 4, 13, 0, 0, 0))
     globalToasts.value.splice(0, globalToasts.value.length)
     apiAppointments.value = []
     getGate.deferred = false
@@ -2505,6 +2506,12 @@ describe('alta de cita: una sola confirmación y el día creado', () => {
     await flushPromises()
 
     await wrapper.find('[data-appointment-form] input[type="date"]').setValue(date)
+    await flushPromises()
+    // The form keeps the proposed hour's block open; the test picks the morning
+    // block before choosing 09:00 so the cell is mounted.
+    await wrapper
+      .find('[data-appointment-form] [data-appointment-hour-block="morning"]')
+      .trigger('click')
     await flushPromises()
     await wrapper.find(`[data-appointment-form] [data-appointment-slot="${time}"]`).trigger('click')
     await flushPromises()

@@ -9,6 +9,7 @@ import {
   periodTitle,
   dateRangeForView,
   addPeriod,
+  nextAppointmentSlot,
   MONTH_CELL_CHIP_LIMIT,
   splitMonthCellAppointments
 } from '../../../resources/js/modules/appointments/calendarDateMath.js'
@@ -445,5 +446,43 @@ describe('dateRangeForView', () => {
     dateRangeForView(input, 'week')
     dateRangeForView(input, 'month')
     expect(input.getTime()).toBe(before)
+  })
+})
+
+describe('nextAppointmentSlot — la propuesta del alta nace válida', () => {
+  it('proposes the next quarter hour when the viewed day is today', () => {
+    const now = new Date(2026, 10, 24, 10, 31, 0)
+
+    expect(nextAppointmentSlot(d(2026, 11, 24), now)).toBe('2026-11-24T10:45')
+  })
+
+  it('keeps the exact quarter when there is at least one minute of margin', () => {
+    const now = new Date(2026, 10, 24, 10, 29, 0)
+
+    expect(nextAppointmentSlot(d(2026, 11, 24), now)).toBe('2026-11-24T10:30')
+  })
+
+  it('waits for the clinic to open instead of proposing 00:15', () => {
+    const now = new Date(2026, 10, 24, 0, 5, 0)
+
+    expect(nextAppointmentSlot(d(2026, 11, 24), now)).toBe('2026-11-24T07:00')
+  })
+
+  it('moves to the next day when the window is over', () => {
+    const now = new Date(2026, 10, 24, 19, 46, 0)
+
+    expect(nextAppointmentSlot(d(2026, 11, 24), now)).toBe('2026-11-25T07:00')
+  })
+
+  it('proposes today when the viewed day is already past', () => {
+    const now = new Date(2026, 10, 24, 10, 31, 0)
+
+    expect(nextAppointmentSlot(d(2026, 10, 1), now)).toBe('2026-11-24T10:45')
+  })
+
+  it('keeps 09:00 for a future day', () => {
+    const now = new Date(2026, 10, 24, 10, 31, 0)
+
+    expect(nextAppointmentSlot(d(2026, 11, 27), now)).toBe('2026-11-27T09:00')
   })
 })

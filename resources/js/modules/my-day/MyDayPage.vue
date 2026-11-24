@@ -18,193 +18,229 @@
         </template>
       </PageHeader>
 
-      <!-- The queue counts summarize the sections below. -->
-      <dl class="grid grid-cols-2 gap-4 md:grid-cols-4" data-my-day-counts>
-        <div
-          v-for="stat in statCards"
-          :key="stat.key"
-          class="p-4"
-          style="
-            background: var(--color-canvas);
-            border: 1px solid var(--color-hairline);
-            border-radius: var(--radius-panel);
-            box-shadow: var(--elevation-2);
-          "
-          :data-my-day-count="stat.key"
-        >
-          <dt class="text-xs font-medium uppercase text-theme-secondary">{{ stat.label }}</dt>
-          <dd
-            class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
-            style="font-feature-settings: var(--font-features-tabular-nums)"
-          >
-            {{ countValue(stat.key) }}
-          </dd>
-        </div>
-      </dl>
-
       <!--
+        #393 — el permiso decide la pantalla. Sin `view.my_day` el endpoint
+        responde 403 a propósito, así que la página no lo pide ni lo pinta como
+        un fallo: dice qué escritorio es y a dónde ir.
+      -->
+      <template v-if="canViewMyDay">
+        <!-- The queue counts summarize the sections below. -->
+        <dl class="grid grid-cols-2 gap-4 md:grid-cols-4" data-my-day-counts>
+          <div
+            v-for="stat in statCards"
+            :key="stat.key"
+            class="p-4"
+            style="
+              background: var(--color-canvas);
+              border: 1px solid var(--color-hairline);
+              border-radius: var(--radius-panel);
+              box-shadow: var(--elevation-2);
+            "
+            :data-my-day-count="stat.key"
+          >
+            <dt class="text-xs font-medium uppercase text-theme-secondary">{{ stat.label }}</dt>
+            <dd
+              class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+              style="font-feature-settings: var(--font-features-tabular-nums)"
+            >
+              {{ countValue(stat.key) }}
+            </dd>
+          </div>
+        </dl>
+
+        <!--
         Refresh failure. The composable keeps the last queue mounted, so this
         block reports the stale state and offers the retry instead of clearing
         the desk mid-consultation.
       -->
-      <div
-        v-if="error"
-        data-my-day-error
-        role="alert"
-        class="flex flex-wrap items-center gap-4 p-4 rounded-ios bg-systemRed-50"
-        style="border: 1px solid var(--color-hairline)"
-      >
-        <ExclamationTriangleIcon
-          class="h-8 w-8 flex-shrink-0 text-systemRed-600"
-          aria-hidden="true"
-        />
-        <div class="min-w-0 flex-1">
-          <p class="text-sm font-medium text-theme-primary">No pudimos actualizar tu día</p>
-          <p class="mt-1 text-sm text-theme-secondary" data-my-day-error-message>{{ error }}</p>
+        <div
+          v-if="error"
+          data-my-day-error
+          role="alert"
+          class="flex flex-wrap items-center gap-4 p-4 rounded-ios bg-systemRed-50"
+          style="border: 1px solid var(--color-hairline)"
+        >
+          <ExclamationTriangleIcon
+            class="h-8 w-8 flex-shrink-0 text-systemRed-600"
+            aria-hidden="true"
+          />
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-theme-primary">No pudimos actualizar tu día</p>
+            <p class="mt-1 text-sm text-theme-secondary" data-my-day-error-message>{{ error }}</p>
+          </div>
+          <UiButton variant="primary" size="sm" data-my-day-retry @click="load">
+            Reintentar
+          </UiButton>
         </div>
-        <UiButton variant="primary" size="sm" data-my-day-retry @click="load">Reintentar</UiButton>
-      </div>
 
-      <!-- Loading shape mirrors the three sections so the page does not jump. -->
-      <div v-if="showSkeleton" class="space-y-6" aria-busy="true" data-my-day-loading>
-        <section
-          v-for="section in sections"
-          :key="`skeleton-${section.key}`"
-          :aria-label="section.title"
-        >
-          <UiSkeleton
-            variant="list"
-            animation="wave"
-            :aria-label="`Cargando ${section.title.toLowerCase()}`"
-          />
-        </section>
-      </div>
+        <!-- Loading shape mirrors the three sections so the page does not jump. -->
+        <div v-if="showSkeleton" class="space-y-6" aria-busy="true" data-my-day-loading>
+          <section
+            v-for="section in sections"
+            :key="`skeleton-${section.key}`"
+            :aria-label="section.title"
+          >
+            <UiSkeleton
+              variant="list"
+              animation="wave"
+              :aria-label="`Cargando ${section.title.toLowerCase()}`"
+            />
+          </section>
+        </div>
 
-      <template v-else-if="!error || hasRows">
-        <section
-          v-for="section in sections"
-          :key="section.key"
-          :data-my-day-section="section.key"
-          :aria-label="section.title"
-          class="space-y-3"
-        >
-          <div class="flex items-baseline gap-3">
-            <h3 class="text-xl font-semibold text-label">{{ section.title }}</h3>
-            <p class="text-sm text-theme-secondary">{{ section.caption }}</p>
-          </div>
+        <template v-else-if="!error || hasRows">
+          <section
+            v-for="section in sections"
+            :key="section.key"
+            :data-my-day-section="section.key"
+            :aria-label="section.title"
+            class="space-y-3"
+          >
+            <div class="flex items-baseline gap-3">
+              <h3 class="text-xl font-semibold text-label">{{ section.title }}</h3>
+              <p class="text-sm text-theme-secondary">{{ section.caption }}</p>
+            </div>
 
-          <UiSectionEmpty
-            v-if="section.rows.length === 0"
-            :motif="false"
-            :data-my-day-empty="section.key"
-            :title="section.emptyTitle"
-            :description="section.emptyDescription"
-          />
+            <UiSectionEmpty
+              v-if="section.rows.length === 0"
+              :motif="false"
+              :data-my-day-empty="section.key"
+              :title="section.emptyTitle"
+              :description="section.emptyDescription"
+            />
 
-          <div v-else class="grid gap-3">
-            <UiCard
-              v-for="appointment in section.rows"
-              :key="appointment.id"
-              variant="flat"
-              data-my-day-row
-              :data-my-day-row-section="section.key"
-            >
-              <div class="flex flex-wrap items-center gap-3">
-                <p
-                  class="w-14 flex-shrink-0 text-sm font-semibold text-label tabular-nums"
-                  style="font-feature-settings: var(--font-features-tabular-nums)"
-                  data-my-day-time
-                >
-                  {{ formatCompactTime(appointment.scheduled_at) }}
-                </p>
-                <div class="min-w-0 flex-1">
-                  <p class="truncate font-medium text-label" data-my-day-patient>
-                    {{ patientName(appointment) }}
+            <div v-else class="grid gap-3">
+              <UiCard
+                v-for="appointment in section.rows"
+                :key="appointment.id"
+                variant="flat"
+                data-my-day-row
+                :data-my-day-row-section="section.key"
+              >
+                <div class="flex flex-wrap items-center gap-3">
+                  <p
+                    class="w-14 flex-shrink-0 text-sm font-semibold text-label tabular-nums"
+                    style="font-feature-settings: var(--font-features-tabular-nums)"
+                    data-my-day-time
+                  >
+                    {{ formatCompactTime(appointment.scheduled_at) }}
                   </p>
-                  <p class="truncate text-sm text-theme-secondary">
-                    {{ appointment.appointment_type?.name || 'Consulta' }}
-                    <span v-if="chairName(appointment)">· {{ chairName(appointment) }}</span>
-                  </p>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate font-medium text-label" data-my-day-patient>
+                      {{ patientName(appointment) }}
+                    </p>
+                    <p class="truncate text-sm text-theme-secondary">
+                      {{ appointment.appointment_type?.name || 'Consulta' }}
+                      <span v-if="chairName(appointment)">· {{ chairName(appointment) }}</span>
+                    </p>
+                  </div>
+                  <UiStatusBadge
+                    :variant="statusBadgeVariant(appointment.status)"
+                    :label="statusLabel(appointment.status)"
+                    size="sm"
+                    show-dot
+                  />
+                  <UiButton
+                    v-if="actionFor(appointment)"
+                    variant="primary"
+                    size="sm"
+                    :disabled="acting === appointment.id"
+                    :data-my-day-action="actionFor(appointment).hook"
+                    @click="runAction(appointment)"
+                  >
+                    {{ actionFor(appointment).label }}
+                  </UiButton>
                 </div>
-                <UiStatusBadge
-                  :variant="statusBadgeVariant(appointment.status)"
-                  :label="statusLabel(appointment.status)"
-                  size="sm"
-                  show-dot
-                />
-                <UiButton
-                  v-if="actionFor(appointment)"
-                  variant="primary"
-                  size="sm"
-                  :disabled="acting === appointment.id"
-                  :data-my-day-action="actionFor(appointment).hook"
-                  @click="runAction(appointment)"
-                >
-                  {{ actionFor(appointment).label }}
-                </UiButton>
-              </div>
-            </UiCard>
-          </div>
-        </section>
+              </UiCard>
+            </div>
+          </section>
 
-        <!--
+          <!--
           F5 (#316): the workshop returned the work. The block only exists when
           there is a case to place, so a professional without laboratory work
           keeps the desk it had; the appointment sections keep their empties.
         -->
-        <section
-          v-if="queue.ready_lab_cases.length > 0"
-          data-my-day-section="lab-cases"
-          aria-label="Laboratorio listo"
-          class="space-y-3"
-        >
-          <div class="flex items-baseline gap-3">
-            <h3 class="text-xl font-semibold text-label">Laboratorio listo</h3>
-            <p class="text-sm text-theme-secondary">
-              El taller devolvió el trabajo y espera colocación.
-            </p>
-          </div>
+          <section
+            v-if="queue.ready_lab_cases.length > 0"
+            data-my-day-section="lab-cases"
+            aria-label="Laboratorio listo"
+            class="space-y-3"
+          >
+            <div class="flex items-baseline gap-3">
+              <h3 class="text-xl font-semibold text-label">Laboratorio listo</h3>
+              <p class="text-sm text-theme-secondary">
+                El taller devolvió el trabajo y espera colocación.
+              </p>
+            </div>
 
-          <div class="grid gap-3">
-            <UiCard
-              v-for="labCase in queue.ready_lab_cases"
-              :key="labCase.id"
-              variant="flat"
-              data-my-day-lab-case
-              :data-my-day-lab-case-id="labCase.id"
-            >
-              <div class="flex flex-wrap items-center gap-3">
-                <div class="min-w-0 flex-1">
-                  <p class="truncate font-medium text-label" data-my-day-lab-case-work>
-                    {{ labCase.work }}
+            <div class="grid gap-3">
+              <UiCard
+                v-for="labCase in queue.ready_lab_cases"
+                :key="labCase.id"
+                variant="flat"
+                data-my-day-lab-case
+                :data-my-day-lab-case-id="labCase.id"
+              >
+                <div class="flex flex-wrap items-center gap-3">
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate font-medium text-label" data-my-day-lab-case-work>
+                      {{ labCase.work }}
+                    </p>
+                    <p class="truncate text-sm text-theme-secondary">
+                      {{ patientFullName(labCase.patient) }}
+                      <span v-if="pieceOf(labCase)">· {{ pieceOf(labCase) }}</span>
+                    </p>
+                  </div>
+                  <p class="text-sm text-theme-secondary" data-my-day-lab-case-promised>
+                    Prometido {{ formatDate(labCase.promised_at) }}
                   </p>
-                  <p class="truncate text-sm text-theme-secondary">
-                    {{ patientFullName(labCase.patient) }}
-                    <span v-if="pieceOf(labCase)">· {{ pieceOf(labCase) }}</span>
-                  </p>
+                  <UiStatusBadge
+                    :variant="phaseBadgeVariant(labCase.status)"
+                    :label="phaseLabel(labCase.status)"
+                    size="sm"
+                    show-dot
+                  />
+                  <UiButton
+                    variant="primary"
+                    size="sm"
+                    data-my-day-lab-case-open
+                    @click="openLabCases"
+                  >
+                    Ver
+                  </UiButton>
                 </div>
-                <p class="text-sm text-theme-secondary" data-my-day-lab-case-promised>
-                  Prometido {{ formatDate(labCase.promised_at) }}
-                </p>
-                <UiStatusBadge
-                  :variant="phaseBadgeVariant(labCase.status)"
-                  :label="phaseLabel(labCase.status)"
-                  size="sm"
-                  show-dot
-                />
-                <UiButton
-                  variant="primary"
-                  size="sm"
-                  data-my-day-lab-case-open
-                  @click="openLabCases"
-                >
-                  Ver
-                </UiButton>
-              </div>
-            </UiCard>
-          </div>
-        </section>
+              </UiCard>
+            </div>
+          </section>
+        </template>
       </template>
+
+      <section
+        v-else
+        data-my-day-forbidden
+        aria-live="polite"
+        class="p-6"
+        style="
+          background: var(--color-canvas);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-panel);
+          box-shadow: var(--elevation-2);
+        "
+      >
+        <h2 class="text-xl font-semibold text-label">Este escritorio es del equipo clínico</h2>
+        <p class="mt-2 max-w-2xl text-sm text-theme-secondary">
+          Tu sesión no atiende citas, así que Mi día no tiene una cola propia que mostrar. La agenda
+          y Pendientes siguen disponibles desde el menú.
+        </p>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <UiButton variant="primary" data-my-day-go-agenda @click="router.push('/calendar')">
+            Ir a la agenda
+          </UiButton>
+          <UiButton variant="secondary" data-my-day-go-pending @click="router.push('/continuity')">
+            Ver Pendientes
+          </UiButton>
+        </div>
+      </section>
     </div>
 
     <ConsultationWizard
@@ -246,6 +282,7 @@ import {
 
 const { user } = useAuth()
 const { can } = usePermissions()
+const canViewMyDay = computed(() => can.viewMyDay?.value === true)
 const { openForAppointment } = useConsultation()
 const router = useRouter()
 const {
@@ -402,6 +439,8 @@ const onConsultationCompleted = async () => {
 }
 
 onMounted(async () => {
+  if (!canViewMyDay.value) return
+
   await load()
   subscribe(user.value?.id)
 })
