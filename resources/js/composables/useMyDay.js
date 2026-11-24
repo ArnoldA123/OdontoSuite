@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useApi } from './useApi'
 import { useEcho } from './useEcho'
+import { usePermissions } from './usePermissions'
 import { useToast } from './useToast'
 
 // F1 (#281) — the professional's desk. `GET /api/my-day` already scopes the
@@ -44,6 +45,18 @@ export function useMyDay() {
    */
   const load = async () => {
     const { get } = useApi()
+    const { can } = usePermissions()
+
+    // El endpoint exige `view.my_day`: sin él responde 403 y pintarlo como
+    // error convierte un escritorio ajeno en una avería. La página decide qué
+    // mostrar; el composable, simplemente, no pide la cola.
+    if (can.viewMyDay?.value !== true) {
+      loading.value = false
+      hasLoaded.value = false
+      error.value = null
+      return
+    }
+
     loading.value = true
     try {
       const response = await get('/api/my-day')

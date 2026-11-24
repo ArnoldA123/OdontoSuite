@@ -43,6 +43,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 vi.mock('../../../resources/js/composables/usePermissions', () => ({
   usePermissions: () => ({
     can: {
+      viewMyDay: { value: true },
       checkInAppointment: { value: true },
       startConsultation: { value: true },
       completeConsultation: { value: true }

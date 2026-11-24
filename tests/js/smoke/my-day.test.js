@@ -12,7 +12,8 @@ const harness = vi.hoisted(() => ({
   channelStub: { listen: vi.fn() },
   privateChannel: vi.fn(),
   leave: vi.fn(),
-  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() }
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+  canViewMyDay: true
 }))
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
@@ -43,6 +44,11 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 vi.mock('../../../resources/js/composables/usePermissions', () => ({
   usePermissions: () => ({
     can: {
+      viewMyDay: {
+        get value() {
+          return harness.canViewMyDay
+        }
+      },
       checkInAppointment: { value: true },
       startConsultation: { value: true },
       completeConsultation: { value: true }
@@ -120,6 +126,7 @@ const mountPage = async () => {
 const myDayCalls = () => harness.get.mock.calls.filter(([url]) => url === '/api/my-day').length
 
 beforeEach(() => {
+  harness.canViewMyDay = true
   localStorage.setItem('auth_token', 'test-token')
   localStorage.setItem(
     'user',
@@ -279,6 +286,19 @@ describe('my-day ready laboratory cases', () => {
     await flushPromises()
 
     expect(push).toHaveBeenCalledWith('/lab-cases')
+
+    wrapper.unmount()
+  })
+
+  it('does not read the queue and explains the desk without view.my_day', async () => {
+    harness.canViewMyDay = false
+
+    const wrapper = await mountPage()
+
+    expect(myDayCalls()).toBe(0)
+    expect(wrapper.find('[data-my-day-error]').exists()).toBe(false)
+    expect(wrapper.find('[data-my-day-forbidden]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Este escritorio es del equipo clínico')
 
     wrapper.unmount()
   })
