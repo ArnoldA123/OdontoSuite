@@ -31,34 +31,35 @@ La tabla se lee por escritorio y por acto. «Sí» significa que el escritorio
 recibe el permiso; el detalle exacto, permiso por permiso, sale de
 `Desks::permissions($desk)` y no se copia aquí para que no envejezca.
 
-| Acto                                  | recepción | clínico | asistente | laboratorio | finanzas | administración |
-| ------------------------------------- | --------- | ------- | --------- | ----------- | -------- | -------------- |
-| Solicitud y reserva de agenda         | sí        | sí      | sí        | sí          | —        | sí             |
-| Llegada del paciente                  | sí        | sí      | sí        | sí          | —        | sí             |
-| Anuncio al profesional                | sí        | —       | —         | —           | —        | sí             |
-| Inicio y cierre de la atención        | —         | sí      | sí        | sí          | —        | sí             |
-| Historia clínica y evoluciones        | —         | sí      | sí        | —           | —        | sí             |
-| Registros de especialidad             | —         | sí      | —         | —           | —        | sí             |
-| Casos de laboratorio (lectura)        | sí        | sí      | sí        | sí          | —        | sí             |
-| Casos de laboratorio (alta y fases)   | —         | sí      | —         | sí          | —        | sí             |
-| Análisis de IA                        | —         | sí      | —         | —           | —        | sí             |
-| Planes de tratamiento                 | —         | sí      | —         | sí          | —        | sí             |
-| Presupuestos (lectura)                | sí        | sí      | —         | —           | sí       | sí             |
-| Presupuestos (escritura)              | —         | sí      | —         | —           | sí       | sí             |
-| Caja: apertura, cobro y cierre        | sí        | —       | —         | —           | sí       | sí             |
-| Caja: movimientos manuales y reportes | —         | —       | —         | —           | sí       | sí             |
-| Anulación de transacción              | —         | —       | —         | —           | —        | sí             |
-| Cargo manual al paciente              | sí        | —       | —         | —           | sí       | sí             |
-| Estado de cuenta del paciente         | sí        | —       | —         | —           | sí       | sí             |
-| Caja: depósito bancario               | sí        | —       | —         | —           | sí       | sí             |
-| Catálogo de procedimientos            | —         | lectura | lectura   | lectura     | importa  | sí             |
-| Productos (venta)                     | sí        | sí      | sí        | sí          | —        | sí             |
-| Inventario (consulta y alertas)       | —         | sí      | sí        | sí          | sí       | sí             |
-| Inventario (recepción y ajuste)       | —         | —       | sí        | —           | sí       | sí             |
-| Reportes y exportación                | —         | —       | —         | —           | sí       | sí             |
-| Traslado de sede (solicitud)          | sí        | sí      | sí        | sí          | sí       | sí             |
-| Traslado de sede (decisión)           | —         | —       | —         | —           | —        | sí             |
-| Usuarios, sedes, configuración        | —         | —       | —         | —           | —        | sí             |
+| Acto                                   | recepción | clínico | asistente | laboratorio | finanzas | administración |
+| -------------------------------------- | --------- | ------- | --------- | ----------- | -------- | -------------- |
+| Agenda: lectura y operación            | sí        | sí      | sí        | sí          | —        | sí             |
+| Reserva de cita (`create.appointment`) | sí        | —       | —         | —           | —        | sí             |
+| Llegada del paciente                   | sí        | sí      | sí        | sí          | —        | sí             |
+| Anuncio al profesional                 | sí        | —       | —         | —           | —        | sí             |
+| Inicio y cierre de la atención         | —         | sí      | sí        | sí          | —        | sí             |
+| Historia clínica y evoluciones         | —         | sí      | sí        | —           | —        | sí             |
+| Registros de especialidad              | —         | sí      | —         | —           | —        | sí             |
+| Casos de laboratorio (lectura)         | sí        | sí      | sí        | sí          | —        | sí             |
+| Casos de laboratorio (alta y fases)    | —         | sí      | —         | sí          | —        | sí             |
+| Análisis de IA                         | —         | sí      | —         | —           | —        | sí             |
+| Planes de tratamiento                  | —         | sí      | —         | sí          | —        | sí             |
+| Presupuestos (lectura)                 | sí        | sí      | —         | —           | sí       | sí             |
+| Presupuestos (escritura)               | —         | sí      | —         | —           | sí       | sí             |
+| Caja: apertura, cobro y cierre         | sí        | —       | —         | —           | sí       | sí             |
+| Caja: movimientos manuales y reportes  | —         | —       | —         | —           | sí       | sí             |
+| Anulación de transacción               | —         | —       | —         | —           | —        | sí             |
+| Cargo manual al paciente               | sí        | —       | —         | —           | sí       | sí             |
+| Estado de cuenta del paciente          | sí        | —       | —         | —           | sí       | sí             |
+| Caja: depósito bancario                | sí        | —       | —         | —           | sí       | sí             |
+| Catálogo de procedimientos             | —         | lectura | lectura   | lectura     | importa  | sí             |
+| Productos (venta)                      | sí        | sí      | sí        | sí          | —        | sí             |
+| Inventario (consulta y alertas)        | —         | sí      | sí        | sí          | sí       | sí             |
+| Inventario (recepción y ajuste)        | —         | —       | sí        | —           | sí       | sí             |
+| Reportes y exportación                 | —         | —       | —         | —           | sí       | sí             |
+| Traslado de sede (solicitud)           | sí        | sí      | sí        | sí          | sí       | sí             |
+| Traslado de sede (decisión)            | —         | —       | —         | —           | —        | sí             |
+| Usuarios, sedes, configuración         | —         | —       | —         | —           | —        | sí             |
 
 Las rayas no son una decisión de estilo: son la consecuencia del catálogo (#280
 S9 y #296 S2). Recepción no escribe historia clínica por ninguna puerta,
@@ -78,6 +79,12 @@ asistente, finanzas y administración. El traslado de sede (#305) separa el gest
 del permiso: pedirlo es autoservicio de cualquier rol, y decidirlo queda en
 administración con alcance de grupo —un administrador con sede ve entrar y salir
 las solicitudes de la suya, y no las decide.
+
+La reserva de cita es la única puerta de la agenda que el escritorio clínico no
+recibe (`create.appointment`). El profesional conserva `manage.appointment`: lee
+su agenda, registra la llegada, cambia el estado, anuncia, inicia y cierra la
+atención y reprograma sus propias filas; lo que no hace es agendar para otros.
+Recepción y administración conservan el alta completa de la agenda de su sede.
 
 ## Sede y escritorio
 

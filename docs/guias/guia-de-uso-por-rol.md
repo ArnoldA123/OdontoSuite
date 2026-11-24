@@ -57,6 +57,8 @@ episodio; ninguna es obligatoria para cerrar una consulta simple.
 
 Sin estos datos, el alta de cita o el cierre fallan aunque el usuario tenga el
 rol correcto. Los carga **administración** (`administrador` de grupo, sin sede).
+Los catálogos maestros viven en **`Catálogos`** (`/catalogs`): especialidades,
+tipos de cita y catálogo de procedimientos entran por ese hub.
 
 | #   | Dato                                                            | Dónde                                 | Mínimo para probar                                                        |
 | --- | --------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
@@ -196,20 +198,22 @@ clínica. La ficha es **compartida entre sedes** (ADR-0010).
 **Resultado:** la cita aparece en la agenda del día y en `Mi día` del
 profesional asignado, dentro de **Próximos** (si es de hoy).
 
-### Paso 3 — Recepción: llegada y anuncio
+### Paso 3 — Llegada y anuncio
 
 **Pantalla:** `Calendario` → abrir la cita → tarjeta **Ahora**.
 
 1. Si está `Programada`, presione **Confirmar**.
 2. Presione **Registrar llegada**.
-3. Opcional: **Anunciar**.
+3. Opcional: **Anunciar** (recepción, o el profesional asignado a la cita).
 
 **Qué cambia:**
 
 - La cita pasa a **En espera** (`arrived`) y registra `checked_in_at`, quién la
   registró y la puerta (`reception` o `professional`).
 - **Anunciar** no cambia el estado: envía el aviso «paciente listo» al canal
-  privado del profesional y a su campana.
+  privado del profesional y a su campana, y deja `announced_at`/`announced_by`
+  en la cita. No es exclusivo de recepción: el profesional asignado anuncia su
+  propia cita desde la misma tarjeta.
 - El profesional ya la ve en `Mi día` → **En espera**, con el botón **Iniciar
   atención**.
 
@@ -375,18 +379,24 @@ devoluciones, condonaciones, ajustes e imputaciones.
 
 **Pantalla:** `Pendientes`.
 
-Tres secciones:
+Una sola tabla con **una fila por paciente**: sus controles vencidos, sus
+solicitudes pendientes y sus respuestas comerciales se agrupan en la misma fila,
+con un chip por fuente y una acción por pendiente.
 
-- **Recalls vencidos**: controles de 3/6/12 meses sin cita.
-- **Solicitudes pendientes**: conductas que el profesional dejó al cerrar.
-- **Esperando respuesta**: presupuestos enviados y planes propuestos.
+- **Control**: recall de 3/6/12 meses sin cita.
+- **Solicitud**: conducta que el profesional dejó al cerrar.
+- **Presupuesto / Plan**: respuestas esperando decisión.
+
+El KPI **Pacientes con pendientes** cuenta filas, no fuentes: un paciente con un
+control y un presupuesto suma uno.
 
 **Qué hace recepción:**
 
-1. **Agendar**: abre el alta con la fecha preferida y crea la cita validando
-   profesional, ambiente y conflictos.
+1. **Agendar control** / **Agendar**: abre el alta con la fecha preferida y crea
+   la cita validando profesional, ambiente y conflictos.
 2. **Descartar** (solo solicitudes de continuidad): exige motivo.
-3. Un recall sale de la cola cuando se agenda o se completa.
+3. Un pendiente sale de la fila cuando se agenda o se completa; la fila del
+   paciente desaparece cuando no le queda ninguno.
 
 **Desde el cierre:** el profesional también puede dejar un **recall** (intervalo
 y motivo) o una **próxima cita** como conducta. El sistema calcula el
