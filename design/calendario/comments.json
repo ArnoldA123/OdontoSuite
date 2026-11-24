@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "comments": [
+    {
+      "id": "ga490tzj",
+      "file": "01-tablero-de-salas.html",
+      "selector": "body > div > main > header",
+      "excerpt": "MIÉRCOLES 18 DE NOVIEMBRE · SEDE SAN ISIDRO Calendario Día Semana Mes Hoy Nueva cita",
+      "comment": "mejorala pero la base si me gusta, asi que mejorala , de por si si me gusta pero mejorala para usabilidad y experiencia de usuario e interfaz de usuario",
+      "createdAt": "2026-11-24T02:24:43.901Z",
+      "status": "resolved",
+      "sentAt": "2026-11-24T02:24:44.039Z",
+      "resolvedAt": "2026-11-24T02:29:51.781Z",
+      "resolution": "Jerarquía invertida (fecha como título), filtros por profesional, agrupación sillón/profesional, huecos libres agendables, estado de cada sillón ahora, línea de ahora y gutter fijo al desplazar."
+    }
+  ]
+}

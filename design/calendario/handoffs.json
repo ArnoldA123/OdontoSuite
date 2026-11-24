@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "chosen": "01-tablero-de-salas.html",
+  "handoffs": {
+    "01-tablero-de-salas.html": {
+      "status": "implemented",
+      "queued": true,
+      "sentAt": "2026-11-24T02:54:11.552Z",
+      "startedAt": null,
+      "implementedAt": "2026-11-24T02:58:59.033Z",
+      "feature": "odd/tasks/rediseno-calendario.md",
+      "note": "Vista Día de /calendar implementada como tablero por ambiente o profesional, con franja de días, pastillas, huecos agendables, línea de ahora y panel de pendientes. Módulo puro calendarBoardMath (24 pruebas). Verificado: 186 pruebas Vitest y 110 guards PHPUnit en verde. Semana y Mes intactas; el arrastre sigue en Semana."
+    }
+  }
+}
