@@ -41,7 +41,10 @@ vi.mock('../../../resources/js/composables/useEcho', () => ({
   })
 }))
 vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
-  useWebSocketNotifications: () => ({})
+  useWebSocketNotifications: () => ({}),
+  // T2: la agenda marca el eco de lo que escribe para no anunciarlo dos veces.
+  markLocalAppointmentEcho: () => {},
+  consumeLocalAppointmentEcho: () => false
 }))
 
 vi.mock('../../../resources/js/composables/useAuth', async () => {

@@ -110,6 +110,30 @@ class FrontendPermissionContractTest extends TestCase
         );
     }
 
+    /**
+     * Product decision: the SPA hides the booking affordances with the same
+     * permission the route demands, and keeps reading/editing on the agenda one.
+     */
+    #[Test]
+    public function the_booking_affordance_is_derived_from_its_own_permission(): void
+    {
+        $map = $this->frontendMap();
+
+        $this->assertSame(
+            Permissions::CREATE_APPOINTMENT,
+            $map['createAppointment'] ?? null,
+            'The create affordance must gate on [create.appointment].',
+        );
+
+        foreach (['editAppointment', 'viewAppointment', 'viewCalendar', 'manageSchedule'] as $key) {
+            $this->assertSame(
+                Permissions::MANAGE_APPOINTMENT,
+                $map[$key] ?? null,
+                "The agenda flag [{$key}] must keep [manage.appointment].",
+            );
+        }
+    }
+
     #[Test]
     public function the_consultation_close_is_derived_from_its_permission(): void
     {

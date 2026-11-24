@@ -21,10 +21,16 @@ class AppointmentCheckedIn implements ShouldBroadcast
 
     public function __construct(public Appointment $appointment) {}
 
+    /**
+     * citas-privacidad (T2): the arrival also travels on `appointments`, the
+     * channel the agenda and Mi día read, so both boards refresh in real time.
+     * The envelope stays operational; the patient is read from the API.
+     */
     public function broadcastOn(): array
     {
         return [
             new PrivateChannel('appointment.'.$this->appointment->id),
+            new PrivateChannel('appointments'),
         ];
     }
 
@@ -37,7 +43,6 @@ class AppointmentCheckedIn implements ShouldBroadcast
     {
         return [
             'appointment' => AppointmentBroadcastPayload::for($this->appointment),
-            'checked_in_at' => $this->appointment->checked_in_at?->toIso8601String(),
         ];
     }
 }

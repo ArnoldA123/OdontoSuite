@@ -2,18 +2,56 @@
 
 namespace App\Policies;
 
+use App\Authorization\Permissions;
 use App\Models\Appointment;
 use App\Models\User;
 
+/**
+ * The agenda's single rule (citas-privacidad-tiempo-real, T1).
+ *
+ * The route already answers the capability question (`manage.appointment` for
+ * reading and operating the agenda, `create.appointment` for booking a new
+ * row); this policy answers the ownership one, which the route never asked. A
+ * clinical role used to read and operate every appointment of the group
+ * because the old rule only excluded finance, so a professional saw another
+ * professional's patients. The decision is strict privacy:
+ *
+ *  - `administrador` and `recepcionista` keep the whole agenda of their sede
+ *    (the sede dimension is `ScopesToBranch`, not this class).
+ *  - every other appointment role reads and operates only the appointments
+ *    where it is the professional.
+ *
+ * `seesWholeAgenda()` is the only place the wide list is written. The index
+ * scope, the doors and the tests all derive from it, so a new reader role is
+ * added in one line. The grants themselves are not repeated here: `Permissions`
+ * stays the single source of the capability, and `create` asks for the booking
+ * door instead of the agenda one — the professional operates their own rows but
+ * never books for others.
+ */
 class AppointmentPolicy
 {
+    /**
+     * Roles that read and operate every appointment of their sede.
+     *
+     * @var list<string>
+     */
+    private const WIDE_AGENDA = ['administrador', 'recepcionista'];
+
+    /**
+     * Whether the user's agenda is the whole sede instead of their own rows.
+     */
+    public static function seesWholeAgenda(?User $user): bool
+    {
+        return $user instanceof User
+            && in_array($user->role, self::WIDE_AGENDA, true);
+    }
+
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        // Todos los roles excepto finanzas pueden ver citas
-        return ! in_array($user->role, ['finanzas']);
+        return Permissions::roleHas($user->role, Permissions::MANAGE_APPOINTMENT);
     }
 
     /**
@@ -21,8 +59,7 @@ class AppointmentPolicy
      */
     public function view(User $user, Appointment $appointment): bool
     {
-        // Todos los roles excepto finanzas pueden ver citas
-        return ! in_array($user->role, ['finanzas']);
+        return $this->viewAny($user) && $this->owns($user, $appointment);
     }
 
     /**
@@ -30,33 +67,18 @@ class AppointmentPolicy
      */
     public function create(User $user): bool
     {
-        // Admin, recepcionista y clínicos pueden crear citas
-        return in_array($user->role, [
-            'administrador',
-            'recepcionista',
-            'odontologo',
-            'implantologo',
-            'tecnico_dental',
-            'asistente',
-        ]);
+        return Permissions::roleHas($user->role, Permissions::CREATE_APPOINTMENT);
     }
 
     /**
      * Determine whether the user can update the model.
+     *
+     * Editing follows the same rule as reading: reception and administration
+     * edit any appointment of their sede, a clinician only their own.
      */
     public function update(User $user, Appointment $appointment): bool
     {
-        // Admin y recepcionista pueden editar cualquier cita
-        if (in_array($user->role, ['administrador', 'recepcionista'])) {
-            return true;
-        }
-
-        // Clínicos solo pueden editar sus propias citas
-        if (in_array($user->role, ['odontologo', 'implantologo', 'tecnico_dental', 'asistente'])) {
-            return $appointment->user_id === $user->id;
-        }
-
-        return false;
+        return $this->view($user, $appointment);
     }
 
     /**
@@ -64,8 +86,8 @@ class AppointmentPolicy
      */
     public function delete(User $user, Appointment $appointment): bool
     {
-        // Solo admin y recepcionista pueden eliminar citas
-        return in_array($user->role, ['administrador', 'recepcionista']);
+        return self::seesWholeAgenda($user)
+            && Permissions::roleHas($user->role, Permissions::MANAGE_APPOINTMENT);
     }
 
     /**
@@ -82,5 +104,15 @@ class AppointmentPolicy
     public function forceDelete(User $user, Appointment $appointment): bool
     {
         return false;
+    }
+
+    /**
+     * The ownership half of the rule: reception and administration answer for
+     * every row of their sede, a clinician only for their own rows.
+     */
+    private function owns(User $user, Appointment $appointment): bool
+    {
+        return self::seesWholeAgenda($user)
+            || (int) $appointment->user_id === (int) $user->id;
     }
 }

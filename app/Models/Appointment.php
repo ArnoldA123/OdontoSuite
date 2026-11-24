@@ -32,6 +32,8 @@ class Appointment extends Model
         'consultation_mode',
         'checked_in_at',
         'checked_in_by',
+        'announced_at',
+        'announced_by',
         'completed_at',
         'created_by',
         'updated_by',
@@ -47,6 +49,7 @@ class Appointment extends Model
         'scheduled_at' => 'datetime',
         'ends_at' => 'datetime',
         'checked_in_at' => 'datetime',
+        'announced_at' => 'datetime',
         'completed_at' => 'datetime',
         'final_amount' => 'decimal:2',
         'total_cost' => 'decimal:2',
@@ -129,6 +132,14 @@ class Appointment extends Model
     public function checkedInBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'checked_in_by');
+    }
+
+    /**
+     * Who announced the patient to the professional (reception).
+     */
+    public function announcedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'announced_by');
     }
 
     /**

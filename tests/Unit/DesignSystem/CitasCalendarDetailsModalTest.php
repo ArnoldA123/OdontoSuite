@@ -240,13 +240,27 @@ class CitasCalendarDetailsModalTest extends ModuleAppShellTestCase
         $src = self::calendarSource();
         $slice = self::detailsSlice($src);
 
-        // BUG-FIX-2 anti-rule: the non-existent permission key is gone.
+        // BUG-FIX-2 anti-rule: the non-existent permission key is gone. The
+        // boundary keeps the retired key apart from the real
+        // `can.updateAppointmentStatus` the agenda now reads, so the guard
+        // still fails on a bare `can.updateAppointment` reference.
         $this->assertSame(
             0,
-            preg_match('#can\.updateAppointment#', $src),
+            preg_match('#can\.updateAppointment\b#', $src),
             sprintf(
                 '%s MUST NOT reference `can.updateAppointment` — the key does not exist in usePermissions '
                 .'(real key: `editAppointment`); the optional chain made "Editar" silently unreachable (T7 bugfix).',
+                self::CALENDAR_PATH
+            )
+        );
+
+        // …and the real sibling key is present, so the boundary above is proven
+        // to exclude it rather than the file being silently key-free.
+        $this->assertSame(
+            1,
+            preg_match('#can\.updateAppointmentStatus\b#', $src),
+            sprintf(
+                '%s MUST keep `can.updateAppointmentStatus` — the real usePermissions key the guard must not confuse with the retired one.',
                 self::CALENDAR_PATH
             )
         );
@@ -276,7 +290,11 @@ class CitasCalendarDetailsModalTest extends ModuleAppShellTestCase
 
         $announce = self::actionTagAttributes($slice, 'announce');
         $this->assertStringContainsString('can.announcePatient?.value', $announce, sprintf('%s "Anunciar paciente" MUST gate on `can.announcePatient?.value` (S2).', self::CALENDAR_PATH));
-        $this->assertStringContainsString('@click="announcePatient(selectedAppointment)"', $announce, sprintf('%s "Anunciar paciente" MUST call `announcePatient(selectedAppointment)` — POST /appointments/{id}/announce (S2).', self::CALENDAR_PATH));
+        // T3: el detalle anuncia sin cerrar la selección, así que el tag usa el
+        // handler que reemplaza la cita con el payload devuelto
+        // (`announced_at` incluido) y re-lee el día. El panel derecho conserva
+        // `announcePatient` (cierra y recarga).
+        $this->assertStringContainsString('@click="announceSelectedPatient(selectedAppointment)"', $announce, sprintf('%s "Anunciar paciente" MUST call `announceSelectedPatient(selectedAppointment)` — POST /appointments/{id}/announce (T3).', self::CALENDAR_PATH));
 
         // U3: the clinical act moved to /my-day. The details surface never
         // starts or continues a consultation; it bridges a session that can

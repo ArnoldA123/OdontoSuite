@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Events\AppointmentUpdated;
 use App\Models\Appointment;
 use App\Models\AppointmentCustodyLog;
 use App\Models\AppointmentType;
@@ -9,6 +10,7 @@ use App\Models\DentalChair;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 /**
@@ -32,18 +34,20 @@ class AppointmentStatusDoorGuardTest extends TestCase
         ]);
     }
 
-    private function appointment(string $status = 'confirmed'): Appointment
+    private function appointment(string $status = 'confirmed', ?User $professional = null): Appointment
     {
         return Appointment::factory()->create([
             'status' => $status,
             'scheduled_at' => now()->startOfDay()->addHours(9),
+            'user_id' => $professional?->id
+                ?? User::factory()->create(['role' => 'odontologo', 'is_active' => true])->id,
         ]);
     }
 
     public function test_the_generic_status_endpoint_refuses_the_custody_statuses_with_the_real_door(): void
     {
         $professional = $this->staff('odontologo');
-        $appointment = $this->appointment();
+        $appointment = $this->appointment('confirmed', $professional);
 
         $cases = [
             'arrived' => 'La llegada la registra recepción con POST /api/appointments/'.$appointment->id.'/check-in.',
@@ -93,6 +97,28 @@ class AppointmentStatusDoorGuardTest extends TestCase
             ->assertOk();
 
         $this->assertSame('cancelled', $appointment->fresh()->status);
+    }
+
+    public function test_the_status_change_is_broadcast_after_the_commit(): void
+    {
+        Event::fake([AppointmentUpdated::class]);
+
+        $reception = $this->staff('recepcionista');
+        $appointment = $this->appointment('scheduled');
+
+        $this->actingAs($reception, 'sanctum')
+            ->patchJson("/api/appointments/{$appointment->id}/status", ['status' => 'confirmed'])
+            ->assertOk();
+
+        // La agenda de otra pestaña se enteraba de todo menos de esto: la
+        // puerta de estado era la única que cambiaba la cita en silencio.
+        Event::assertDispatched(
+            AppointmentUpdated::class,
+            fn (AppointmentUpdated $event) => $event->appointment->id === $appointment->id
+                && $event->appointment->status === 'confirmed',
+        );
+
+        $this->assertSame('confirmed', $appointment->fresh()->status);
     }
 
     public function test_appointment_create_and_update_cannot_write_a_custody_status(): void

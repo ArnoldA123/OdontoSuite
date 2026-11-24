@@ -202,9 +202,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Appointments.
     Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])
         ->middleware('permission:'.Permissions::UPDATE_APPOINTMENT_STATUS);
+    // Booking is its own door: the professional keeps the agenda they operate
+    // (`manage.appointment`) but does not create rows for other patients.
+    Route::post('appointments', [AppointmentController::class, 'store'])
+        ->middleware('permission:'.Permissions::CREATE_APPOINTMENT);
     Route::middleware('permission:'.Permissions::MANAGE_APPOINTMENT)->group(function () {
         Route::patch('appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule']);
-        Route::apiResource('appointments', AppointmentController::class);
+        Route::apiResource('appointments', AppointmentController::class)->except(['store']);
     });
 
     // Reminder templates (administrator only; previously stacked inside the

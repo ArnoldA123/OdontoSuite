@@ -18,13 +18,18 @@ const PERMISSION_BY_KEY = {
   exportPatient: 'export.patient',
 
   // Appointments and calendar
-  createAppointment: 'manage.appointment',
+  // Booking is its own door: reception and administration create, while the
+  // professional keeps reading and operating their own agenda below.
+  createAppointment: 'create.appointment',
   editAppointment: 'manage.appointment',
   deleteAppointment: 'manage.appointment',
   viewAppointment: 'manage.appointment',
   viewCalendar: 'manage.appointment',
   manageSchedule: 'manage.appointment',
   checkInAppointment: 'check_in.appointment',
+  // Confirmar una cita es una transición de estado, no una edición del acto:
+  // la puerta que la API exige es `update.appointment_status`.
+  updateAppointmentStatus: 'update.appointment_status',
   completeConsultation: 'complete.appointment',
   // F1 (#281): the professional's desk and the two custody doors it opens.
   viewMyDay: 'view.my_day',

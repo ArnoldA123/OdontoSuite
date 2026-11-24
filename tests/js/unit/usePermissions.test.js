@@ -112,4 +112,45 @@ describe('usePermissions derives every flag from the permission payload (#280)',
     expect(clinical.can.viewPatientStatement.value).toBe(false)
     expect(clinical.can.manageCashDeposit.value).toBe(false)
   })
+
+  // Decisión de producto: reservar es su propia puerta. El profesional conserva
+  // la agenda (`manage.appointment`) pero no crea citas para otros pacientes.
+  it('separates the booking door from the agenda door', () => {
+    authState.ref.value = {
+      role: 'recepcionista',
+      permissions: ['manage.appointment', 'create.appointment']
+    }
+
+    const reception = usePermissions()
+
+    expect(reception.can.createAppointment.value).toBe(true)
+    expect(reception.can.editAppointment.value).toBe(true)
+
+    authState.ref.value = { role: 'odontologo', permissions: ['manage.appointment'] }
+
+    const clinical = usePermissions()
+
+    expect(clinical.can.createAppointment.value).toBe(false)
+    expect(clinical.can.editAppointment.value).toBe(true)
+  })
+
+  // T2: confirmar una cita es una transición de estado; la clave es la del
+  // catálogo PHP (`update.appointment_status`) y no una regla de rol nueva.
+  it('derives the status transition flag from the payload, not from a role list', () => {
+    authState.ref.value = {
+      role: 'recepcionista',
+      permissions: ['manage.appointment', 'update.appointment_status']
+    }
+
+    const reception = usePermissions()
+
+    expect(reception.can.updateAppointmentStatus.value).toBe(true)
+    expect(reception.can.editAppointment.value).toBe(true)
+
+    authState.ref.value = { role: 'finanzas', permissions: ['manage.appointment'] }
+
+    const finance = usePermissions()
+
+    expect(finance.can.updateAppointmentStatus.value).toBe(false)
+  })
 })

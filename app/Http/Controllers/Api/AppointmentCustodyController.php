@@ -9,6 +9,7 @@ use App\Models\Appointment;
 use App\Services\AppointmentCustodyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * F1 (#281) — the custody doors.
@@ -25,6 +26,7 @@ class AppointmentCustodyController extends Controller
         'appointmentType',
         'dentalChair',
         'checkedInBy',
+        'announcedBy',
         'branch:id,name',
         'procedure:id,name,code',
     ];
@@ -33,6 +35,8 @@ class AppointmentCustodyController extends Controller
 
     public function checkIn(Request $request, Appointment $appointment): JsonResponse
     {
+        Gate::authorize('update', $appointment);
+
         try {
             $appointment = $this->custody->markArrival($appointment, $request->user());
         } catch (CustodyException $e) {
@@ -47,6 +51,8 @@ class AppointmentCustodyController extends Controller
 
     public function announce(Request $request, Appointment $appointment): JsonResponse
     {
+        Gate::authorize('update', $appointment);
+
         try {
             $appointment = $this->custody->announce($appointment, $request->user());
         } catch (CustodyException $e) {
@@ -61,6 +67,8 @@ class AppointmentCustodyController extends Controller
 
     public function startAttention(Request $request, Appointment $appointment): JsonResponse
     {
+        Gate::authorize('update', $appointment);
+
         try {
             $appointment = $this->custody->startAttention($appointment, $request->user());
         } catch (CustodyException $e) {

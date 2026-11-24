@@ -27,20 +27,22 @@ class AppointmentCustodyAttentionTest extends TestCase
         ]);
     }
 
-    private function arrivedAppointment(): Appointment
+    private function arrivedAppointment(?User $professional = null): Appointment
     {
         return Appointment::factory()->create([
             'status' => 'arrived',
             'checked_in_at' => now(),
             'checked_in_by' => User::factory()->create(['role' => 'recepcionista', 'is_active' => true])->id,
             'scheduled_at' => now()->startOfDay()->addHours(9),
+            'user_id' => $professional?->id
+                ?? User::factory()->create(['role' => 'odontologo', 'is_active' => true])->id,
         ]);
     }
 
     public function test_the_professional_starts_the_attention_and_the_transfer_is_recorded(): void
     {
         $professional = $this->staff('odontologo');
-        $appointment = $this->arrivedAppointment();
+        $appointment = $this->arrivedAppointment($professional);
 
         $response = $this->actingAs($professional, 'sanctum')
             ->postJson("/api/appointments/{$appointment->id}/start-attention");
@@ -63,7 +65,6 @@ class AppointmentCustodyAttentionTest extends TestCase
     {
         $reception = $this->staff('recepcionista');
         $appointment = $this->arrivedAppointment();
-
         $this->actingAs($reception, 'sanctum')
             ->postJson("/api/appointments/{$appointment->id}/start-attention")
             ->assertForbidden();
@@ -78,6 +79,7 @@ class AppointmentCustodyAttentionTest extends TestCase
         $appointment = Appointment::factory()->create([
             'status' => 'confirmed',
             'scheduled_at' => now()->startOfDay()->addHours(9),
+            'user_id' => $professional->id,
         ]);
 
         $this->actingAs($professional, 'sanctum')
@@ -92,7 +94,7 @@ class AppointmentCustodyAttentionTest extends TestCase
     public function test_starting_twice_is_idempotent_and_records_one_transfer(): void
     {
         $professional = $this->staff('odontologo');
-        $appointment = $this->arrivedAppointment();
+        $appointment = $this->arrivedAppointment($professional);
 
         $this->actingAs($professional, 'sanctum')
             ->postJson("/api/appointments/{$appointment->id}/start-attention")

@@ -268,7 +268,11 @@
             />
           </div>
 
+          <!-- T2 — privacidad estricta: un escritorio clínico sólo opera sus
+               citas, así que el filtro de profesional no tiene nada que
+               recortar. Administración y recepción conservan el censo. -->
           <div
+            v-if="seesWholeAgenda"
             class="flex w-full min-w-0 flex-nowrap items-center gap-2 overflow-x-auto lg:w-auto lg:flex-1"
             role="group"
             aria-label="Filtrar por profesional"
@@ -931,8 +935,18 @@
                       {{ waitingLine(appointment) }}
                     </p>
                   </div>
+                  <UiBadge
+                    v-if="appointment.announced_at"
+                    variant="success"
+                    shape="pill"
+                    size="sm"
+                    class="col-start-2 justify-self-start"
+                    data-calendar-announced
+                  >
+                    Anunciado
+                  </UiBadge>
                   <UiButton
-                    v-if="can.announcePatient?.value"
+                    v-else-if="can.announcePatient?.value"
                     size="xs"
                     class="col-start-2 min-h-[44px] justify-self-start lg:min-h-[28px]"
                     :data-calendar-announce="appointment.id"
@@ -982,7 +996,31 @@
                       {{ formatTime(appointment.scheduled_at) }} · sin confirmar
                     </p>
                   </div>
+                  <div
+                    v-if="canConfirmAppointment"
+                    class="col-start-2 flex flex-wrap items-center gap-1.5 justify-self-start"
+                  >
+                    <UiButton
+                      size="xs"
+                      class="min-h-[44px] lg:min-h-[28px]"
+                      :loading="confirmingId === appointment.id"
+                      :data-calendar-confirm="appointment.id"
+                      @click="confirmAppointment(appointment)"
+                    >
+                      Confirmar
+                    </UiButton>
+                    <UiButton
+                      size="xs"
+                      variant="secondary"
+                      class="min-h-[44px] lg:min-h-[28px]"
+                      :data-calendar-open-appointment="appointment.id"
+                      @click="openAppointmentFromPanel(appointment)"
+                    >
+                      Ver
+                    </UiButton>
+                  </div>
                   <UiButton
+                    v-else
                     size="xs"
                     variant="secondary"
                     class="col-start-2 min-h-[44px] justify-self-start lg:min-h-[28px]"
@@ -993,6 +1031,14 @@
                   </UiButton>
                 </li>
               </ul>
+              <p
+                v-if="confirmError"
+                class="mt-2 text-[11px] font-medium text-error-600"
+                role="alert"
+                data-calendar-confirm-error
+              >
+                {{ confirmError }}
+              </p>
             </section>
 
             <section
@@ -1472,6 +1518,16 @@
           <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">Ahora</p>
           <h3 class="mt-1.5 text-lg font-semibold text-theme-primary">{{ nowCopy.title }}</h3>
           <p class="mt-1 text-sm text-theme-secondary">{{ nowCopy.description }}</p>
+          <p
+            v-if="selectedAppointment.status === 'arrived' && selectedAppointment.announced_at"
+            class="mt-1 text-xs text-theme-secondary"
+            data-appointment-announced-at
+          >
+            Anunciado a las
+            <span style="font-feature-settings: 'tnum' 1">
+              {{ formatTime(selectedAppointment.announced_at) }}
+            </span>
+          </p>
 
           <div
             v-if="primaryAction || (showMyDayLink && can.viewMyDay?.value)"
@@ -1505,11 +1561,31 @@
               Iniciar atención
             </UiButton>
             <UiButton
-              v-else-if="can.announcePatient?.value && selectedAppointment.status === 'arrived'"
+              v-if="
+                can.announcePatient?.value &&
+                selectedAppointment.status === 'arrived' &&
+                !can.startConsultation?.value &&
+                !selectedAppointment.announced_at
+              "
               variant="primary"
               data-calendar-action="announce"
               :data-appointment-primary="primaryAction === 'announce' ? '' : null"
-              @click="announcePatient(selectedAppointment)"
+              @click="announceSelectedPatient(selectedAppointment)"
+            >
+              Anunciar paciente
+            </UiButton>
+            <!-- El profesional ya puede iniciar la atención, pero el anuncio
+                 sigue siendo suyo: es el aviso a quien atiende. Secundario y
+                 sólo mientras no exista un anuncio. -->
+            <UiButton
+              v-if="
+                primaryAction === 'start-attention' &&
+                can.announcePatient?.value &&
+                !selectedAppointment.announced_at
+              "
+              variant="secondary"
+              data-calendar-action="announce"
+              @click="announceSelectedPatient(selectedAppointment)"
             >
               Anunciar paciente
             </UiButton>
@@ -1730,6 +1806,7 @@
       :initial-date="newAppointmentPrefill"
       :initial-chair-id="newAppointmentChairId"
       :initial-professional-id="newAppointmentProfessionalId"
+      :lock-professional-to-self="!seesWholeAgenda"
       :appointment="editingAppointment"
       @created="handleAppointmentCreated"
       @updated="handleAppointmentSaved"
@@ -1929,6 +2006,25 @@ export default {
     const markArrival = appointment => runCustodyAction(requestArrival, appointment)
     const announcePatient = appointment => runCustodyAction(requestAnnouncement, appointment)
 
+    // Anunciar desde el detalle no cierra la cita: el acto no cambia el estado,
+    // así que cerrar el modal parecía no haber hecho nada. El payload devuelto
+    // ya trae `announced_at`/`announced_by`; se reemplaza la selección con él,
+    // se re-lee el día y el detalle publica el estado anunciado sin repetir la
+    // acción. El aviso lo sigue dando el composable (ya se emitió).
+    const announceSelectedPatient = async appointment => {
+      if (!appointment?.id) return
+
+      try {
+        const announced = await requestAnnouncement(appointment)
+        if (announced?.id) {
+          selectedAppointment.value = { ...appointment, ...announced }
+        }
+        await loadAppointments()
+      } catch (e) {
+        // toast ya se mostró en el composable
+      }
+    }
+
     // S4/S5 — el acto se inicia por su propia puerta: el arranque no pasa por
     // el composable de la consulta, sólo por el endpoint existente.
     const startAttention = async appointment => {
@@ -2007,14 +2103,12 @@ export default {
 
     // --- Confirmación única de la cita creada -------------------------------
     //
-    // Crear una cita dispara tres voces: el toast del modal, el toast del
-    // listener `.appointment.created` de esta página y la notificación global
-    // del shell. Aquí viven las dos piezas que sí son de la agenda: la única
-    // confirmación (una línea con su acción) y el registro de lo que esta
-    // pestaña acaba de crear, para que su propio eco no vuelva a hablar.
+    // Crear una cita tiene una sola voz en esta pestaña: la línea con su
+    // acción. El modal no confirma, la difusión no tosta (sólo sincroniza la
+    // fila) y el shell no anuncia el eco propio porque el id queda marcado
+    // aquí. Así el mismo hecho no aparece dos veces.
     const createdConfirmation = ref(null)
     const createdHighlightId = ref(null)
-    const locallyCreatedIds = new Set()
 
     const localDayOf = value => {
       const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/)
@@ -2042,13 +2136,31 @@ export default {
 
     const handleAppointmentCreated = async payload => {
       const id = payload?.id ?? payload?.data?.id ?? null
-      if (id !== null && id !== undefined) locallyCreatedIds.add(String(id))
       // El shell también escucha la difusión de esta cita: su eco se marca para
       // que no publique una segunda confirmación en el panel.
       markLocalAppointmentEcho(id)
 
       jumpToCreatedDay(payload)
-      await loadAppointments()
+
+      // La cita que esta pestaña acaba de escribir entra por su propia lectura
+      // puntual: el alta no vuelve a pedir el rango visible. La recarga explícita
+      // sólo queda para el día creado fuera del período que se está mirando (o
+      // para una lectura fallida), porque es una acción del creador y no el flujo
+      // masivo de recepción.
+      let created = null
+      if (id !== null && id !== undefined) {
+        try {
+          created = await fetchAppointment(id)
+        } catch (error) {
+          created = null
+        }
+      }
+
+      if (created && isWithinVisibleRange(created)) {
+        upsertAppointment(created)
+      } else {
+        await loadAppointments()
+      }
 
       editingAppointment.value = null
       createdHighlightId.value = id ?? null
@@ -2232,6 +2344,14 @@ export default {
     // valiendo el `vh`.
     const calendarScrollMaxHeight =
       'max-height: calc(100vh - 350px); max-height: calc(100dvh - 350px)'
+
+    // T2 — la matriz de alcance de la agenda. Sólo administración y recepción
+    // leen la sede entera; el resto de los roles opera sus propias citas (el
+    // índice ya acota), así que la superficie no ofrece el filtro de
+    // profesional ni deja elegir a otro en el alta.
+    const seesWholeAgenda = computed(
+      () => user.value?.role === 'administrador' || user.value?.role === 'recepcionista'
+    )
 
     // T5a: los filtros compactos sustituyen a la barra de tres selects. El
     // ambiente sólo se filtra fuera del tablero (en Día las columnas ya son los
@@ -2795,6 +2915,129 @@ export default {
       return params
     }
 
+    // --- Sincronización puntual de la difusión -----------------------------
+    //
+    // El evento de la agenda trae el `id` de la cita, no la cita. Volver a leer
+    // el rango visible por cada cita creada o movida encendía el esqueleto y
+    // costaba lo mismo que abrir la agenda entera; el profesional veía la
+    // recarga crecer con cada cita de la sede. Aquí la difusión se resuelve
+    // con una sola lectura puntual y un upsert sobre el arreglo ya leído.
+    const currentUserId = computed(() => user.value?.id ?? null)
+
+    const fetchAppointment = async id => {
+      const response = await get(`/api/appointments/${id}`)
+      return response?.data ?? null
+    }
+
+    // La cita se fecha en el reloj local, igual que el rango visible; el día
+    // final del período es parte de la agenda.
+    const isWithinVisibleRange = appointment => {
+      if (!appointment?.scheduled_at) return false
+      const scheduled = new Date(appointment.scheduled_at)
+      if (Number.isNaN(scheduled.getTime())) return false
+
+      const range = getDateRangeForCurrentView()
+      if (!range?.start_date || !range?.end_date) return false
+
+      const day = toLocalDateString(scheduled)
+      return day >= range.start_date && day <= range.end_date
+    }
+
+    const scheduledAtValue = appointment => {
+      const value = new Date(appointment?.scheduled_at ?? '')
+      return Number.isNaN(value.getTime()) ? Number.POSITIVE_INFINITY : value.getTime()
+    }
+
+    // El detalle abierto lee el mismo registro: el estado, la píldora y el rail
+    // se refrescan con la fila leída, sin recargar la agenda.
+    const syncSelectedAppointment = appointment => {
+      if (!appointment?.id || !selectedAppointment.value) return
+      if (String(selectedAppointment.value.id) !== String(appointment.id)) return
+      selectedAppointment.value = appointment
+    }
+
+    const upsertAppointment = appointment => {
+      if (!appointment?.id) return
+
+      const key = String(appointment.id)
+      const rows = appointments.value.filter(row => String(row.id) !== key)
+      rows.push(appointment)
+      rows.sort((left, right) => scheduledAtValue(left) - scheduledAtValue(right))
+      appointments.value = rows
+      syncSelectedAppointment(appointment)
+    }
+
+    const removeAppointment = id => {
+      if (id === null || id === undefined || id === '') return
+      const key = String(id)
+      if (!appointments.value.some(row => String(row.id) === key)) return
+      appointments.value = appointments.value.filter(row => String(row.id) !== key)
+    }
+
+    const closeSelectedAppointment = id => {
+      if (id === null || id === undefined || id === '') return
+      if (!selectedAppointment.value) return
+      if (String(selectedAppointment.value.id) !== String(id)) return
+      selectedAppointment.value = null
+    }
+
+    // Administración y recepción leen la sede entera; un escritorio clínico
+    // sólo opera sus propias citas.
+    const appointmentBelongsToSession = appointment => {
+      if (seesWholeAgenda.value) return true
+      const owner = appointment?.user_id ?? appointment?.user?.id ?? null
+      if (owner === null || owner === undefined || owner === '') return false
+      return String(owner) === String(currentUserId.value ?? '')
+    }
+
+    // Un 403/404 de la lectura puntual dice que la cita dejó de ser visible
+    // para esta sesión (o ya no existe): es una fila que sale, no un error de
+    // la página.
+    const isUnreadableAppointment = error => {
+      const status = error?.status ?? error?.response?.status ?? null
+      return status === 403 || status === 404
+    }
+
+    const syncAppointmentFromEvent = async appointment => {
+      const id = appointment?.id ?? null
+      if (id === null || id === undefined || id === '') return
+
+      if (!appointmentBelongsToSession(appointment)) {
+        // Reasignada a otro escritorio: la fila ya no pertenece a esta agenda y
+        // no se lee.
+        removeAppointment(id)
+        closeSelectedAppointment(id)
+        return
+      }
+
+      let fresh = null
+      try {
+        fresh = await fetchAppointment(id)
+      } catch (error) {
+        if (isUnreadableAppointment(error)) {
+          removeAppointment(id)
+          closeSelectedAppointment(id)
+        }
+        return
+      }
+
+      if (!fresh) {
+        removeAppointment(id)
+        closeSelectedAppointment(id)
+        return
+      }
+
+      if (isWithinVisibleRange(fresh)) {
+        upsertAppointment(fresh)
+        return
+      }
+
+      removeAppointment(id)
+      // La cita sigue existiendo aunque haya salido del período visible: el
+      // detalle abierto conserva el registro leído, no la copia anterior.
+      syncSelectedAppointment(fresh)
+    }
+
     const loadAppointments = async () => {
       loading.value = true
       try {
@@ -3094,6 +3337,9 @@ export default {
       if (status === 'confirmed') return can.checkInAppointment?.value ? 'check-in' : null
       if (status === 'arrived') {
         if (can.startConsultation?.value) return 'start-attention'
+        // Una vez anunciada, la agenda ya no tiene nada que hacer: la
+        // atención se inicia desde Mi jornada, no desde este detalle.
+        if (selectedAppointment.value?.announced_at) return null
         return can.announcePatient?.value ? 'announce' : null
       }
       return null
@@ -3119,6 +3365,14 @@ export default {
             }
       }
       if (status === 'arrived') {
+        // El anuncio deja rastro (T1): si ya ocurrió, el detalle lo dice en vez
+        // de ofrecer otra vez la acción que el usuario acaba de ejecutar.
+        if (selectedAppointment.value?.announced_at) {
+          return {
+            title: 'Paciente anunciado',
+            description: 'El profesional ya fue avisado; la atención se inicia desde Mi jornada.'
+          }
+        }
         return {
           title: 'El paciente está en sala de espera',
           description:
@@ -3163,6 +3417,33 @@ export default {
     // de la rejilla: no comparte el gancho de los chips.
     const openAppointmentFromPanel = appointment => {
       selectedAppointment.value = appointment
+    }
+
+    // T2 — «Sin confirmar» gana la acción que resuelve la fila. Confirmar es
+    // una transición de estado; su rechazo se queda en el aviso de la sección,
+    // y una confirmación limpia la selección y re-lee el día.
+    const confirmingId = ref(null)
+    const confirmError = ref('')
+    const canConfirmAppointment = computed(() =>
+      Boolean(can.editAppointment?.value || can.updateAppointmentStatus?.value)
+    )
+
+    const confirmAppointment = async appointment => {
+      if (!appointment?.id || confirmingId.value) return
+
+      confirmingId.value = appointment.id
+      confirmError.value = ''
+      try {
+        await patch(`/api/appointments/${appointment.id}/status`, { status: 'confirmed' })
+        markLocalAppointmentEcho(appointment.id)
+        toast.success('Cita confirmada.')
+        selectedAppointment.value = null
+        await loadAppointments()
+      } catch (error) {
+        confirmError.value = normalizeError(error, 'No se pudo confirmar la cita')
+      } finally {
+        confirmingId.value = null
+      }
     }
 
     const showCancelAction = computed(
@@ -3403,6 +3684,9 @@ export default {
         // `status`).
         const { patch } = useApi()
         await patch(`/api/appointments/${appointment.id}/status`, { status: newStatus })
+        // T2: `PATCH /status` emite `AppointmentUpdated`; el mismo cambio no se
+        // anuncia dos veces.
+        markLocalAppointmentEcho(appointment.id)
         toast.success('Estado actualizado')
         await loadAppointments()
         selectedAppointment.value = null
@@ -3468,6 +3752,7 @@ export default {
           status: 'cancelled',
           cancellation_reason: reason
         })
+        markLocalAppointmentEcho(appointment.id)
         const cancelledReminders = Number(response?.meta?.reminders_cancelled || 0)
         toast.success(
           cancelledReminders > 0
@@ -3495,6 +3780,7 @@ export default {
       if (ok) {
         try {
           await del(`/api/appointments/${appointment.id}`)
+          markLocalAppointmentEcho(appointment.id)
           toast.success('Cita eliminada exitosamente')
           await loadAppointments()
           selectedAppointment.value = null
@@ -3567,27 +3853,31 @@ export default {
         if (appointmentsChannel) {
           appointmentsChannel
             .listen('.appointment.created', async event => {
-              await loadAppointments()
-              // El eco de la propia creación ya se confirmó con su línea y su
-              // acción: solo se avisa de la cita que trajo otra mesa.
-              const id = String(event?.appointment?.id ?? '')
-              if (id && locallyCreatedIds.has(id)) {
-                locallyCreatedIds.delete(id)
-                return
-              }
-              toast.success('Nueva cita agregada')
+              // La difusión sólo sincroniza la fila. El aviso del hecho es del
+              // shell (NotificationService), y el eco de la propia creación ya
+              // se confirmó con la línea de esta página.
+              await syncAppointmentFromEvent(event?.appointment || {})
             })
-            .listen('.appointment.updated', async () => {
-              await loadAppointments()
-              toast.success('Cita actualizada')
+            .listen('.appointment.updated', async event => {
+              // El cambio escrito aquí ya avisó con su toast local; el de otra
+              // mesa lo anuncia el shell. La agenda no duplica ninguno.
+              await syncAppointmentFromEvent(event?.appointment || {})
+            })
+            // T2 — llegada y cierre mueven el tablero (la sala, las columnas y
+            // el estado de cada bloque): la difusión refresca esa cita y no
+            // tosta, porque el hecho ya tiene su aviso en el escritorio que lo
+            // registró.
+            .listen('.appointment.checked_in', async event => {
+              await syncAppointmentFromEvent(event?.appointment || {})
+            })
+            .listen('.appointment.completed', async event => {
+              await syncAppointmentFromEvent(event?.appointment || {})
             })
             .listen('.appointment.deleted', async e => {
-              // Remover la cita de la lista
-              appointments.value = appointments.value.filter(apt => apt.id !== e.appointment_id)
-              if (selectedAppointment.value?.id === e.appointment_id) {
-                selectedAppointment.value = null
-              }
-              toast.success('Cita eliminada')
+              // La fila sale sin otra lectura: el sobre ya nombra la cita. El
+              // aviso de la anulación lo publica el shell.
+              removeAppointment(e?.appointment_id)
+              closeSelectedAppointment(e?.appointment_id)
             })
         }
       } catch (error) {
@@ -3636,6 +3926,7 @@ export default {
       openNewAppointmentModal,
       markArrival,
       announcePatient,
+      announceSelectedPatient,
       weekHours,
       weekWindowRange,
       weekHourPx: WEEK_HOUR_PX,
@@ -3731,6 +4022,7 @@ export default {
       chairOptions,
       branchOptions,
       appliedFilterSummary,
+      seesWholeAgenda,
       showChairFilter,
       showBranchFilter,
       hasActiveFilters,
@@ -3780,6 +4072,10 @@ export default {
       openReschedule,
       selectAppointment,
       openAppointmentFromPanel,
+      confirmingId,
+      confirmError,
+      canConfirmAppointment,
+      confirmAppointment,
       closeDetails,
       emptyStateCopy,
       draggingAppointmentId,

@@ -146,6 +146,70 @@ class RoutePermissionMatrixTest extends TestCase
         }
     }
 
+    /**
+     * Product decision: booking is its own door. `POST /api/appointments`
+     * demands `create.appointment`; every other agenda route keeps the
+     * capability it already declared, so the professional still reads and
+     * operates their own rows.
+     */
+    #[Test]
+    public function booking_an_appointment_is_its_own_door(): void
+    {
+        $routes = [];
+
+        foreach ($this->apiRoutes() as $route) {
+            if ($route->uri() !== 'api/appointments' && ! str_starts_with($route->uri(), 'api/appointments/')) {
+                continue;
+            }
+
+            foreach ($route->methods() as $method) {
+                $routes[$method.' '.$route->uri()] = $route;
+            }
+        }
+
+        foreach ([
+            'POST api/appointments',
+            'GET api/appointments',
+            'GET api/appointments/{appointment}',
+            'PUT api/appointments/{appointment}',
+            'PATCH api/appointments/{appointment}/reschedule',
+        ] as $key) {
+            $this->assertArrayHasKey($key, $routes, "Route [{$key}] is missing from the agenda surface.");
+        }
+
+        $this->assertSame(
+            [Permissions::CREATE_APPOINTMENT],
+            $this->permissionsOf($routes['POST api/appointments']),
+            'Creating an appointment must demand [create.appointment].',
+        );
+
+        foreach ([
+            'GET api/appointments',
+            'GET api/appointments/{appointment}',
+            'PUT api/appointments/{appointment}',
+            'PATCH api/appointments/{appointment}/reschedule',
+            'DELETE api/appointments/{appointment}',
+        ] as $key) {
+            $this->assertSame(
+                [Permissions::MANAGE_APPOINTMENT],
+                $this->permissionsOf($routes[$key]),
+                "Agenda route [{$key}] must keep [manage.appointment].",
+            );
+        }
+
+        foreach ($routes as $key => $route) {
+            if ($key === 'POST api/appointments') {
+                continue;
+            }
+
+            $this->assertNotContains(
+                Permissions::CREATE_APPOINTMENT,
+                $this->permissionsOf($route),
+                "Agenda route [{$key}] must not ride the booking door.",
+            );
+        }
+    }
+
     #[Test]
     public function every_catalog_permission_is_routed_or_frontend_only(): void
     {

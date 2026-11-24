@@ -23,7 +23,21 @@ const error = ref(null)
 const acting = ref(null)
 
 let channel = null
+let appointmentChannel = null
 let subscribedUserId = null
+
+// T2 — la cola de Mi día se deriva del estado de la cita, así que la misma
+// difusión que mueve la agenda la vuelve a leer. El payload es operativo
+// (`id`, `user_id`, `status`, `scheduled_at`, `updated_at`): no trae paciente y
+// esta pantalla no lo pide. Refrescar no toca: el aviso de la cita lo dio su
+// escritorio y repetirlo aquí sería el doble toast que esta ronda retira.
+const APPOINTMENT_EVENTS = [
+  '.appointment.created',
+  '.appointment.updated',
+  '.appointment.checked_in',
+  '.appointment.completed',
+  '.appointment.deleted'
+]
 
 const asList = value => (Array.isArray(value) ? value : [])
 
@@ -139,6 +153,9 @@ export function useMyDay() {
     load()
   }
 
+  // T2: una cita en movimiento re-lee la cola con su carga de siempre.
+  const refreshQueue = () => load()
+
   // Echo registers private channels with the `private-` prefix on the wire, so
   // leaving `user.{id}` is inert: the teardown must name the wire channel.
   const unsubscribe = userId => {
@@ -146,10 +163,12 @@ export function useMyDay() {
     try {
       const { echo } = useEcho()
       if (echo && target) echo.leave(`private-user.${target}`)
+      if (echo) echo.leave('private-appointments')
     } catch (thrown) {
       // teardown is best-effort
     }
     channel = null
+    appointmentChannel = null
     subscribedUserId = null
   }
 
@@ -158,6 +177,10 @@ export function useMyDay() {
    * channel `user.{id}`. Reverb is often down in local dev, so an unavailable
    * transport leaves the desk usable (manual refresh) instead of throwing
    * during mount.
+   *
+   * T2 adds the `appointments` channel: the desk is a view of the agenda, so a
+   * cita que se crea, se mueve, llega o se cierra en otra mesa también se ve
+   * aquí sin recargar.
    */
   const subscribe = userId => {
     if (!userId || (subscribedUserId === userId && channel)) return
@@ -165,13 +188,23 @@ export function useMyDay() {
     try {
       const { privateChannel } = useEcho()
       const nextChannel = privateChannel(`user.${userId}`)
-      if (!nextChannel) return
-      channel = nextChannel
-      channel.listen('.paciente_listo', handlePatientReady)
-      channel.listen('.caso_laboratorio_listo', handleLabCaseReady)
-      subscribedUserId = userId
+      if (nextChannel) {
+        channel = nextChannel
+        channel.listen('.paciente_listo', handlePatientReady)
+        channel.listen('.caso_laboratorio_listo', handleLabCaseReady)
+        subscribedUserId = userId
+      }
+
+      const nextAppointments = privateChannel('appointments')
+      if (nextAppointments) {
+        appointmentChannel = nextAppointments
+        APPOINTMENT_EVENTS.forEach(eventName => {
+          appointmentChannel.listen(eventName, refreshQueue)
+        })
+      }
     } catch (thrown) {
       channel = null
+      appointmentChannel = null
       subscribedUserId = null
     }
   }

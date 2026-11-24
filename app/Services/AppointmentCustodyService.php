@@ -25,7 +25,9 @@ use Throwable;
  *
  * Announcement does not move the status (S2): it only notifies the
  * professional that the patient is ready. Every transition leaves one
- * appointment_custody_logs row with author, hour and door (S7).
+ * appointment_custody_logs row with author, hour and door (S7); the
+ * announcement leaves its own row too, so the desk can tell when it happened
+ * and who did it without reading the broadcast log.
  */
 class AppointmentCustodyService
 {
@@ -125,16 +127,40 @@ class AppointmentCustodyService
 
     public function announce(Appointment $appointment, User $actor): Appointment
     {
-        if ($appointment->status !== self::STATUS_ARRIVED) {
-            throw CustodyException::announcementNotAllowed($appointment->status);
-        }
+        // Announcing is a notification, not a transfer (S2): the status stays
+        // `arrived`. What was missing was the trace — the toast confirmed an
+        // act nobody could see afterwards — so both columns and the custody
+        // row are written under the same row lock as the other doors.
+        $announced = DB::transaction(function () use ($appointment, $actor) {
+            $current = $this->lockAppointment($appointment);
+
+            if ($current->status !== self::STATUS_ARRIVED) {
+                throw CustodyException::announcementNotAllowed($current->status);
+            }
+
+            $current->forceFill([
+                'announced_at' => now(),
+                'announced_by' => $actor->id,
+            ])->save();
+
+            $this->record(
+                $current,
+                AppointmentCustodyLog::ACTION_ANNOUNCEMENT,
+                $this->doorFor($actor),
+                self::STATUS_ARRIVED,
+                self::STATUS_ARRIVED,
+                $actor,
+            );
+
+            return $current;
+        });
 
         $this->dispatchSafely(new PatientReady(
-            $appointment->loadMissing('patient', 'user', 'appointmentType', 'dentalChair'),
+            $announced->loadMissing('patient', 'user', 'appointmentType', 'dentalChair'),
             $actor,
         ));
 
-        return $appointment;
+        return $announced;
     }
 
     /**
@@ -154,6 +180,7 @@ class AppointmentCustodyService
                 'appointmentType',
                 'dentalChair',
                 'checkedInBy',
+                'announcedBy',
                 'branch:id,name',
                 'procedure:id,name,code',
             ])

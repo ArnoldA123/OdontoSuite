@@ -4,6 +4,7 @@ import { nextTick } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
 const {
   patchMock,
+  putMock,
   postMock,
   apiAppointments,
   deleteMock,
@@ -33,6 +34,9 @@ const {
   // #281: each custody action walks its own door (check-in / announce /
   // start-attention), so the spy pins the exact endpoint per action.
   postMock: vi.fn().mockResolvedValue({ data: {} }),
+  // El alta dejó de ser la única escritura del modal: el profesional conserva
+  // la edición de su cita, así que el PUT también se mide por su endpoint.
+  putMock: vi.fn().mockResolvedValue({ data: {} }),
   // T7: delete spy so the useConfirm routing test can assert that NO API
   // call happens before the confirm resolves and that the confirmed call
   // hits the exact appointment endpoint.
@@ -82,6 +86,19 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
       if (String(url) === '/api/appointments' && apiAvailability.fail) {
         return Promise.reject(new Error('network'))
       }
+      // Lectura puntual de la difusión: la agenda refresca UNA cita, nunca el
+      // rango visible. El id inexistente responde 404 como la API real.
+      const pointRead = String(url).match(/^\/api\/appointments\/([^/?]+)$/)
+      if (pointRead) {
+        const found = apiAppointments.value.find(row => String(row.id) === pointRead[1])
+        if (!found) {
+          return Promise.reject({
+            status: 404,
+            response: { data: { message: 'Cita no encontrada' } }
+          })
+        }
+        return Promise.resolve({ data: JSON.parse(JSON.stringify(found)) })
+      }
 
       const payload = () => ({ data: JSON.parse(JSON.stringify(apiAppointments.value)) })
       if (getGate.deferred) {
@@ -92,7 +109,7 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
       return Promise.resolve(payload())
     },
     post: postMock,
-    put: async () => ({ data: {} }),
+    put: putMock,
     patch: patchMock,
     // T7: CalendarPage destructures `del` (useApi line 148), not `delete` —
     // the old mock never implemented it, so the delete flow silently threw.
@@ -404,7 +421,9 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
   })
 
   it('prefills the slot after a previous edit session (edit data must not leak)', async () => {
-    authRole.ref.value = 'odontologo'
+    // El alta es de recepción y administración: se mide con el rol que conserva
+    // la puerta de creación y la edición de cualquier cita de la sede.
+    authRole.ref.value = 'administrador'
     const wrapper = mountPage()
     await flushPromises()
 
@@ -1416,7 +1435,9 @@ describe('detalle de cita: siguiente paso, rail y desenlaces', () => {
   })
 
   it('nunca publica dos botones de fase en el mismo estado', async () => {
-    const phaseHooks = ['status-confirmed', 'check-in', 'start-attention', 'announce']
+    // El anuncio no es una fase del rail: avisa al profesional y no mueve el
+    // estado, así que convive con la fase que sigue. Las fases, nunca.
+    const phaseHooks = ['status-confirmed', 'check-in', 'start-attention']
 
     for (const status of [
       'scheduled',
@@ -1457,7 +1478,9 @@ describe('detalle de cita: siguiente paso, rail y desenlaces', () => {
     const expected = {
       scheduled: ['status-confirmed'],
       confirmed: ['check-in'],
-      arrived: ['start-attention', 'my-day'],
+      // El anuncio es la acción secundaria del profesional que ya puede
+      // iniciar la atención (T3): una sola puerta de aviso por cita.
+      arrived: ['start-attention', 'announce', 'my-day'],
       in_consultation: ['my-day'],
       in_progress: ['my-day'],
       completed: [],
@@ -1726,9 +1749,13 @@ describe('detalle de cita: siguiente paso, rail y desenlaces', () => {
     expect(start).not.toBeNull()
     expect(start.textContent).toContain('Iniciar atención')
     expect(start.hasAttribute('data-appointment-primary')).toBe(true)
+    // El profesional además puede anunciar; el anuncio no es una fase y no
+    // compite por el primario.
+    const announce = document.querySelector('[data-calendar-action="announce"]')
+    expect(announce).not.toBeNull()
+    expect(announce.textContent).toContain('Anunciar paciente')
+    expect(announce.hasAttribute('data-appointment-primary')).toBe(false)
     expect(primaries()).toHaveLength(1)
-    // Nunca las dos puertas a la vez.
-    expect(document.querySelector('[data-calendar-action="announce"]')).toBeNull()
 
     const bridge = document.querySelector('[data-calendar-action="my-day"]')
     expect(bridge).not.toBeNull()
@@ -1750,6 +1777,9 @@ describe('detalle de cita: siguiente paso, rail y desenlaces', () => {
   it('anuncia al paciente cuando no puede iniciar la atención', async () => {
     authRole.ref.value = 'recepcionista'
     postMock.mockClear()
+    postMock.mockResolvedValueOnce({
+      data: { id: 1, status: 'arrived', announced_at: '2026-05-13T10:05:00', announced_by: 1 }
+    })
 
     await openDetails('arrived')
 
@@ -1769,6 +1799,14 @@ describe('detalle de cita: siguiente paso, rail y desenlaces', () => {
       type: 'success',
       message: 'Paciente anunciado.'
     })
+
+    // El anuncio no cierra el detalle ni repite la acción: la cita queda
+    // anunciada con el rastro que devuelve el servidor.
+    const detail = document.querySelector('[data-calendar-detail]')
+    expect(detail, 'anunciar no debe cerrar el detalle').not.toBeNull()
+    expect(detail.textContent).toContain('Paciente anunciado')
+    expect(document.querySelector('[data-calendar-action="announce"]')).toBeNull()
+    expect(primaries()).toHaveLength(0)
   })
 
   it('no abre el cierre clínico desde la agenda', async () => {
@@ -1970,6 +2008,24 @@ describe('T7 empty range smoke', () => {
     const empty = wrapper.find('[data-calendar-empty]')
     expect(empty.exists()).toBe(true)
     expect(empty.find('[data-calendar-action="empty-new-appointment"]').exists()).toBe(false)
+  })
+
+  // Decisión de producto: el profesional conserva la agenda pero no reserva.
+  // La ceja, el bloque vacío y los huecos agendables desaparecen con
+  // `create.appointment`, sin tocar la lectura ni la edición de su cita.
+  it('hides every booking affordance for a clinical desk that keeps the agenda', async () => {
+    authRole.ref.value = 'odontologo'
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.find('[data-calendar-action="new-appointment"]').exists()).toBe(false)
+    expect(wrapper.findAll('button[data-calendar-slot]')).toHaveLength(0)
+
+    const empty = wrapper.find('[data-calendar-empty]')
+    expect(empty.exists()).toBe(true)
+    expect(empty.find('[data-calendar-action="empty-new-appointment"]').exists()).toBe(false)
+
+    wrapper.unmount()
   })
 
   it('never shows the empty block while the range is loading (T7/D9)', async () => {
@@ -2549,8 +2605,8 @@ describe('alta de cita: una sola confirmación y el día creado', () => {
 
     const toastCountBefore = globalToasts.value.length
 
-    // La lectura del día es la que trae la cita recién escrita: el alta no
-    // inventa el chip, lo pide a la agenda igual que cualquier otra.
+    // La lectura puntual es la que trae la cita recién escrita: el alta no
+    // inventa el chip, lo pide por su id en vez de releer el rango visible.
     apiAppointments.value = [createdAppointment]
     await wrapper.find('[data-appointment-form]').trigger('submit')
     await flushPromises()
@@ -2583,13 +2639,388 @@ describe('alta de cita: una sola confirmación y el día creado', () => {
     await flushPromises()
     expect(globalToasts.value.length).toBe(toastCountBefore)
 
-    // La cita de otra mesa sí avisa, una sola vez.
+    // La cita de otra mesa también se sincroniza sin tostar: su aviso vive en
+    // el shell (NotificationService), que es la única voz del hecho.
     for (const handler of createdHandlers) {
       await handler({ appointment: { id: 9999 } })
     }
     await flushPromises()
-    expect(globalToasts.value.length).toBe(toastCountBefore + 1)
-    expect(globalToasts.value[globalToasts.value.length - 1].message).toBe('Nueva cita agregada')
+    expect(globalToasts.value.length).toBe(toastCountBefore)
+
+    wrapper.unmount()
+  })
+})
+
+// T2 — privacidad por profesional, anuncio visible y confirmación desde el
+// panel. Tres contratos de la agenda que se miden sobre la página montada: el
+// alcance propio del escritorio clínico (sin filtro de profesional y con el
+// alta bloqueada a la sesión), el rastro del anuncio en «En sala ahora», y la
+// acción que resuelve una cita «Sin confirmar».
+describe('T2 — anuncio, confirmación y alcance propio', () => {
+  const panelAppointments = () => [
+    {
+      id: 21,
+      scheduled_at: '2026-05-13T09:00:00',
+      ends_at: '2026-05-13T09:30:00',
+      duration_minutes: 30,
+      status: 'arrived',
+      checked_in_at: '2026-05-13T09:20:00',
+      announced_at: '2026-05-13T09:25:00',
+      user_id: 2,
+      patient: { id: 7, first_name: 'Ana', last_name: 'Torres' },
+      user: { id: 2, name: 'Dra. Ruiz' },
+      dental_chair: { id: 4, name: 'Sillón 4' },
+      appointment_type: { id: 4, name: 'Ortodoncia' }
+    },
+    {
+      id: 22,
+      scheduled_at: '2026-05-13T09:40:00',
+      ends_at: '2026-05-13T10:10:00',
+      duration_minutes: 30,
+      status: 'arrived',
+      checked_in_at: '2026-05-13T09:55:00',
+      announced_at: null,
+      user_id: 2,
+      patient: { id: 8, first_name: 'Luis', last_name: 'Rojas' },
+      user: { id: 2, name: 'Dra. Ruiz' },
+      dental_chair: { id: 4, name: 'Sillón 4' },
+      appointment_type: { id: 4, name: 'Ortodoncia' }
+    },
+    {
+      id: 23,
+      scheduled_at: '2026-05-13T11:30:00',
+      ends_at: '2026-05-13T12:00:00',
+      duration_minutes: 30,
+      status: 'scheduled',
+      user_id: 2,
+      patient: { id: 9, first_name: 'Rosa', last_name: 'Huamán' },
+      user: { id: 2, name: 'Dra. Ruiz' },
+      dental_chair: { id: 4, name: 'Sillón 4' },
+      appointment_type: { id: 4, name: 'Ortodoncia' }
+    }
+  ]
+
+  const mountPage = async ({ attach = false } = {}) => {
+    const wrapper = attach
+      ? mount(Page, {
+          attachTo: document.body,
+          global: { plugins: [router, uiComponents], stubs: { teleport: true } }
+        })
+      : mount(Page, { global: { plugins: [router, uiComponents], stubs: { teleport: true } } })
+    await flushPromises()
+    return wrapper
+  }
+
+  const openDay = async () => {
+    const wrapper = await mountPage()
+    await wrapper.find('[data-calendar-view="day"]').trigger('click')
+    await flushPromises()
+    return wrapper
+  }
+
+  const emit = async (eventName, payload) => {
+    for (const handler of echoListeners.handlers[eventName] || []) {
+      await handler(payload)
+    }
+    await flushPromises()
+  }
+
+  // El payload reducido que difunde el backend desde T1.
+  const appointmentEvent = (id, userId, status = 'arrived') => ({
+    appointment: {
+      id,
+      user_id: userId,
+      status,
+      scheduled_at: '2026-05-13T09:00:00',
+      updated_at: '2026-05-13T09:05:00'
+    }
+  })
+
+  const appointmentReads = () => getCalls.filter(call => call.url === '/api/appointments').length
+  const pointAppointmentReads = () =>
+    getCalls.filter(call => /^\/api\/appointments\/\d+$/.test(call.url)).length
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 4, 13, 10, 12, 0))
+    globalToasts.value.splice(0, globalToasts.value.length)
+    echoListeners.handlers = {}
+    patchMock.mockClear()
+    putMock.mockClear()
+    postMock.mockClear()
+    apiPatients.value = [{ id: 7, name: 'Ana Pérez', dni: '45872310', age: 34 }]
+    apiProfiles.professionals = [
+      { id: 2, name: 'Dra. Ruiz', specialty: 'Odontología', role: 'odontologo' }
+    ]
+    apiProfiles.chairs = [{ id: 4, name: 'Sillón 4', code: 'S4' }]
+    apiAppointmentTypes.value = [
+      {
+        id: 4,
+        name: 'Ortodoncia',
+        default_duration_minutes: 30,
+        specialty: { id: 2, code: 'ortodoncia', name: 'Ortodoncia' }
+      }
+    ]
+    apiAppointments.value = []
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    apiAppointments.value = []
+  })
+
+  it('marca «Anunciado» en la sala y conserva el botón cuando no hay anuncio', async () => {
+    apiAppointments.value = panelAppointments()
+    const wrapper = await openDay()
+
+    const arrived = wrapper.find('[data-calendar-pending-section="arrived"]')
+    expect(arrived.exists()).toBe(true)
+
+    // La cita anunciada deja el rastro y pierde el botón.
+    expect(arrived.find('[data-calendar-announced]').exists()).toBe(true)
+    expect(arrived.find('[data-calendar-announced]').text()).toBe('Anunciado')
+    expect(arrived.find('[data-calendar-announce="21"]').exists()).toBe(false)
+
+    // La que todavía no se anunció conserva su puerta.
+    expect(arrived.find('[data-calendar-announce="22"]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('confirma desde «Sin confirmar», limpia la selección y re-lee el día', async () => {
+    apiAppointments.value = panelAppointments()
+    const wrapper = await openDay()
+
+    const scheduled = wrapper.find('[data-calendar-pending-section="scheduled"]')
+    expect(scheduled.find('[data-calendar-confirm="23"]').exists()).toBe(true)
+    expect(scheduled.find('[data-calendar-open-appointment="23"]').exists()).toBe(true)
+
+    await scheduled.find('[data-calendar-open-appointment="23"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-calendar-detail]').exists()).toBe(true)
+
+    const readsBefore = appointmentReads()
+    await scheduled.find('[data-calendar-confirm="23"]').trigger('click')
+    await flushPromises()
+
+    expect(patchMock).toHaveBeenCalledWith('/api/appointments/23/status', { status: 'confirmed' })
+    expect(appointmentReads()).toBe(readsBefore + 1)
+    expect(wrapper.find('[data-calendar-detail]').exists()).toBe(false)
+    expect(globalToasts.value.at(-1)?.message).toBe('Cita confirmada.')
+
+    wrapper.unmount()
+  })
+
+  it('anuncia desde el detalle sin cerrarlo y conserva la puerta del panel', async () => {
+    authRole.ref.value = 'odontologo'
+    apiAppointments.value = panelAppointments().filter(row => row.status === 'arrived')
+    postMock.mockClear()
+    postMock.mockResolvedValueOnce({
+      data: { id: 22, status: 'arrived', announced_at: '2026-05-13T10:05:00', announced_by: 2 }
+    })
+
+    const wrapper = await openDay()
+
+    // «En sala ahora» conserva su puerta para la fila todavía sin anuncio.
+    expect(wrapper.find('[data-calendar-announce="22"]').exists()).toBe(true)
+
+    await wrapper.find('[data-calendar-appointment="22"]').trigger('click')
+    await flushPromises()
+
+    // El profesional ve las dos salidas: la fase y el aviso. El primario sigue
+    // siendo la atención; anunciar es una notificación.
+    const start = wrapper.find('[data-calendar-action="start-attention"]')
+    expect(start.exists()).toBe(true)
+    expect(start.attributes('data-appointment-primary')).toBe('')
+
+    const announce = wrapper.find('[data-calendar-action="announce"]')
+    expect(announce.exists()).toBe(true)
+    expect(announce.text()).toContain('Anunciar paciente')
+    expect(announce.attributes('data-appointment-primary')).toBeUndefined()
+
+    await announce.trigger('click')
+    await flushPromises()
+
+    expect(postMock).toHaveBeenCalledWith('/api/appointments/22/announce', {})
+    expect(globalToasts.value.at(-1)).toMatchObject({
+      type: 'success',
+      message: 'Paciente anunciado.'
+    })
+
+    // El detalle NO se cierra: el anuncio no cambia el estado, así que la
+    // única prueba de que ocurrió es que el modal lo publique.
+    const detail = wrapper.find('[data-calendar-detail]')
+    expect(detail.exists(), 'anunciar no debe cerrar el detalle').toBe(true)
+    expect(detail.text()).toContain('Paciente anunciado')
+    expect(detail.text()).toContain('El profesional ya fue avisado')
+    expect(detail.find('[data-appointment-announced-at]').text()).toContain(
+      formatTime('2026-05-13T10:05:00')
+    )
+    // La acción desaparece y la fase primaria se queda.
+    expect(wrapper.find('[data-calendar-action="announce"]').exists()).toBe(false)
+    expect(wrapper.find('[data-calendar-action="start-attention"]').exists()).toBe(true)
+
+    wrapper.unmount()
+
+    // Reabrir una cita ya anunciada: el estado se pinta y la acción no vuelve.
+    apiAppointments.value = panelAppointments().filter(
+      row => row.status === 'arrived' && row.announced_at
+    )
+    const reopened = await openDay()
+    await reopened.find('[data-calendar-appointment="21"]').trigger('click')
+    await flushPromises()
+
+    expect(reopened.find('[data-calendar-detail]').text()).toContain('Paciente anunciado')
+    expect(reopened.find('[data-calendar-action="announce"]').exists()).toBe(false)
+    reopened.unmount()
+
+    // El panel sigue funcionando: anunciar desde «En sala ahora» ejecuta la
+    // misma puerta y deja la selección limpia.
+    apiAppointments.value = panelAppointments().filter(
+      row => row.status === 'arrived' && !row.announced_at
+    )
+    postMock.mockClear()
+    postMock.mockResolvedValueOnce({
+      data: { id: 22, status: 'arrived', announced_at: '2026-05-13T10:20:00', announced_by: 2 }
+    })
+    const panel = await openDay()
+    expect(panel.find('[data-calendar-detail]').exists()).toBe(false)
+
+    await panel.find('[data-calendar-announce="22"]').trigger('click')
+    await flushPromises()
+
+    expect(postMock).toHaveBeenCalledWith('/api/appointments/22/announce', {})
+    expect(panel.find('[data-calendar-detail]').exists()).toBe(false)
+    panel.unmount()
+  })
+
+  it('deja el rechazo de la confirmación en su propio aviso', async () => {
+    apiAppointments.value = panelAppointments()
+    patchMock.mockRejectedValueOnce({
+      response: { data: { message: 'La cita ya no está pendiente.' } }
+    })
+
+    const wrapper = await openDay()
+    await wrapper
+      .find('[data-calendar-pending-section="scheduled"]')
+      .find('[data-calendar-confirm="23"]')
+      .trigger('click')
+    await flushPromises()
+
+    const notice = wrapper.find('[data-calendar-confirm-error]')
+    expect(notice.exists()).toBe(true)
+    expect(notice.text()).toBe('La cita ya no está pendiente.')
+    // La fila sigue en el panel: nada se dio por confirmado.
+    expect(wrapper.find('[data-calendar-confirm="23"]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('refresca con una lectura puntual y calla la cita ajena al clínico', async () => {
+    authRole.ref.value = 'odontologo'
+    apiAppointments.value = panelAppointments()
+    const wrapper = await openDay()
+
+    const before = appointmentReads()
+    const pointsBefore = pointAppointmentReads()
+
+    // La llegada y el cierre de una cita de otro profesional no pertenecen a la
+    // agenda clínica: la fila sale y no se pide nada al servidor.
+    await emit('appointment.checked_in', appointmentEvent(21, 2, 'arrived'))
+    expect(wrapper.findAll('[data-calendar-appointment="21"]')).toHaveLength(0)
+    expect(pointAppointmentReads()).toBe(pointsBefore)
+
+    await emit('appointment.completed', appointmentEvent(21, 2, 'completed'))
+    expect(pointAppointmentReads()).toBe(pointsBefore)
+
+    // El cambio de una cita de otro profesional se descarta sin lectura y sin
+    // aviso: la agenda no vuelve a pedir el rango visible por difusión.
+    await emit('appointment.updated', appointmentEvent(21, 2, 'in_consultation'))
+    expect(appointmentReads()).toBe(before)
+    expect(globalToasts.value).toHaveLength(0)
+
+    // La cita propia sí se lee —una sola vez y por su id— y refresca su fila
+    // sin recargar el rango.
+    apiAppointments.value = [{ ...panelAppointments()[0], status: 'in_consultation' }]
+    await emit('appointment.updated', appointmentEvent(21, 1, 'in_consultation'))
+    expect(pointAppointmentReads()).toBe(pointsBefore + 1)
+    expect(appointmentReads()).toBe(before)
+    expect(wrapper.find('[data-calendar-appointment="21"]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('deja el aviso del cambio de otra mesa al shell y sólo refresca la fila', async () => {
+    authRole.ref.value = 'recepcionista'
+    apiAppointments.value = panelAppointments()
+    const wrapper = await openDay()
+
+    await emit('appointment.updated', appointmentEvent(21, 2, 'confirmed'))
+
+    // La agenda sincroniza la fila (lectura puntual) sin apilar un toast: el
+    // aviso del hecho lo publica el shell desde el mismo evento.
+    expect(globalToasts.value).toHaveLength(0)
+
+    wrapper.unmount()
+  })
+
+  it('oculta el alta a la sesión clínica y bloquea el profesional al editar su cita', async () => {
+    authRole.ref.value = 'odontologo'
+    apiAppointments.value = [
+      { ...panelAppointments()[0], id: 24, user_id: 1, status: 'confirmed', announced_at: null }
+    ]
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-calendar-professional-pills]').exists()).toBe(false)
+    // Decisión de producto: el profesional lee y opera su agenda, no reserva.
+    expect(wrapper.find('[data-calendar-action="new-appointment"]').exists()).toBe(false)
+    expect(wrapper.findAll('button[data-calendar-slot]')).toHaveLength(0)
+
+    // La edición de su propia cita sí conserva el formulario, con el
+    // profesional clavado a la sesión.
+    await wrapper.find('[data-calendar-appointment="24"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-calendar-action="edit"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findComponent(NewAppointmentModal).props('lockProfessionalToSelf')).toBe(true)
+    expect(wrapper.find('[data-appointment-locked-professional]').exists()).toBe(true)
+    expect(wrapper.find('[data-appointment-locked-professional-name]').text()).toBe('Test User')
+    expect(wrapper.find('[data-appointment-professional-list]').exists()).toBe(false)
+    expect(wrapper.find('[data-appointment-professional-rows]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('conserva el filtro y el selector para administración', async () => {
+    authRole.ref.value = 'administrador'
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-calendar-professional-pills]').exists()).toBe(true)
+    expect(wrapper.findComponent(NewAppointmentModal).props('lockProfessionalToSelf')).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('envía el profesional de la sesión al guardar la cita propia', async () => {
+    authRole.ref.value = 'odontologo'
+    apiAppointments.value = [
+      { ...panelAppointments()[0], id: 24, user_id: 1, status: 'confirmed', announced_at: null }
+    ]
+    const wrapper = await mountPage({ attach: true })
+
+    await wrapper.find('[data-calendar-appointment="24"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-calendar-action="edit"]').trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-appointment-form]').trigger('submit')
+    await flushPromises()
+
+    expect(putMock).toHaveBeenCalledWith(
+      '/api/appointments/24',
+      expect.objectContaining({ user_id: 1, dental_chair_id: 4 })
+    )
 
     wrapper.unmount()
   })

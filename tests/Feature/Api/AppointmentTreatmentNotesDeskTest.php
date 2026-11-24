@@ -28,9 +28,6 @@ class AppointmentTreatmentNotesDeskTest extends TestCase
     /** @var list<string> */
     private const RECORD_READERS = ['administrador', 'odontologo', 'implantologo', 'asistente'];
 
-    /** @var list<string> */
-    private const NON_CLINICAL_DESKS = ['recepcionista', 'tecnico_dental'];
-
     private function staff(string $role): User
     {
         return User::factory()->create([
@@ -52,15 +49,25 @@ class AppointmentTreatmentNotesDeskTest extends TestCase
 
     public function test_the_clinical_desk_reads_the_conduct_on_the_agenda_and_the_detail(): void
     {
-        $appointment = $this->appointmentFor($this->staff('odontologo'));
-
         foreach (self::RECORD_READERS as $role) {
             $reader = $this->staff($role);
+            // T1: la agenda del rol clínico es la suya. Administración lee
+            // toda la sede, así que su cita puede ser de otro profesional.
+            $appointment = $this->appointmentFor(
+                $role === 'administrador' ? $this->staff('odontologo') : $reader
+            );
 
             $index = $this->actingAs($reader, 'sanctum')->getJson('/api/appointments')->assertOk();
+            $rows = collect($index->json('data'))->keyBy('id');
+
+            $this->assertArrayHasKey(
+                $appointment->id,
+                $rows,
+                "{$role} must find the appointment in the agenda."
+            );
             $this->assertSame(
                 self::CONDUCT,
-                $index->json('data.0.treatment_notes'),
+                $rows[$appointment->id]['treatment_notes'],
                 "{$role} reads the clinical record, so the agenda must ship the conduct."
             );
 
@@ -77,28 +84,44 @@ class AppointmentTreatmentNotesDeskTest extends TestCase
 
     public function test_reception_and_the_laboratory_receive_the_appointment_without_the_conduct(): void
     {
-        $appointment = $this->appointmentFor($this->staff('odontologo'));
+        $foreign = $this->appointmentFor($this->staff('odontologo'));
 
-        foreach (self::NON_CLINICAL_DESKS as $role) {
-            $desk = $this->staff($role);
+        // Recepción lee toda la agenda de su sede.
+        $reception = $this->staff('recepcionista');
 
-            $index = $this->actingAs($desk, 'sanctum')->getJson('/api/appointments')->assertOk();
-            $row = $index->json('data.0');
+        $index = $this->actingAs($reception, 'sanctum')->getJson('/api/appointments')->assertOk();
+        $row = collect($index->json('data'))->firstWhere('id', $foreign->id);
 
-            $this->assertIsArray($row);
-            $this->assertArrayNotHasKey('treatment_notes', $row, "{$role} must not receive the conduct.");
-            $index->assertJsonMissingPath('data.0.treatment_notes');
-            // The agenda annotation is not clinical content and stays.
-            $this->assertSame(self::AGENDA_NOTE, $row['notes']);
+        $this->assertIsArray($row);
+        $this->assertArrayNotHasKey('treatment_notes', $row, 'recepcionista must not receive the conduct.');
+        $this->assertSame(self::AGENDA_NOTE, $row['notes']);
 
-            $show = $this->actingAs($desk, 'sanctum')
-                ->getJson("/api/appointments/{$appointment->id}")
-                ->assertOk();
+        $show = $this->actingAs($reception, 'sanctum')
+            ->getJson("/api/appointments/{$foreign->id}")
+            ->assertOk();
 
-            $this->assertArrayNotHasKey('treatment_notes', $show->json('data'));
-            $show->assertJsonMissingPath('data.treatment_notes');
-            $this->assertSame(self::AGENDA_NOTE, $show->json('data.notes'));
-        }
+        $this->assertArrayNotHasKey('treatment_notes', $show->json('data'));
+        $show->assertJsonMissingPath('data.treatment_notes');
+        $this->assertSame(self::AGENDA_NOTE, $show->json('data.notes'));
+
+        // El laboratorio lee su propia agenda (T1): la conducta no viaja a su
+        // escritorio aunque la cita sea suya, porque no lee la historia.
+        $technician = $this->staff('tecnico_dental');
+        $own = $this->appointmentFor($technician, 'confirmed', '10:00');
+
+        $labIndex = $this->actingAs($technician, 'sanctum')->getJson('/api/appointments')->assertOk();
+        $labRow = collect($labIndex->json('data'))->firstWhere('id', $own->id);
+
+        $this->assertIsArray($labRow);
+        $this->assertArrayNotHasKey('treatment_notes', $labRow, 'tecnico_dental must not receive the conduct.');
+        $this->assertSame(self::AGENDA_NOTE, $labRow['notes']);
+
+        $labShow = $this->actingAs($technician, 'sanctum')
+            ->getJson("/api/appointments/{$own->id}")
+            ->assertOk();
+
+        $this->assertArrayNotHasKey('treatment_notes', $labShow->json('data'));
+        $this->assertSame(self::AGENDA_NOTE, $labShow->json('data.notes'));
     }
 
     public function test_finance_still_cannot_read_the_agenda_at_all(): void
@@ -136,8 +159,6 @@ class AppointmentTreatmentNotesDeskTest extends TestCase
 
     public function test_the_dashboard_lists_are_retired_and_the_agenda_keeps_the_boundary(): void
     {
-        $appointment = $this->appointmentFor($this->staff('odontologo'));
-
         // U2 - the dashboard stopped publishing appointment lists, for the
         // clinical desks and for finance alike.
         foreach (['administrador', 'finanzas'] as $role) {
@@ -155,13 +176,17 @@ class AppointmentTreatmentNotesDeskTest extends TestCase
         // The agenda is the surface that still publishes the appointment, and
         // it keeps the same boundary: the conduct only reaches the desk that
         // reads the clinical record.
+        $appointment = $this->appointmentFor($this->staff('odontologo'));
+
         $receptionIndex = $this->actingAs($this->staff('recepcionista'), 'sanctum')
             ->getJson('/api/appointments')
             ->assertOk();
         $receptionIndex->assertJsonMissingPath('data.0.treatment_notes');
         $this->assertSame(self::AGENDA_NOTE, $receptionIndex->json('data.0.notes'));
 
-        $clinicalIndex = $this->actingAs($this->staff('odontologo'), 'sanctum')
+        $clinical = $this->staff('odontologo');
+        $this->appointmentFor($clinical, 'confirmed', '08:00');
+        $clinicalIndex = $this->actingAs($clinical, 'sanctum')
             ->getJson('/api/appointments')
             ->assertOk();
         $this->assertSame(self::CONDUCT, $clinicalIndex->json('data.0.treatment_notes'));

@@ -96,6 +96,66 @@ class PermissionCatalogTest extends TestCase
         }
     }
 
+    /**
+     * Product decision: only reception and administration book appointments.
+     * The professional keeps the agenda they operate (read, custody, status,
+     * announce, close) but does not create rows for other patients.
+     */
+    #[Test]
+    public function only_reception_and_administration_create_appointments(): void
+    {
+        $this->assertSame(
+            ['administrador', 'recepcionista'],
+            Permissions::rolesFor(Permissions::CREATE_APPOINTMENT),
+            'Booking is counter work: only reception and administration create appointments.',
+        );
+
+        foreach (['odontologo', 'implantologo', 'tecnico_dental', 'asistente', 'finanzas'] as $role) {
+            $this->assertFalse(
+                Permissions::roleHas($role, Permissions::CREATE_APPOINTMENT),
+                "Role [{$role}] holds [create.appointment], but it does not book for patients.",
+            );
+        }
+
+        // The clinical desks keep the agenda they operate; only booking moved.
+        foreach (['odontologo', 'implantologo', 'tecnico_dental', 'asistente'] as $role) {
+            foreach ([Permissions::MANAGE_APPOINTMENT, Permissions::UPDATE_APPOINTMENT_STATUS] as $permission) {
+                $this->assertTrue(
+                    Permissions::roleHas($role, $permission),
+                    "Role [{$role}] should still hold [{$permission}].",
+                );
+            }
+        }
+    }
+
+    /**
+     * Announcing the patient notifies the professional who will attend, so the
+     * clinical desks hold the door too: the route authorizes `update` on the
+     * appointment, which already scopes a clinician to their own rows. Finance
+     * stays outside the agenda's work.
+     */
+    #[Test]
+    public function the_announcement_belongs_to_the_appointment_desks(): void
+    {
+        $this->assertSame(
+            ['administrador', 'recepcionista', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente'],
+            Permissions::rolesFor(Permissions::ANNOUNCE_PATIENT),
+            'The announcement is an agenda action: every appointment desk announces, finance does not.',
+        );
+
+        $this->assertFalse(
+            Permissions::roleHas('finanzas', Permissions::ANNOUNCE_PATIENT),
+            'Finance holds [announce.patient], but the agenda is not its desk.',
+        );
+
+        foreach (['odontologo', 'implantologo', 'tecnico_dental', 'asistente'] as $role) {
+            $this->assertTrue(
+                Permissions::roleHas($role, Permissions::ANNOUNCE_PATIENT),
+                "Role [{$role}] attends appointments and should announce its patient.",
+            );
+        }
+    }
+
     #[Test]
     public function the_encounter_doors_are_clinical_only(): void
     {

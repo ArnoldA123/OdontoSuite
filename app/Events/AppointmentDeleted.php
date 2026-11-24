@@ -40,8 +40,12 @@ class AppointmentDeleted implements ShouldBroadcast
 
     public function broadcastWith()
     {
+        // The envelope keeps the two keys a consumer needs to drop the row
+        // from an agenda without another read; the deleted appointment's data
+        // never travels.
         return [
             'appointment_id' => $this->appointmentId,
+            'user_id' => $this->appointment?->user_id ?? ($this->oldValues['user_id'] ?? null),
         ];
     }
 }
