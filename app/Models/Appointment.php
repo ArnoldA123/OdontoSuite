@@ -99,6 +99,14 @@ class Appointment extends Model
     }
 
     /**
+     * Get the branch (sede) the appointment was scheduled in.
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    /**
      * Get the procedure catalog item for the appointment.
      */
     public function procedure(): BelongsTo

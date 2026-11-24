@@ -90,6 +90,23 @@ class AppointmentResource extends JsonResource
                     'code' => $this->dentalChair->code,
                 ];
             }),
+            // S6 (#T5): la sede y el procedimiento viajan sólo cuando vienen
+            // precargados, así ninguna superficie que no los pide paga una
+            // consulta por fila. Un FK nulo devuelve la clave en null; la
+            // relación no cargada omite la clave.
+            'branch' => $this->whenLoaded('branch', function () {
+                return $this->branch ? [
+                    'id' => $this->branch->id,
+                    'name' => $this->branch->name,
+                ] : null;
+            }),
+            'procedure' => $this->whenLoaded('procedure', function () {
+                return $this->procedure ? [
+                    'id' => $this->procedure->id,
+                    'name' => $this->procedure->name,
+                    'code' => $this->procedure->code,
+                ] : null;
+            }),
             'appointment_type' => $this->whenLoaded('appointmentType', function () {
                 return [
                     'id' => $this->appointmentType->id,

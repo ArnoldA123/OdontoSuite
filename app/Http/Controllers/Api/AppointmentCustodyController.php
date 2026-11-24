@@ -19,7 +19,15 @@ use Illuminate\Http\Request;
  */
 class AppointmentCustodyController extends Controller
 {
-    private const RELATIONS = ['patient', 'user', 'appointmentType', 'dentalChair', 'checkedInBy'];
+    private const RELATIONS = [
+        'patient',
+        'user',
+        'appointmentType',
+        'dentalChair',
+        'checkedInBy',
+        'branch:id,name',
+        'procedure:id,name,code',
+    ];
 
     public function __construct(private readonly AppointmentCustodyService $custody) {}
 

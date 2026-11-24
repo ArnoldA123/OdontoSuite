@@ -148,7 +148,15 @@ class AppointmentCustodyService
     public function queueFor(User $user): array
     {
         $base = fn () => Appointment::query()
-            ->with(['patient', 'user', 'appointmentType', 'dentalChair', 'checkedInBy'])
+            ->with([
+                'patient',
+                'user',
+                'appointmentType',
+                'dentalChair',
+                'checkedInBy',
+                'branch:id,name',
+                'procedure:id,name,code',
+            ])
             ->where('user_id', $user->id);
 
         $today = now()->toDateString();
