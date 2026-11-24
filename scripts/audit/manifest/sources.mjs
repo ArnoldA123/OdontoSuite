@@ -15,7 +15,6 @@ import {
   parseObjectEntries,
   readRepoText,
   readTag,
-  splitTopLevelObjects,
   staticOrLiteral,
   stripHtmlComments,
   toRepoPath,
@@ -210,37 +209,327 @@ export const readTabs = pagePath => {
   return tabs
 }
 
-const tabsFromArrayLiteral = arrayText => {
+const IDENTIFIER_RE = /^[A-Za-z_$][\w$]*$/
+
+// One tab: `id` is the key `UiTabs` binds `v-model` to, and `key` publishes the
+// same value under the name the audit rows read.
+const tabFromObject = objectText => {
+  const entries = parseObjectEntries(objectText)
+  const label = literalText(entries.get('label') ?? '')
+  if (!label) return null
+
+  const id = literalText(entries.get('id') ?? entries.get('key') ?? '') ?? null
+
+  return { id, key: id, label }
+}
+
+const tabKeyOf = tab => tab.id ?? tab.label
+
+const mergeTab = (tabs, tab) => {
+  if (tabs.some(existing => tabKeyOf(existing) === tabKeyOf(tab))) return
+  tabs.push(tab)
+}
+
+// A spread of a local array is read as what the declaration holds: the manifest
+// lists every tab the page can render, and never evaluates an expression.
+const tabsFromArrayBody = (body, scope) => {
   const tabs = []
 
-  for (const objectText of splitTopLevelObjects(arrayText)) {
-    const entries = parseObjectEntries(objectText)
-    const label = literalText(entries.get('label') ?? '')
-    if (!label) continue
-    tabs.push({ id: literalText(entries.get('id') ?? '') ?? null, label })
+  for (const rawItem of splitArrayItems(body)) {
+    const item = rawItem.trim()
+    if (!item) continue
+
+    if (item.startsWith('...')) {
+      const name = item.slice(3).trim()
+      if (IDENTIFIER_RE.test(name) && scope.has(name)) {
+        for (const tab of scope.get(name)) mergeTab(tabs, tab)
+      }
+      continue
+    }
+
+    if (!item.startsWith('{')) continue
+
+    const close = findBalanced(item, 0, '{', '}')
+    if (close === -1) continue
+
+    const tab = tabFromObject(item.slice(1, close))
+    if (tab) mergeTab(tabs, tab)
   }
 
   return tabs
+}
+
+// `cond ? [...] : local` is read branch by branch and the union is published:
+// a permission guard hides a tab from one session, not from the inventory.
+const splitTopLevelBranches = expression => {
+  const branches = []
+  let start = 0
+  let depth = 0
+  let quote = null
+
+  for (let i = 0; i < expression.length; i += 1) {
+    const ch = expression[i]
+
+    if (quote) {
+      if (ch === '\\') i += 1
+      else if (ch === quote) quote = null
+      continue
+    }
+
+    if (ch === "'" || ch === '"' || ch === '`') {
+      quote = ch
+      continue
+    }
+
+    if (ch === '{' || ch === '(' || ch === '[') {
+      depth += 1
+      continue
+    }
+
+    if (ch === '}' || ch === ')' || ch === ']') {
+      depth -= 1
+      continue
+    }
+
+    if (depth !== 0) continue
+
+    if (ch === '?') {
+      // `?.` and `??` are not the ternary operator.
+      if (expression[i + 1] === '.' || expression[i + 1] === '?') {
+        i += 1
+        continue
+      }
+
+      branches.push(expression.slice(start, i))
+      start = i + 1
+      continue
+    }
+
+    if (ch === ':') {
+      branches.push(expression.slice(start, i))
+      start = i + 1
+    }
+  }
+
+  branches.push(expression.slice(start))
+
+  return branches
+}
+
+const tabsFromExpression = (expression, scope) => {
+  const tabs = []
+
+  for (const branch of splitTopLevelBranches(String(expression ?? ''))) {
+    const value = branch.trim()
+    if (!value) continue
+
+    if (value.startsWith('[')) {
+      const close = findBalanced(value, 0, '[', ']')
+      if (close === -1) continue
+      for (const tab of tabsFromArrayBody(value.slice(1, close), scope)) mergeTab(tabs, tab)
+      continue
+    }
+
+    if (IDENTIFIER_RE.test(value) && scope.has(value)) {
+      for (const tab of scope.get(value)) mergeTab(tabs, tab)
+    }
+  }
+
+  return tabs
+}
+
+// `computed(() => { const local = […]; return cond ? […local, tab] : local })`
+// is the shape the pages use to expose a permission-dependent tab. Only local
+// array declarations and the returned expression are read.
+const resolveComputedTabs = (content, name) => {
+  const re = new RegExp(`(?:const|let|var)\\s+${escapeRe(name)}\\s*=\\s*computed\\s*\\(`)
+  const match = re.exec(content)
+  if (!match) return null
+
+  const open = content.indexOf('(', match.index + match[0].length - 1)
+  const close = findBalanced(content, open, '(', ')')
+  if (close === -1) return null
+
+  const call = content.slice(open + 1, close)
+  const arrow = call.indexOf('=>')
+  if (arrow === -1) return null
+
+  const body = call.slice(arrow + 2).trim()
+
+  if (body.startsWith('[')) {
+    const end = findBalanced(body, 0, '[', ']')
+    if (end === -1) return null
+
+    return tabsFromArrayBody(body.slice(1, end), new Map())
+  }
+
+  if (!body.startsWith('{')) return null
+
+  const end = findBalanced(body, 0, '{', '}')
+  if (end === -1) return null
+
+  const block = body.slice(1, end)
+  const scope = new Map()
+
+  for (const declared of collectLocalArrays(block)) scope.set(declared.name, declared.tabs)
+
+  // `items.push({ id, label })` is the other shape the pages use for a
+  // conditional tab; the argument is read as the same object literal.
+  for (const [name, tabs] of scope) {
+    for (const tab of collectPushedTabs(block, name)) mergeTab(tabs, tab)
+  }
+
+  const tabs = []
+  for (const expression of collectReturnExpressions(block)) {
+    for (const tab of tabsFromExpression(expression, scope)) mergeTab(tabs, tab)
+  }
+
+  return tabs
+}
+
+const collectPushedTabs = (block, name) => {
+  const tabs = []
+  const re = new RegExp(`\\b${escapeRe(name)}\\.(?:push|unshift)\\s*\\(`, 'g')
+  let match
+
+  while ((match = re.exec(block))) {
+    const open = match.index + match[0].length - 1
+    const close = findBalanced(block, open, '(', ')')
+    if (close === -1) continue
+
+    const argument = block.slice(open + 1, close).trim()
+    if (argument.startsWith('{')) {
+      const end = findBalanced(argument, 0, '{', '}')
+      if (end !== -1) {
+        const tab = tabFromObject(argument.slice(1, end))
+        if (tab) tabs.push(tab)
+      }
+    }
+
+    re.lastIndex = close
+  }
+
+  return tabs
+}
+
+const collectLocalArrays = block => {
+  const arrays = []
+  const re = /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\[/g
+  let match
+
+  while ((match = re.exec(block))) {
+    const open = match.index + match[0].length - 1
+    const close = findBalanced(block, open, '[', ']')
+    if (close === -1) continue
+
+    arrays.push({
+      name: match[1],
+      tabs: tabsFromArrayBody(block.slice(open + 1, close), new Map())
+    })
+    re.lastIndex = close
+  }
+
+  return arrays
+}
+
+// The returned expression ends at the statement's semicolon, or at the end of
+// the block when the page writes it semicolon-free (the repo's style).
+const collectReturnExpressions = block => {
+  const expressions = []
+  const re = /\breturn\b/g
+  let match
+
+  while ((match = re.exec(block))) {
+    const start = match.index + match[0].length
+    let end = block.length
+    let depth = 0
+    let quote = null
+
+    for (let i = start; i < block.length; i += 1) {
+      const ch = block[i]
+
+      if (quote) {
+        if (ch === '\\') i += 1
+        else if (ch === quote) quote = null
+        continue
+      }
+
+      if (ch === "'" || ch === '"' || ch === '`') {
+        quote = ch
+        continue
+      }
+
+      if (ch === '{' || ch === '(' || ch === '[') depth += 1
+      else if (ch === '}' || ch === ')' || ch === ']') depth -= 1
+      else if (depth === 0 && ch === ';') {
+        end = i
+        break
+      }
+    }
+
+    expressions.push(block.slice(start, end))
+    re.lastIndex = end
+  }
+
+  return expressions
 }
 
 const resolveTabBinding = (binding, content) => {
   if (binding.startsWith('[')) {
     const open = binding.indexOf('[')
     const close = findBalanced(binding, open, '[', ']')
-    if (close !== -1) return tabsFromArrayLiteral(binding.slice(open + 1, close))
+    if (close !== -1) return tabsFromArrayBody(binding.slice(open + 1, close), new Map())
   }
 
-  if (/^[A-Za-z_$][\w$]*$/.test(binding)) {
+  if (IDENTIFIER_RE.test(binding)) {
     const re = new RegExp(`(?:const|let|var)\\s+${escapeRe(binding)}\\s*=\\s*\\[`)
     const match = re.exec(content)
     if (match) {
       const open = content.indexOf('[', match.index + match[0].length - 1)
       const close = findBalanced(content, open, '[', ']')
-      if (close !== -1) return tabsFromArrayLiteral(content.slice(open + 1, close))
+      if (close !== -1) return tabsFromArrayBody(content.slice(open + 1, close), new Map())
     }
+
+    const computed = resolveComputedTabs(content, binding)
+    if (computed) return computed
   }
 
   return [{ binding, labels: [], resolved: false }]
+}
+
+// Array items are split at top level so a spread, an object with commas and a
+// nested array all stay one item.
+const splitArrayItems = body => {
+  const items = []
+  let start = 0
+  let depth = 0
+  let quote = null
+
+  for (let i = 0; i < body.length; i += 1) {
+    const ch = body[i]
+
+    if (quote) {
+      if (ch === '\\') i += 1
+      else if (ch === quote) quote = null
+      continue
+    }
+
+    if (ch === "'" || ch === '"' || ch === '`') {
+      quote = ch
+      continue
+    }
+
+    if (ch === '{' || ch === '(' || ch === '[') depth += 1
+    else if (ch === '}' || ch === ')' || ch === ']') depth -= 1
+    else if (depth === 0 && ch === ',') {
+      items.push(body.slice(start, i))
+      start = i + 1
+    }
+  }
+
+  items.push(body.slice(start))
+
+  return items
 }
 
 export const collectDialogs = sources => {

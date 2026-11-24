@@ -6,11 +6,15 @@ use App\Events\SpecialtyRecordCreated;
 use App\Events\SpecialtyRecordUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateSpecialtyRecordRequest;
+use App\Models\ClinicalEncounter;
+use App\Models\TreatmentPlanItem;
 use App\Services\SpecialtyRecordService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class SpecialtyRecordController extends Controller
 {
@@ -77,6 +81,13 @@ class SpecialtyRecordController extends Controller
             $specialty = $validated['specialty'];
             unset($validated['specialty']);
 
+            $validated = array_merge($validated, $this->validatedLinks(
+                $request,
+                (int) $validated['patient_id'],
+                isset($validated['appointment_id']) ? (int) $validated['appointment_id'] : null,
+                isset($validated['procedure_id']) ? (int) $validated['procedure_id'] : null,
+            ));
+
             $record = match ($specialty) {
                 'implantologia' => $this->specialtyRecordService->createImplantologyRecord($validated),
                 'ortodoncia' => $this->specialtyRecordService->createOrthodonticsRecord($validated),
@@ -120,7 +131,15 @@ class SpecialtyRecordController extends Controller
             // wins. Average cost drops from O(5) round-trips to O(1).
             $record = null;
             foreach (self::SPECIALTY_MODELS as $modelClass) {
-                $relations = ['patient', 'appointment', 'procedure', 'createdBy'];
+                $relations = [
+                    'patient',
+                    'appointment',
+                    'procedure',
+                    'createdBy',
+                    // Slice 1: the act and the plan line the record names.
+                    'clinicalEncounter',
+                    'treatmentPlanItem',
+                ];
 
                 // orthodontics_records has no dental_piece_id column, so only
                 // the models that own the relation load it.
@@ -162,6 +181,27 @@ class SpecialtyRecordController extends Controller
 
             $specialty = $validated['specialty'];
             unset($validated['specialty']);
+
+            $existing = $this->findRecord($id);
+
+            if (! $existing) {
+                return response()->json([
+                    'message' => 'Registro de especialidad no encontrado',
+                ], 404);
+            }
+
+            // The update contract leaves `patient_id` out (a record stays with
+            // its patient), so the links are checked against the stored one.
+            $validated = array_merge($validated, $this->validatedLinks(
+                $request,
+                (int) $existing->patient_id,
+                array_key_exists('appointment_id', $validated)
+                    ? ($validated['appointment_id'] !== null ? (int) $validated['appointment_id'] : null)
+                    : ($existing->appointment_id !== null ? (int) $existing->appointment_id : null),
+                array_key_exists('procedure_id', $validated) && $validated['procedure_id'] !== null
+                    ? (int) $validated['procedure_id']
+                    : ($existing->procedure_id !== null ? (int) $existing->procedure_id : null),
+            ));
 
             $record = $this->specialtyRecordService->updateRecord($specialty, $id, $validated);
 
@@ -259,6 +299,16 @@ class SpecialtyRecordController extends Controller
         try {
             $records = $this->specialtyRecordService->getAllPatientSpecialtyRecords($patientId);
 
+            // Slice 1: every group publishes the two links so the patient
+            // workspace can say which act and which plan line each record
+            // belongs to without a second read per row.
+            $records = array_map(
+                static fn ($group) => method_exists($group, 'load')
+                    ? $group->load(['clinicalEncounter', 'treatmentPlanItem'])
+                    : $group,
+                $records,
+            );
+
             return response()->json([
                 'data' => $records,
                 'meta' => [
@@ -272,6 +322,104 @@ class SpecialtyRecordController extends Controller
                 'message' => 'Error al obtener todos los registros del paciente',
             ], 500);
         }
+    }
+
+    /**
+     * Slice 1 of «Registros de especialidad integrados a la atención y la
+     * historia» — the two links a record may declare.
+     *
+     * They are validated here and not in the FormRequests because the create
+     * and update contracts are per specialty and know nothing about the act;
+     * one rule serves both doors and all five tables instead of five copies.
+     *
+     * The relation is a consistency rule, not a suggestion: an act of another
+     * patient, an act of another appointment or a plan line of another patient
+     * refuses the write. A plan line without a catalog procedure accepts any
+     * procedure, because it never promised one.
+     *
+     * @return array<string, int|null>
+     */
+    private function validatedLinks(
+        Request $request,
+        int $patientId,
+        ?int $appointmentId,
+        ?int $procedureId,
+    ): array {
+        $validated = Validator::make($request->all(), [
+            'clinical_encounter_id' => 'sometimes|nullable|integer|exists:clinical_encounters,id',
+            'treatment_plan_item_id' => 'sometimes|nullable|integer|exists:treatment_plan_items,id',
+        ], [
+            'clinical_encounter_id.exists' => 'La atención seleccionada no existe',
+            'treatment_plan_item_id.exists' => 'El ítem del plan seleccionado no existe',
+        ])->validate();
+
+        $links = [];
+
+        foreach (['clinical_encounter_id', 'treatment_plan_item_id'] as $key) {
+            if (! array_key_exists($key, $validated)) {
+                continue;
+            }
+
+            $links[$key] = $validated[$key] !== null && $validated[$key] !== ''
+                ? (int) $validated[$key]
+                : null;
+        }
+
+        $errors = [];
+
+        if (($links['clinical_encounter_id'] ?? null) !== null) {
+            $encounter = ClinicalEncounter::find($links['clinical_encounter_id']);
+
+            if ((int) $encounter->patient_id !== $patientId) {
+                $errors['clinical_encounter_id'] = 'La atención no pertenece al paciente del registro.';
+            } elseif (
+                $appointmentId !== null
+                && $encounter->appointment_id !== null
+                && (int) $encounter->appointment_id !== $appointmentId
+            ) {
+                $errors['clinical_encounter_id'] = 'La atención no pertenece a la cita del registro.';
+            }
+        }
+
+        if (($links['treatment_plan_item_id'] ?? null) !== null) {
+            // The plan is read apart from the line, so the eager load never
+            // repeats the show loop's query shape.
+            $item = TreatmentPlanItem::find($links['treatment_plan_item_id']);
+            $item?->loadMissing('treatmentPlan');
+
+            if ((int) $item?->treatmentPlan?->patient_id !== $patientId) {
+                $errors['treatment_plan_item_id'] = 'El ítem del plan no pertenece al paciente del registro.';
+            } elseif (
+                $procedureId !== null
+                && $item->procedure_catalog_id !== null
+                && (int) $item->procedure_catalog_id !== $procedureId
+            ) {
+                $errors['procedure_id'] = 'El procedimiento del registro no coincide con el ítem del plan.';
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        return $links;
+    }
+
+    /**
+     * Resolve a specialty record by id without knowing its table: the five
+     * models share neither a table nor a parent, only the contract.
+     */
+    private function findRecord(int $id): ?\Illuminate\Database\Eloquent\Model
+    {
+        foreach (self::SPECIALTY_MODELS as $modelClass) {
+            $record = $modelClass::find($id);
+
+            if ($record) {
+                return $record;
+            }
+        }
+
+        return null;
     }
 
     /**

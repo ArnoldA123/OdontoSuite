@@ -233,6 +233,74 @@
         </p>
       </section>
 
+      <!-- Slice 1 of «Registros de especialidad integrados a la atención y la
+           historia»: the structured clinical data the plan lines executed,
+           read from the specialty module and filtered by line or procedure. -->
+      <section
+        v-if="canViewSpecialtyRecords"
+        class="rounded-[var(--radius-control)] p-4"
+        style="border: 1px solid var(--color-hairline)"
+        data-detail-section="specialty-records"
+      >
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Registros de especialidad
+        </h3>
+
+        <p
+          v-if="specialtyRecordsLoading"
+          class="mt-3 text-sm text-theme-secondary"
+          data-detail-specialty-loading
+        >
+          Cargando registros de especialidad...
+        </p>
+
+        <p
+          v-else-if="specialtyRecordsError"
+          class="mt-3 text-sm text-theme-secondary"
+          data-detail-specialty-error
+        >
+          No pudimos cargar los registros de especialidad.
+        </p>
+
+        <p
+          v-else-if="linkedSpecialtyRecords.length === 0"
+          class="mt-3 text-sm text-theme-secondary"
+          data-detail-empty="specialty-records"
+        >
+          Sin registros ligados a este plan
+        </p>
+
+        <ul v-else class="mt-3 space-y-2">
+          <li
+            v-for="record in linkedSpecialtyRecords"
+            :key="`${record.specialtyKey}-${record.id}`"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] bg-canvas p-3"
+            style="background: var(--color-canvas); border: 1px solid var(--color-hairline)"
+            data-detail-specialty-record
+          >
+            <div class="min-w-0">
+              <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                {{ record.specialtyLabel }}
+              </p>
+              <p class="mt-1 truncate text-sm text-theme-primary" data-detail-specialty-summary>
+                {{ describeSpecialtyRecord(record) || 'Sin datos clínicos capturados' }}
+              </p>
+              <p class="mt-1 text-xs text-theme-secondary" data-detail-specialty-origin>
+                {{ originLabel(record) }}
+              </p>
+            </div>
+            <RouterLink
+              v-if="specialtyRecordLink(record.specialtyKey, record)"
+              :to="specialtyRecordLink(record.specialtyKey, record)"
+              class="text-xs font-medium text-accent hover:underline"
+              data-detail-specialty-open
+            >
+              Ver registro
+            </RouterLink>
+          </li>
+        </ul>
+      </section>
+
       <!-- Notas -->
       <section
         v-if="plan.notes || plan.patient_notes"
@@ -329,14 +397,24 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { DocumentDuplicateIcon, PencilIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import {
   formatCurrency,
   formatDate as formatCanonicalDate,
   formatDateTime as formatCanonicalDateTime
 } from '@/composables/useFormatters'
+import { useApi } from '@/composables/useApi'
+import { usePermissions } from '@/composables/usePermissions'
 import UiModal from '@/components/ui/Modal.vue'
+import {
+  describeSpecialtyRecord,
+  flattenSpecialtyRecords,
+  recordLinks,
+  recordsForPlan,
+  specialtyRecordLink
+} from '@/modules/specialty-records/specialtyRecordMeta'
 import PlanStatusBadge from './PlanStatusBadge.vue'
 import QuotationStatusBadge from '@/modules/quotations/components/QuotationStatusBadge.vue'
 
@@ -349,12 +427,61 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'edit', 'duplicate'])
 
+const { get } = useApi()
+const { can } = usePermissions()
+
 const headingId = 'treatment-plan-detail-title'
 
 const items = computed(() => (Array.isArray(props.plan.items) ? props.plan.items : []))
 const quotations = computed(() =>
   Array.isArray(props.plan.quotations) ? props.plan.quotations : []
 )
+
+/**
+ * Slice 1 of «Registros de especialidad integrados a la atención y la
+ * historia»: the lines executed by this plan are named by the specialty
+ * records, so the detail offers them without leaving the plan.
+ *
+ * The section is a reader: `manage.specialty_record` is what its endpoint
+ * demands, so a session without it never sees the block instead of receiving a
+ * 403 it cannot use.
+ */
+const canViewSpecialtyRecords = computed(() => can.viewSpecialtyRecord?.value ?? false)
+const specialtyRecords = ref([])
+const specialtyRecordsLoading = ref(false)
+const specialtyRecordsError = ref(false)
+
+const linkedSpecialtyRecords = computed(() => recordsForPlan(specialtyRecords.value, items.value))
+
+const originLabel = record => {
+  const links = recordLinks(record)
+
+  return [links.encounter?.label, links.plan?.label].filter(Boolean).join(' · ')
+}
+
+const planPatientId = computed(
+  () => Number(props.plan.patient_id ?? props.plan.patient?.id ?? 0) || null
+)
+
+const loadSpecialtyRecords = async () => {
+  if (!canViewSpecialtyRecords.value || !planPatientId.value) return
+
+  specialtyRecordsLoading.value = true
+  specialtyRecordsError.value = false
+
+  try {
+    const response = await get(`/api/specialty-records/patient/${planPatientId.value}/all`)
+
+    specialtyRecords.value = flattenSpecialtyRecords(response?.data)
+  } catch {
+    specialtyRecords.value = []
+    specialtyRecordsError.value = true
+  } finally {
+    specialtyRecordsLoading.value = false
+  }
+}
+
+onMounted(loadSpecialtyRecords)
 
 const patientName = computed(() => {
   const patient = props.plan.patient || {}

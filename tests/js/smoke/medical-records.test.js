@@ -284,7 +284,15 @@ describe('medical-records shell', () => {
     expect(wrapper.get('[data-stat="follow-ups"]').text()).toBe('1')
 
     const labels = wrapper.findAll('[role="tab"]').map(tab => tab.text())
-    expect(labels).toEqual(['Historia general', 'Evoluciones', 'Adjuntos', 'Estadísticas'])
+    expect(labels).toEqual([
+      'Historia general',
+      'Evoluciones',
+      'Adjuntos',
+      'Estadísticas',
+      // Slice 1: the specialty records are clinical record, so the workspace of
+      // a session that may read them publishes their reader tab.
+      'Especialidades'
+    ])
     expect(wrapper.findAll('[role="tab"]')[0].attributes('aria-selected')).toBe('true')
 
     expect(wrapper.text()).toContain('HC-2026-000021')

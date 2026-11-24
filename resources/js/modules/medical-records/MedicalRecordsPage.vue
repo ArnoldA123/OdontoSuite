@@ -585,6 +585,17 @@
                 />
               </div>
             </template>
+
+            <template #specialties>
+              <div v-if="activeTab === 'specialties'" data-surface="specialties">
+                <SpecialtyRecordsPanel
+                  :grouped="specialtyRecords"
+                  :loading="specialtyRecordsLoading"
+                  :error="specialtyRecordsError"
+                  @retry="loadSpecialtyRecords"
+                />
+              </div>
+            </template>
           </UiTabs>
         </UiCard>
       </section>
@@ -632,7 +643,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeftIcon,
@@ -644,6 +655,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { useApi } from '@/composables/useApi'
 import { useMedicalRecords } from '@/composables/useMedicalRecords'
+import { usePermissions } from '@/composables/usePermissions'
 import { useEcho } from '@/composables/useEcho'
 import { useToast } from '@/composables/useToast'
 import { useSpring } from '@/composables/useSpring'
@@ -668,6 +680,7 @@ import AddendumModal from './components/AddendumModal.vue'
 import AttachmentGallery from './components/AttachmentGallery.vue'
 import UploadAttachmentModal from './components/UploadAttachmentModal.vue'
 import MedicalRecordStats from './components/MedicalRecordStats.vue'
+import SpecialtyRecordsPanel from './components/SpecialtyRecordsPanel.vue'
 
 // Data layer (T2): one store, one loading/error slot per surface.
 const {
@@ -697,6 +710,7 @@ const router = useRouter()
 const { get } = useApi()
 const toast = useToast()
 const { privateChannel, echo } = useEcho()
+const { can } = usePermissions()
 
 // Landing state.
 const searchTerm = ref('')
@@ -712,12 +726,29 @@ const landingPatient = ref(null)
 // Workspace state.
 const selectedPatient = ref(null)
 const activeTab = ref('general')
-const tabs = [
-  { id: 'general', label: 'Historia general' },
-  { id: 'evolutions', label: 'Evoluciones' },
-  { id: 'attachments', label: 'Adjuntos' },
-  { id: 'stats', label: 'Estadísticas' }
-]
+
+// Slice 1 of «Registros de especialidad integrados a la atención y la
+// historia»: the tab is a reader over the specialty module, so it only exists
+// for the session that may read it. The payload is the same aggregate the
+// specialty page consumes — one endpoint, two readers.
+const canViewSpecialtyRecords = computed(() => can.viewSpecialtyRecord?.value ?? false)
+const specialtyRecords = ref(null)
+const specialtyRecordsLoading = ref(false)
+const specialtyRecordsError = ref('')
+const specialtyRecordsPatient = ref(null)
+
+const tabs = computed(() => {
+  const surfaces = [
+    { id: 'general', label: 'Historia general' },
+    { id: 'evolutions', label: 'Evoluciones' },
+    { id: 'attachments', label: 'Adjuntos' },
+    { id: 'stats', label: 'Estadísticas' }
+  ]
+
+  return canViewSpecialtyRecords.value
+    ? [...surfaces, { id: 'specialties', label: 'Especialidades' }]
+    : surfaces
+})
 
 // Surface modals (their internals are T4–T7; the shell only hosts them).
 const showRecordModal = ref(false)
@@ -838,6 +869,34 @@ const loadStats = async () => {
   }
 }
 
+const loadSpecialtyRecords = async () => {
+  if (!selectedPatient.value || !canViewSpecialtyRecords.value) return
+
+  specialtyRecordsLoading.value = true
+  specialtyRecordsError.value = ''
+
+  try {
+    const response = await get(`/api/specialty-records/patient/${selectedPatient.value.id}/all`)
+
+    specialtyRecords.value = response?.data ?? {}
+    specialtyRecordsPatient.value = selectedPatient.value.id
+  } catch (error) {
+    specialtyRecords.value = null
+    specialtyRecordsError.value =
+      error?.response?.data?.message || 'Revisa tu conexión y vuelve a intentarlo.'
+  } finally {
+    specialtyRecordsLoading.value = false
+  }
+}
+
+// Lazily read when the tab opens, and only once per patient.
+watch(activeTab, tab => {
+  if (tab !== 'specialties' || !canViewSpecialtyRecords.value) return
+  if (specialtyRecordsPatient.value === selectedPatient.value?.id && specialtyRecords.value) return
+
+  loadSpecialtyRecords()
+})
+
 const syncCurrentRecord = ({ preferLatest = false } = {}) => {
   const stillSelected = preferLatest
     ? null
@@ -907,6 +966,9 @@ const openPatient = async (patient, record = null) => {
   landingPatient.value = patient
   currentRecord.value = record
   activeTab.value = 'general'
+  specialtyRecords.value = null
+  specialtyRecordsError.value = ''
+  specialtyRecordsPatient.value = null
   syncSelectionQuery(patient.id)
   await loadWorkspace(patient, record)
 }
@@ -958,6 +1020,9 @@ const clearSelection = async () => {
   showEvolutionModal.value = false
   showUploadModal.value = false
   showAddendumModal.value = false
+  specialtyRecords.value = null
+  specialtyRecordsError.value = ''
+  specialtyRecordsPatient.value = null
 
   // No stale panel survives: the data layer drops every surface and slot.
   reset()

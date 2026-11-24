@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -182,6 +183,75 @@ class ClinicalEncounter extends Model
     public function continuityRequests(): HasMany
     {
         return $this->hasMany(ContinuityRequest::class);
+    }
+
+    /**
+     * Slice 1 of «Registros de especialidad integrados a la atención»: the
+     * structured clinical records the five specialty tables hold for this act.
+     *
+     * They stay five tables — each one owns different clinical columns — and
+     * the act is the single place that reads them together.
+     */
+    public function implantologyRecords(): HasMany
+    {
+        return $this->hasMany(ImplantologyRecord::class, 'clinical_encounter_id');
+    }
+
+    public function orthodonticsRecords(): HasMany
+    {
+        return $this->hasMany(OrthodonticsRecord::class, 'clinical_encounter_id');
+    }
+
+    public function endodonticsRecords(): HasMany
+    {
+        return $this->hasMany(EndodonticsRecord::class, 'clinical_encounter_id');
+    }
+
+    public function rehabilitationRecords(): HasMany
+    {
+        return $this->hasMany(RehabilitationRecord::class, 'clinical_encounter_id');
+    }
+
+    public function oralSurgeryRecords(): HasMany
+    {
+        return $this->hasMany(OralSurgeryRecord::class, 'clinical_encounter_id');
+    }
+
+    /**
+     * The five groups of the act in one collection.
+     *
+     * This is a collector, not an Eloquent relation: call it as a method
+     * (`$encounter->specialtyRecords()`), never as an attribute. The state
+     * machine of the act is untouched by it — a record read never closes,
+     * voids or signs anything.
+     *
+     * @return Collection<int, Model>
+     */
+    public function specialtyRecords(): Collection
+    {
+        $this->loadMissing([
+            'implantologyRecords.procedure',
+            'implantologyRecords.dentalPiece',
+            'orthodonticsRecords.procedure',
+            'endodonticsRecords.procedure',
+            'endodonticsRecords.dentalPiece',
+            'rehabilitationRecords.procedure',
+            'rehabilitationRecords.dentalPiece',
+            'oralSurgeryRecords.procedure',
+            'oralSurgeryRecords.dentalPiece',
+        ]);
+
+        return $this->implantologyRecords
+            ->concat($this->orthodonticsRecords)
+            ->concat($this->endodonticsRecords)
+            ->concat($this->rehabilitationRecords)
+            ->concat($this->oralSurgeryRecords)
+            ->sortByDesc(fn (Model $record): string => sprintf(
+                '%s-%010d',
+                $record->created_at?->format('Y-m-d H:i:s') ?? '',
+                $record->id,
+            ))
+            ->values();
     }
 
     /**
