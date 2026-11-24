@@ -78,7 +78,7 @@ class DiagnoseAppointments extends Command
 
         $appointmentsWithoutChair = Appointment::whereDoesntHave('dentalChair')->count();
         if ($appointmentsWithoutChair > 0) {
-            $this->warn("⚠️  Citas sin sillón: {$appointmentsWithoutChair}");
+            $this->warn("⚠️  Citas sin ambiente: {$appointmentsWithoutChair}");
         }
 
         $this->newLine();

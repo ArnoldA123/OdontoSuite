@@ -460,7 +460,7 @@ const DESTINATIONS = [
     key: 'agenda',
     to: '/calendar',
     title: 'Agenda',
-    description: 'Citas, horarios y sillones del día.',
+    description: 'Citas, horarios y ambientes del día.',
     permission: 'viewCalendar'
   },
   {

@@ -94,15 +94,15 @@
 
         <div data-sc-chair>
           <label class="mb-1 block text-sm font-medium text-theme-primary">
-            Sillón dental
+            Ambiente
             <span class="text-systemRed-600">*</span>
           </label>
           <UiSelect
             v-model="form.dental_chair_id"
             :options="chairOptions"
             :disabled="loadingOptions"
-            label="Sillón dental"
-            placeholder="Seleccionar sillón"
+            label="Ambiente"
+            placeholder="Seleccionar ambiente"
             searchable
           />
           <p
@@ -307,7 +307,7 @@ const loadOptions = async () => {
     appointmentTypes.value = typesResponse?.data ?? []
   } catch (thrown) {
     optionsError.value =
-      thrown?.response?.data?.message || 'No se pudieron cargar los profesionales y sillones.'
+      thrown?.response?.data?.message || 'No se pudieron cargar los profesionales y ambientes.'
   } finally {
     loadingOptions.value = false
   }
