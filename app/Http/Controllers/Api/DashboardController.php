@@ -277,32 +277,30 @@ class DashboardController extends Controller
                 $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
             );
             $role = $request->user()?->role;
-            $cacheKey = 'dashboard_pending_'.Auth::id().'_'.$role.'_'.($branchId ?? 'all');
+            // Sin caché: la lista es de dos consultas pequeñas y el escritorio
+            // se lee para ver lo que acaba de cambiar. Con el TTL de 2 minutos
+            // de antes, crear o enviar un presupuesto no aparecía hasta que
+            // expiraba la clave, y «Actualizar» volvía a leer la misma foto.
+            $data = [];
 
-            $pending = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($branchId, $role) {
-                $data = [];
+            // Mirrors `role:administrador,finanzas,odontologo,implantologo,recepcionista`
+            // on the quotations read group.
+            if (in_array($role, ['administrador', 'finanzas', 'odontologo', 'implantologo', 'recepcionista'], true)) {
+                $data['quotations'] = $this->pendingQuotations($branchId);
+            }
 
-                // Mirrors `role:administrador,finanzas,odontologo,implantologo,recepcionista`
-                // on the quotations read group.
-                if (in_array($role, ['administrador', 'finanzas', 'odontologo', 'implantologo', 'recepcionista'], true)) {
-                    $data['quotations'] = $this->pendingQuotations($branchId);
-                }
-
-                // Mirrors `role:administrador,odontologo,implantologo,tecnico_dental`
-                // on the treatment-plans group.
-                if (in_array($role, ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'], true)) {
-                    $data['treatment_plans'] = $this->pendingTreatmentPlans($branchId);
-                }
-
-                return $data;
-            });
+            // Mirrors `role:administrador,odontologo,implantologo,tecnico_dental`
+            // on the treatment-plans group.
+            if (in_array($role, ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'], true)) {
+                $data['treatment_plans'] = $this->pendingTreatmentPlans($branchId);
+            }
 
             return response()->json([
-                'data' => (object) $pending,
+                'data' => (object) $data,
                 'meta' => [
                     'message' => 'Pendientes del dashboard cargados exitosamente',
                     'generated_at' => now()->toISOString(),
-                    'cached' => true,
+                    'cached' => false,
                 ],
             ]);
         } catch (\Exception $e) {
