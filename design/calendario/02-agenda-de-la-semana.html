@@ -89,8 +89,8 @@
       body {
         background: var(--canvas);
         color: var(--label);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-          sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         font-size: 15px;
         line-height: 22px;
         -webkit-font-smoothing: antialiased;
@@ -172,7 +172,8 @@
         display: grid;
         place-items: center;
         color: var(--g500);
-        transition: background var(--dur-fast) var(--ease-ios),
+        transition:
+          background var(--dur-fast) var(--ease-ios),
           color var(--dur-fast) var(--ease-ios);
       }
       .rail-btn:hover {
@@ -277,7 +278,8 @@
         font-size: 12.5px;
         font-weight: 600;
         color: var(--label-2);
-        transition: background var(--dur-fast) var(--ease-ios),
+        transition:
+          background var(--dur-fast) var(--ease-ios),
           color var(--dur-fast) var(--ease-ios);
       }
       .seg-btn:hover {
@@ -330,8 +332,11 @@
         color: #fff;
         font-size: 13px;
         font-weight: 600;
-        box-shadow: var(--e3), inset 0 1px 0 rgba(255, 255, 255, 0.32);
-        transition: transform var(--dur-fast) var(--ease-ios),
+        box-shadow:
+          var(--e3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+        transition:
+          transform var(--dur-fast) var(--ease-ios),
           background var(--dur-fast) var(--ease-ios);
       }
       .btn-primary:hover {
@@ -516,7 +521,8 @@
         background: var(--surface);
         border: 1px solid var(--hairline);
         box-shadow: var(--e1);
-        transition: transform var(--dur-fast) var(--ease-ios),
+        transition:
+          transform var(--dur-fast) var(--ease-ios),
           box-shadow var(--dur-fast) var(--ease-ios),
           border-color var(--dur-fast) var(--ease-ios);
       }
@@ -773,33 +779,114 @@
         <ul class="rail-list">
           <li>
             <button class="rail-btn" aria-label="Panel">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="7" height="7" rx="2" />
+                <rect x="14" y="3" width="7" height="7" rx="2" />
+                <rect x="3" y="14" width="7" height="7" rx="2" />
+                <rect x="14" y="14" width="7" height="7" rx="2" />
+              </svg>
             </button>
           </li>
           <li>
             <button class="rail-btn is-active" aria-label="Calendario" aria-current="page">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="5" width="18" height="16" rx="3" />
+                <path d="M8 3v4M16 3v4M3 10h18" />
+              </svg>
             </button>
           </li>
           <li>
             <button class="rail-btn" aria-label="Pacientes">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.9-4.8 5.5-4.8s4.9 1.6 5.5 4.8"/><path d="M16 6.2a3 3 0 0 1 0 5.6M17.5 14.6c2 .5 3.2 2 3.5 4.4"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="9" cy="8" r="3.2" />
+                <path d="M3.5 19c.6-3.2 2.9-4.8 5.5-4.8s4.9 1.6 5.5 4.8" />
+                <path d="M16 6.2a3 3 0 0 1 0 5.6M17.5 14.6c2 .5 3.2 2 3.5 4.4" />
+              </svg>
             </button>
           </li>
           <li>
             <button class="rail-btn" aria-label="Caja">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 11h18M16 15h2"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="6" width="18" height="13" rx="3" />
+                <path d="M3 11h18M16 15h2" />
+              </svg>
             </button>
           </li>
           <li>
             <button class="rail-btn" aria-label="Reportes">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V6M10 20v-7M16 20V9M22 20H2"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 20V6M10 20v-7M16 20V9M22 20H2" />
+              </svg>
             </button>
           </li>
         </ul>
         <div class="rail-foot">
           <button class="rail-btn" aria-label="Configuración">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+              <circle cx="16" cy="7" r="2" />
+              <circle cx="10" cy="17" r="2" />
+            </svg>
           </button>
           <span class="avatar" aria-hidden="true">AR</span>
         </div>
@@ -811,7 +898,8 @@
             <p class="eyebrow">Noviembre 2026 · Sede San Isidro</p>
             <h1>16 – 22 de noviembre</h1>
             <p class="sub">
-              <strong>35 citas</strong> agendadas · 4 profesionales · 3 sillones en uso ahora
+              <strong>35 citas</strong>
+              agendadas · 4 profesionales · 3 sillones en uso ahora
             </p>
           </div>
           <div class="controls">
@@ -822,28 +910,87 @@
             </div>
             <div class="stepper">
               <button class="icon-btn" aria-label="Semana anterior">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M14 6l-6 6 6 6" />
+                </svg>
               </button>
               <button class="btn-ghost">Hoy</button>
               <button class="icon-btn" aria-label="Semana siguiente">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M10 6l6 6-6 6" />
+                </svg>
               </button>
             </div>
             <button class="btn-primary">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
               Nueva cita
             </button>
           </div>
         </header>
 
         <div class="stats">
-          <span class="stat"><b class="num">35</b> citas</span>
-          <span class="stat"><b class="num">78%</b> de ocupación</span>
-          <span class="stat"><b class="num">2</b> libres ahora</span>
-          <span class="stat"><b class="num">5</b> por cobrar</span>
+          <span class="stat">
+            <b class="num">35</b>
+            citas
+          </span>
+          <span class="stat">
+            <b class="num">78%</b>
+            de ocupación
+          </span>
+          <span class="stat">
+            <b class="num">2</b>
+            libres ahora
+          </span>
+          <span class="stat">
+            <b class="num">5</b>
+            por cobrar
+          </span>
           <span class="push">
             <span class="chip-warn">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 8v5M12 16.5v.5" />
+                <circle cx="12" cy="12" r="9" />
+              </svg>
               3 sin confirmar
             </span>
             <a class="link" href="#pendientes">Revisar</a>
@@ -862,10 +1009,18 @@
             <ol class="entries">
               <li class="entry">
                 <p class="entry-time">08:00</p>
-                <button class="card" data-s="completed" aria-label="Ana Torres Quispe, control de ortodoncia, completada">
+                <button
+                  class="card"
+                  data-s="completed"
+                  aria-label="Ana Torres Quispe, control de ortodoncia, completada"
+                >
                   <span class="patient">Ana Torres Quispe</span>
                   <span class="type">Control de ortodoncia</span>
-                  <span class="foot"><span class="pdot" style="background: var(--indigo-500)"></span><span class="prof">Dra. Núñez</span><span class="chair">S2</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--indigo-500)"></span>
+                    <span class="prof">Dra. Núñez</span>
+                    <span class="chair">S2</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -873,7 +1028,11 @@
                 <button class="card" aria-label="Luis Ramírez Ccahuana, endodoncia pieza 36">
                   <span class="patient">Luis Ramírez Ccahuana</span>
                   <span class="type">Endodoncia · pieza 36</span>
-                  <span class="foot"><span class="pdot" style="background: var(--accent)"></span><span class="prof">Dr. Paredes</span><span class="chair">S1</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--accent)"></span>
+                    <span class="prof">Dr. Paredes</span>
+                    <span class="chair">S1</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -881,15 +1040,27 @@
                 <button class="card" aria-label="Rosa Huamán Vega, rehabilitación oral">
                   <span class="patient">Rosa Huamán Vega</span>
                   <span class="type">Rehabilitación oral</span>
-                  <span class="foot"><span class="pdot" style="background: var(--steel-500)"></span><span class="prof">Dr. Salazar</span><span class="chair">S3</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--steel-500)"></span>
+                    <span class="prof">Dr. Salazar</span>
+                    <span class="chair">S3</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
                 <p class="entry-time">12:30</p>
-                <button class="card" data-s="completed" aria-label="Diego Fernández Loayza, control post-operatorio, completada">
+                <button
+                  class="card"
+                  data-s="completed"
+                  aria-label="Diego Fernández Loayza, control post-operatorio, completada"
+                >
                   <span class="patient">Diego Fernández Loayza</span>
                   <span class="type">Control post-operatorio</span>
-                  <span class="foot"><span class="pdot" style="background: var(--accent)"></span><span class="prof">Dr. Paredes</span><span class="chair">S1</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--accent)"></span>
+                    <span class="prof">Dr. Paredes</span>
+                    <span class="chair">S1</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -897,7 +1068,11 @@
                 <button class="card" aria-label="Milagros Chávez Ríos, cirugía guiada">
                   <span class="patient">Milagros Chávez Ríos</span>
                   <span class="type">Cirugía guiada · pieza 46</span>
-                  <span class="foot"><span class="pdot" style="background: var(--accent)"></span><span class="prof">Dr. Paredes</span><span class="chair">S1</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--accent)"></span>
+                    <span class="prof">Dr. Paredes</span>
+                    <span class="chair">S1</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -905,7 +1080,11 @@
                 <button class="card" aria-label="Katherine Rojas Palomino, control de ortodoncia">
                   <span class="patient">Katherine Rojas Palomino</span>
                   <span class="type">Control de ortodoncia</span>
-                  <span class="foot"><span class="pdot" style="background: var(--indigo-500)"></span><span class="prof">Dra. Núñez</span><span class="chair">S2</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--indigo-500)"></span>
+                    <span class="prof">Dra. Núñez</span>
+                    <span class="chair">S2</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -913,7 +1092,11 @@
                 <button class="card" aria-label="Carlos Mendoza Ataucuri, ajuste de arco">
                   <span class="patient">Carlos Mendoza Ataucuri</span>
                   <span class="type">Ajuste de arco</span>
-                  <span class="foot"><span class="pdot" style="background: var(--indigo-500)"></span><span class="prof">Dra. Núñez</span><span class="chair">S2</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--indigo-500)"></span>
+                    <span class="prof">Dra. Núñez</span>
+                    <span class="chair">S2</span>
+                  </span>
                 </button>
               </li>
             </ol>
@@ -933,7 +1116,11 @@
                 <button class="card" aria-label="Mateo Ríos Salas, profilaxis">
                   <span class="patient">Mateo Ríos Salas</span>
                   <span class="type">Profilaxis</span>
-                  <span class="foot"><span class="pdot" style="background: var(--purple-500)"></span><span class="prof">Dra. Ríos</span><span class="chair">S4</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--purple-500)"></span>
+                    <span class="prof">Dra. Ríos</span>
+                    <span class="chair">S4</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -941,7 +1128,11 @@
                 <button class="card" aria-label="Jorge Salazar Paredes, exodoncia pieza 38">
                   <span class="patient">Jorge Salazar Paredes</span>
                   <span class="type">Exodoncia · pieza 38</span>
-                  <span class="foot"><span class="pdot" style="background: var(--accent)"></span><span class="prof">Dr. Paredes</span><span class="chair">S1</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--accent)"></span>
+                    <span class="prof">Dr. Paredes</span>
+                    <span class="chair">S1</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -949,7 +1140,11 @@
                 <button class="card" aria-label="Valentina Chávez Ruda, sellantes">
                   <span class="patient">Valentina Chávez Ruda</span>
                   <span class="type">Sellantes</span>
-                  <span class="foot"><span class="pdot" style="background: var(--purple-500)"></span><span class="prof">Dra. Ríos</span><span class="chair">S4</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--purple-500)"></span>
+                    <span class="prof">Dra. Ríos</span>
+                    <span class="chair">S4</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -957,7 +1152,11 @@
                 <button class="card" aria-label="Ana Torres Quispe, blanqueamiento">
                   <span class="patient">Ana Torres Quispe</span>
                   <span class="type">Blanqueamiento</span>
-                  <span class="foot"><span class="pdot" style="background: var(--purple-500)"></span><span class="prof">Dra. Ríos</span><span class="chair">S4</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--purple-500)"></span>
+                    <span class="prof">Dra. Ríos</span>
+                    <span class="chair">S4</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -965,7 +1164,11 @@
                 <button class="card" aria-label="Rosa Huamán Vega, preparación de corona">
                   <span class="patient">Rosa Huamán Vega</span>
                   <span class="type">Preparación de corona</span>
-                  <span class="foot"><span class="pdot" style="background: var(--steel-500)"></span><span class="prof">Dr. Salazar</span><span class="chair">S3</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--steel-500)"></span>
+                    <span class="prof">Dr. Salazar</span>
+                    <span class="chair">S3</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -973,7 +1176,11 @@
                 <button class="card" aria-label="Milagros Chávez Ríos, impresión digital">
                   <span class="patient">Milagros Chávez Ríos</span>
                   <span class="type">Impresión digital</span>
-                  <span class="foot"><span class="pdot" style="background: var(--steel-500)"></span><span class="prof">Dr. Salazar</span><span class="chair">S3</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--steel-500)"></span>
+                    <span class="prof">Dr. Salazar</span>
+                    <span class="chair">S3</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -981,7 +1188,11 @@
                 <button class="card" aria-label="Katherine Rojas Palomino, retiro de aparato">
                   <span class="patient">Katherine Rojas Palomino</span>
                   <span class="type">Retiro de aparato</span>
-                  <span class="foot"><span class="pdot" style="background: var(--indigo-500)"></span><span class="prof">Dra. Núñez</span><span class="chair">S2</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--indigo-500)"></span>
+                    <span class="prof">Dra. Núñez</span>
+                    <span class="chair">S2</span>
+                  </span>
                 </button>
               </li>
             </ol>
@@ -999,34 +1210,61 @@
             <ol class="entries">
               <li class="entry">
                 <p class="entry-time">08:00</p>
-                <button class="card" data-s="completed" aria-label="Ana Torres Quispe, control de ortodoncia, completada">
+                <button
+                  class="card"
+                  data-s="completed"
+                  aria-label="Ana Torres Quispe, control de ortodoncia, completada"
+                >
                   <span class="patient">Ana Torres Quispe</span>
                   <span class="type">Control de ortodoncia</span>
-                  <span class="foot"><span class="pdot" style="background: var(--indigo-500)"></span><span class="prof">Dra. Núñez</span><span class="chair">S2</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--indigo-500)"></span>
+                    <span class="prof">Dra. Núñez</span>
+                    <span class="chair">S2</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
                 <p class="entry-time">09:00</p>
-                <button class="card" data-s="arrived" aria-label="Diego Fernández Loayza, limpieza dental, llegó a las 09:04">
+                <button
+                  class="card"
+                  data-s="arrived"
+                  aria-label="Diego Fernández Loayza, limpieza dental, llegó a las 09:04"
+                >
                   <span class="patient">Diego Fernández Loayza</span>
                   <span class="type">Limpieza dental</span>
-                  <span class="foot"><span class="pdot" style="background: var(--purple-500)"></span><span class="prof">Dra. Ríos</span><span class="chair">S4</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--purple-500)"></span>
+                    <span class="prof">Dra. Ríos</span>
+                    <span class="chair">S4</span>
+                  </span>
                   <span class="state" data-s="arrived">● En sala · 4 min</span>
                 </button>
               </li>
               <li class="entry">
                 <p class="entry-time">09:30</p>
-                <button class="card" data-s="in_consultation" aria-label="Luis Ramírez Ccahuana, endodoncia pieza 36, en consulta">
+                <button
+                  class="card"
+                  data-s="in_consultation"
+                  aria-label="Luis Ramírez Ccahuana, endodoncia pieza 36, en consulta"
+                >
                   <span class="patient">Luis Ramírez Ccahuana</span>
                   <span class="type">Endodoncia · pieza 36</span>
-                  <span class="foot"><span class="pdot" style="background: var(--accent)"></span><span class="prof">Dr. Paredes</span><span class="chair">S1</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--accent)"></span>
+                    <span class="prof">Dr. Paredes</span>
+                    <span class="chair">S1</span>
+                  </span>
                   <span class="state" data-s="in_consultation">● En consulta · 42 min</span>
                 </button>
               </li>
               <li class="entry">
                 <p class="entry-time">10:15</p>
                 <div class="free">
-                  <span><b>45 min</b> libres · Sillón 1</span>
+                  <span>
+                    <b>45 min</b>
+                    libres · Sillón 1
+                  </span>
                   <button aria-label="Ofrecer hueco de 10:15">Ofrecer</button>
                 </div>
               </li>
@@ -1035,7 +1273,11 @@
                 <button class="card" aria-label="Rosa Huamán Vega, rehabilitación oral">
                   <span class="patient">Rosa Huamán Vega</span>
                   <span class="type">Rehabilitación oral</span>
-                  <span class="foot"><span class="pdot" style="background: var(--steel-500)"></span><span class="prof">Dr. Salazar</span><span class="chair">S3</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--steel-500)"></span>
+                    <span class="prof">Dr. Salazar</span>
+                    <span class="chair">S3</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1043,7 +1285,11 @@
                 <button class="card" aria-label="Jorge Salazar Paredes, control post-operatorio">
                   <span class="patient">Jorge Salazar Paredes</span>
                   <span class="type">Control post-operatorio</span>
-                  <span class="foot"><span class="pdot" style="background: var(--accent)"></span><span class="prof">Dr. Paredes</span><span class="chair">S1</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--accent)"></span>
+                    <span class="prof">Dr. Paredes</span>
+                    <span class="chair">S1</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1051,7 +1297,11 @@
                 <button class="card" aria-label="Milagros Chávez Ríos, cirugía guiada">
                   <span class="patient">Milagros Chávez Ríos</span>
                   <span class="type">Cirugía guiada · pieza 46</span>
-                  <span class="foot"><span class="pdot" style="background: var(--accent)"></span><span class="prof">Dr. Paredes</span><span class="chair">S1</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--accent)"></span>
+                    <span class="prof">Dr. Paredes</span>
+                    <span class="chair">S1</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1059,7 +1309,11 @@
                 <button class="card" aria-label="Katherine Rojas Palomino, control de ortodoncia">
                   <span class="patient">Katherine Rojas Palomino</span>
                   <span class="type">Control de ortodoncia</span>
-                  <span class="foot"><span class="pdot" style="background: var(--indigo-500)"></span><span class="prof">Dra. Núñez</span><span class="chair">S2</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--indigo-500)"></span>
+                    <span class="prof">Dra. Núñez</span>
+                    <span class="chair">S2</span>
+                  </span>
                 </button>
               </li>
             </ol>
@@ -1079,7 +1333,11 @@
                 <button class="card" aria-label="Rosa Huamán Vega, cementado de corona">
                   <span class="patient">Rosa Huamán Vega</span>
                   <span class="type">Cementado de corona</span>
-                  <span class="foot"><span class="pdot" style="background: var(--steel-500)"></span><span class="prof">Dr. Salazar</span><span class="chair">S3</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--steel-500)"></span>
+                    <span class="prof">Dr. Salazar</span>
+                    <span class="chair">S3</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1087,15 +1345,27 @@
                 <button class="card" aria-label="Carlos Mendoza Ataucuri, prueba de estructura">
                   <span class="patient">Carlos Mendoza Ataucuri</span>
                   <span class="type">Prueba de estructura</span>
-                  <span class="foot"><span class="pdot" style="background: var(--steel-500)"></span><span class="prof">Dr. Salazar</span><span class="chair">S3</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--steel-500)"></span>
+                    <span class="prof">Dr. Salazar</span>
+                    <span class="chair">S3</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
                 <p class="entry-time">11:00</p>
-                <button class="card" data-s="no_show" aria-label="Ana Torres Quispe, ajuste de arco, no asistió">
+                <button
+                  class="card"
+                  data-s="no_show"
+                  aria-label="Ana Torres Quispe, ajuste de arco, no asistió"
+                >
                   <span class="patient">Ana Torres Quispe</span>
                   <span class="type">Ajuste de arco</span>
-                  <span class="foot"><span class="pdot" style="background: var(--indigo-500)"></span><span class="prof">Dra. Núñez</span><span class="chair">S2</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--indigo-500)"></span>
+                    <span class="prof">Dra. Núñez</span>
+                    <span class="chair">S2</span>
+                  </span>
                   <span class="state" data-s="no_show">No asistió</span>
                 </button>
               </li>
@@ -1104,7 +1374,11 @@
                 <button class="card" aria-label="Jorge Salazar Paredes, rehabilitación oral">
                   <span class="patient">Jorge Salazar Paredes</span>
                   <span class="type">Rehabilitación oral</span>
-                  <span class="foot"><span class="pdot" style="background: var(--steel-500)"></span><span class="prof">Dr. Salazar</span><span class="chair">S3</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--steel-500)"></span>
+                    <span class="prof">Dr. Salazar</span>
+                    <span class="chair">S3</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1112,7 +1386,11 @@
                 <button class="card" aria-label="Mateo Ríos Salas, control de higiene">
                   <span class="patient">Mateo Ríos Salas</span>
                   <span class="type">Control de higiene</span>
-                  <span class="foot"><span class="pdot" style="background: var(--purple-500)"></span><span class="prof">Dra. Ríos</span><span class="chair">S4</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--purple-500)"></span>
+                    <span class="prof">Dra. Ríos</span>
+                    <span class="chair">S4</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1120,7 +1398,11 @@
                 <button class="card" aria-label="Valentina Chávez Ruda, limpieza dental">
                   <span class="patient">Valentina Chávez Ruda</span>
                   <span class="type">Limpieza dental</span>
-                  <span class="foot"><span class="pdot" style="background: var(--purple-500)"></span><span class="prof">Dra. Ríos</span><span class="chair">S4</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--purple-500)"></span>
+                    <span class="prof">Dra. Ríos</span>
+                    <span class="chair">S4</span>
+                  </span>
                 </button>
               </li>
             </ol>
@@ -1140,7 +1422,11 @@
                 <button class="card" aria-label="Luis Ramírez Ccahuana, obturación pieza 36">
                   <span class="patient">Luis Ramírez Ccahuana</span>
                   <span class="type">Obturación · pieza 36</span>
-                  <span class="foot"><span class="pdot" style="background: var(--accent)"></span><span class="prof">Dr. Paredes</span><span class="chair">S1</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--accent)"></span>
+                    <span class="prof">Dr. Paredes</span>
+                    <span class="chair">S1</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1148,7 +1434,11 @@
                 <button class="card" aria-label="Milagros Chávez Ríos, prueba de estructura">
                   <span class="patient">Milagros Chávez Ríos</span>
                   <span class="type">Prueba de estructura</span>
-                  <span class="foot"><span class="pdot" style="background: var(--steel-500)"></span><span class="prof">Dr. Salazar</span><span class="chair">S3</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--steel-500)"></span>
+                    <span class="prof">Dr. Salazar</span>
+                    <span class="chair">S3</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1156,7 +1446,11 @@
                 <button class="card" aria-label="Katherine Rojas Palomino, control de ortodoncia">
                   <span class="patient">Katherine Rojas Palomino</span>
                   <span class="type">Control de ortodoncia</span>
-                  <span class="foot"><span class="pdot" style="background: var(--indigo-500)"></span><span class="prof">Dra. Núñez</span><span class="chair">S2</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--indigo-500)"></span>
+                    <span class="prof">Dra. Núñez</span>
+                    <span class="chair">S2</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1164,7 +1458,11 @@
                 <button class="card" aria-label="Diego Fernández Loayza, retiro de puntos">
                   <span class="patient">Diego Fernández Loayza</span>
                   <span class="type">Retiro de puntos</span>
-                  <span class="foot"><span class="pdot" style="background: var(--accent)"></span><span class="prof">Dr. Paredes</span><span class="chair">S1</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--accent)"></span>
+                    <span class="prof">Dr. Paredes</span>
+                    <span class="chair">S1</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1172,7 +1470,11 @@
                 <button class="card" aria-label="Ana Torres Quispe, control de ortodoncia">
                   <span class="patient">Ana Torres Quispe</span>
                   <span class="type">Control de ortodoncia</span>
-                  <span class="foot"><span class="pdot" style="background: var(--indigo-500)"></span><span class="prof">Dra. Núñez</span><span class="chair">S2</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--indigo-500)"></span>
+                    <span class="prof">Dra. Núñez</span>
+                    <span class="chair">S2</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1180,7 +1482,11 @@
                 <button class="card" aria-label="Rosa Huamán Vega, control de corona">
                   <span class="patient">Rosa Huamán Vega</span>
                   <span class="type">Control de corona</span>
-                  <span class="foot"><span class="pdot" style="background: var(--steel-500)"></span><span class="prof">Dr. Salazar</span><span class="chair">S3</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--steel-500)"></span>
+                    <span class="prof">Dr. Salazar</span>
+                    <span class="chair">S3</span>
+                  </span>
                 </button>
               </li>
             </ol>
@@ -1200,7 +1506,11 @@
                 <button class="card" aria-label="Jorge Salazar Paredes, endodoncia pieza 46">
                   <span class="patient">Jorge Salazar Paredes</span>
                   <span class="type">Endodoncia · pieza 46</span>
-                  <span class="foot"><span class="pdot" style="background: var(--accent)"></span><span class="prof">Dr. Paredes</span><span class="chair">S1</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--accent)"></span>
+                    <span class="prof">Dr. Paredes</span>
+                    <span class="chair">S1</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1208,7 +1518,11 @@
                 <button class="card" aria-label="Mateo Ríos Salas, control de higiene">
                   <span class="patient">Mateo Ríos Salas</span>
                   <span class="type">Control de higiene</span>
-                  <span class="foot"><span class="pdot" style="background: var(--purple-500)"></span><span class="prof">Dra. Ríos</span><span class="chair">S4</span></span>
+                  <span class="foot">
+                    <span class="pdot" style="background: var(--purple-500)"></span>
+                    <span class="prof">Dra. Ríos</span>
+                    <span class="chair">S4</span>
+                  </span>
                 </button>
               </li>
               <li class="entry">
@@ -1241,8 +1555,26 @@
         </div>
 
         <div class="footband" id="pendientes">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--accent)"><path d="M4 19V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12"/><path d="M8 13h5M8 16.5h3"/><circle cx="17" cy="15" r="2.5"/></svg>
-          <span><span class="strong">5 atenciones cerradas</span> quedaron sin cobrar esta semana.</span>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            style="color: var(--accent)"
+          >
+            <path d="M4 19V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12" />
+            <path d="M8 13h5M8 16.5h3" />
+            <circle cx="17" cy="15" r="2.5" />
+          </svg>
+          <span>
+            <span class="strong">5 atenciones cerradas</span>
+            quedaron sin cobrar esta semana.
+          </span>
           <span class="right">
             <button class="btn-secondary">Ver listos para facturar</button>
             <a class="link" href="#semana-siguiente">Agendar la siguiente</a>

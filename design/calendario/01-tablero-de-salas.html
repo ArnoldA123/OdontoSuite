@@ -88,8 +88,8 @@
       body {
         background: var(--canvas);
         color: var(--label);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-          sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         font-size: 15px;
         line-height: 22px;
         -webkit-font-smoothing: antialiased;
@@ -162,7 +162,8 @@
         display: grid;
         place-items: center;
         color: var(--g500);
-        transition: background var(--dur-fast) var(--ease-ios),
+        transition:
+          background var(--dur-fast) var(--ease-ios),
           color var(--dur-fast) var(--ease-ios);
       }
       .rail-btn:hover {
@@ -244,7 +245,8 @@
         font-size: 12.5px;
         font-weight: 600;
         color: var(--label-2);
-        transition: background var(--dur-fast) var(--ease-ios),
+        transition:
+          background var(--dur-fast) var(--ease-ios),
           color var(--dur-fast) var(--ease-ios);
       }
       .seg-btn:hover {
@@ -271,7 +273,8 @@
         display: grid;
         place-items: center;
         color: var(--label-2);
-        transition: background var(--dur-fast) var(--ease-ios),
+        transition:
+          background var(--dur-fast) var(--ease-ios),
           color var(--dur-fast) var(--ease-ios);
       }
       .icon-btn:hover {
@@ -300,8 +303,11 @@
         color: #fff;
         font-size: 13px;
         font-weight: 600;
-        box-shadow: var(--e3), inset 0 1px 0 rgba(255, 255, 255, 0.32);
-        transition: transform var(--dur-fast) var(--ease-ios),
+        box-shadow:
+          var(--e3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+        transition:
+          transform var(--dur-fast) var(--ease-ios),
           background var(--dur-fast) var(--ease-ios);
       }
       .btn-primary:hover {
@@ -328,7 +334,8 @@
         border-radius: var(--r-ios);
         border: 1px solid transparent;
         text-align: left;
-        transition: background var(--dur-fast) var(--ease-ios),
+        transition:
+          background var(--dur-fast) var(--ease-ios),
           border-color var(--dur-fast) var(--ease-ios),
           box-shadow var(--dur-fast) var(--ease-ios);
       }
@@ -469,7 +476,8 @@
         font-size: 12px;
         font-weight: 600;
         color: var(--label-2);
-        transition: border-color var(--dur-fast) var(--ease-ios),
+        transition:
+          border-color var(--dur-fast) var(--ease-ios),
           background var(--dur-fast) var(--ease-ios),
           color var(--dur-fast) var(--ease-ios);
       }
@@ -759,7 +767,8 @@
         border-left: 3px solid var(--status);
         box-shadow: var(--e1);
         overflow: hidden;
-        transition: transform var(--dur-fast) var(--ease-ios),
+        transition:
+          transform var(--dur-fast) var(--ease-ios),
           box-shadow var(--dur-fast) var(--ease-ios);
       }
       .appt:hover {
@@ -821,7 +830,9 @@
       .appt[data-state='in_consultation'] {
         border-left-color: var(--yellow-500);
         background: linear-gradient(0deg, var(--surface), var(--surface)) padding-box;
-        box-shadow: var(--e2), 0 0 0 1px var(--yellow-100) inset;
+        box-shadow:
+          var(--e2),
+          0 0 0 1px var(--yellow-100) inset;
       }
       .appt[data-state='arrived'] {
         border-left-color: var(--indigo-500);
@@ -907,7 +918,8 @@
         line-height: 14px;
         font-weight: 600;
         text-align: left;
-        transition: background var(--dur-fast) var(--ease-ios),
+        transition:
+          background var(--dur-fast) var(--ease-ios),
           border-color var(--dur-fast) var(--ease-ios),
           color var(--dur-fast) var(--ease-ios);
       }
@@ -1126,33 +1138,114 @@
         <ul class="rail-list">
           <li>
             <button class="rail-btn" aria-label="Panel">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="7" height="7" rx="2" />
+                <rect x="14" y="3" width="7" height="7" rx="2" />
+                <rect x="3" y="14" width="7" height="7" rx="2" />
+                <rect x="14" y="14" width="7" height="7" rx="2" />
+              </svg>
             </button>
           </li>
           <li>
             <button class="rail-btn is-active" aria-label="Calendario" aria-current="page">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="5" width="18" height="16" rx="3" />
+                <path d="M8 3v4M16 3v4M3 10h18" />
+              </svg>
             </button>
           </li>
           <li>
             <button class="rail-btn" aria-label="Pacientes">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.9-4.8 5.5-4.8s4.9 1.6 5.5 4.8"/><path d="M16 6.2a3 3 0 0 1 0 5.6M17.5 14.6c2 .5 3.2 2 3.5 4.4"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="9" cy="8" r="3.2" />
+                <path d="M3.5 19c.6-3.2 2.9-4.8 5.5-4.8s4.9 1.6 5.5 4.8" />
+                <path d="M16 6.2a3 3 0 0 1 0 5.6M17.5 14.6c2 .5 3.2 2 3.5 4.4" />
+              </svg>
             </button>
           </li>
           <li>
             <button class="rail-btn" aria-label="Caja">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 11h18M16 15h2"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="6" width="18" height="13" rx="3" />
+                <path d="M3 11h18M16 15h2" />
+              </svg>
             </button>
           </li>
           <li>
             <button class="rail-btn" aria-label="Reportes">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V6M10 20v-7M16 20V9M22 20H2"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 20V6M10 20v-7M16 20V9M22 20H2" />
+              </svg>
             </button>
           </li>
         </ul>
         <div class="rail-foot">
           <button class="rail-btn" aria-label="Configuración">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+              <circle cx="16" cy="7" r="2" />
+              <circle cx="10" cy="17" r="2" />
+            </svg>
           </button>
           <span class="avatar" aria-hidden="true">AR</span>
         </div>
@@ -1172,18 +1265,66 @@
             </div>
             <div class="stepper">
               <button class="icon-btn" aria-label="Día anterior">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M14 6l-6 6 6 6" />
+                </svg>
               </button>
               <button class="btn-ghost">Hoy</button>
               <button class="icon-btn" aria-label="Día siguiente">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M10 6l6 6-6 6" />
+                </svg>
               </button>
             </div>
             <button class="icon-btn btn-bordered" aria-label="Actualizar la agenda">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.6"/><path d="M20 4.5V9h-4.5"/></svg>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M20 12a8 8 0 1 1-2.4-5.6" />
+                <path d="M20 4.5V9h-4.5" />
+              </svg>
             </button>
             <button class="btn-primary">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
               Nueva cita
             </button>
           </div>
@@ -1200,7 +1341,11 @@
             <span class="dn">17</span>
             <span class="dc">7 citas</span>
           </button>
-          <button class="day is-selected" aria-current="date" aria-label="Miércoles 18 de noviembre, 24 citas, hoy">
+          <button
+            class="day is-selected"
+            aria-current="date"
+            aria-label="Miércoles 18 de noviembre, 24 citas, hoy"
+          >
             <span class="dw">Mié</span>
             <span class="dn">18</span>
             <span class="dc">24 citas</span>
@@ -1230,11 +1375,30 @@
 
         <div class="toolbar">
           <div class="chips" role="group" aria-label="Filtrar por profesional">
-            <button class="filter-chip" aria-pressed="true">Todos <span class="n">24</span></button>
-            <button class="filter-chip" aria-pressed="false"><span class="dot" style="color: var(--accent)"></span>Dr. Paredes <span class="n">7</span></button>
-            <button class="filter-chip" aria-pressed="false"><span class="dot" style="color: var(--indigo-500)"></span>Dra. Núñez <span class="n">6</span></button>
-            <button class="filter-chip" aria-pressed="false"><span class="dot" style="color: var(--steel-500)"></span>Dr. Salazar <span class="n">5</span></button>
-            <button class="filter-chip" aria-pressed="false"><span class="dot" style="color: var(--purple-500)"></span>Dra. Ríos <span class="n">5</span></button>
+            <button class="filter-chip" aria-pressed="true">
+              Todos
+              <span class="n">24</span>
+            </button>
+            <button class="filter-chip" aria-pressed="false">
+              <span class="dot" style="color: var(--accent)"></span>
+              Dr. Paredes
+              <span class="n">7</span>
+            </button>
+            <button class="filter-chip" aria-pressed="false">
+              <span class="dot" style="color: var(--indigo-500)"></span>
+              Dra. Núñez
+              <span class="n">6</span>
+            </button>
+            <button class="filter-chip" aria-pressed="false">
+              <span class="dot" style="color: var(--steel-500)"></span>
+              Dr. Salazar
+              <span class="n">5</span>
+            </button>
+            <button class="filter-chip" aria-pressed="false">
+              <span class="dot" style="color: var(--purple-500)"></span>
+              Dra. Ríos
+              <span class="n">5</span>
+            </button>
           </div>
           <div class="groupby">
             <span id="groupby-label">Agrupar por</span>
@@ -1248,19 +1412,61 @@
         <div class="meta">
           <span class="live">En vivo · 10:12</span>
           <span class="meta-item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V9a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v11"/><path d="M3 20h18M9 12h6"/></svg>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 20V9a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v11" />
+              <path d="M3 20h18M9 12h6" />
+            </svg>
             4 sillones operativos
           </span>
           <span class="meta-item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            Ocupación de hoy <strong class="num" style="font-weight: 600; color: var(--label)">78%</strong>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+            Ocupación de hoy
+            <strong class="num" style="font-weight: 600; color: var(--label)">78%</strong>
           </span>
           <ul class="legend" aria-label="Estados de cita">
-            <li><span class="dot" style="background: var(--g400)"></span>Programada</li>
-            <li><span class="dot" style="background: var(--steel-500)"></span>Confirmada</li>
-            <li><span class="dot" style="background: var(--indigo-500)"></span>En sala</li>
-            <li><span class="dot" style="background: var(--yellow-500)"></span>En consulta</li>
-            <li><span class="dot" style="background: var(--green-500)"></span>Completada</li>
+            <li>
+              <span class="dot" style="background: var(--g400)"></span>
+              Programada
+            </li>
+            <li>
+              <span class="dot" style="background: var(--steel-500)"></span>
+              Confirmada
+            </li>
+            <li>
+              <span class="dot" style="background: var(--indigo-500)"></span>
+              En sala
+            </li>
+            <li>
+              <span class="dot" style="background: var(--yellow-500)"></span>
+              En consulta
+            </li>
+            <li>
+              <span class="dot" style="background: var(--green-500)"></span>
+              Completada
+            </li>
           </ul>
         </div>
 
@@ -1334,109 +1540,230 @@
 
                   <div class="cols">
                     <div class="col">
-                      <article class="appt" data-state="in_consultation" style="--top: 36px; --h: 72px; --status: var(--yellow-500)" aria-label="En consulta, 08:30 a 09:30, Endodoncia 36, Luis Ramírez Ccahuana">
+                      <article
+                        class="appt"
+                        data-state="in_consultation"
+                        style="--top: 36px; --h: 72px; --status: var(--yellow-500)"
+                        aria-label="En consulta, 08:30 a 09:30, Endodoncia 36, Luis Ramírez Ccahuana"
+                      >
                         <span class="appt-t num">08:30 – 09:30</span>
                         <span class="appt-p">Luis Ramírez Ccahuana</span>
                         <span class="appt-x">Endodoncia · pieza 36</span>
                         <span class="state-tag" data-state="in_consultation">Quedan 18 min</span>
-                        <span class="appt-f"><span class="who">AP</span>Dr. Paredes</span>
+                        <span class="appt-f">
+                          <span class="who">AP</span>
+                          Dr. Paredes
+                        </span>
                       </article>
-                      <article class="appt" data-state="confirmed" style="--top: 126px; --h: 72px; --status: var(--steel-500)" aria-label="Confirmada, 09:45 a 10:45, Exodoncia 38, Jorge Salazar Paredes">
+                      <article
+                        class="appt"
+                        data-state="confirmed"
+                        style="--top: 126px; --h: 72px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 09:45 a 10:45, Exodoncia 38, Jorge Salazar Paredes"
+                      >
                         <span class="appt-t num">09:45 – 10:45</span>
                         <span class="appt-p">Jorge Salazar Paredes</span>
                         <span class="appt-x">Exodoncia · pieza 38</span>
-                        <span class="appt-f"><span class="who">AP</span>Dr. Paredes</span>
+                        <span class="appt-f">
+                          <span class="who">AP</span>
+                          Dr. Paredes
+                        </span>
                       </article>
-                      <article class="appt" data-state="scheduled" style="--top: 216px; --h: 72px; --status: var(--g400)" aria-label="Programada, 11:00 a 12:00, Rehabilitación oral, Rosa Huamán Vega">
+                      <article
+                        class="appt"
+                        data-state="scheduled"
+                        style="--top: 216px; --h: 72px; --status: var(--g400)"
+                        aria-label="Programada, 11:00 a 12:00, Rehabilitación oral, Rosa Huamán Vega"
+                      >
                         <span class="appt-t num">11:00 – 12:00</span>
                         <span class="appt-p">Rosa Huamán Vega</span>
                         <span class="appt-x">Rehabilitación oral</span>
-                        <span class="appt-f"><span class="who">BS</span>Dr. Salazar</span>
+                        <span class="appt-f">
+                          <span class="who">BS</span>
+                          Dr. Salazar
+                        </span>
                       </article>
-                      <article class="appt short" data-state="arrived" style="--top: 324px; --h: 54px; --status: var(--indigo-500)" aria-label="En sala, 12:30 a 13:15, Control post-operatorio, Diego Fernández Loayza">
+                      <article
+                        class="appt short"
+                        data-state="arrived"
+                        style="--top: 324px; --h: 54px; --status: var(--indigo-500)"
+                        aria-label="En sala, 12:30 a 13:15, Control post-operatorio, Diego Fernández Loayza"
+                      >
                         <span class="appt-t num">12:30 – 13:15</span>
                         <span class="appt-p">Diego Fernández Loayza</span>
                         <span class="state-tag" data-state="arrived">Espera 4 min</span>
                       </article>
-                      <button class="free-slot" style="--top: 390px; --h: 54px" aria-label="Sillón 1 libre de 13:15 a 14:00, agendar cita">
+                      <button
+                        class="free-slot"
+                        style="--top: 390px; --h: 54px"
+                        aria-label="Sillón 1 libre de 13:15 a 14:00, agendar cita"
+                      >
                         <span>Libre · 45 min</span>
                         <span class="add">+ Agendar</span>
                       </button>
-                      <article class="appt" data-state="confirmed" style="--top: 432px; --h: 108px; --status: var(--steel-500)" aria-label="Confirmada, 14:00 a 15:30, Cirugía guiada, Milagros Chávez Ríos">
+                      <article
+                        class="appt"
+                        data-state="confirmed"
+                        style="--top: 432px; --h: 108px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 14:00 a 15:30, Cirugía guiada, Milagros Chávez Ríos"
+                      >
                         <span class="appt-t num">14:00 – 15:30</span>
                         <span class="appt-p">Milagros Chávez Ríos</span>
                         <span class="appt-x">Cirugía guiada · pieza 46</span>
-                        <span class="appt-f"><span class="who">AP</span>Dr. Paredes · S1</span>
+                        <span class="appt-f">
+                          <span class="who">AP</span>
+                          Dr. Paredes · S1
+                        </span>
                       </article>
-                      <article class="appt" data-state="scheduled" style="--top: 576px; --h: 54px; --status: var(--g400)" aria-label="Programada, 16:00 a 16:45, Retiro de puntos, Katherine Rojas Palomino">
+                      <article
+                        class="appt"
+                        data-state="scheduled"
+                        style="--top: 576px; --h: 54px; --status: var(--g400)"
+                        aria-label="Programada, 16:00 a 16:45, Retiro de puntos, Katherine Rojas Palomino"
+                      >
                         <span class="appt-t num">16:00 – 16:45</span>
                         <span class="appt-p">Katherine Rojas Palomino</span>
                       </article>
                     </div>
 
                     <div class="col">
-                      <article class="appt short" data-state="completed" style="--top: 0px; --h: 54px; --status: var(--green-500)" aria-label="Completada, 08:00 a 08:45, Control de ortodoncia, Ana Torres Quispe">
+                      <article
+                        class="appt short"
+                        data-state="completed"
+                        style="--top: 0px; --h: 54px; --status: var(--green-500)"
+                        aria-label="Completada, 08:00 a 08:45, Control de ortodoncia, Ana Torres Quispe"
+                      >
                         <span class="appt-t num">08:00 – 08:45</span>
                         <span class="appt-p">Ana Torres Quispe</span>
-                        <span class="appt-f"><span class="who">VN</span>Dra. Núñez</span>
+                        <span class="appt-f">
+                          <span class="who">VN</span>
+                          Dra. Núñez
+                        </span>
                       </article>
-                      <article class="appt tiny" data-state="confirmed" style="--top: 72px; --h: 36px; --status: var(--steel-500)" aria-label="Confirmada, 09:00 a 09:30, Control de ortodoncia, Katherine Rojas Palomino">
+                      <article
+                        class="appt tiny"
+                        data-state="confirmed"
+                        style="--top: 72px; --h: 36px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 09:00 a 09:30, Control de ortodoncia, Katherine Rojas Palomino"
+                      >
                         <span class="appt-t num">09:00</span>
                         <span class="appt-p">Katherine Rojas Palomino</span>
                       </article>
-                      <article class="appt" data-state="in_consultation" style="--top: 144px; --h: 72px; --status: var(--yellow-500)" aria-label="En consulta, 10:00 a 11:00, Instalación de brackets, Carlos Mendoza Ataucuri">
+                      <article
+                        class="appt"
+                        data-state="in_consultation"
+                        style="--top: 144px; --h: 72px; --status: var(--yellow-500)"
+                        aria-label="En consulta, 10:00 a 11:00, Instalación de brackets, Carlos Mendoza Ataucuri"
+                      >
                         <span class="appt-t num">10:00 – 11:00</span>
                         <span class="appt-p">Carlos Mendoza Ataucuri</span>
                         <span class="appt-x">Instalación de brackets</span>
                         <span class="state-tag" data-state="in_consultation">Quedan 48 min</span>
                       </article>
-                      <button class="free-slot" style="--top: 216px; --h: 72px" aria-label="Sillón 2 libre de 11:00 a 12:00, agendar cita">
+                      <button
+                        class="free-slot"
+                        style="--top: 216px; --h: 72px"
+                        aria-label="Sillón 2 libre de 11:00 a 12:00, agendar cita"
+                      >
                         <span>Libre · 60 min</span>
                         <span class="add">+ Agendar</span>
                       </button>
-                      <article class="appt tiny" data-state="scheduled" style="--top: 288px; --h: 36px; --status: var(--g400)" aria-label="Programada, 12:00 a 12:30, Ajuste de arco, Ana Torres Quispe">
+                      <article
+                        class="appt tiny"
+                        data-state="scheduled"
+                        style="--top: 288px; --h: 36px; --status: var(--g400)"
+                        aria-label="Programada, 12:00 a 12:30, Ajuste de arco, Ana Torres Quispe"
+                      >
                         <span class="appt-t num">12:00</span>
                         <span class="appt-p">Ana Torres Quispe</span>
                       </article>
-                      <article class="appt short" data-state="confirmed" style="--top: 468px; --h: 54px; --status: var(--steel-500)" aria-label="Confirmada, 14:30 a 15:15, Control de ortodoncia, Katherine Rojas Palomino">
+                      <article
+                        class="appt short"
+                        data-state="confirmed"
+                        style="--top: 468px; --h: 54px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 14:30 a 15:15, Control de ortodoncia, Katherine Rojas Palomino"
+                      >
                         <span class="appt-t num">14:30 – 15:15</span>
                         <span class="appt-p">Katherine Rojas Palomino</span>
-                        <span class="appt-f"><span class="who">VN</span>Dra. Núñez</span>
+                        <span class="appt-f">
+                          <span class="who">VN</span>
+                          Dra. Núñez
+                        </span>
                       </article>
-                      <article class="appt" data-state="scheduled" style="--top: 540px; --h: 54px; --status: var(--g400)" aria-label="Programada, 15:30 a 16:15, Retiro de aparato, Carlos Mendoza Ataucuri">
+                      <article
+                        class="appt"
+                        data-state="scheduled"
+                        style="--top: 540px; --h: 54px; --status: var(--g400)"
+                        aria-label="Programada, 15:30 a 16:15, Retiro de aparato, Carlos Mendoza Ataucuri"
+                      >
                         <span class="appt-t num">15:30 – 16:15</span>
                         <span class="appt-p">Carlos Mendoza Ataucuri</span>
                       </article>
                     </div>
 
                     <div class="col">
-                      <article class="appt" data-state="completed" style="--top: 0px; --h: 72px; --status: var(--green-500)" aria-label="Completada, 08:00 a 09:00, Preparación de corona, Rosa Huamán Vega">
+                      <article
+                        class="appt"
+                        data-state="completed"
+                        style="--top: 0px; --h: 72px; --status: var(--green-500)"
+                        aria-label="Completada, 08:00 a 09:00, Preparación de corona, Rosa Huamán Vega"
+                      >
                         <span class="appt-t num">08:00 – 09:00</span>
                         <span class="appt-p">Rosa Huamán Vega</span>
                         <span class="appt-x">Preparación de corona</span>
-                        <span class="appt-f"><span class="who">BS</span>Dr. Salazar</span>
+                        <span class="appt-f">
+                          <span class="who">BS</span>
+                          Dr. Salazar
+                        </span>
                       </article>
-                      <article class="appt" data-state="confirmed" style="--top: 108px; --h: 72px; --status: var(--steel-500)" aria-label="Confirmada, 09:30 a 10:30, Impresión digital, Milagros Chávez Ríos">
+                      <article
+                        class="appt"
+                        data-state="confirmed"
+                        style="--top: 108px; --h: 72px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 09:30 a 10:30, Impresión digital, Milagros Chávez Ríos"
+                      >
                         <span class="appt-t num">09:30 – 10:30</span>
                         <span class="appt-p">Milagros Chávez Ríos</span>
                         <span class="appt-x">Impresión digital</span>
-                        <span class="appt-f"><span class="who">BS</span>Dr. Salazar</span>
+                        <span class="appt-f">
+                          <span class="who">BS</span>
+                          Dr. Salazar
+                        </span>
                       </article>
-                      <button class="free-slot" style="--top: 180px; --h: 72px" aria-label="Sillón 3 libre de 10:30 a 11:30, agendar cita">
+                      <button
+                        class="free-slot"
+                        style="--top: 180px; --h: 72px"
+                        aria-label="Sillón 3 libre de 10:30 a 11:30, agendar cita"
+                      >
                         <span>Libre · 60 min</span>
                         <span class="add">+ Agendar</span>
                       </button>
-                      <article class="appt short" data-state="scheduled" style="--top: 252px; --h: 54px; --status: var(--g400)" aria-label="Programada, 11:30 a 12:15, Prueba de estructura, Carlos Mendoza Ataucuri">
+                      <article
+                        class="appt short"
+                        data-state="scheduled"
+                        style="--top: 252px; --h: 54px; --status: var(--g400)"
+                        aria-label="Programada, 11:30 a 12:15, Prueba de estructura, Carlos Mendoza Ataucuri"
+                      >
                         <span class="appt-t num">11:30 – 12:15</span>
                         <span class="appt-p">Carlos Mendoza Ataucuri</span>
                         <span class="appt-x">Prueba de estructura</span>
                       </article>
-                      <article class="appt" data-state="scheduled" style="--top: 360px; --h: 72px; --status: var(--g400)" aria-label="Programada, 13:00 a 14:00, Rehabilitación oral, Jorge Salazar Paredes">
+                      <article
+                        class="appt"
+                        data-state="scheduled"
+                        style="--top: 360px; --h: 72px; --status: var(--g400)"
+                        aria-label="Programada, 13:00 a 14:00, Rehabilitación oral, Jorge Salazar Paredes"
+                      >
                         <span class="appt-t num">13:00 – 14:00</span>
                         <span class="appt-p">Jorge Salazar Paredes</span>
                         <span class="appt-x">Rehabilitación oral</span>
                       </article>
-                      <article class="appt short" data-state="confirmed" style="--top: 504px; --h: 54px; --status: var(--steel-500)" aria-label="Confirmada, 15:00 a 15:45, Cementado de corona, Rosa Huamán Vega">
+                      <article
+                        class="appt short"
+                        data-state="confirmed"
+                        style="--top: 504px; --h: 54px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 15:00 a 15:45, Cementado de corona, Rosa Huamán Vega"
+                      >
                         <span class="appt-t num">15:00 – 15:45</span>
                         <span class="appt-p">Rosa Huamán Vega</span>
                         <span class="appt-x">Cementado de corona</span>
@@ -1444,37 +1771,76 @@
                     </div>
 
                     <div class="col">
-                      <article class="appt tiny" data-state="completed" style="--top: 18px; --h: 36px; --status: var(--green-500)" aria-label="Completada, 08:15 a 08:45, Profilaxis, Mateo Ríos Salas">
+                      <article
+                        class="appt tiny"
+                        data-state="completed"
+                        style="--top: 18px; --h: 36px; --status: var(--green-500)"
+                        aria-label="Completada, 08:15 a 08:45, Profilaxis, Mateo Ríos Salas"
+                      >
                         <span class="appt-t num">08:15</span>
                         <span class="appt-p">Mateo Ríos Salas</span>
                       </article>
-                      <article class="appt short" data-state="arrived" style="--top: 72px; --h: 54px; --status: var(--indigo-500)" aria-label="En sala, 09:00 a 09:45, Limpieza dental, Diego Fernández Loayza">
+                      <article
+                        class="appt short"
+                        data-state="arrived"
+                        style="--top: 72px; --h: 54px; --status: var(--indigo-500)"
+                        aria-label="En sala, 09:00 a 09:45, Limpieza dental, Diego Fernández Loayza"
+                      >
                         <span class="appt-t num">09:00 – 09:45</span>
                         <span class="appt-p">Diego Fernández Loayza</span>
                         <span class="state-tag" data-state="arrived">Espera 11 min</span>
                       </article>
-                      <article class="appt tiny" data-state="confirmed" style="--top: 180px; --h: 36px; --status: var(--steel-500)" aria-label="Confirmada, 10:30 a 11:00, Sellantes, Valentina Chávez Ruda">
+                      <article
+                        class="appt tiny"
+                        data-state="confirmed"
+                        style="--top: 180px; --h: 36px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 10:30 a 11:00, Sellantes, Valentina Chávez Ruda"
+                      >
                         <span class="appt-t num">10:30</span>
                         <span class="appt-p">Valentina Chávez Ruda</span>
                       </article>
-                      <button class="free-slot" style="--top: 216px; --h: 72px" aria-label="Sillón 4 libre de 11:00 a 12:00, agendar cita">
+                      <button
+                        class="free-slot"
+                        style="--top: 216px; --h: 72px"
+                        aria-label="Sillón 4 libre de 11:00 a 12:00, agendar cita"
+                      >
                         <span>Libre · 60 min</span>
                         <span class="add">+ Agendar</span>
                       </button>
-                      <article class="appt" data-state="scheduled" style="--top: 288px; --h: 72px; --status: var(--g400)" aria-label="Programada, 12:00 a 13:00, Blanqueamiento, Ana Torres Quispe">
+                      <article
+                        class="appt"
+                        data-state="scheduled"
+                        style="--top: 288px; --h: 72px; --status: var(--g400)"
+                        aria-label="Programada, 12:00 a 13:00, Blanqueamiento, Ana Torres Quispe"
+                      >
                         <span class="appt-t num">12:00 – 13:00</span>
                         <span class="appt-p">Ana Torres Quispe</span>
                         <span class="appt-x">Blanqueamiento</span>
                       </article>
-                      <article class="appt tiny" data-state="scheduled" style="--top: 432px; --h: 36px; --status: var(--g400)" aria-label="Programada, 14:00 a 14:30, Control de higiene, Mateo Ríos Salas">
+                      <article
+                        class="appt tiny"
+                        data-state="scheduled"
+                        style="--top: 432px; --h: 36px; --status: var(--g400)"
+                        aria-label="Programada, 14:00 a 14:30, Control de higiene, Mateo Ríos Salas"
+                      >
                         <span class="appt-t num">14:00</span>
                         <span class="appt-p">Mateo Ríos Salas</span>
                       </article>
-                      <article class="appt tiny" data-state="cancelled" style="--top: 504px; --h: 36px; --status: var(--red-500)" aria-label="Cancelada, 15:00 a 15:30, Limpieza dental, Valentina Chávez Ruda">
+                      <article
+                        class="appt tiny"
+                        data-state="cancelled"
+                        style="--top: 504px; --h: 36px; --status: var(--red-500)"
+                        aria-label="Cancelada, 15:00 a 15:30, Limpieza dental, Valentina Chávez Ruda"
+                      >
                         <span class="appt-t num">15:00</span>
                         <span class="appt-p">Valentina Chávez Ruda</span>
                       </article>
-                      <article class="appt short" data-state="confirmed" style="--top: 576px; --h: 54px; --status: var(--steel-500)" aria-label="Confirmada, 16:00 a 16:45, Limpieza dental, Jorge Salazar Paredes">
+                      <article
+                        class="appt short"
+                        data-state="confirmed"
+                        style="--top: 576px; --h: 54px; --status: var(--steel-500)"
+                        aria-label="Confirmada, 16:00 a 16:45, Limpieza dental, Jorge Salazar Paredes"
+                      >
                         <span class="appt-t num">16:00 – 16:45</span>
                         <span class="appt-p">Jorge Salazar Paredes</span>
                       </article>
@@ -1528,7 +1894,21 @@
                     <p class="q-meta">14:00 · recordatorio enviado</p>
                   </div>
                   <button class="btn-mini is-icon" aria-label="Llamar a Carlos Mendoza">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"/></svg>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"
+                      />
+                    </svg>
                   </button>
                 </li>
                 <li>
@@ -1538,7 +1918,21 @@
                     <p class="q-meta">15:30 · sin respuesta</p>
                   </div>
                   <button class="btn-mini is-icon" aria-label="Llamar a Katherine Rojas">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"/></svg>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"
+                      />
+                    </svg>
                   </button>
                 </li>
                 <li>
@@ -1548,7 +1942,21 @@
                     <p class="q-meta">16:30 · recordatorio enviado</p>
                   </div>
                   <button class="btn-mini is-icon" aria-label="Llamar a Mateo Ríos">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"/></svg>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"
+                      />
+                    </svg>
                   </button>
                 </li>
               </ul>

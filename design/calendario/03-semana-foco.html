@@ -89,8 +89,8 @@
       body {
         background: var(--canvas);
         color: var(--label);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-          sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         font-size: 15px;
         line-height: 22px;
         -webkit-font-smoothing: antialiased;
@@ -163,7 +163,8 @@
         display: grid;
         place-items: center;
         color: var(--g500);
-        transition: background var(--dur-fast) var(--ease-ios),
+        transition:
+          background var(--dur-fast) var(--ease-ios),
           color var(--dur-fast) var(--ease-ios);
       }
       .rail-btn:hover {
@@ -259,7 +260,8 @@
         font-size: 12.5px;
         font-weight: 600;
         color: var(--label-2);
-        transition: background var(--dur-normal) var(--ease-ios),
+        transition:
+          background var(--dur-normal) var(--ease-ios),
           color var(--dur-normal) var(--ease-ios);
       }
       .seg-btn:hover {
@@ -286,7 +288,8 @@
         display: grid;
         place-items: center;
         color: var(--label-2);
-        transition: background var(--dur-fast) var(--ease-ios),
+        transition:
+          background var(--dur-fast) var(--ease-ios),
           color var(--dur-fast) var(--ease-ios);
       }
       .icon-btn:hover {
@@ -319,8 +322,11 @@
         color: #fff;
         font-size: 13px;
         font-weight: 600;
-        box-shadow: var(--e3), inset 0 1px 0 rgba(255, 255, 255, 0.32);
-        transition: transform var(--dur-fast) var(--ease-ios),
+        box-shadow:
+          var(--e3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+        transition:
+          transform var(--dur-fast) var(--ease-ios),
           background var(--dur-normal) var(--ease-ios);
       }
       .btn-primary:hover {
@@ -359,7 +365,8 @@
         font-weight: 600;
         color: var(--label);
         white-space: nowrap;
-        transition: background var(--dur-normal) var(--ease-ios),
+        transition:
+          background var(--dur-normal) var(--ease-ios),
           color var(--dur-normal) var(--ease-ios);
       }
       .pill:hover {
@@ -455,7 +462,8 @@
         display: grid;
         place-items: center;
         color: var(--label-2);
-        transition: background var(--dur-fast) var(--ease-ios),
+        transition:
+          background var(--dur-fast) var(--ease-ios),
           color var(--dur-fast) var(--ease-ios);
       }
       .mini-icon:hover {
@@ -491,7 +499,8 @@
         line-height: 14px;
         font-weight: 600;
         color: var(--label);
-        transition: background var(--dur-normal) var(--ease-ios),
+        transition:
+          background var(--dur-normal) var(--ease-ios),
           color var(--dur-normal) var(--ease-ios);
       }
       .mday:hover {
@@ -801,7 +810,8 @@
         box-shadow: var(--e1);
         text-align: left;
         overflow: hidden;
-        transition: transform var(--dur-fast) var(--ease-ios),
+        transition:
+          transform var(--dur-fast) var(--ease-ios),
           box-shadow var(--dur-fast) var(--ease-ios);
       }
       .appt:hover {
@@ -1009,33 +1019,119 @@
         <ul class="rail-list">
           <li>
             <button class="rail-btn" type="button" aria-label="Panel">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="7" height="7" rx="2" />
+                <rect x="14" y="3" width="7" height="7" rx="2" />
+                <rect x="3" y="14" width="7" height="7" rx="2" />
+                <rect x="14" y="14" width="7" height="7" rx="2" />
+              </svg>
             </button>
           </li>
           <li>
-            <button class="rail-btn is-active" type="button" aria-label="Calendario" aria-current="page">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+            <button
+              class="rail-btn is-active"
+              type="button"
+              aria-label="Calendario"
+              aria-current="page"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="5" width="18" height="16" rx="3" />
+                <path d="M8 3v4M16 3v4M3 10h18" />
+              </svg>
             </button>
           </li>
           <li>
             <button class="rail-btn" type="button" aria-label="Pacientes">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.9-4.8 5.5-4.8s4.9 1.6 5.5 4.8"/><path d="M16 6.2a3 3 0 0 1 0 5.6M17.5 14.6c2 .5 3.2 2 3.5 4.4"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="9" cy="8" r="3.2" />
+                <path d="M3.5 19c.6-3.2 2.9-4.8 5.5-4.8s4.9 1.6 5.5 4.8" />
+                <path d="M16 6.2a3 3 0 0 1 0 5.6M17.5 14.6c2 .5 3.2 2 3.5 4.4" />
+              </svg>
             </button>
           </li>
           <li>
             <button class="rail-btn" type="button" aria-label="Caja">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 11h18M16 15h2"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="6" width="18" height="13" rx="3" />
+                <path d="M3 11h18M16 15h2" />
+              </svg>
             </button>
           </li>
           <li>
             <button class="rail-btn" type="button" aria-label="Reportes">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V6M10 20v-7M16 20V9M22 20H2"/></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 20V6M10 20v-7M16 20V9M22 20H2" />
+              </svg>
             </button>
           </li>
         </ul>
         <div class="rail-foot">
           <button class="rail-btn" type="button" aria-label="Configuración">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+              <circle cx="16" cy="7" r="2" />
+              <circle cx="10" cy="17" r="2" />
+            </svg>
           </button>
           <span class="avatar" aria-hidden="true">AR</span>
         </div>
@@ -1056,15 +1152,50 @@
             </div>
             <div class="stepper">
               <button class="icon-btn" type="button" aria-label="Semana anterior">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M14 6l-6 6 6 6" />
+                </svg>
               </button>
               <button class="btn-ghost" type="button">Hoy</button>
               <button class="icon-btn" type="button" aria-label="Semana siguiente">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M10 6l6 6-6 6" />
+                </svg>
               </button>
             </div>
             <button class="btn-primary" type="button">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
               Nueva cita
             </button>
           </div>
@@ -1072,17 +1203,58 @@
 
         <div class="filters">
           <div class="pills" role="group" aria-label="Filtrar citas por estado">
-            <button class="pill is-active" type="button" aria-pressed="true">Todas <span class="pcount">23</span></button>
-            <button class="pill" type="button" aria-pressed="false"><span class="pdot" style="background: var(--g400)" aria-hidden="true"></span>Programadas <span class="pcount">4</span></button>
-            <button class="pill" type="button" aria-pressed="false"><span class="pdot" style="background: var(--steel-500)" aria-hidden="true"></span>Confirmadas <span class="pcount">9</span></button>
-            <button class="pill" type="button" aria-pressed="false"><span class="pdot" style="background: var(--indigo-500)" aria-hidden="true"></span>En sala <span class="pcount">2</span></button>
-            <button class="pill" type="button" aria-pressed="false"><span class="pdot" style="background: var(--green-500)" aria-hidden="true"></span>Completadas <span class="pcount">6</span></button>
-            <button class="pill" type="button" aria-pressed="false"><span class="pdot" style="background: var(--red-500)" aria-hidden="true"></span>Canceladas <span class="pcount">1</span></button>
-            <button class="pill" type="button" aria-pressed="false"><span class="pdot" style="background: var(--orange-500)" aria-hidden="true"></span>No asistió <span class="pcount">1</span></button>
+            <button class="pill is-active" type="button" aria-pressed="true">
+              Todas
+              <span class="pcount">23</span>
+            </button>
+            <button class="pill" type="button" aria-pressed="false">
+              <span class="pdot" style="background: var(--g400)" aria-hidden="true"></span>
+              Programadas
+              <span class="pcount">4</span>
+            </button>
+            <button class="pill" type="button" aria-pressed="false">
+              <span class="pdot" style="background: var(--steel-500)" aria-hidden="true"></span>
+              Confirmadas
+              <span class="pcount">9</span>
+            </button>
+            <button class="pill" type="button" aria-pressed="false">
+              <span class="pdot" style="background: var(--indigo-500)" aria-hidden="true"></span>
+              En sala
+              <span class="pcount">2</span>
+            </button>
+            <button class="pill" type="button" aria-pressed="false">
+              <span class="pdot" style="background: var(--green-500)" aria-hidden="true"></span>
+              Completadas
+              <span class="pcount">6</span>
+            </button>
+            <button class="pill" type="button" aria-pressed="false">
+              <span class="pdot" style="background: var(--red-500)" aria-hidden="true"></span>
+              Canceladas
+              <span class="pcount">1</span>
+            </button>
+            <button class="pill" type="button" aria-pressed="false">
+              <span class="pdot" style="background: var(--orange-500)" aria-hidden="true"></span>
+              No asistió
+              <span class="pcount">1</span>
+            </button>
           </div>
           <div class="tools">
             <button class="btn-ghost" type="button">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+                <circle cx="16" cy="7" r="2" />
+                <circle cx="10" cy="17" r="2" />
+              </svg>
               Filtros
             </button>
             <span class="chip-sillas">4 sillones</span>
@@ -1104,9 +1276,17 @@
                   <p class="dn num">17</p>
                   <p class="dc">4 citas</p>
                 </div>
-                <div class="dhead is-today" role="group" aria-current="date" aria-label="Miércoles 18 de noviembre, hoy, 4 citas">
+                <div
+                  class="dhead is-today"
+                  role="group"
+                  aria-current="date"
+                  aria-label="Miércoles 18 de noviembre, hoy, 4 citas"
+                >
                   <p class="dw">Mié</p>
-                  <p class="dn num">18 <span class="today-chip">HOY</span></p>
+                  <p class="dn num">
+                    18
+                    <span class="today-chip">HOY</span>
+                  </p>
                   <p class="dc">4 citas</p>
                 </div>
                 <div class="dhead" role="group" aria-label="Jueves 19 de noviembre, 3 citas">
@@ -1146,118 +1326,304 @@
 
                 <div class="cols">
                   <div class="col">
-                    <button class="appt" type="button" data-state="completed" style="--top: 0px; --h: 72px; --status: var(--green-500)" aria-label="Lunes 16, 08:00, Ana Torres Quispe, control de ortodoncia, sillón 2, completada">
-                      <span class="appt-top"><span class="appt-t num">08:00</span><span class="chair">S2</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="completed"
+                      style="--top: 0px; --h: 72px; --status: var(--green-500)"
+                      aria-label="Lunes 16, 08:00, Ana Torres Quispe, control de ortodoncia, sillón 2, completada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">08:00</span>
+                        <span class="chair">S2</span>
+                      </span>
                       <span class="appt-p">Ana Torres Quispe</span>
                       <span class="appt-x">Control de ortodoncia</span>
                     </button>
-                    <button class="appt" type="button" data-state="confirmed" style="--top: 108px; --h: 72px; --status: var(--steel-500)" aria-label="Lunes 16, 09:30, Luis Ramírez Ccahuana, endodoncia pieza 36, sillón 1, confirmada">
-                      <span class="appt-top"><span class="appt-t num">09:30</span><span class="chair">S1</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="confirmed"
+                      style="--top: 108px; --h: 72px; --status: var(--steel-500)"
+                      aria-label="Lunes 16, 09:30, Luis Ramírez Ccahuana, endodoncia pieza 36, sillón 1, confirmada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">09:30</span>
+                        <span class="chair">S1</span>
+                      </span>
                       <span class="appt-p">Luis Ramírez Ccahuana</span>
                       <span class="appt-x">Endodoncia 36</span>
                     </button>
-                    <button class="appt" type="button" data-state="scheduled" style="--top: 216px; --h: 72px; --status: var(--g400)" aria-label="Lunes 16, 11:00, Rosa Huamán Vega, rehabilitación oral, sillón 3, programada">
-                      <span class="appt-top"><span class="appt-t num">11:00</span><span class="chair">S3</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="scheduled"
+                      style="--top: 216px; --h: 72px; --status: var(--g400)"
+                      aria-label="Lunes 16, 11:00, Rosa Huamán Vega, rehabilitación oral, sillón 3, programada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">11:00</span>
+                        <span class="chair">S3</span>
+                      </span>
                       <span class="appt-p">Rosa Huamán Vega</span>
                       <span class="appt-x">Rehabilitación oral</span>
                     </button>
-                    <button class="appt" type="button" data-state="confirmed" style="--top: 432px; --h: 72px; --status: var(--steel-500)" aria-label="Lunes 16, 14:00, Milagros Chávez Ríos, cirugía guiada, sillón 1, confirmada">
-                      <span class="appt-top"><span class="appt-t num">14:00</span><span class="chair">S1</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="confirmed"
+                      style="--top: 432px; --h: 72px; --status: var(--steel-500)"
+                      aria-label="Lunes 16, 14:00, Milagros Chávez Ríos, cirugía guiada, sillón 1, confirmada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">14:00</span>
+                        <span class="chair">S1</span>
+                      </span>
                       <span class="appt-p">Milagros Chávez Ríos</span>
                       <span class="appt-x">Cirugía guiada</span>
                     </button>
                   </div>
 
                   <div class="col">
-                    <button class="appt" type="button" data-state="completed" style="--top: 18px; --h: 72px; --status: var(--green-500)" aria-label="Martes 17, 08:15, Mateo Ríos Salas, profilaxis, sillón 4, completada">
-                      <span class="appt-top"><span class="appt-t num">08:15</span><span class="chair">S4</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="completed"
+                      style="--top: 18px; --h: 72px; --status: var(--green-500)"
+                      aria-label="Martes 17, 08:15, Mateo Ríos Salas, profilaxis, sillón 4, completada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">08:15</span>
+                        <span class="chair">S4</span>
+                      </span>
                       <span class="appt-p">Mateo Ríos Salas</span>
                       <span class="appt-x">Profilaxis</span>
                     </button>
-                    <button class="appt" type="button" data-state="confirmed" style="--top: 144px; --h: 72px; --status: var(--steel-500)" aria-label="Martes 17, 10:00, Jorge Salazar Paredes, exodoncia pieza 38, sillón 1, confirmada">
-                      <span class="appt-top"><span class="appt-t num">10:00</span><span class="chair">S1</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="confirmed"
+                      style="--top: 144px; --h: 72px; --status: var(--steel-500)"
+                      aria-label="Martes 17, 10:00, Jorge Salazar Paredes, exodoncia pieza 38, sillón 1, confirmada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">10:00</span>
+                        <span class="chair">S1</span>
+                      </span>
                       <span class="appt-p">Jorge Salazar Paredes</span>
                       <span class="appt-x">Exodoncia 38</span>
                     </button>
-                    <button class="appt" type="button" data-state="confirmed" style="--top: 288px; --h: 72px; --status: var(--steel-500)" aria-label="Martes 17, 12:00, Ana Torres Quispe, blanqueamiento, sillón 4, confirmada">
-                      <span class="appt-top"><span class="appt-t num">12:00</span><span class="chair">S4</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="confirmed"
+                      style="--top: 288px; --h: 72px; --status: var(--steel-500)"
+                      aria-label="Martes 17, 12:00, Ana Torres Quispe, blanqueamiento, sillón 4, confirmada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">12:00</span>
+                        <span class="chair">S4</span>
+                      </span>
                       <span class="appt-p">Ana Torres Quispe</span>
                       <span class="appt-x">Blanqueamiento</span>
                     </button>
-                    <button class="appt" type="button" data-state="scheduled" style="--top: 504px; --h: 72px; --status: var(--g400)" aria-label="Martes 17, 15:00, Katherine Rojas Palomino, retiro de aparato, sillón 2, programada">
-                      <span class="appt-top"><span class="appt-t num">15:00</span><span class="chair">S2</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="scheduled"
+                      style="--top: 504px; --h: 72px; --status: var(--g400)"
+                      aria-label="Martes 17, 15:00, Katherine Rojas Palomino, retiro de aparato, sillón 2, programada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">15:00</span>
+                        <span class="chair">S2</span>
+                      </span>
                       <span class="appt-p">Katherine Rojas Palomino</span>
                       <span class="appt-x">Retiro de aparato</span>
                     </button>
                   </div>
 
                   <div class="col is-today">
-                    <button class="appt" type="button" data-state="arrived" style="--top: 36px; --h: 72px; --status: var(--indigo-500)" aria-label="Miércoles 18, 08:30, Diego Fernández Loayza, limpieza dental, sillón 4, en sala desde hace 4 minutos">
-                      <span class="appt-top"><span class="appt-t num">08:30</span><span class="chair">S4</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="arrived"
+                      style="--top: 36px; --h: 72px; --status: var(--indigo-500)"
+                      aria-label="Miércoles 18, 08:30, Diego Fernández Loayza, limpieza dental, sillón 4, en sala desde hace 4 minutos"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">08:30</span>
+                        <span class="chair">S4</span>
+                      </span>
                       <span class="appt-p">Diego Fernández Loayza</span>
                       <span class="appt-x">Limpieza dental</span>
-                      <span class="state" data-s="arrived"><span class="sdot"></span>En sala · 4 min</span>
+                      <span class="state" data-s="arrived">
+                        <span class="sdot"></span>
+                        En sala · 4 min
+                      </span>
                     </button>
-                    <button class="appt half" type="button" data-state="in_consultation" style="--top: 108px; --h: 90px; --status: var(--yellow-500)" aria-label="Miércoles 18, 09:30, Luis Ramírez Ccahuana, endodoncia pieza 36, sillón 1, en consulta desde hace 42 minutos">
-                      <span class="appt-top"><span class="appt-t num">09:30</span><span class="chair">S1</span></span>
+                    <button
+                      class="appt half"
+                      type="button"
+                      data-state="in_consultation"
+                      style="--top: 108px; --h: 90px; --status: var(--yellow-500)"
+                      aria-label="Miércoles 18, 09:30, Luis Ramírez Ccahuana, endodoncia pieza 36, sillón 1, en consulta desde hace 42 minutos"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">09:30</span>
+                        <span class="chair">S1</span>
+                      </span>
                       <span class="appt-p">Luis Ramírez Ccahuana</span>
-                      <span class="state" data-s="in_consultation"><span class="sdot"></span>En consulta</span>
+                      <span class="state" data-s="in_consultation">
+                        <span class="sdot"></span>
+                        En consulta
+                      </span>
                     </button>
-                    <button class="appt half is-right" type="button" data-state="confirmed" style="--top: 108px; --h: 72px; --status: var(--steel-500)" aria-label="Miércoles 18, 09:30, Katherine Rojas Palomino, control de ortodoncia, sillón 2, confirmada">
-                      <span class="appt-top"><span class="appt-t num">09:30</span><span class="chair">S2</span></span>
+                    <button
+                      class="appt half is-right"
+                      type="button"
+                      data-state="confirmed"
+                      style="--top: 108px; --h: 72px; --status: var(--steel-500)"
+                      aria-label="Miércoles 18, 09:30, Katherine Rojas Palomino, control de ortodoncia, sillón 2, confirmada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">09:30</span>
+                        <span class="chair">S2</span>
+                      </span>
                       <span class="appt-p">Katherine Rojas Palomino</span>
                     </button>
-                    <button class="appt" type="button" data-state="confirmed" style="--top: 360px; --h: 72px; --status: var(--steel-500)" aria-label="Miércoles 18, 13:00, Rosa Huamán Vega, cementado de corona, sillón 3, confirmada">
-                      <span class="appt-top"><span class="appt-t num">13:00</span><span class="chair">S3</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="confirmed"
+                      style="--top: 360px; --h: 72px; --status: var(--steel-500)"
+                      aria-label="Miércoles 18, 13:00, Rosa Huamán Vega, cementado de corona, sillón 3, confirmada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">13:00</span>
+                        <span class="chair">S3</span>
+                      </span>
                       <span class="appt-p">Rosa Huamán Vega</span>
                       <span class="appt-x">Cementado de corona</span>
                     </button>
                   </div>
 
                   <div class="col">
-                    <button class="appt" type="button" data-state="confirmed" style="--top: 72px; --h: 72px; --status: var(--steel-500)" aria-label="Jueves 19, 09:00, Carlos Mendoza Ataucuri, prueba de estructura, sillón 3, confirmada">
-                      <span class="appt-top"><span class="appt-t num">09:00</span><span class="chair">S3</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="confirmed"
+                      style="--top: 72px; --h: 72px; --status: var(--steel-500)"
+                      aria-label="Jueves 19, 09:00, Carlos Mendoza Ataucuri, prueba de estructura, sillón 3, confirmada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">09:00</span>
+                        <span class="chair">S3</span>
+                      </span>
                       <span class="appt-p">Carlos Mendoza Ataucuri</span>
                       <span class="appt-x">Prueba de estructura</span>
                     </button>
-                    <button class="appt" type="button" data-state="cancelled" style="--top: 252px; --h: 72px; --status: var(--red-500)" aria-label="Jueves 19, 11:30, Ana Torres Quispe, ajuste de arco, sillón 2, cancelada">
-                      <span class="appt-top"><span class="appt-t num">11:30</span><span class="chair">S2</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="cancelled"
+                      style="--top: 252px; --h: 72px; --status: var(--red-500)"
+                      aria-label="Jueves 19, 11:30, Ana Torres Quispe, ajuste de arco, sillón 2, cancelada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">11:30</span>
+                        <span class="chair">S2</span>
+                      </span>
                       <span class="appt-p">Ana Torres Quispe</span>
                       <span class="appt-x">Ajuste de arco</span>
                     </button>
-                    <button class="appt" type="button" data-state="scheduled" style="--top: 468px; --h: 72px; --status: var(--g400)" aria-label="Jueves 19, 14:30, Valentina Chávez Ruda, limpieza dental, sillón 4, programada">
-                      <span class="appt-top"><span class="appt-t num">14:30</span><span class="chair">S4</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="scheduled"
+                      style="--top: 468px; --h: 72px; --status: var(--g400)"
+                      aria-label="Jueves 19, 14:30, Valentina Chávez Ruda, limpieza dental, sillón 4, programada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">14:30</span>
+                        <span class="chair">S4</span>
+                      </span>
                       <span class="appt-p">Valentina Chávez Ruda</span>
                       <span class="appt-x">Limpieza dental</span>
                     </button>
                   </div>
 
                   <div class="col">
-                    <button class="appt" type="button" data-state="confirmed" style="--top: 0px; --h: 72px; --status: var(--steel-500)" aria-label="Viernes 20, 08:00, Jorge Salazar Paredes, rehabilitación oral, sillón 3, confirmada">
-                      <span class="appt-top"><span class="appt-t num">08:00</span><span class="chair">S3</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="confirmed"
+                      style="--top: 0px; --h: 72px; --status: var(--steel-500)"
+                      aria-label="Viernes 20, 08:00, Jorge Salazar Paredes, rehabilitación oral, sillón 3, confirmada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">08:00</span>
+                        <span class="chair">S3</span>
+                      </span>
                       <span class="appt-p">Jorge Salazar Paredes</span>
                       <span class="appt-x">Rehabilitación oral</span>
                     </button>
-                    <button class="appt" type="button" data-state="scheduled" style="--top: 180px; --h: 72px; --status: var(--g400)" aria-label="Viernes 20, 10:30, Diego Fernández Loayza, retiro de puntos, sillón 1, programada">
-                      <span class="appt-top"><span class="appt-t num">10:30</span><span class="chair">S1</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="scheduled"
+                      style="--top: 180px; --h: 72px; --status: var(--g400)"
+                      aria-label="Viernes 20, 10:30, Diego Fernández Loayza, retiro de puntos, sillón 1, programada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">10:30</span>
+                        <span class="chair">S1</span>
+                      </span>
                       <span class="appt-p">Diego Fernández Loayza</span>
                       <span class="appt-x">Retiro de puntos</span>
                     </button>
-                    <button class="appt" type="button" data-state="confirmed" style="--top: 540px; --h: 72px; --status: var(--steel-500)" aria-label="Viernes 20, 15:30, Mateo Ríos Salas, control de higiene, sillón 4, confirmada">
-                      <span class="appt-top"><span class="appt-t num">15:30</span><span class="chair">S4</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="confirmed"
+                      style="--top: 540px; --h: 72px; --status: var(--steel-500)"
+                      aria-label="Viernes 20, 15:30, Mateo Ríos Salas, control de higiene, sillón 4, confirmada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">15:30</span>
+                        <span class="chair">S4</span>
+                      </span>
                       <span class="appt-p">Mateo Ríos Salas</span>
                       <span class="appt-x">Control de higiene</span>
                     </button>
                   </div>
 
                   <div class="col">
-                    <button class="appt" type="button" data-state="confirmed" style="--top: 72px; --h: 72px; --status: var(--steel-500)" aria-label="Sábado 21, 09:00, Milagros Chávez Ríos, impresión digital, sillón 3, confirmada">
-                      <span class="appt-top"><span class="appt-t num">09:00</span><span class="chair">S3</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="confirmed"
+                      style="--top: 72px; --h: 72px; --status: var(--steel-500)"
+                      aria-label="Sábado 21, 09:00, Milagros Chávez Ríos, impresión digital, sillón 3, confirmada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">09:00</span>
+                        <span class="chair">S3</span>
+                      </span>
                       <span class="appt-p">Milagros Chávez Ríos</span>
                       <span class="appt-x">Impresión digital</span>
                     </button>
-                    <button class="appt" type="button" data-state="scheduled" style="--top: 216px; --h: 72px; --status: var(--g400)" aria-label="Sábado 21, 11:00, Valentina Chávez Ruda, sellantes, sillón 4, programada">
-                      <span class="appt-top"><span class="appt-t num">11:00</span><span class="chair">S4</span></span>
+                    <button
+                      class="appt"
+                      type="button"
+                      data-state="scheduled"
+                      style="--top: 216px; --h: 72px; --status: var(--g400)"
+                      aria-label="Sábado 21, 11:00, Valentina Chávez Ruda, sellantes, sillón 4, programada"
+                    >
+                      <span class="appt-top">
+                        <span class="appt-t num">11:00</span>
+                        <span class="chair">S4</span>
+                      </span>
                       <span class="appt-p">Valentina Chávez Ruda</span>
                       <span class="appt-x">Sellantes</span>
                     </button>
@@ -1279,10 +1645,34 @@
                 <h2>Noviembre 2026</h2>
                 <div class="mm-nav">
                   <button class="mini-icon" type="button" aria-label="Mes anterior">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M14 6l-6 6 6 6" />
+                    </svg>
                   </button>
                   <button class="mini-icon" type="button" aria-label="Mes siguiente">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M10 6l6 6-6 6" />
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -1303,94 +1693,189 @@
                 <li aria-hidden="true"></li>
                 <li aria-hidden="true"></li>
                 <li>
-                  <button class="mday" type="button" aria-label="Domingo 1 de noviembre"><span class="mn">1</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Domingo 1 de noviembre">
+                    <span class="mn">1</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Lunes 2 de noviembre"><span class="mn">2</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Lunes 2 de noviembre">
+                    <span class="mn">2</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Martes 3 de noviembre"><span class="mn">3</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Martes 3 de noviembre">
+                    <span class="mn">3</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Miércoles 4 de noviembre"><span class="mn">4</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Miércoles 4 de noviembre">
+                    <span class="mn">4</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Jueves 5 de noviembre"><span class="mn">5</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Jueves 5 de noviembre">
+                    <span class="mn">5</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Viernes 6 de noviembre"><span class="mn">6</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Viernes 6 de noviembre">
+                    <span class="mn">6</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Sábado 7 de noviembre"><span class="mn">7</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Sábado 7 de noviembre">
+                    <span class="mn">7</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Domingo 8 de noviembre"><span class="mn">8</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Domingo 8 de noviembre">
+                    <span class="mn">8</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Lunes 9 de noviembre"><span class="mn">9</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Lunes 9 de noviembre">
+                    <span class="mn">9</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Martes 10 de noviembre"><span class="mn">10</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Martes 10 de noviembre">
+                    <span class="mn">10</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Miércoles 11 de noviembre"><span class="mn">11</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Miércoles 11 de noviembre">
+                    <span class="mn">11</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Jueves 12 de noviembre"><span class="mn">12</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Jueves 12 de noviembre">
+                    <span class="mn">12</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Viernes 13 de noviembre"><span class="mn">13</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Viernes 13 de noviembre">
+                    <span class="mn">13</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Sábado 14 de noviembre"><span class="mn">14</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Sábado 14 de noviembre">
+                    <span class="mn">14</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Domingo 15 de noviembre"><span class="mn">15</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Domingo 15 de noviembre">
+                    <span class="mn">15</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Lunes 16 de noviembre"><span class="mn">16</span><span class="mdot" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Lunes 16 de noviembre">
+                    <span class="mn">16</span>
+                    <span class="mdot" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Martes 17 de noviembre"><span class="mn">17</span><span class="mdot" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Martes 17 de noviembre">
+                    <span class="mn">17</span>
+                    <span class="mdot" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday is-today" type="button" aria-current="date" aria-label="Miércoles 18 de noviembre, hoy"><span class="mn">18</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button
+                    class="mday is-today"
+                    type="button"
+                    aria-current="date"
+                    aria-label="Miércoles 18 de noviembre, hoy"
+                  >
+                    <span class="mn">18</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Jueves 19 de noviembre"><span class="mn">19</span><span class="mdot" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Jueves 19 de noviembre">
+                    <span class="mn">19</span>
+                    <span class="mdot" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Viernes 20 de noviembre"><span class="mn">20</span><span class="mdot" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Viernes 20 de noviembre">
+                    <span class="mn">20</span>
+                    <span class="mdot" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Sábado 21 de noviembre"><span class="mn">21</span><span class="mdot" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Sábado 21 de noviembre">
+                    <span class="mn">21</span>
+                    <span class="mdot" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Domingo 22 de noviembre"><span class="mn">22</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Domingo 22 de noviembre">
+                    <span class="mn">22</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Lunes 23 de noviembre"><span class="mn">23</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Lunes 23 de noviembre">
+                    <span class="mn">23</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Martes 24 de noviembre"><span class="mn">24</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Martes 24 de noviembre">
+                    <span class="mn">24</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Miércoles 25 de noviembre"><span class="mn">25</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Miércoles 25 de noviembre">
+                    <span class="mn">25</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Jueves 26 de noviembre"><span class="mn">26</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Jueves 26 de noviembre">
+                    <span class="mn">26</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Viernes 27 de noviembre"><span class="mn">27</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Viernes 27 de noviembre">
+                    <span class="mn">27</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Sábado 28 de noviembre"><span class="mn">28</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Sábado 28 de noviembre">
+                    <span class="mn">28</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Domingo 29 de noviembre"><span class="mn">29</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Domingo 29 de noviembre">
+                    <span class="mn">29</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li>
-                  <button class="mday" type="button" aria-label="Lunes 30 de noviembre"><span class="mn">30</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                  <button class="mday" type="button" aria-label="Lunes 30 de noviembre">
+                    <span class="mn">30</span>
+                    <span class="mdot is-idle" aria-hidden="true"></span>
+                  </button>
                 </li>
                 <li aria-hidden="true"></li>
                 <li aria-hidden="true"></li>
@@ -1406,12 +1891,32 @@
               <ul class="pros">
                 <li>
                   <label class="pro">
-                    <span class="pdot" style="background: var(--indigo-500)" aria-hidden="true"></span>
+                    <span
+                      class="pdot"
+                      style="background: var(--indigo-500)"
+                      aria-hidden="true"
+                    ></span>
                     <span class="pname">Dra. Núñez</span>
                     <span class="pcount">4</span>
-                    <input class="pcheck" type="checkbox" checked aria-label="Mostrar a la Dra. Núñez" />
+                    <input
+                      class="pcheck"
+                      type="checkbox"
+                      checked
+                      aria-label="Mostrar a la Dra. Núñez"
+                    />
                     <span class="mark" aria-hidden="true">
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+                      <svg
+                        width="9"
+                        height="9"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3.4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M5 12.5l4.5 4.5L19 7" />
+                      </svg>
                     </span>
                   </label>
                 </li>
@@ -1420,31 +1925,87 @@
                     <span class="pdot" style="background: var(--accent)" aria-hidden="true"></span>
                     <span class="pname">Dr. Paredes</span>
                     <span class="pcount">5</span>
-                    <input class="pcheck" type="checkbox" checked aria-label="Mostrar al Dr. Paredes" />
+                    <input
+                      class="pcheck"
+                      type="checkbox"
+                      checked
+                      aria-label="Mostrar al Dr. Paredes"
+                    />
                     <span class="mark" aria-hidden="true">
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+                      <svg
+                        width="9"
+                        height="9"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3.4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M5 12.5l4.5 4.5L19 7" />
+                      </svg>
                     </span>
                   </label>
                 </li>
                 <li>
                   <label class="pro">
-                    <span class="pdot" style="background: var(--steel-500)" aria-hidden="true"></span>
+                    <span
+                      class="pdot"
+                      style="background: var(--steel-500)"
+                      aria-hidden="true"
+                    ></span>
                     <span class="pname">Dr. Salazar</span>
                     <span class="pcount">5</span>
-                    <input class="pcheck" type="checkbox" checked aria-label="Mostrar al Dr. Salazar" />
+                    <input
+                      class="pcheck"
+                      type="checkbox"
+                      checked
+                      aria-label="Mostrar al Dr. Salazar"
+                    />
                     <span class="mark" aria-hidden="true">
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+                      <svg
+                        width="9"
+                        height="9"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3.4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M5 12.5l4.5 4.5L19 7" />
+                      </svg>
                     </span>
                   </label>
                 </li>
                 <li>
                   <label class="pro">
-                    <span class="pdot" style="background: var(--purple-500)" aria-hidden="true"></span>
+                    <span
+                      class="pdot"
+                      style="background: var(--purple-500)"
+                      aria-hidden="true"
+                    ></span>
                     <span class="pname">Dra. Ríos</span>
                     <span class="pcount">6</span>
-                    <input class="pcheck" type="checkbox" checked aria-label="Mostrar a la Dra. Ríos" />
+                    <input
+                      class="pcheck"
+                      type="checkbox"
+                      checked
+                      aria-label="Mostrar a la Dra. Ríos"
+                    />
                     <span class="mark" aria-hidden="true">
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+                      <svg
+                        width="9"
+                        height="9"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3.4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M5 12.5l4.5 4.5L19 7" />
+                      </svg>
                     </span>
                   </label>
                 </li>
