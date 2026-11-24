@@ -39,7 +39,11 @@ class PendingPaymentsPaginationTest extends TestCase
             'patient_id' => ($patient ?? Patient::factory()->create())->id,
             'status' => 'completed',
             'scheduled_at' => $scheduledAt,
+            'completed_at' => $scheduledAt,
             'duration_minutes' => 30,
+            // #393 — the list is the one `ready-to-bill` publishes: a closed
+            // attention without an amount owes nothing and is not billable.
+            'final_amount' => 100,
         ]);
     }
 

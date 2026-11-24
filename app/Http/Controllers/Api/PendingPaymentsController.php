@@ -7,9 +7,9 @@ use App\Exceptions\AccountingLockBlockedException;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Services\AccountingLockService;
+use App\Services\BillingService;
 use App\Services\TransactionService;
 use App\Support\AppointmentBalance;
-use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Log;
 
 class PendingPaymentsController extends Controller
 {
+    public function __construct(private readonly BillingService $billing) {}
+
     /**
      * Obtener pagos pendientes.
      */
@@ -32,106 +34,53 @@ class PendingPaymentsController extends Controller
         }
 
         try {
-            // Query para obtener citas completadas que NO tienen transacciones asociadas
-            $query = Appointment::where('status', 'completed')
-                ->whereDate('scheduled_at', '<=', Carbon::today())
-                ->whereDoesntHave('transactions', function ($q) {
-                    $q->where('status', '!=', 'voided');
-                });
+            // #393 — Cobros and `appointments/ready-to-bill` are the same set:
+            // the debt and the payments come from `AppointmentBalance`, so the
+            // balance the desk lists is the balance the paying door collects.
+            // The old query listed every completed appointment without a
+            // transaction and priced it with the appointment type's catalog
+            // price, which published 0.00 debts and amounts nobody owed.
+            $appointments = $this->billing->readyToBill([
+                'search' => $request->input('search'),
+                'from' => $request->input('date_from'),
+                'to' => $request->input('date_to'),
+                'patient_id' => $request->input('patient_id'),
+                'branch_id' => $request->input('branch_id'),
+                'per_page' => $request->input('per_page', 15),
+            ]);
 
-            // #283 S3: los cobros pendientes son agenda, no ficha compartida.
-            $branchFilter = BranchAccess::effectiveFilter(
-                Auth::user(),
-                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
-            );
+            $pendingPayments = collect($appointments->items())->map(function (Appointment $appointment) {
+                $balance = AppointmentBalance::summary($appointment);
 
-            if ($branchFilter !== null) {
-                $query->where('branch_id', $branchFilter);
-            }
-
-            // Filtros
-            if ($request->filled('search')) {
-                $search = $request->get('search');
-                $query->whereHas('patient', function ($q) use ($search) {
-                    $q->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"])
-                        ->orWhere('document_number', 'like', "%{$search}%");
-                });
-            }
-
-            if ($request->filled('date_from')) {
-                $query->whereDate('scheduled_at', '>=', $request->get('date_from'));
-            }
-
-            if ($request->filled('date_to')) {
-                $query->whereDate('scheduled_at', '<=', $request->get('date_to'));
-            }
-
-            // Issue #198: the collection used to arrive whole, so the Cobros
-            // tab had to page it on the client. `per_page` is clamped to the
-            // documented range and the meta the UI reads is the paginator's.
-            $perPage = max(1, min((int) $request->input('per_page', 15), 100));
-
-            $appointments = $query->with(['patient', 'appointmentType', 'user'])
-                ->orderBy('scheduled_at', 'desc')
-                ->paginate($perPage);
-
-            // Transformar datos con manejo de errores
-            $pendingPayments = collect($appointments->items())->map(function ($appointment) {
-                try {
-                    return [
+                return [
+                    'id' => $appointment->id,
+                    'patient' => [
+                        'id' => $appointment->patient_id,
+                        'name' => $appointment->patient?->name ?? 'Paciente no encontrado',
+                        'document_number' => $appointment->patient?->document_number ?? 'N/A',
+                        'email' => $appointment->patient?->email ?? 'N/A',
+                        'phone' => $appointment->patient?->phone ?? 'N/A',
+                    ],
+                    'appointment' => [
                         'id' => $appointment->id,
-                        'patient' => [
-                            'id' => $appointment->patient_id,
-                            'name' => $appointment->patient ? $appointment->patient->name : 'Paciente no encontrado',
-                            'document_number' => $appointment->patient ? $appointment->patient->document_number : 'N/A',
-                            'email' => $appointment->patient ? $appointment->patient->email : 'N/A',
-                            'phone' => $appointment->patient ? $appointment->patient->phone : 'N/A',
+                        'date' => $appointment->scheduled_at,
+                        'appointment_type' => [
+                            'id' => $appointment->appointment_type_id,
+                            'name' => $appointment->appointmentType?->name ?? 'Tipo no encontrado',
                         ],
-                        'appointment' => [
-                            'id' => $appointment->id,
-                            'date' => $appointment->scheduled_at,
-                            'appointment_type' => [
-                                'id' => $appointment->appointment_type_id,
-                                'name' => $appointment->appointmentType ? $appointment->appointmentType->name : 'Tipo no encontrado',
-                            ],
-                            'professional' => [
-                                'id' => $appointment->user_id,
-                                'name' => $appointment->user ? $appointment->user->name : 'Profesional no encontrado',
-                            ],
+                        'professional' => [
+                            'id' => $appointment->user_id,
+                            'name' => $appointment->user?->name ?? 'Profesional no encontrado',
                         ],
-                        'concept' => $appointment->appointmentType ? $appointment->appointmentType->name : 'Consulta',
-                        'amount' => $appointment->appointmentType ? ($appointment->appointmentType->price ?? 0) : 0,
-                        'status' => 'pending',
-                        'created_at' => $appointment->created_at,
-                    ];
-                } catch (\Exception $e) {
-                    return [
-                        'id' => $appointment->id,
-                        'patient' => [
-                            'id' => $appointment->patient_id,
-                            'name' => 'Error al cargar paciente',
-                            'document_number' => 'N/A',
-                            'email' => 'N/A',
-                            'phone' => 'N/A',
-                        ],
-                        'appointment' => [
-                            'id' => $appointment->id,
-                            'date' => $appointment->scheduled_at,
-                            'appointment_type' => [
-                                'id' => $appointment->appointment_type_id,
-                                'name' => 'Error al cargar tipo',
-                            ],
-                            'professional' => [
-                                'id' => $appointment->user_id,
-                                'name' => 'Error al cargar profesional',
-                            ],
-                        ],
-                        'concept' => 'Error',
-                        'amount' => 0,
-                        'status' => 'pending',
-                        'created_at' => $appointment->created_at,
-                    ];
-                }
+                    ],
+                    'concept' => $appointment->appointmentType?->name ?? 'Consulta',
+                    'amount' => $balance['balance'],
+                    'total_amount' => $balance['total'],
+                    'paid_amount' => $balance['paid'],
+                    'balance' => $balance['balance'],
+                    'status' => 'pending',
+                    'created_at' => $appointment->created_at,
+                ];
             });
 
             return response()->json([

@@ -23,16 +23,22 @@ class BillingService
 
     /**
      * Citas completadas listas para facturar.
-     * Una cita está "ready to bill" si:
-     *   - status = completed
-     *   - final_amount > 0
-     *   - el monto pagado (suma de transactions tipo=payment status=completed) es menor al final_amount.
+     *
+     * #393 — una sola definición de la deuda: la que publica
+     * `AppointmentBalance` (final_amount y, para las filas anteriores al acto
+     * clínico, total_cost) menos los pagos completados. Una atención cerrada
+     * sin importe no es cobrable y una pagada por completo sale de la lista.
+     *
+     * La lista es la misma que consume la pestaña Cobros de Caja: la puerta de
+     * cobro y las dos superficies leen este método, así el saldo que se ve es
+     * el saldo que se puede cobrar.
      */
     public function readyToBill(array $filters = []): LengthAwarePaginator
     {
         // #393 — the payments come with the page, so publishing the balance does
         // not run one query per row.
         $query = Appointment::query()
+            ->visibleToBranch()
             ->with([
                 'patient',
                 'user',
@@ -41,24 +47,29 @@ class BillingService
                 'transactions' => fn ($q) => $q->where('type', 'payment')->where('status', 'completed'),
             ])
             ->where('status', 'completed')
-            ->whereNotNull('final_amount')
-            ->where('final_amount', '>', 0)
-            // Citas sin pago completo: lo que se haya pagado (sum de payments completed) < final_amount
-            ->where(function (Builder $outer) {
-                $outer->whereDoesntHave('transactions', function (Builder $q) {
-                    $q->where('type', 'payment')->where('status', 'completed');
-                })
-                    ->orWhereRaw('final_amount > (
-                    SELECT COALESCE(SUM(amount), 0)
-                    FROM transactions
-                    WHERE transactions.appointment_id = appointments.id
-                      AND transactions.type = "payment"
-                      AND transactions.status = "completed"
-                )');
-            });
+            ->whereRaw('COALESCE(NULLIF(final_amount, 0), total_cost, 0) > (
+                SELECT COALESCE(SUM(amount), 0)
+                FROM transactions
+                WHERE transactions.appointment_id = appointments.id
+                  AND transactions.type = \'payment\'
+                  AND transactions.status = \'completed\'
+                  AND transactions.deleted_at IS NULL
+            )');
 
         if (! empty($filters['patient_id'])) {
             $query->where('patient_id', $filters['patient_id']);
+        }
+        // #283 S3: la sede sigue siendo una dimensión de la lectura. El alcance
+        // efectivo lo aplica `visibleToBranch()`; este filtro sólo estrecha.
+        if (! empty($filters['branch_id'])) {
+            $query->where('branch_id', $filters['branch_id']);
+        }
+        if (! empty($filters['search'])) {
+            $search = trim((string) $filters['search']);
+            $query->whereHas('patient', function (Builder $q) use ($search) {
+                $q->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"])
+                    ->orWhere('document_number', 'like', "%{$search}%");
+            });
         }
         if (! empty($filters['from'])) {
             $query->whereDate('completed_at', '>=', $filters['from']);

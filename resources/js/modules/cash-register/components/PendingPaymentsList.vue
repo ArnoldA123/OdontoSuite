@@ -91,6 +91,18 @@
           </span>
         </template>
 
+        <template #cell-total_amount="{ row }">
+          <span class="text-sm tabular-nums text-theme-secondary">
+            {{ formatCurrency(row.total_amount ?? row.amount) }}
+          </span>
+        </template>
+
+        <template #cell-paid_amount="{ row }">
+          <span class="text-sm tabular-nums text-theme-secondary">
+            {{ formatCurrency(row.paid_amount ?? 0) }}
+          </span>
+        </template>
+
         <template #actions="{ row }">
           <UiButton
             variant="primary"
@@ -138,6 +150,8 @@ const columns = [
   { key: 'patient', label: 'Paciente' },
   { key: 'appointment', label: 'Cita' },
   { key: 'concept', label: 'Concepto' },
+  { key: 'total_amount', label: 'Monto' },
+  { key: 'paid_amount', label: 'Pagado' },
   { key: 'amount', label: 'Saldo' }
 ]
 
