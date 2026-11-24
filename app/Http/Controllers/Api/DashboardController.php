@@ -268,6 +268,11 @@ class DashboardController extends Controller
      *
      * Each subset only appears for roles allowed into its module in routes/api.php.
      * Unauthorized subsets are omitted from `data` entirely.
+     *
+     * Every item carries `patient_id`: the Pendientes desk groups the whole queue
+     * (recalls, continuity requests and these two subsets) into one row per
+     * patient, so the client must be able to identify the patient without
+     * parsing the display name.
      */
     public function pending(Request $request): JsonResponse
     {
@@ -330,6 +335,7 @@ class DashboardController extends Controller
             ->get()
             ->map(fn (Quotation $quotation) => [
                 'id' => $quotation->id,
+                'patient_id' => $quotation->patient_id,
                 'patient_name' => $quotation->patient?->full_name,
                 'total_amount' => (float) $quotation->total_amount,
                 'status' => $quotation->status,
@@ -357,6 +363,7 @@ class DashboardController extends Controller
             ->get()
             ->map(fn (TreatmentPlan $plan) => [
                 'id' => $plan->id,
+                'patient_id' => $plan->patient_id,
                 'patient_name' => $plan->patient?->full_name,
                 'title' => $plan->title,
                 'final_cost' => (float) $plan->final_cost,

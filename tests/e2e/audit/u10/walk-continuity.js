@@ -1,32 +1,34 @@
-// Plan #13 (issue #373, U10) — layer 4: the continuity queue, action by action.
+// Plan #13 (issue #373, U10) — layer 4: the continuity desk, action by action.
 //
-// The desk publishes two populations (overdue recalls and the conduct a
-// professional left at the closure) behind four KPIs, and reception resolves both
-// through their own doors: a recall leaves by being scheduled, a request leaves by
-// being scheduled or dismissed with a reason. This walk measures the whole
-// circuit for the row the fixture of the session wrote:
+// Pendientes publishes one table with one row per patient: overdue recalls, the
+// conduct a professional left at the closure and the commercial answers merge by
+// patient, and every pending keeps its own chip and its own door. Reception
+// resolves the queue side (a recall leaves by being scheduled, a request by being
+// scheduled or dismissed with a reason). This walk measures the whole circuit for
+// the row the fixture of the session wrote:
 //
-//   1. QUEUE    both sections, the four KPIs (with the raw compliance rate), the
-//               row that carries `fixtures.token` with its reason/date/origin/
-//               duration cells, and the three action hooks of the two desks.
+//   1. QUEUE    the single `pending` section, the four KPIs (with the raw
+//               compliance rate and the patient count), the grouped row that
+//               carries `fixtures.token` with its chips, its detail cells and
+//               the three action hooks of the queue desks.
 //   2. DIALOGS  `assertDialogContract` over the schedule modal and over the
 //               dismiss modal, one step each, every check row recorded.
 //   3. RECALL   the prefilled date/duration/type of the recall form, the
 //               professional + chair + type it demands, the 201, the toast, the
-//               row leaving the section and the KPI moving.
+//               `recall` chip leaving the row and the KPI moving.
 //   4. CONFLICT the request scheduled over the slot `fixtures.conflict` already
 //               occupies: the exact status, the field the message landed in and
-//               the row still pending afterwards (S5: «el conflicto de agenda
-//               deja la solicitud pendiente y lo dice»).
+//               the request still pending afterwards (S5: «el conflicto de
+//               agenda deja la solicitud pendiente y lo dice»).
 //   5. DISMISS  the submit disabled with a blank reason, what forcing the submit
 //               reports and that no request left, then the 200 with a reason and
-//               the row leaving the queue.
-//   6. EMPTY    the two section empty states, or `NO PROBADO` with the reason
-//               when another session still holds rows.
-//   7. READ     as `odontologo`: the queue paints and no write affordance does;
+//               the `request` chip leaving the row.
+//   6. EMPTY    the grouped empty state, or `NO PROBADO` with the reason when
+//               another session still holds rows.
+//   7. READ     as `odontologo`: the desk paints and no write affordance does;
 //               the write door answers 403 with that role's real token.
 //
-// The order follows the state of the queue, not the issue's numbering: the two
+// The order follows the state of the desk, not the issue's numbering: the two
 // dialog contracts run before the request is resolved, because the dismiss modal
 // is reached from the row that step 5 retires.
 //
@@ -76,6 +78,10 @@ const READ_ONLY_ROLE = 'odontologo'
 const DIALOG = '[role="dialog"]:visible'
 const QUEUE = '/api/continuity/queue'
 
+// The desk paints one section; every pending of a patient lives in its row.
+const SECTION = 'pending'
+const ROW = `[data-continuity-section="${SECTION}"] .data-table-row`
+
 // The exact sentence the dismiss door reports when the reason is blank. It lives
 // in `DismissContinuityModal`, not in the API (`dismiss` accepts a null reason).
 const REASON_REQUIRED = 'El motivo es obligatorio.'
@@ -103,10 +109,16 @@ const panel = page =>
         const rows = Array.from(section.querySelectorAll('.data-table-row'))
           .map(row => ({
             cells: Array.from(row.querySelectorAll('td')).map(cell => text(cell.innerText)),
+            labels: Array.from(row.querySelectorAll('[data-continuity-label]')).map(node =>
+              node.getAttribute('data-continuity-label')
+            ),
             schedule: Array.from(row.querySelectorAll('[data-continuity-schedule]')).map(node =>
               node.getAttribute('data-continuity-schedule')
             ),
-            dismiss: row.querySelectorAll('[data-continuity-dismiss]').length > 0
+            dismiss: row.querySelectorAll('[data-continuity-dismiss]').length > 0,
+            view: Array.from(row.querySelectorAll('[data-continuity-pending-view]')).map(node =>
+              node.getAttribute('data-continuity-pending-view')
+            )
           }))
           .filter(row => row.cells.some(Boolean))
 
@@ -150,19 +162,18 @@ const panel = page =>
     }
   })
 
-/** The row of a section that carries the token, or `null` while it is absent. */
-const rowWith = (view, key, token) =>
-  (view.sections.find(section => section.key === key)?.rows ?? []).find(row =>
+/** The grouped row that carries the token, or `null` while it is absent. */
+const rowWith = (view, token) =>
+  (view.sections.find(section => section.key === SECTION)?.rows ?? []).find(row =>
     row.cells.join(' ').includes(token)
   ) ?? null
 
+/** Whether the grouped row of the token still holds a pending of that source. */
+const hasSource = (view, token, source) => (rowWith(view, token)?.labels ?? []).includes(source)
+
 const kpiOf = (view, key) => view.kpis.find(card => card.key === key) ?? null
 
-const rowLocator = (page, key, token) =>
-  page
-    .locator(`[data-continuity-section="${key}"] .data-table-row`)
-    .filter({ hasText: token })
-    .first()
+const rowLocator = (page, token) => page.locator(ROW).filter({ hasText: token }).first()
 
 const waitForQueue = async (page, action, timeout = 15000) =>
   respondTo(page, { method: 'GET', path: QUEUE }, action, timeout)
@@ -387,23 +398,24 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
     await step(
       'queue',
       'Abrir /continuity como recepcionista con la sesión sembrada',
-      'Pinta las dos secciones, los cuatro KPI (con la tasa de cumplimiento cruda), la fila que lleva el token de la sesión con su motivo/fecha/origen/duración y las tres acciones de las dos mesas',
+      'Pinta la sección agrupada, los cuatro KPI (con la tasa de cumplimiento cruda y el censo de pacientes), la fila del token con sus chips de control y solicitud, su motivo/fecha/origen y las tres acciones de las mesas',
       async entry => {
         const view = await panel(page)
-        const recall = rowWith(view, 'recalls', token)
-        const request = rowWith(view, 'requests', token)
+        const row = rowWith(view, token)
         const recallKpi = kpiOf(view, 'recalls')
         const compliance = kpiOf(view, 'compliance')
+        const patients = kpiOf(view, 'patients')
         const keys = view.sections.map(section => section.key)
         const call = lastCall(requests, 'GET', QUEUE)
         const kpisComplete =
           view.kpis.length === 4 &&
           view.kpis.every(card => card.value !== null) &&
           Boolean(compliance?.raw)
-        const bothSections = keys.includes('recalls') && keys.includes('requests')
-        const requestActions =
-          (request?.schedule ?? []).includes('request') && request?.dismiss === true
-        const recallActions = (recall?.schedule ?? []).includes('recall')
+        // One section, one row per patient: the queue sections are retired.
+        const singleSection = keys.length === 1 && keys[0] === SECTION
+        const chips = row?.labels ?? []
+        const requestActions = (row?.schedule ?? []).includes('request') && row?.dismiss === true
+        const recallActions = (row?.schedule ?? []).includes('recall')
 
         evidence.captures.push(await shot(page, 'shots/walk/continuity-queue.png'))
 
@@ -416,36 +428,44 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
           view.kpis.map(
             card => `${card.key}=${card.value}${card.raw !== null ? ` (raw ${card.raw})` : ''}`
           )
-        )} · fila recall ${recall ? JSON.stringify(recall.cells.slice(0, 4)) : 'ausente'} acciones ${JSON.stringify(
-          recall?.schedule ?? []
-        )} · fila solicitud ${request ? JSON.stringify(request.cells.slice(0, 5)) : 'ausente'} acciones ${JSON.stringify(
-          request?.schedule ?? []
-        )} descartar=${request?.dismiss ?? '—'} · refresh ${view.refresh}`
+        )} · fila ${row ? JSON.stringify(row.cells.slice(0, 5)) : 'ausente'} chips ${JSON.stringify(
+          chips
+        )} acciones ${JSON.stringify(row?.schedule ?? [])} descartar=${
+          row?.dismiss ?? '—'
+        } · pacientes ${patients?.value ?? 'ausente'} · refresh ${view.refresh}`
         entry.request = call ? { method: call.method, path: call.path, status: call.status } : null
         entry.detail = {
           opened,
           keys,
           sections: view.sections,
           kpis: view.kpis,
-          recall,
-          request,
+          row,
+          chips,
           requestActions,
           recallActions,
           kpisComplete,
-          recallKpi: recallKpi?.value ?? null
+          singleSection,
+          recallKpi: recallKpi?.value ?? null,
+          patients: patients?.value ?? null
         }
         entry.verdict =
-          bothSections && kpisComplete && Boolean(recall) && requestActions && recallActions
+          singleSection &&
+          kpisComplete &&
+          Boolean(row) &&
+          chips.includes('recall') &&
+          chips.includes('request') &&
+          requestActions &&
+          recallActions
             ? 'OK'
             : 'DEFECTO'
         entry.notes =
           entry.verdict === 'OK'
             ? ''
-            : `la cola no publica las dos secciones con la fila de la sesión y sus acciones (recall ${Boolean(
-                recall
-              )}, solicitud ${Boolean(request)}, KPI ${view.kpis.length}, cumplimiento crudo ${
-                compliance?.raw ?? 'ausente'
-              })`
+            : `la mesa no publica una fila por paciente con sus chips y acciones (secciones ${JSON.stringify(
+                keys
+              )}, fila ${Boolean(row)}, chips ${JSON.stringify(chips)}, KPI ${
+                view.kpis.length
+              }, cumplimiento crudo ${compliance?.raw ?? 'ausente'})`
 
         return entry
       }
@@ -459,7 +479,7 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
         await closeDialog(page).catch(() => {})
         await dismissToasts(page).catch(() => {})
 
-        await rowLocator(page, 'requests', token)
+        await rowLocator(page, token)
           .locator('[data-continuity-schedule="request"]')
           .click({ timeout: 8000 })
 
@@ -504,9 +524,7 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
         await closeDialog(page).catch(() => {})
         await dismissToasts(page).catch(() => {})
 
-        await rowLocator(page, 'requests', token)
-          .locator('[data-continuity-dismiss]')
-          .click({ timeout: 8000 })
+        await rowLocator(page, token).locator('[data-continuity-dismiss]').click({ timeout: 8000 })
 
         const dialog = page.locator(DIALOG).last()
         const isOpen = await dialog
@@ -544,13 +562,13 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
     await step(
       'schedule-recall',
       'Agendar el recall vencido de la sesión desde la acción de su fila',
-      'El modal precarga la fecha y la duración, exige profesional, sillón y tipo, el POST responde 201 y la fila sale de la sección mientras el KPI de recalls baja',
+      'El modal precarga la fecha y la duración, exige profesional, sillón y tipo, el POST responde 201, el chip de control de la fila se retira mientras el KPI de recalls baja',
       async entry => {
         const before = await panel(page)
-        const recallBefore = rowWith(before, 'recalls', token)
+        const recallBefore = hasSource(before, token, 'recall')
 
         if (!recallBefore || !recallId) {
-          entry.obtained = `la fila del recall de la sesión no está en la cola (id ${recallId ?? 'sin id'})`
+          entry.obtained = `el chip de control de la sesión no está en la mesa (id ${recallId ?? 'sin id'})`
           entry.verdict = 'NO PROBADO'
           entry.notes = 'otra ejecución resolvió el recall antes de este paso'
 
@@ -560,7 +578,7 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
         await closeDialog(page).catch(() => {})
         await dismissToasts(page).catch(() => {})
 
-        await rowLocator(page, 'recalls', token)
+        await rowLocator(page, token)
           .locator('[data-continuity-schedule="recall"]')
           .click({ timeout: 8000 })
 
@@ -705,7 +723,7 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
             : null
           entry.detail = { prefill, pickedProfessional, pickedChair, pickedType, attempts }
           entry.verdict = 'DEFECTO'
-          entry.notes = 'ningún hueco propuesto fue aceptado: el recall no sale de la cola'
+          entry.notes = 'ningún hueco propuesto fue aceptado: el chip de control no sale de la fila'
 
           return entry
         }
@@ -713,20 +731,24 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
         evidence.created.recallAppointmentId = accepted.body?.data?.appointment?.id ?? null
         evidence.created.scheduledSlots.push(accepted.slot)
 
+        // The patient may still hold a request or a quotation: what leaves the
+        // row is the control, not the patient.
         await page
           .waitForFunction(
-            value =>
-              !(
-                document.querySelector('[data-continuity-section="recalls"]')?.innerText ?? ''
-              ).includes(value),
-            token,
+            ({ value, selector }) => {
+              const rows = Array.from(document.querySelectorAll(selector))
+              const row = rows.find(candidate => (candidate.innerText ?? '').includes(value))
+
+              return !row || !row.querySelector('[data-continuity-schedule="recall"]')
+            },
+            { value: token, selector: ROW },
             { timeout: 10000 }
           )
           .catch(() => {})
         await settle(page)
 
         const after = await panel(page)
-        const stillQueued = Boolean(rowWith(after, 'recalls', token))
+        const recallStillQueued = hasSource(after, token, 'recall')
         const closeCheck = await page
           .locator(DIALOG)
           .last()
@@ -743,7 +765,7 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
           prefill.type
         }» · hueco aceptado ${accepted.slot} · POST ${accepted.status} «${
           accepted.body?.meta?.message ?? '—'
-        }» · intentos ${attempts.length} · fila en la sección ${stillQueued} · KPI recalls ${kpiBefore} → ${kpiAfter} · modal abierto ${closeCheck} · toast «${toast}»`
+        }» · intentos ${attempts.length} · chip de control en la fila ${recallStillQueued} · KPI recalls ${kpiBefore} → ${kpiAfter} · modal abierto ${closeCheck} · toast «${toast}»`
         entry.request = requestOf(accepted)
         entry.detail = {
           prefill,
@@ -751,7 +773,7 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
           pickedChair,
           pickedType,
           attempts,
-          stillQueued,
+          recallStillQueued,
           kpiBefore,
           kpiAfter,
           toast,
@@ -761,11 +783,12 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
             empty: section.empty
           }))
         }
-        entry.verdict = !stillQueued && kpiBefore !== kpiAfter && Boolean(toast) ? 'OK' : 'DEFECTO'
+        entry.verdict =
+          !recallStillQueued && kpiBefore !== kpiAfter && Boolean(toast) ? 'OK' : 'DEFECTO'
         entry.notes =
           entry.verdict === 'OK'
             ? ''
-            : `el recall no sale de la sección, el KPI no se mueve o el aviso no aparece (fila ${stillQueued}, KPI ${kpiBefore} → ${kpiAfter})`
+            : `el chip de control no se retira, el KPI no se mueve o el aviso no aparece (chip ${recallStillQueued}, KPI ${kpiBefore} → ${kpiAfter})`
 
         return entry
       }
@@ -795,7 +818,7 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
         await closeDialog(page).catch(() => {})
         await dismissToasts(page).catch(() => {})
 
-        await rowLocator(page, 'requests', token)
+        await rowLocator(page, token)
           .locator('[data-continuity-schedule="request"]')
           .click({ timeout: 8000 })
 
@@ -870,7 +893,9 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
         await settle(page)
 
         const view = await panel(page)
-        const stillQueued = Boolean(rowWith(view, 'requests', token))
+        // The patient's row stays while it holds another pending: the request is
+        // what must still be there, with its own chip and its own door.
+        const stillQueued = hasSource(view, token, 'request')
         const live = await api(session, 'GET', QUEUE)
         const liveRows = listOf(live.body?.data?.requests)
         const liveRow = liveRows.find(row => row.id === requestId) ?? null
@@ -884,7 +909,7 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
           conflict.userId
         } / sillón ${conflict.chairId}) ${past ? 'YA PASADO al medir' : ''} · POST ${sent.status ?? 'sin petición'} · campos con mensaje ${JSON.stringify(
           errors
-        )} · solicitud en la sección ${stillQueued} · GET ${live.status} estado «${
+        )} · chip de solicitud en la fila ${stillQueued} · GET ${live.status} estado «${
           liveRow?.status ?? 'ausente'
         }» · refresco ${refreshed.status ?? 'sin petición'}`
         entry.request = requestOf(sent)
@@ -939,9 +964,7 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
             row.method === 'POST' && row.path === `/api/continuity-requests/${requestId}/dismiss`
         ).length
 
-        await rowLocator(page, 'requests', token)
-          .locator('[data-continuity-dismiss]')
-          .click({ timeout: 8000 })
+        await rowLocator(page, token).locator('[data-continuity-dismiss]').click({ timeout: 8000 })
 
         const dialog = page.locator(DIALOG).last()
         const isOpen = await dialog
@@ -989,13 +1012,13 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
 
         await closeDialog(page)
         const view = await panel(page)
-        const stillQueued = Boolean(rowWith(view, 'requests', token))
+        const stillQueued = hasSource(view, token, 'request')
 
         entry.obtained = `submit deshabilitado ${initial.disabled} · tras Enter en el textarea: error «${
           afterEnter.error ?? '—'
         }», motivo «${afterEnter.reason ?? ''}» · forzado ${forced.ok} → error «${
           afterForce.error ?? '—'
-        }» · POST ${postsBefore} → ${postsAfter} · solicitud en la cola ${stillQueued}`
+        }» · POST ${postsBefore} → ${postsAfter} · chip de solicitud en la fila ${stillQueued}`
         entry.request = null
         entry.detail = {
           initial,
@@ -1042,9 +1065,7 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
         const before = await panel(page)
         const reason = `AUDIT-U10-${token} descarte del recorrido de la capa 4`
 
-        await rowLocator(page, 'requests', token)
-          .locator('[data-continuity-dismiss]')
-          .click({ timeout: 8000 })
+        await rowLocator(page, token).locator('[data-continuity-dismiss]').click({ timeout: 8000 })
 
         const dialog = page.locator(DIALOG).last()
         const isOpen = await dialog
@@ -1080,18 +1101,20 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
 
         await page
           .waitForFunction(
-            value =>
-              !(
-                document.querySelector('[data-continuity-section="requests"]')?.innerText ?? ''
-              ).includes(value),
-            token,
+            ({ value, selector }) => {
+              const rows = Array.from(document.querySelectorAll(selector))
+              const row = rows.find(candidate => (candidate.innerText ?? '').includes(value))
+
+              return !row || !row.querySelector('[data-continuity-dismiss]')
+            },
+            { value: token, selector: ROW },
             { timeout: 10000 }
           )
           .catch(() => {})
         await settle(page)
 
         const after = await panel(page)
-        const stillQueued = Boolean(rowWith(after, 'requests', token))
+        const requestStillQueued = hasSource(after, token, 'request')
         const kpiBefore = kpiOf(before, 'requests')?.value ?? null
         const kpiAfter = kpiOf(after, 'requests')?.value ?? null
 
@@ -1103,23 +1126,23 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
           sent.body?.meta?.message ?? sent.body?.message ?? '—'
         }» · estado «${sent.body?.data?.status ?? '—'}» · motivo guardado «${
           sent.body?.data?.resolution_notes ?? '—'
-        }» · fila en la sección ${stillQueued} · KPI solicitudes ${kpiBefore} → ${kpiAfter}`
+        }» · chip de solicitud en la fila ${requestStillQueued} · KPI solicitudes ${kpiBefore} → ${kpiAfter}`
         entry.request = requestOf(sent)
         entry.detail = {
           reason,
           enabled,
           status: sent.status,
           body: sent.body ?? null,
-          stillQueued,
+          stillQueued: requestStillQueued,
           kpiBefore,
           kpiAfter
         }
         entry.verdict =
-          sent.status === 200 && !stillQueued && kpiBefore !== kpiAfter ? 'OK' : 'DEFECTO'
+          sent.status === 200 && !requestStillQueued && kpiBefore !== kpiAfter ? 'OK' : 'DEFECTO'
         entry.notes =
           entry.verdict === 'OK'
             ? ''
-            : 'el descarte no responde 200, la fila sigue en la cola o el KPI no se mueve'
+            : 'el descarte no responde 200, el chip de solicitud sigue en la fila o el KPI no se mueve'
 
         return entry
       }
@@ -1127,8 +1150,8 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
 
     await step(
       'empty',
-      'Refrescar la cola con las filas de la sesión ya resueltas',
-      'Las dos secciones pintan su vacío declarado con título y explicación',
+      'Refrescar el escritorio con las filas de la sesión ya resueltas',
+      'La sección agrupada pinta su vacío declarado con título y explicación',
       async entry => {
         const refreshed = await waitForQueue(page, () =>
           page.locator('[data-continuity-refresh]').click({ timeout: 8000 })
@@ -1136,37 +1159,28 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
         await settle(page)
 
         const view = await panel(page)
-        const recalls = view.sections.find(section => section.key === 'recalls') ?? null
-        const requests = view.sections.find(section => section.key === 'requests') ?? null
-        const others = {
-          recalls: recalls?.rows.length ?? 0,
-          requests: requests?.rows.length ?? 0
-        }
-        const painted = Boolean(recalls?.empty) && Boolean(requests?.empty)
+        const pending = view.sections.find(section => section.key === SECTION) ?? null
+        const rows = pending?.rows.length ?? 0
+        const painted = Boolean(pending?.empty)
 
         evidence.captures.push(await shot(page, 'shots/walk/continuity-empty.png'))
 
-        entry.obtained = `GET ${refreshed.status ?? 'sin petición'} · recalls: ${
-          recalls?.empty
-            ? `«${recalls.empty.title}» — «${recalls.empty.description}»`
-            : `${others.recalls} fila(s)`
-        } · solicitudes: ${
-          requests?.empty
-            ? `«${requests.empty.title}» — «${requests.empty.description}»`
-            : `${others.requests} fila(s)`
+        entry.obtained = `GET ${refreshed.status ?? 'sin petición'} · pendientes: ${
+          pending?.empty
+            ? `«${pending.empty.title}» — «${pending.empty.description}»`
+            : `${rows} fila(s)`
         }`
         entry.request = refreshed.status
           ? { method: 'GET', path: QUEUE, status: refreshed.status }
           : null
-        entry.detail = { others, recalls, requests, painted }
-        entry.verdict =
-          painted && others.recalls === 0 && others.requests === 0 ? 'OK' : 'NO PROBADO'
+        entry.detail = { rows, pending, painted }
+        entry.verdict = painted && rows === 0 ? 'OK' : 'NO PROBADO'
         entry.notes =
           entry.verdict === 'OK'
             ? ''
-            : others.recalls + others.requests > 0
-              ? `otra ejecución mantiene ${others.recalls} recall(s) y ${others.requests} solicitud(es) en la cola: el vacío no se puede forzar sin romper la población`
-              : 'las secciones no pintan su vacío declarado'
+            : rows > 0
+              ? `otra ejecución mantiene ${rows} paciente(s) en la mesa: el vacío no se puede forzar sin romper la población`
+              : 'la sección agrupada no pinta su vacío declarado'
 
         return entry
       }
@@ -1289,7 +1303,7 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
     await step(
       'read-only',
       'Abrir /continuity como odontólogo y probar la puerta de escritura',
-      'La cola se pinta para el rol clínico, ninguna acción de escritura aparece y el POST de agenda responde 403 con su token',
+      'La mesa se pinta para el rol clínico, ninguna acción de escritura aparece y el POST de agenda responde 403 con su token',
       async entry => {
         await primeSession(page, readOnly)
         const visited = await gotoSurface(page, SURFACE)
@@ -1305,9 +1319,9 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
 
         evidence.captures.push(await shot(page, 'shots/walk/continuity-read-only.png'))
 
-        const painted = view.sections.length === 2 || view.kpis.length === 4
+        const painted = view.sections.length === 1 || view.kpis.length === 4
 
-        entry.obtained = `HTTP ${visited.status} · secciones ${view.sections.length} · KPI ${view.kpis.length} · acciones de agenda ${scheduleCount} · descartar ${dismissCount} · POST agenda ${
+        entry.obtained = `HTTP ${visited.status} · secciones ${view.sections.length} · filas ${view.sections.reduce((total, section) => total + section.rows.length, 0)} · KPI ${view.kpis.length} · acciones de agenda ${scheduleCount} · descartar ${dismissCount} · POST agenda ${
           door ? door.status : 'sin solicitud que probar'
         } ${door?.body?.message ? `«${door.body.message}»` : ''}`
         entry.request = door
@@ -1337,7 +1351,7 @@ export const walkThroughContinuity = async ({ page, fixtures }) => {
             ? ''
             : !door
               ? 'la sesión no dejó una solicitud con la que probar la puerta'
-              : `la cola no se pinta (${painted}) o el rol clínico alcanza la escritura (${scheduleCount}/${dismissCount} acciones, POST ${door.status})`
+              : `la mesa no se pinta (${painted}) o el rol clínico alcanza la escritura (${scheduleCount}/${dismissCount} acciones, POST ${door.status})`
 
         return entry
       }
