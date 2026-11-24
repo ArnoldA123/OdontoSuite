@@ -274,9 +274,25 @@
               </p>
             </div>
 
+            <!-- T2 — en un escritorio clínico el profesional es la sesión: el
+                 alta lo publica en modo lectura y no ofrece elegir a otro. -->
+            <div
+              v-if="lockProfessionalToSelf"
+              class="flex items-center justify-between gap-3 rounded-ios border border-hairline bg-theme-surface px-3 py-2"
+              data-appointment-locked-professional
+            >
+              <span class="text-xs font-medium text-theme-secondary">Profesional</span>
+              <span
+                class="min-w-0 truncate text-sm font-semibold text-theme-primary"
+                data-appointment-locked-professional-name
+              >
+                {{ lockedProfessionalName }}
+              </span>
+            </div>
+
             <template v-if="pairsVisible">
               <div
-                v-if="suggestedPairs.length > 0"
+                v-if="suggestedPairs.length > 0 && !lockProfessionalToSelf"
                 class="space-y-1.5"
                 role="group"
                 :aria-labelledby="SUGGESTION_LABEL_ID"
@@ -316,12 +332,14 @@
                    escape escondido, y no bloquea ninguna mezcla por no ser «la
                    pareja» que la agenda usó antes. -->
               <div
-                class="grid grid-cols-2 gap-3"
+                class="grid gap-3"
+                :class="lockProfessionalToSelf ? 'grid-cols-1' : 'grid-cols-2'"
                 data-appointment-team-door
                 :data-appointment-free-professionals="freePersonCount"
                 :data-appointment-free-chairs="freeChairCount"
               >
                 <div
+                  v-if="!lockProfessionalToSelf"
                   class="space-y-1.5"
                   role="group"
                   :aria-labelledby="PROFESSIONAL_LABEL_ID"
@@ -482,8 +500,16 @@
                 {{ pairsHint }}
               </p>
 
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2" data-appointment-manual-pick>
-                <div role="group" :aria-labelledby="PROFESSIONAL_LABEL_ID">
+              <div
+                class="grid grid-cols-1 gap-3"
+                :class="lockProfessionalToSelf ? '' : 'sm:grid-cols-2'"
+                data-appointment-manual-pick
+              >
+                <div
+                  v-if="!lockProfessionalToSelf"
+                  role="group"
+                  :aria-labelledby="PROFESSIONAL_LABEL_ID"
+                >
                   <p
                     :id="PROFESSIONAL_LABEL_ID"
                     class="mb-1 text-sm font-medium text-theme-primary"
@@ -820,6 +846,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useApi } from '../../composables/useApi'
+import { useAuth } from '../../composables/useAuth'
 import {
   DAY_END,
   DAY_START,
@@ -863,6 +890,12 @@ const props = defineProps({
     type: [String, Number],
     default: null
   },
+  // T2 — un escritorio clínico sólo agenda sus citas: el alta fija el
+  // profesional en la sesión y lo publica en modo lectura.
+  lockProfessionalToSelf: {
+    type: Boolean,
+    default: false
+  },
   appointment: {
     type: Object,
     default: null
@@ -899,6 +932,7 @@ const HONORIFIC = /^(dr|dra|sr|sra|lic|mg|mtra)\.?$/i
 const NO_SPECIALTY_LABEL = 'Sin especialidad'
 
 const { get, post, put } = useApi()
+const { user: authUser } = useAuth()
 const { transformProfessionals, transformDentalChairs } = useOptionsTransform()
 const toast = useToast()
 const {
@@ -1062,6 +1096,14 @@ const selectedProfessional = computed(
   () => professionals.value.find(user => String(user.id) === String(form.user_id)) || null
 )
 
+// T2 — con el profesional bloqueado, el formulario no ofrece elegir a otro: el
+// valor sale de la sesión y se muestra su nombre (el del catálogo cuando ya
+// cargó, el de la sesión como respaldo).
+const selfProfessionalId = computed(() => authUser.value?.id ?? '')
+const lockedProfessionalName = computed(
+  () => selectedProfessional.value?.name || authUser.value?.name || 'Tu usuario'
+)
+
 const selectedChair = computed(
   () => dentalChairs.value.find(chair => String(chair.id) === String(form.dental_chair_id)) || null
 )
@@ -1203,7 +1245,9 @@ const pairsHint = computed(() => {
   if (!windowStart.value) return 'Elige la fecha y la hora para ver quién está libre.'
   if (!endsAtLabel.value) return 'Elige la duración de la cita.'
   if (availabilityStatus.value === 'unknown') {
-    return 'No se pudo leer la agenda del día. Elige el profesional y el ambiente a mano.'
+    return props.lockProfessionalToSelf
+      ? 'No se pudo leer la agenda del día. Elige el ambiente a mano.'
+      : 'No se pudo leer la agenda del día. Elige el profesional y el ambiente a mano.'
   }
   return 'Elige la fecha, la hora y la duración para ver quién está libre.'
 })
@@ -1309,13 +1353,22 @@ const summaryLine = computed(() => {
 // La combinación elegida, en una línea, sin prometer nada sobre su ocupación.
 const combinationLine = computed(() => {
   const parts = []
-  if (selectedProfessional.value) parts.push(selectedProfessional.value.name)
+  // Con el profesional bloqueado su nombre sigue siendo parte de la línea
+  // aunque el catálogo aún no haya cargado: la sesión ya lo sabe.
+  const professionalName =
+    selectedProfessional.value?.name ||
+    (props.lockProfessionalToSelf ? lockedProfessionalName.value : '')
+  if (professionalName) parts.push(professionalName)
   if (selectedChair.value) {
     parts.push(`en ${selectedChair.value.name || selectedChair.value.code || 'el ambiente'}`)
   }
   const who = parts.join(' ')
   const when = timeRangeLabel.value
-  if (!who && !when) return `Elige profesional y ambiente · ${freePersonCount.value} libres`
+  if (!who && !when) {
+    return props.lockProfessionalToSelf
+      ? `Elige el ambiente · ${freeChairCount.value} libres`
+      : `Elige profesional y ambiente · ${freePersonCount.value} libres`
+  }
   return [who, when].filter(Boolean).join(' · ')
 })
 
@@ -1699,6 +1752,7 @@ const resetForm = () => {
 
   if (props.appointment) {
     populateFormFromAppointment(props.appointment)
+    applyLockedProfessional()
     return
   }
 
@@ -1725,9 +1779,18 @@ const resetForm = () => {
     form.time = prefill.time
     activeTimeBlock.value = blockOfTime(prefill.time) || 'morning'
   }
+
+  applyLockedProfessional()
 }
 
 const hasOption = (rows, id) => (rows || []).some(row => String(row?.id) === String(id))
+
+// T2 — con el profesional bloqueado, el valor del formulario es la sesión y no
+// se toca: ni la precarga del recurso ni un catálogo vacío lo dejan en blanco.
+const applyLockedProfessional = () => {
+  if (!props.lockProfessionalToSelf) return
+  form.user_id = selfProfessionalId.value
+}
 
 // La precarga del recurso se aplica una sola vez y después del catálogo: un
 // ambiente que el formulario no ofrece (inactivo, de otra sede) se ignora sin
@@ -1741,6 +1804,8 @@ const applyInitialTeam = () => {
   if (initialChairId && !form.dental_chair_id && hasOption(dentalChairs.value, initialChairId)) {
     form.dental_chair_id = initialChairId
   }
+
+  if (props.lockProfessionalToSelf) return
 
   if (
     initialProfessionalId &&
@@ -1920,6 +1985,7 @@ watch(
   () => {
     if (props.modelValue && props.appointment) {
       populateFormFromAppointment(props.appointment)
+      applyLockedProfessional()
       loadDayAgenda(form.date)
     }
   }

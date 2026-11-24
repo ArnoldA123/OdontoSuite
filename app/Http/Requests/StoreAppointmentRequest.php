@@ -3,6 +3,11 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\LocalizedErrors;
+use App\Models\Appointment;
+use App\Models\DentalChair;
+use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -19,6 +24,13 @@ use Illuminate\Validation\Rule;
  * Canonical status enum post-fix-migration: only 'in_consultation' is valid
  * (DB migrated AWAY from 'in_progress' in 2025_10_14_fix_appointments_status_enum).
  *
+ * citas-privacidad (T4): la sede acota a los participantes. Un actor
+ * restringido solo asigna profesionales y ambientes de su sede —nombrar otra es
+ * 403, porque la sede es una dimensión de autorización (ADR-0010)—, y cuando
+ * ambos declaran sede tienen que coincidir (422 para el alcance de grupo). Las
+ * filas históricas sin sede no contradicen la regla (la migración de datos las
+ * rellena).
+ *
  * @see docs/decisions/0008-procedure-catalog-legacy-specialty.md (context)
  */
 class StoreAppointmentRequest extends FormRequest
@@ -27,10 +39,14 @@ class StoreAppointmentRequest extends FormRequest
 
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * Booking is its own door: reading and operating the agenda does not grant
+     * the counter. The rule lives in `AppointmentPolicy::create`, so the request
+     * and the controller answer from the same permission.
      */
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return $this->user()?->can('create', Appointment::class) === true;
     }
 
     /**
@@ -43,6 +59,51 @@ class StoreAppointmentRequest extends FormRequest
                 'notes' => Str::limit(strip_tags($this->notes), 1000),
             ]);
         }
+    }
+
+    /**
+     * citas-privacidad (T4) — la sede de los participantes se valida después de
+     * las reglas de forma, porque la comparación necesita las dos filas
+     * resueltas y no un `exists` por campo.
+     *
+     * Un actor restringido que nombra otra sede es un rechazo de autorización
+     * (403), no un campo mal formado: el guard de escritura del modelo
+     * (`ScopesToBranch`) contesta lo mismo en cualquier otra puerta.
+     */
+    protected function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $professionalId = $this->input('user_id');
+            $chairId = $this->input('dental_chair_id');
+
+            if (! is_scalar($professionalId) || ! is_scalar($chairId)) {
+                return;
+            }
+
+            $professionalBranch = User::whereKey($professionalId)->value('branch_id');
+            $chairBranch = DentalChair::whereKey($chairId)->value('branch_id');
+            $actorBranch = $this->user()?->branch_id;
+
+            if ($actorBranch !== null) {
+                if ($professionalBranch !== null && (int) $professionalBranch !== (int) $actorBranch) {
+                    throw new AuthorizationException('El profesional seleccionado no pertenece a su sede.');
+                }
+
+                if ($chairBranch !== null && (int) $chairBranch !== (int) $actorBranch) {
+                    throw new AuthorizationException('El ambiente seleccionado no pertenece a su sede.');
+                }
+
+                return;
+            }
+
+            if ($professionalBranch !== null && $chairBranch !== null
+                && (int) $professionalBranch !== (int) $chairBranch) {
+                $validator->errors()->add(
+                    'dental_chair_id',
+                    'El ambiente y el profesional deben pertenecer a la misma sede.'
+                );
+            }
+        });
     }
 
     /**

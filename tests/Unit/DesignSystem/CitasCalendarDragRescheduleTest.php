@@ -409,6 +409,25 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
     }
 
     /**
+     * Slice of the source that belongs to `rescheduleAppointment` alone: from
+     * its declaration to the next `const … =` handler. Ordering assertions on
+     * `await patch(` must stay inside it — the file has other PATCH calls
+     * (`confirmAppointment`, `changeStatus`) that run before that function's
+     * own request and would otherwise satisfy the «before» side of the
+     * optimistic-write rule.
+     */
+    private static function rescheduleBlock(string $src): string
+    {
+        $start = strpos($src, 'const rescheduleAppointment = async');
+        self::assertNotFalse($start, sprintf('%s MUST declare `const rescheduleAppointment = async` (T5 reschedule flow).', self::CALENDAR_PATH));
+
+        $end = strpos($src, 'const editAppointment =', $start);
+        self::assertNotFalse($end, sprintf('%s MUST declare the handler that follows `rescheduleAppointment` (T5 slice boundary).', self::CALENDAR_PATH));
+
+        return substr($src, $start, $end - $start);
+    }
+
+    /**
      * T5 optimistic/rollback matrix (source-level) — `rescheduleAppointment`
      * writes the new `scheduled_at`/`ends_at` optimistically BEFORE the
      * request, preserves the duration (`duration_minutes` sent in the body,
@@ -419,16 +438,17 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
     public function test_optimistic_update_and_rollback_contract(): void
     {
         $src = self::calendarSource();
+        $block = self::rescheduleBlock($src);
 
-        $optimisticWrite = strpos($src, 'appointment.scheduled_at = scheduledAt');
-        $request = strpos($src, 'await patch(`');
-        $this->assertNotFalse($optimisticWrite, sprintf('%s MUST write the optimistic `scheduled_at`.', self::CALENDAR_PATH));
-        $this->assertNotFalse($request, sprintf('%s MUST issue the reschedule request.', self::CALENDAR_PATH));
+        $optimisticWrite = strpos($block, 'appointment.scheduled_at = scheduledAt');
+        $request = strpos($block, 'await patch(`');
+        $this->assertNotFalse($optimisticWrite, sprintf('%s MUST write the optimistic `scheduled_at` inside `rescheduleAppointment`.', self::CALENDAR_PATH));
+        $this->assertNotFalse($request, sprintf('%s MUST issue the reschedule request from `rescheduleAppointment`.', self::CALENDAR_PATH));
         $this->assertLessThan(
             $request,
             $optimisticWrite,
             sprintf(
-                '%s MUST set the optimistic `scheduled_at` BEFORE awaiting the request (T5 optimistic update).',
+                '%s MUST set the optimistic `scheduled_at` BEFORE awaiting the request inside `rescheduleAppointment` (T5 optimistic update).',
                 self::CALENDAR_PATH
             )
         );
@@ -437,7 +457,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             1,
             preg_match(
                 "#await patch\(\`/api/appointments/\\\$\{appointment\.id\}/reschedule\`, \{\s*scheduled_at: scheduledAt,\s*duration_minutes: durationMinutes\s*\}\)#",
-                $src
+                $block
             ),
             sprintf(
                 '%s MUST PATCH `/api/appointments/{id}/reschedule` with `{scheduled_at, duration_minutes}` (T5 payload contract).',
@@ -449,7 +469,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             1,
             preg_match(
                 '#appointment\.ends_at = addMinutesToLocal\(scheduledAt, durationMinutes\)#',
-                $src
+                $block
             ),
             sprintf(
                 '%s MUST preserve the appointment duration on drop: `ends_at = start + duration_minutes` (T5).',
@@ -461,7 +481,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             1,
             preg_match(
                 '#catch \(error\) \{\s*appointment\.scheduled_at = original\.scheduled_at\s*appointment\.ends_at = original\.ends_at#',
-                $src
+                $block
             ),
             sprintf(
                 '%s MUST roll back BOTH `scheduled_at` and `ends_at` to the captured originals on failure (T5 rollback).',

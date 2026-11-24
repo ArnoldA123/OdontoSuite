@@ -28,11 +28,13 @@ class AppointmentCustodyArrivalTest extends TestCase
         ]);
     }
 
-    private function appointment(string $status = 'confirmed'): Appointment
+    private function appointment(string $status = 'confirmed', ?User $professional = null): Appointment
     {
         return Appointment::factory()->create([
             'status' => $status,
             'scheduled_at' => now()->startOfDay()->addHours(9),
+            'user_id' => $professional?->id
+                ?? User::factory()->create(['role' => 'odontologo', 'is_active' => true])->id,
         ]);
     }
 
@@ -68,7 +70,7 @@ class AppointmentCustodyArrivalTest extends TestCase
     public function test_the_professional_can_register_the_arrival_when_reception_is_absent(): void
     {
         $professional = $this->staff('odontologo');
-        $appointment = $this->appointment('scheduled');
+        $appointment = $this->appointment('scheduled', $professional);
 
         $this->actingAs($professional, 'sanctum')
             ->postJson("/api/appointments/{$appointment->id}/check-in")

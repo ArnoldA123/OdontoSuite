@@ -21,6 +21,12 @@ class AppointmentCustodyLog extends Model
 
     public const ACTION_ATTENTION_START = 'attention_start';
 
+    /**
+     * The patient was announced to the professional. It is not a transfer:
+     * `from_status` and `to_status` are both `arrived`.
+     */
+    public const ACTION_ANNOUNCEMENT = 'announcement';
+
     public const DOOR_RECEPTION = 'reception';
 
     public const DOOR_PROFESSIONAL = 'professional';

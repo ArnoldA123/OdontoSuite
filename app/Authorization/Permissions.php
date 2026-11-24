@@ -60,6 +60,13 @@ final class Permissions
     public const DELETE_PATIENT = 'delete.patient';
 
     // Appointments, consultation and reminders.
+    //
+    // Reading and operating an appointment (status, custody, reschedule of the
+    // professional's own rows) belongs to every appointment desk; creating one
+    // does not. Booking for a patient is reception and administration work, so
+    // the professional keeps the agenda without the counter.
+    public const CREATE_APPOINTMENT = 'create.appointment';
+
     public const MANAGE_APPOINTMENT = 'manage.appointment';
 
     public const UPDATE_APPOINTMENT_STATUS = 'update.appointment_status';
@@ -425,11 +432,16 @@ final class Permissions
         self::UPDATE_PATIENT => self::APPOINTMENT_ROLES,
         self::DELETE_PATIENT => ['administrador'],
 
+        self::CREATE_APPOINTMENT => ['administrador', 'recepcionista'],
         self::MANAGE_APPOINTMENT => self::APPOINTMENT_ROLES,
         self::UPDATE_APPOINTMENT_STATUS => self::APPOINTMENT_ROLES,
         self::VIEW_CONSULTATION => self::APPOINTMENT_ROLES,
         self::CHECK_IN_APPOINTMENT => self::APPOINTMENT_ROLES,
-        self::ANNOUNCE_PATIENT => ['administrador', 'recepcionista'],
+        // The announcement notifies the professional who will attend. The door
+        // already authorizes `update` on the appointment, so the clinical desk
+        // only announces its own rows while reception and administration keep
+        // the whole sede.
+        self::ANNOUNCE_PATIENT => self::APPOINTMENT_ROLES,
         self::START_CONSULTATION => self::MEDICAL_ROLES,
         self::VIEW_MY_DAY => self::MEDICAL_ROLES,
         self::VIEW_CONTINUITY => self::APPOINTMENT_ROLES,

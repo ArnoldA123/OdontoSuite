@@ -3,6 +3,11 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\LocalizedErrors;
+use App\Models\Appointment;
+use App\Models\DentalChair;
+use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -11,6 +16,11 @@ use Illuminate\Validation\Rule;
  * FormRequest for updating an Appointment.
  *
  * Slice 02 / T-02.12: ends_at must be after starts_at (server-side enforcement).
+ *
+ * citas-privacidad (T4): una edición parcial no reenvía a los participantes, así
+ * que la comparación de sedes completa los valores que faltan con los de la
+ * cita guardada. Un actor restringido solo asigna a su sede —nombrar otra es 403
+ * (ADR-0010)— y una pareja con sedes distintas responde 422 en alcance de grupo.
  *
  * @see openspec/changes/bugfix-2026-08/specs/02-form-requests.md
  */
@@ -42,6 +52,52 @@ class UpdateAppointmentRequest extends FormRequest
                 'treatment_notes' => Str::limit(strip_tags($this->treatment_notes), 2000),
             ]);
         }
+    }
+
+    /**
+     * citas-privacidad (T4) — la sede de los participantes, resuelta contra la
+     * cita guardada cuando el payload solo cambia uno de los dos lados.
+     *
+     * El rechazo por sede ajena de un actor restringido es de autorización
+     * (403), la misma respuesta que el guard de escritura del modelo.
+     */
+    protected function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $appointment = $this->route('appointment');
+            $existing = $appointment instanceof Appointment ? $appointment : null;
+
+            $professionalId = $this->input('user_id', $existing?->user_id);
+            $chairId = $this->input('dental_chair_id', $existing?->dental_chair_id);
+
+            if (! is_scalar($professionalId) || ! is_scalar($chairId)) {
+                return;
+            }
+
+            $professionalBranch = User::whereKey($professionalId)->value('branch_id');
+            $chairBranch = DentalChair::whereKey($chairId)->value('branch_id');
+            $actorBranch = $this->user()?->branch_id;
+
+            if ($actorBranch !== null) {
+                if ($professionalBranch !== null && (int) $professionalBranch !== (int) $actorBranch) {
+                    throw new AuthorizationException('El profesional seleccionado no pertenece a su sede.');
+                }
+
+                if ($chairBranch !== null && (int) $chairBranch !== (int) $actorBranch) {
+                    throw new AuthorizationException('El ambiente seleccionado no pertenece a su sede.');
+                }
+
+                return;
+            }
+
+            if ($professionalBranch !== null && $chairBranch !== null
+                && (int) $professionalBranch !== (int) $chairBranch) {
+                $validator->errors()->add(
+                    'dental_chair_id',
+                    'El ambiente y el profesional deben pertenecer a la misma sede.'
+                );
+            }
+        });
     }
 
     /**

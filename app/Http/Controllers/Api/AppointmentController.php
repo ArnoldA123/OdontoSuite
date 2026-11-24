@@ -13,6 +13,7 @@ use App\Http\Resources\AppointmentResource;
 use App\Listeners\ClearDashboardCache;
 use App\Models\Appointment;
 use App\Models\AuditLog;
+use App\Policies\AppointmentPolicy;
 use App\Services\AppointmentService;
 use App\Services\ReminderService;
 use App\Support\SlotConflict;
@@ -21,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
 class AppointmentController extends Controller
@@ -57,6 +59,8 @@ class AppointmentController extends Controller
             'duration_minutes',
             'status',
             'checked_in_at',
+            'announced_at',
+            'announced_by',
             'completed_at',
             'final_amount',
             'consultation_mode',
@@ -136,6 +140,14 @@ class AppointmentController extends Controller
             $query->where('branch_id', $branchFilter);
         }
 
+        // citas-privacidad (T1): el rol clínico lee sólo su propia agenda. La
+        // sede no basta como alcance —dos profesionales de la misma sede no
+        // comparten pacientes— y el filtro corre después del de sede para que
+        // ambos acoten la misma población. La matriz vive en la política.
+        if (! AppointmentPolicy::seesWholeAgenda(Auth::user())) {
+            $query->where('user_id', Auth::id());
+        }
+
         $perPage = $request->get('per_page', 20);
         // Si es una solicitud del calendario (con start_date y end_date), permitir más items
         if ($request->has('start_date') && $request->has('end_date')) {
@@ -193,6 +205,12 @@ class AppointmentController extends Controller
      */
     public function store(\App\Http\Requests\StoreAppointmentRequest $request): JsonResponse
     {
+        // Booking a new appointment is reception and administration work: the
+        // professional reads and operates their own agenda, never books for
+        // others. The permission lives in the policy, so both this door and the
+        // request answer from the same rule.
+        Gate::authorize('create', Appointment::class);
+
         $validated = $request->validated();
 
         // Usar el servicio para crear la cita (valida reglas de datos,
@@ -246,6 +264,12 @@ class AppointmentController extends Controller
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            // El guard de sede del modelo (ScopesToBranch) escribe-denegado: la
+            // cita hereda una sede que el actor no alcanza. Laravel lo traduce a
+            // 403; envolverlo en el 500 genérico escondería una decisión de
+            // autorización como un fallo del servidor.
+            throw $e;
         } catch (\Exception $e) {
             if (($slotConflict = $this->slotConflictResponse($e)) !== null) {
                 Log::warning('Appointment slot taken while creating', [
@@ -285,6 +309,8 @@ class AppointmentController extends Controller
      */
     public function show(Appointment $appointment): JsonResponse
     {
+        Gate::authorize('view', $appointment);
+
         $appointment->load([
             'patient',
             'user',
@@ -292,6 +318,7 @@ class AppointmentController extends Controller
             'appointmentType',
             'branch:id,name',
             'procedure:id,name,code',
+            'announcedBy',
             'createdBy',
             'updatedBy',
             'recurrence',
@@ -308,6 +335,8 @@ class AppointmentController extends Controller
      */
     public function update(\App\Http\Requests\UpdateAppointmentRequest $request, Appointment $appointment): JsonResponse
     {
+        Gate::authorize('update', $appointment);
+
         try {
             Log::info('Update appointment request', [
                 'appointment_id' => $appointment->id,
@@ -343,6 +372,10 @@ class AppointmentController extends Controller
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            // Misma regla que en el alta: la sede heredada del profesional o del
+            // ambiente es una decisión de autorización, no un 500.
+            throw $e;
         } catch (\Exception $e) {
             if (($slotConflict = $this->slotConflictResponse($e)) !== null) {
                 Log::warning('Appointment slot taken while updating', [
@@ -378,6 +411,8 @@ class AppointmentController extends Controller
      */
     public function reschedule(RescheduleAppointmentRequest $request, Appointment $appointment): JsonResponse
     {
+        Gate::authorize('update', $appointment);
+
         $validated = $request->validated();
 
         $scheduledAt = Carbon::parse($validated['scheduled_at'])->setTimezone(config('app.timezone'));
@@ -469,6 +504,8 @@ class AppointmentController extends Controller
      */
     public function destroy(Request $request, Appointment $appointment): JsonResponse
     {
+        Gate::authorize('delete', $appointment);
+
         DB::beginTransaction();
 
         try {
@@ -513,6 +550,10 @@ class AppointmentController extends Controller
      */
     public function updateStatus(Request $request, Appointment $appointment): JsonResponse
     {
+        // La política corre antes de validar: una cita ajena responde 403 y no
+        // insinúa qué campos faltan.
+        Gate::authorize('update', $appointment);
+
         // #394: cancelar es un acto deliberado. El motivo es obligatorio y vive
         // en su propia columna, no en `notes`, que otra edición pisa.
         $validated = $request->validate([
@@ -584,6 +625,20 @@ class AppointmentController extends Controller
             );
 
             DB::commit();
+
+            // La confirmación o la cancelación llega en tiempo real: hasta
+            // ahora esta puerta cambiaba el estado sin publicarlo, así que la
+            // agenda de otra pestaña no se enteraba. Se emite después del
+            // commit, como en store/update, y una difusión rota nunca tumba un
+            // cambio ya escrito.
+            try {
+                event(new AppointmentUpdated($appointment));
+            } catch (\Exception $e) {
+                Log::warning('Failed to emit AppointmentUpdated event', [
+                    'appointment_id' => $appointment->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             return response()->json([
                 'data' => $appointment,

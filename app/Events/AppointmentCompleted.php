@@ -32,11 +32,7 @@ class AppointmentCompleted implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'appointment' => AppointmentBroadcastPayload::for($this->appointment, ['treatmentPlan']),
-            'final_amount' => $this->appointment->final_amount,
-            'consultation_mode' => $this->appointment->consultation_mode,
-            'treatment_plan_id' => $this->appointment->treatment_plan_id,
-            'has_payment' => $this->appointment->has_payment,
+            'appointment' => AppointmentBroadcastPayload::for($this->appointment),
         ];
     }
 }

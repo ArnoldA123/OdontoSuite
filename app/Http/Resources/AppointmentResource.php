@@ -45,6 +45,8 @@ class AppointmentResource extends JsonResource
             'consultation_mode' => $this->consultation_mode,
             'checked_in_at' => $this->checked_in_at?->toIso8601String(),
             'checked_in_by' => $this->checked_in_by,
+            'announced_at' => $this->announced_at?->toIso8601String(),
+            'announced_by' => $this->announced_by,
             'completed_at' => $this->completed_at?->toIso8601String(),
             'has_payment' => $this->when(
                 $this->relationLoaded('transactions'),
@@ -75,6 +77,12 @@ class AppointmentResource extends JsonResource
                     'id' => $this->checkedInBy->id,
                     'name' => $this->checkedInBy->name,
                 ];
+            }),
+            'announced_by_user' => $this->whenLoaded('announcedBy', function () {
+                return $this->announcedBy ? [
+                    'id' => $this->announcedBy->id,
+                    'name' => $this->announcedBy->name,
+                ] : null;
             }),
             'user' => $this->whenLoaded('user', function () {
                 return [

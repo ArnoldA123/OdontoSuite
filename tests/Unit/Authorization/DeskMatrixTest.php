@@ -132,6 +132,39 @@ class DeskMatrixTest extends TestCase
         );
     }
 
+    /**
+     * Product decision: booking is counter work. The permission reaches the
+     * reception and administration desks and no other, while the clinical desks
+     * keep the agenda they operate.
+     */
+    #[Test]
+    public function the_booking_door_belongs_to_reception_and_administration(): void
+    {
+        foreach ([Desks::RECEPTION, Desks::ADMINISTRATION] as $desk) {
+            $this->assertContains(
+                Permissions::CREATE_APPOINTMENT,
+                Desks::permissions($desk),
+                "Desk [{$desk}] answers for the counter and should book appointments.",
+            );
+        }
+
+        foreach ([Desks::CLINICIAN, Desks::ASSISTANT, Desks::LABORATORY, Desks::FINANCE] as $desk) {
+            $this->assertNotContains(
+                Permissions::CREATE_APPOINTMENT,
+                Desks::permissions($desk),
+                "Desk [{$desk}] holds [create.appointment], but it does not book for patients.",
+            );
+        }
+
+        foreach ([Desks::CLINICIAN, Desks::ASSISTANT, Desks::LABORATORY] as $desk) {
+            $this->assertContains(
+                Permissions::MANAGE_APPOINTMENT,
+                Desks::permissions($desk),
+                "Desk [{$desk}] should keep the agenda it reads and operates.",
+            );
+        }
+    }
+
     #[Test]
     public function a_role_at_more_than_one_desk_is_reported_by_the_matrix(): void
     {

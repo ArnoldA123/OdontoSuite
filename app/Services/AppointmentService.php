@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateAppointmentRequest;
 use App\Models\Appointment;
 use App\Models\AppointmentBlock;
 use App\Models\AuditLog;
+use App\Models\DentalChair;
 use App\Models\Patient;
 use App\Models\User;
 use App\Models\WaitingList;
@@ -49,6 +50,16 @@ class AppointmentService
             // Parse scheduled_at y convertir a timezone de la aplicación
             $scheduledAt = Carbon::parse($data['scheduled_at'])->setTimezone(config('app.timezone'));
             $duration = $data['duration_minutes'] ?? 60;
+
+            // citas-privacidad (T1): la cita hereda la sede de sus
+            // participantes. Un alta de gerencia (recepción sin sede) dejaba
+            // `branch_id` nulo y el profesional con sede no la veía en su
+            // agenda. Un valor explícito sigue mandando.
+            $data['branch_id'] = $this->resolveBranchId(
+                (int) $data['user_id'],
+                isset($data['dental_chair_id']) ? (int) $data['dental_chair_id'] : null,
+                isset($data['branch_id']) ? (int) $data['branch_id'] : null,
+            );
 
             // Check work schedule - Deshabilitado: profesionales trabajan 24/7
             // if (!$this->isWithinWorkSchedule($data['user_id'], $scheduledAt)) {
@@ -196,6 +207,7 @@ class AppointmentService
     {
         $this->validateAppointmentData($data, $appointment);
         $this->assertParticipantsAreActive($data, $appointment);
+        $data = $this->applyBranchAttribution($appointment, $data);
         $oldValues = $appointment->toArray();
         // Snapshot the reminder-relevant state before the update mutates the
         // model: the loaded relations stay untouched by `update()`.
@@ -410,6 +422,81 @@ class AppointmentService
 
             throw $e;
         }
+    }
+
+    /**
+     * The sede an appointment belongs to, from the most specific fact to the
+     * most general one (citas-privacidad, T1, contrato de sede):
+     *
+     *   explicit `branch_id` -> `users.branch_id` of the professional
+     *   -> `dental_chairs.branch_id` -> the sede the row already had
+     *
+     * The last step is what makes an explicit `null` harmless on update: it
+     * never erases a sede, it only lets the cascade speak. Returns null when
+     * nobody declares one; `ScopesToBranch` then stamps the actor's sede, as
+     * before.
+     */
+    public function resolveBranchId(
+        int $professionalId,
+        ?int $dentalChairId = null,
+        ?int $explicitBranchId = null,
+        ?Appointment $existing = null,
+    ): ?int {
+        if ($explicitBranchId !== null) {
+            return $explicitBranchId;
+        }
+
+        $professionalBranch = User::query()->whereKey($professionalId)->value('branch_id');
+
+        if ($professionalBranch !== null) {
+            return (int) $professionalBranch;
+        }
+
+        if ($dentalChairId !== null) {
+            $chairBranch = DentalChair::query()->whereKey($dentalChairId)->value('branch_id');
+
+            if ($chairBranch !== null) {
+                return (int) $chairBranch;
+            }
+        }
+
+        return $existing?->branch_id !== null ? (int) $existing->branch_id : null;
+    }
+
+    /**
+     * On update the sede is only recalculated when the professional or the
+     * chair changes, or when the payload carries its own `branch_id`. A
+     * payload `branch_id: null` is dropped instead of written, so it never
+     * clears the sede of a stored appointment.
+     */
+    private function applyBranchAttribution(Appointment $appointment, array $data): array
+    {
+        $professionalChanged = array_key_exists('user_id', $data)
+            && (int) $data['user_id'] !== (int) $appointment->user_id;
+        $chairChanged = array_key_exists('dental_chair_id', $data)
+            && (int) ($data['dental_chair_id'] ?? 0) !== (int) ($appointment->dental_chair_id ?? 0);
+        $explicitBranchId = isset($data['branch_id']) ? (int) $data['branch_id'] : null;
+
+        if (array_key_exists('branch_id', $data) && $explicitBranchId === null) {
+            unset($data['branch_id']);
+        }
+
+        if ($explicitBranchId === null && ! $professionalChanged && ! $chairChanged) {
+            return $data;
+        }
+
+        $chairId = array_key_exists('dental_chair_id', $data)
+            ? ($data['dental_chair_id'] !== null ? (int) $data['dental_chair_id'] : null)
+            : ($appointment->dental_chair_id !== null ? (int) $appointment->dental_chair_id : null);
+
+        $data['branch_id'] = $this->resolveBranchId(
+            (int) ($data['user_id'] ?? $appointment->user_id),
+            $chairId,
+            $explicitBranchId,
+            $appointment,
+        );
+
+        return $data;
     }
 
     /**
