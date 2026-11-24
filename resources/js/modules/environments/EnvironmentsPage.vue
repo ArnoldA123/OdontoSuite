@@ -10,7 +10,7 @@
     <PageHeader
       kicker="Ambientes"
       title="Ambientes"
-      subtitle="Sillones y consultorios por sede"
+      subtitle="Ambientes de atención por sede"
       class="mb-6"
     >
       <template #actions>

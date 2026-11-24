@@ -123,7 +123,7 @@ describe('dashboard "Dónde seguir" block (U2)', () => {
     expect(text).toContain('Mi jornada')
     expect(text).toContain('Pendientes')
     // One line of what each destination resolves.
-    expect(text).toContain('Citas, horarios y sillones del día.')
+    expect(text).toContain('Citas, horarios y ambientes del día.')
     expect(text).toContain('Tu cola de atención del día.')
     expect(text).toContain('respuestas comerciales')
 

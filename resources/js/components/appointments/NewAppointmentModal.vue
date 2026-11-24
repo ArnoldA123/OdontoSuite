@@ -263,11 +263,11 @@
                profesional elegido; el catálogo completo vive detrás de «Otros
                tipos» y la sección nunca se parte: o cabe con sus chips o se
                pliega entera. -->
-          <!-- 2 · Quién atiende y en qué sillón: dos listas independientes -->
+          <!-- 2 · Quién atiende y en qué ambiente: dos listas independientes -->
           <section class="space-y-3" data-appointment-section="team">
             <div class="space-y-1">
               <p :id="PAIR_LABEL_ID" class="text-sm font-semibold text-theme-primary">
-                Quién atiende y en qué sillón
+                Quién atiende y en qué ambiente
               </p>
               <p class="text-xs text-theme-secondary" data-appointment-combination>
                 {{ combinationLine }}
@@ -406,7 +406,7 @@
                 >
                   <div class="flex items-center justify-between gap-1">
                     <p :id="CHAIR_LABEL_ID" class="text-xs font-medium text-theme-secondary">
-                      Sillón
+                      Ambiente
                     </p>
                     <div
                       v-if="availabilityChairs.length > TEAM_PAGE_SIZE"
@@ -416,7 +416,7 @@
                       <button
                         type="button"
                         class="min-h-[20px] min-w-[20px] rounded-md transition-colors hover:text-theme-primary focus:outline-none [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
-                        aria-label="Sillones anteriores"
+                        aria-label="Ambientes anteriores"
                         data-appointment-chairs-prev
                         @click="shiftTeamPage('chairs', availabilityChairs.length, -1)"
                       >
@@ -428,7 +428,7 @@
                       <button
                         type="button"
                         class="min-h-[20px] min-w-[20px] rounded-md transition-colors hover:text-theme-primary focus:outline-none [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
-                        aria-label="Sillones siguientes"
+                        aria-label="Ambientes siguientes"
                         data-appointment-chairs-next
                         @click="shiftTeamPage('chairs', availabilityChairs.length, 1)"
                       >
@@ -505,13 +505,13 @@
                 </div>
                 <div role="group" :aria-labelledby="CHAIR_LABEL_ID">
                   <p :id="CHAIR_LABEL_ID" class="mb-1 text-sm font-medium text-theme-primary">
-                    Sillón dental
+                    Ambiente
                   </p>
                   <UiSelect
                     v-model="form.dental_chair_id"
                     :options="dentalChairOptions"
-                    label="Sillón dental"
-                    placeholder="Seleccionar sillón"
+                    label="Ambiente"
+                    placeholder="Seleccionar ambiente"
                     required
                     searchable
                     clearable
@@ -956,7 +956,7 @@ const rules = {
   ],
   appointment_type_id: [value => (value ? null : 'Elige el tipo de cita.')],
   user_id: [value => (value ? null : 'Elige quién atiende la cita.')],
-  dental_chair_id: [value => (value ? null : 'Elige el sillón.')],
+  dental_chair_id: [value => (value ? null : 'Elige el ambiente.')],
   notes: [
     value =>
       String(value || '').length <= 1000 ? null : 'Las notas no pueden exceder 1000 caracteres.'
@@ -1192,7 +1192,7 @@ const pairsHint = computed(() => {
   if (!windowStart.value) return 'Elige la fecha y la hora para ver quién está libre.'
   if (!endsAtLabel.value) return 'Elige la duración de la cita.'
   if (availabilityStatus.value === 'unknown') {
-    return 'No se pudo leer la agenda del día. Elige el profesional y el sillón a mano.'
+    return 'No se pudo leer la agenda del día. Elige el profesional y el ambiente a mano.'
   }
   return 'Elige la fecha, la hora y la duración para ver quién está libre.'
 })
@@ -1300,15 +1300,15 @@ const combinationLine = computed(() => {
   const parts = []
   if (selectedProfessional.value) parts.push(selectedProfessional.value.name)
   if (selectedChair.value) {
-    parts.push(`en ${selectedChair.value.name || selectedChair.value.code || 'el sillón'}`)
+    parts.push(`en ${selectedChair.value.name || selectedChair.value.code || 'el ambiente'}`)
   }
   const who = parts.join(' ')
   const when = timeRangeLabel.value
-  if (!who && !when) return `Elige profesional y sillón · ${freePersonCount.value} libres`
+  if (!who && !when) return `Elige profesional y ambiente · ${freePersonCount.value} libres`
   return [who, when].filter(Boolean).join(' · ')
 })
 
-const chairLabel = chair => chair.name || chair.code || 'Sillón'
+const chairLabel = chair => chair.name || chair.code || 'Ambiente'
 
 const suggestionAriaLabel = pair => {
   const who = `${pair.user.name} en ${chairLabel(pair.chair)}`

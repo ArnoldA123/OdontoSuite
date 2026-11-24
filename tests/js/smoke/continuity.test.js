@@ -426,7 +426,7 @@ describe('continuity desk actions', () => {
     const chairPlaceholder = bodyField(
       '[data-sc-chair] button[aria-haspopup="true"] span.text-theme-secondary'
     )
-    expect(chairPlaceholder.textContent.trim()).toBe('Seleccionar sillón')
+    expect(chairPlaceholder.textContent.trim()).toBe('Seleccionar ambiente')
     expect(chairPlaceholder.classList.contains('truncate')).toBe(true)
 
     await chooseOption('[data-sc-user]', 'Dra. Elena Paredes')
