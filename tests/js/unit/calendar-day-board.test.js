@@ -314,9 +314,54 @@ describe('tablero del día (T4)', () => {
 
     const modal = wrapper.findComponent(NewAppointmentModal)
     expect(modal.props('modelValue')).toBe(true)
-    // El alta existente no acepta precarga de ambiente: la hora y el espacio
-    // llegan al formulario, el recurso se elige en su lista de ambientes.
+    // El hueco llega al formulario con su hora y su ambiente (#531): fecha, hora
+    // y la columna de la que salió, para no volver a elegirla.
     expect(modal.props('initialDate')).toBe('2026-05-13T07:00')
+    expect(modal.props('initialChairId')).toBe(4)
+    expect(modal.props('initialProfessionalId')).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('propone el profesional del hueco cuando el tablero agrupa por profesional', async () => {
+    const wrapper = await mountPage()
+
+    await wrapper.find('[data-calendar-group-by-option="professional"]').trigger('click')
+    await flushPromises()
+
+    const slot = wrapper.find(
+      '[data-calendar-board-column-body="professional-2"] [data-calendar-free-slot]'
+    )
+    expect(slot.exists()).toBe(true)
+
+    await slot.trigger('click')
+    await flushPromises()
+
+    const modal = wrapper.findComponent(NewAppointmentModal)
+    expect(modal.props('initialProfessionalId')).toBe(2)
+    expect(modal.props('initialChairId')).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('no propone recurso al abrir el alta desde «Nueva cita»', async () => {
+    const wrapper = await mountPage()
+
+    const slot = wrapper.find(
+      '[data-calendar-board-column-body="chair-4"] [data-calendar-free-slot]'
+    )
+    await slot.trigger('click')
+    await flushPromises()
+    await wrapper.findComponent(NewAppointmentModal).vm.$emit('update:modelValue', false)
+    await flushPromises()
+
+    await wrapper.find('[data-calendar-action="new-appointment"]').trigger('click')
+    await flushPromises()
+
+    const modal = wrapper.findComponent(NewAppointmentModal)
+    expect(modal.props('modelValue')).toBe(true)
+    expect(modal.props('initialChairId')).toBeNull()
+    expect(modal.props('initialProfessionalId')).toBeNull()
 
     wrapper.unmount()
   })

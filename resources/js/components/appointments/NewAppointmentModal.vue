@@ -852,6 +852,17 @@ const props = defineProps({
     type: String,
     default: null
   },
+  // #531: el tablero ofrece sus huecos con el ambiente de la columna (y el
+  // profesional, cuando agrupa por ellos). Los ids son una propuesta, no una
+  // elección: el formulario los adopta solo si su catálogo los publica.
+  initialChairId: {
+    type: [String, Number],
+    default: null
+  },
+  initialProfessionalId: {
+    type: [String, Number],
+    default: null
+  },
   appointment: {
     type: Object,
     default: null
@@ -1688,6 +1699,30 @@ const resetForm = () => {
   }
 }
 
+const hasOption = (rows, id) => (rows || []).some(row => String(row?.id) === String(id))
+
+// La precarga del recurso se aplica una sola vez y después del catálogo: un
+// ambiente que el formulario no ofrece (inactivo, de otra sede) se ignora sin
+// ruido, y lo que el usuario elija luego no se revierte porque nadie vuelve a
+// escribir el campo.
+const applyInitialTeam = () => {
+  if (props.appointment) return
+
+  const { initialChairId, initialProfessionalId } = props
+
+  if (initialChairId && !form.dental_chair_id && hasOption(dentalChairs.value, initialChairId)) {
+    form.dental_chair_id = initialChairId
+  }
+
+  if (
+    initialProfessionalId &&
+    !form.user_id &&
+    hasOption(professionals.value, initialProfessionalId)
+  ) {
+    form.user_id = initialProfessionalId
+  }
+}
+
 const loadData = async () => {
   loadingData.value = true
   try {
@@ -1702,6 +1737,8 @@ const loadData = async () => {
     professionals.value = professionalsRes?.data || []
     appointmentTypes.value = typesRes?.data || []
     dentalChairs.value = chairsRes?.data || []
+
+    applyInitialTeam()
 
     if (professionals.value.length === 0) {
       toast.warning('No se encontraron profesionales activos')
