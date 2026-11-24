@@ -712,7 +712,7 @@
                             :data-calendar-free-slot-start="timeAtMinutes(slot.startMinutes)"
                             :data-calendar-free-slot-minutes="`${slot.minutes}`"
                             :aria-label="freeSlotLabel(column, slot)"
-                            @click="openSlotCreate(dayDateString, slot.hour, slot.minute)"
+                            @click="openSlotCreate(dayDateString, slot.hour, slot.minute, column)"
                           >
                             <span class="whitespace-nowrap text-[11px] font-semibold">
                               Libre · {{ slot.minutes }} min
@@ -1728,6 +1728,8 @@
     <NewAppointmentModal
       v-model="showNewAppointmentModal"
       :initial-date="newAppointmentPrefill"
+      :initial-chair-id="newAppointmentChairId"
+      :initial-professional-id="newAppointmentProfessionalId"
       :appointment="editingAppointment"
       @created="handleAppointmentCreated"
       @updated="handleAppointmentSaved"
@@ -1945,6 +1947,11 @@ export default {
 
     const editingAppointment = ref(null)
     const newAppointmentPrefill = ref(null)
+    // #531: el recurso de la columna del hueco que abrió el alta. Son una
+    // propuesta para el formulario —él valida su catálogo— y desaparecen al
+    // cerrar, así que «Nueva cita» nunca hereda la columna de la vez anterior.
+    const newAppointmentChairId = ref(null)
+    const newAppointmentProfessionalId = ref(null)
 
     const getAppointmentLocalDate = appointment => {
       if (!appointment || !appointment.scheduled_at) return null
@@ -1974,12 +1981,19 @@ export default {
     const openNewAppointmentModal = () => {
       editingAppointment.value = null
       newAppointmentPrefill.value = getInitialDateForModal()
+      newAppointmentChairId.value = null
+      newAppointmentProfessionalId.value = null
       showNewAppointmentModal.value = true
     }
 
-    const openSlotCreate = (dateStr, hour, minute = 0) => {
+    // El hueco sabe de qué columna salió: agrupando por ambiente propone ese
+    // ambiente; agrupando por profesional, ese profesional.
+    const openSlotCreate = (dateStr, hour, minute = 0, column = null) => {
       editingAppointment.value = null
       newAppointmentPrefill.value = getInitialDateForModal(dateStr, hour, minute)
+      newAppointmentChairId.value = groupBy.value === 'chair' ? (column?.id ?? null) : null
+      newAppointmentProfessionalId.value =
+        groupBy.value === 'professional' ? (column?.id ?? null) : null
       showNewAppointmentModal.value = true
     }
 
@@ -3512,6 +3526,8 @@ export default {
     watch(showNewAppointmentModal, isOpen => {
       if (!isOpen) {
         editingAppointment.value = null
+        newAppointmentChairId.value = null
+        newAppointmentProfessionalId.value = null
       }
     })
 
@@ -3741,6 +3757,8 @@ export default {
       ambienteLabel,
       openSlotCreate,
       newAppointmentPrefill,
+      newAppointmentChairId,
+      newAppointmentProfessionalId,
       getAppointmentClasses,
       getStatusClasses,
       getStatusText,

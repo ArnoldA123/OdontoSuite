@@ -609,6 +609,26 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-11-24 (el hueco del tablero entrega su ambiente, #531)** — Pulsar un
+  hueco libre de la vista Día abre el alta con fecha, hora y **el recurso de su
+  columna**: con «Agrupar por: Ambiente» llega ese ambiente y con «Agrupar por:
+  Profesional» llega ese profesional (la parte opcional del issue).
+  `openSlotCreate` recibe la columna y publica
+  `newAppointmentChairId`/`newAppointmentProfessionalId`, que el modal acepta
+  como `initialChairId`/`initialProfessionalId`. La propuesta se aplica
+  **después** de `loadData()` —el catálogo es lo que decide si el id existe—,
+  sólo sobre un campo vacío y sólo si el recurso está en la lista disponible,
+  así que un ambiente inactivo o de otra sede se ignora sin error; ninguna
+  lectura posterior vuelve a escribir el campo, de modo que elegir otro
+  ambiente a mano no se revierte, y «Nueva cita» limpia los ids al abrir y al
+  cerrar. Sin rutas, modelos, migraciones, permisos ni primitivas UI nuevas: los
+  conteos de §4/§5 no cambian. Tests: `calendar-day-board.test.js` fija la
+  propagación en ambas agrupaciones, el alta sin propuesta y el cierre que la
+  borra; `appointment-slot-prefill.test.js` (5) fija la adopción, el ambiente
+  ausente del catálogo, el profesional del hueco y la elección posterior que no
+  se revierte. Vitest **185 archivos / 1737 pruebas**, ESLint y Prettier
+  limpios.
+
 - **2026-11-24 (calendario: tablero por ambiente, semana por bloques y marco
   armonizado)** — La vista Día de `/calendar` deja de ser una rejilla de una
   columna y pasa a tablero por recurso: columnas por **ambiente** (o por
