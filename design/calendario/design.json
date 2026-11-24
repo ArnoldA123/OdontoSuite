@@ -1,0 +1,28 @@
+{
+  "title": "Calendario",
+  "brief": "Tres direcciones para rediseñar la superficie de calendario de OdontoSuite: el tablero por sillón del día, la agenda cronológica de la semana y la semana clásica depurada con mini-mes.",
+  "feature": "odd/tasks/rediseno-calendario.md",
+  "artboards": [
+    {
+      "file": "01-tablero-de-salas.html",
+      "title": "Tablero de salas",
+      "tradeoff": "Responde «¿dónde hay hueco?» de un vistazo y reúne los pendientes del turno; pierde la vista de varios días y necesita scroll con más de cuatro sillones.",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "02-agenda-de-la-semana.html",
+      "title": "Agenda de la semana",
+      "tradeoff": "Máxima legibilidad de nombres, profesionales y huecos libres; al dejar la rejilla, se pierde la noción espacial de solapes y el arrastre es menos preciso.",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "03-semana-foco.html",
+      "title": "Semana con foco",
+      "tradeoff": "Conserva la rejilla que el equipo ya conoce y la calma con píldoras de estado y línea de ahora; sigue necesitando scroll horizontal por debajo de 900 px.",
+      "width": 1440,
+      "height": 1000
+    }
+  ]
+}

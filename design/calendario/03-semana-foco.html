@@ -1,0 +1,1474 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calendario · Semana con foco</title>
+    <style>
+      :root {
+        --accent: #0f7a5f;
+        --accent-hover: #0a5f49;
+        --accent-light: #f2f8f5;
+        --accent-100: #c9e7dc;
+        --accent-200: #93cdb9;
+        --accent-700: #084c3b;
+        --canvas: #f7f6f4;
+        --surface: #ffffff;
+        --label: #1a1917;
+        --label-2: #5c5a55;
+        --label-3: rgba(26, 24, 20, 0.3);
+        --border: #c9c5bd;
+        --border-light: #edebe7;
+        --hairline: rgba(26, 24, 20, 0.1);
+        --g50: #f7f6f4;
+        --g100: #edebe7;
+        --g200: #dcd8d2;
+        --g300: #d2cec7;
+        --g400: #b5b0a8;
+        --g500: #908b82;
+        --g600: #635e57;
+        --g700: #3b3833;
+        --steel-50: #eef3f8;
+        --steel-100: #dbe5ef;
+        --steel-200: #bed0e0;
+        --steel-500: #4a7191;
+        --steel-700: #2b4459;
+        --green-50: #e8f5e9;
+        --green-100: #cdedcf;
+        --green-200: #a4d8a8;
+        --green-500: #34c759;
+        --green-700: #1a6530;
+        --yellow-50: #fff9d6;
+        --yellow-100: #fff1ad;
+        --yellow-200: #ffe57f;
+        --yellow-500: #ffcc00;
+        --yellow-700: #7a5200;
+        --red-50: #ffebea;
+        --red-100: #ffd9d7;
+        --red-200: #ffb8b3;
+        --red-500: #ff3b30;
+        --red-700: #a50e10;
+        --orange-50: #fff1e5;
+        --orange-100: #ffe2c7;
+        --orange-200: #ffd09d;
+        --orange-500: #ff9500;
+        --orange-700: #9a2700;
+        --indigo-50: #efe9ff;
+        --indigo-100: #dfd2ff;
+        --indigo-200: #c8b6ff;
+        --indigo-500: #5856d6;
+        --indigo-700: #2d2b80;
+        --purple-50: #f6e9ff;
+        --purple-100: #ecd2ff;
+        --purple-200: #dfaeff;
+        --purple-500: #af52de;
+        --purple-700: #55276f;
+        --r-ios: 10px;
+        --r-ctl: 12px;
+        --r-modal: 14px;
+        --r-card: 16px;
+        --e1: 0 1px 3px rgba(92, 90, 85, 0.04);
+        --e2: 0 2px 8px rgba(92, 90, 85, 0.06), 0 1px 2px rgba(92, 90, 85, 0.04);
+        --e3: 0 8px 16px rgba(92, 90, 85, 0.08), 0 2px 6px rgba(92, 90, 85, 0.06);
+        --e4: 0 16px 24px rgba(92, 90, 85, 0.12), 0 4px 8px rgba(92, 90, 85, 0.08);
+        --focus: 0 0 0 3px rgba(15, 122, 95, 0.2);
+        --dur-fast: 120ms;
+        --dur-normal: 200ms;
+        --ease-ios: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+      }
+      body {
+        background: var(--canvas);
+        color: var(--label);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+          sans-serif;
+        font-size: 15px;
+        line-height: 22px;
+        -webkit-font-smoothing: antialiased;
+      }
+      h1,
+      h2,
+      h3,
+      p,
+      ul,
+      li {
+        margin: 0;
+        padding: 0;
+      }
+      ul {
+        list-style: none;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: 0;
+        cursor: pointer;
+      }
+      :focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(15, 122, 95, 0.2);
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ---------- shell ---------- */
+      .app {
+        display: flex;
+        min-height: 100vh;
+      }
+      .rail {
+        width: 64px;
+        flex: 0 0 64px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 14px 0 18px;
+        background: var(--surface);
+        border-right: 1px solid var(--hairline);
+      }
+      .brand {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--r-ios);
+        background: var(--accent);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .rail-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 18px;
+      }
+      .rail-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--r-ios);
+        display: grid;
+        place-items: center;
+        color: var(--g500);
+        transition: background var(--dur-fast) var(--ease-ios),
+          color var(--dur-fast) var(--ease-ios);
+      }
+      .rail-btn:hover {
+        background: var(--g100);
+        color: var(--label);
+      }
+      .rail-btn.is-active {
+        background: var(--accent-light);
+        color: var(--accent);
+      }
+      .rail-foot {
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+      .avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 9999px;
+        background: var(--accent-100);
+        color: var(--accent-700);
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      /* ---------- page ---------- */
+      .page {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 22px 26px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      /* ---------- hero ---------- */
+      .hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+        padding: 16px 18px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: var(--r-card);
+        box-shadow: var(--e1);
+      }
+      .eyebrow {
+        font-size: 11px;
+        line-height: 16px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--label-2);
+      }
+      h1 {
+        margin-top: 3px;
+        font-size: 24px;
+        line-height: 32px;
+        letter-spacing: -0.015em;
+        font-weight: 650;
+      }
+      .sub {
+        margin-top: 3px;
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--label-2);
+      }
+      .hero-tools {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .seg {
+        display: flex;
+        padding: 3px;
+        gap: 2px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: var(--r-ios);
+        box-shadow: var(--e1);
+      }
+      .seg-btn {
+        height: 30px;
+        padding: 0 12px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--label-2);
+        transition: background var(--dur-normal) var(--ease-ios),
+          color var(--dur-normal) var(--ease-ios);
+      }
+      .seg-btn:hover {
+        color: var(--label);
+      }
+      .seg-btn[aria-pressed='true'] {
+        background: var(--label);
+        color: #fff;
+      }
+      .stepper {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: var(--r-ios);
+        box-shadow: var(--e1);
+        padding: 3px;
+      }
+      .icon-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        color: var(--label-2);
+        transition: background var(--dur-fast) var(--ease-ios),
+          color var(--dur-fast) var(--ease-ios);
+      }
+      .icon-btn:hover {
+        background: var(--g100);
+        color: var(--label);
+      }
+      .btn-ghost {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 30px;
+        padding: 0 10px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--label);
+        transition: background var(--dur-fast) var(--ease-ios);
+      }
+      .btn-ghost:hover {
+        background: var(--g100);
+      }
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 36px;
+        padding: 0 16px;
+        border-radius: var(--r-ios);
+        background: var(--accent);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        box-shadow: var(--e3), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+        transition: transform var(--dur-fast) var(--ease-ios),
+          background var(--dur-normal) var(--ease-ios);
+      }
+      .btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+      }
+      .btn-primary:active {
+        transform: translateY(1px);
+      }
+
+      /* ---------- status pills ---------- */
+      .filters {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .pills {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        min-width: 0;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 11px;
+        border-radius: 9999px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        color: var(--label);
+        white-space: nowrap;
+        transition: background var(--dur-normal) var(--ease-ios),
+          color var(--dur-normal) var(--ease-ios);
+      }
+      .pill:hover {
+        background: var(--g50);
+      }
+      .pill.is-active {
+        background: var(--accent);
+        border-color: transparent;
+        color: #fff;
+      }
+      .pill.is-active:hover {
+        background: var(--accent-hover);
+      }
+      .pill .pdot {
+        width: 7px;
+        height: 7px;
+        border-radius: 9999px;
+        flex: 0 0 auto;
+      }
+      .pill .pcount {
+        font-variant-numeric: tabular-nums;
+        color: var(--label-2);
+      }
+      .pill.is-active .pcount {
+        color: #fff;
+        opacity: 0.78;
+      }
+      .tools {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .chip-sillas {
+        display: inline-flex;
+        align-items: center;
+        height: 26px;
+        padding: 0 10px;
+        border-radius: 9999px;
+        background: var(--g100);
+        color: var(--g600);
+        font-size: 11.5px;
+        line-height: 16px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+
+      /* ---------- workspace ---------- */
+      .workspace {
+        display: grid;
+        grid-template-columns: 212px minmax(0, 1fr);
+        grid-template-areas: 'side cal';
+        gap: 16px;
+        align-items: start;
+      }
+      .side {
+        grid-area: side;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+      }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: var(--r-card);
+        box-shadow: var(--e1);
+        padding: 12px;
+        min-width: 0;
+      }
+      .panel h2 {
+        font-size: 12.5px;
+        line-height: 16px;
+        font-weight: 650;
+      }
+
+      /* ---------- mini month ---------- */
+      .mm-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .mm-nav {
+        display: flex;
+        gap: 2px;
+      }
+      .mini-icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        color: var(--label-2);
+        transition: background var(--dur-fast) var(--ease-ios),
+          color var(--dur-fast) var(--ease-ios);
+      }
+      .mini-icon:hover {
+        background: var(--g100);
+        color: var(--label);
+      }
+      .mm-week {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        margin-bottom: 2px;
+      }
+      .mm-week li {
+        text-align: center;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 500;
+        color: var(--label-2);
+      }
+      .mm-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+      }
+      .mday {
+        width: 100%;
+        height: 26px;
+        border-radius: 7px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        font-size: 12px;
+        line-height: 14px;
+        font-weight: 600;
+        color: var(--label);
+        transition: background var(--dur-normal) var(--ease-ios),
+          color var(--dur-normal) var(--ease-ios);
+      }
+      .mday:hover {
+        background: var(--g100);
+      }
+      .mday .mn {
+        font-variant-numeric: tabular-nums;
+      }
+      .mdot {
+        width: 4px;
+        height: 4px;
+        border-radius: 9999px;
+        background: var(--accent);
+      }
+      .mdot.is-idle {
+        background: transparent;
+      }
+      .mday.is-today {
+        background: var(--accent);
+        color: #fff;
+      }
+      .mday.is-today:hover {
+        background: var(--accent-hover);
+      }
+
+      /* ---------- professionals ---------- */
+      .pros {
+        margin-top: 6px;
+      }
+      .pro {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 0;
+        border-bottom: 1px solid var(--border-light);
+        cursor: pointer;
+      }
+      .pro:last-child {
+        border-bottom: 0;
+        padding-bottom: 1px;
+      }
+      .pro .pdot {
+        width: 7px;
+        height: 7px;
+        border-radius: 9999px;
+        flex: 0 0 auto;
+      }
+      .pname {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .pcount {
+        font-size: 11.5px;
+        line-height: 16px;
+        color: var(--label-2);
+        font-variant-numeric: tabular-nums;
+      }
+      .pcheck {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        width: 14px;
+        height: 14px;
+        margin: 0;
+        opacity: 0;
+        transform: translateY(-50%);
+      }
+      .pcheck:focus-visible {
+        box-shadow: none;
+      }
+      .pcheck:focus-visible ~ .mark {
+        box-shadow: var(--focus);
+      }
+      .mark {
+        width: 14px;
+        height: 14px;
+        flex: 0 0 14px;
+        border-radius: 4px;
+        background: var(--accent);
+        color: #fff;
+        display: grid;
+        place-items: center;
+      }
+      .pcheck:not(:checked) ~ .mark {
+        background: var(--surface);
+        box-shadow: inset 0 0 0 1px var(--border);
+        color: transparent;
+      }
+
+      /* ---------- occupancy ---------- */
+      .occ-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .occ-label {
+        font-size: 12.5px;
+        line-height: 16px;
+        font-weight: 650;
+      }
+      .occ-num {
+        font-size: 20px;
+        line-height: 24px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        font-variant-numeric: tabular-nums;
+      }
+      .occ-bar {
+        margin-top: 8px;
+        height: 4px;
+        border-radius: 9999px;
+        background: var(--g100);
+        overflow: hidden;
+      }
+      .occ-bar > span {
+        display: block;
+        height: 100%;
+        border-radius: 9999px;
+        background: var(--accent);
+      }
+      .occ-cap {
+        margin-top: 6px;
+        font-size: 11px;
+        line-height: 15px;
+        color: var(--label-2);
+      }
+
+      /* ---------- calendar ---------- */
+      .cal {
+        grid-area: cal;
+        min-width: 0;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: var(--r-card);
+        box-shadow: var(--e1);
+        overflow: hidden;
+      }
+      .cal-head {
+        display: grid;
+        grid-template-columns: 52px repeat(7, minmax(0, 1fr));
+        border-bottom: 1px solid var(--border-light);
+        background: var(--surface);
+      }
+      .corner {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding-bottom: 8px;
+        font-size: 9.5px;
+        line-height: 13px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: var(--g500);
+      }
+      .dhead {
+        min-width: 0;
+        padding: 6px 10px 7px;
+        border-left: 1px solid var(--hairline);
+      }
+      .dw {
+        font-size: 10.5px;
+        line-height: 12px;
+        font-weight: 650;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--label-2);
+      }
+      .dn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 18px;
+        line-height: 22px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      .dc {
+        font-size: 10px;
+        line-height: 14px;
+        color: var(--label-2);
+      }
+      .today-chip {
+        height: 14px;
+        padding: 0 5px;
+        border-radius: 9999px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 9px;
+        line-height: 14px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      .dhead.is-today {
+        background: var(--accent-light);
+      }
+      .dhead.is-today .dn {
+        color: var(--accent);
+      }
+
+      .cal-body {
+        position: relative;
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr);
+        height: 612px;
+      }
+      .gutter {
+        position: relative;
+      }
+      .gutter span {
+        position: absolute;
+        right: 10px;
+        transform: translateY(-50%);
+        font-size: 10.5px;
+        line-height: 14px;
+        color: var(--g500);
+        font-variant-numeric: tabular-nums;
+      }
+      .gutter span.is-first {
+        transform: none;
+      }
+      .cols {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        background: repeating-linear-gradient(
+          to bottom,
+          var(--border-light) 0 1px,
+          transparent 1px 72px
+        );
+      }
+      .col {
+        position: relative;
+        border-left: 1px solid var(--hairline);
+        min-width: 0;
+      }
+      .col.is-today {
+        background: rgba(242, 248, 245, 0.4);
+      }
+      .off {
+        position: absolute;
+        top: 12px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 10.5px;
+        line-height: 14px;
+        color: var(--g500);
+      }
+
+      .now {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 158px;
+        height: 0;
+        border-top: 1.5px solid var(--accent);
+        z-index: 0;
+        pointer-events: none;
+      }
+      .now::before {
+        content: '';
+        position: absolute;
+        left: 48px;
+        top: -4.25px;
+        width: 7px;
+        height: 7px;
+        border-radius: 9999px;
+        background: var(--accent);
+      }
+      .now-pill {
+        position: absolute;
+        left: 5px;
+        top: -8px;
+        padding: 0 5px;
+        height: 15px;
+        border-radius: 9999px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 10px;
+        line-height: 15px;
+        font-weight: 600;
+      }
+
+      /* ---------- appointment ---------- */
+      .appt {
+        position: absolute;
+        left: 4px;
+        right: 4px;
+        top: var(--top);
+        height: calc(var(--h) - 4px);
+        display: flex;
+        flex-direction: column;
+        padding: 4px 5px 4px 6px;
+        border-radius: 8px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-left: 3px solid var(--status);
+        box-shadow: var(--e1);
+        text-align: left;
+        overflow: hidden;
+        transition: transform var(--dur-fast) var(--ease-ios),
+          box-shadow var(--dur-fast) var(--ease-ios);
+      }
+      .appt:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--e2);
+        z-index: 2;
+      }
+      .appt-top {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .appt-t {
+        font-size: 10.5px;
+        line-height: 13px;
+        color: var(--label-2);
+        font-variant-numeric: tabular-nums;
+      }
+      .chair {
+        margin-left: auto;
+        padding: 0 4px;
+        border-radius: 4px;
+        background: var(--g100);
+        color: var(--g600);
+        font-size: 9.5px;
+        line-height: 14px;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+      }
+      .appt-p {
+        font-size: 12px;
+        line-height: 15px;
+        font-weight: 650;
+        letter-spacing: -0.005em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .appt-x {
+        font-size: 11px;
+        line-height: 14px;
+        color: var(--label-2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .state {
+        margin-top: auto;
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 0 5px;
+        border-radius: 9999px;
+        font-size: 9.5px;
+        line-height: 14px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+      .state .sdot {
+        width: 4px;
+        height: 4px;
+        border-radius: 9999px;
+        background: currentColor;
+        flex: 0 0 auto;
+      }
+      .state[data-s='arrived'] {
+        background: var(--indigo-50);
+        color: var(--indigo-700);
+      }
+      .state[data-s='in_consultation'] {
+        background: var(--yellow-50);
+        color: var(--yellow-700);
+      }
+      .appt.half {
+        left: 2px;
+        right: auto;
+        width: calc(50% - 3px);
+        padding: 4px 4px 4px 5px;
+      }
+      .appt.half.is-right {
+        left: calc(50% + 1px);
+      }
+      .appt.half .appt-p {
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+      }
+      .appt.half .state {
+        padding: 0 4px;
+        gap: 3px;
+        font-size: 9px;
+      }
+      .appt[data-state='completed'] {
+        background: var(--g50);
+      }
+      .appt[data-state='completed'] .appt-p {
+        color: var(--g600);
+      }
+      .appt[data-state='completed'] .appt-x {
+        color: var(--g600);
+      }
+      .appt[data-state='cancelled'] {
+        background: var(--red-50);
+      }
+      .appt[data-state='cancelled'] .appt-p {
+        color: var(--red-700);
+        text-decoration: line-through;
+        text-decoration-thickness: 1px;
+      }
+
+      /* ---------- footer ---------- */
+      .footband {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 12px 16px;
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: var(--r-ios);
+        box-shadow: var(--e1);
+        font-size: 12.5px;
+        line-height: 18px;
+        color: var(--label-2);
+      }
+      .footband .right {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 30px;
+        padding: 0 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--label);
+        transition: background var(--dur-fast) var(--ease-ios);
+      }
+      .btn-secondary:hover {
+        background: var(--g100);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition-duration: 1ms !important;
+          animation-duration: 1ms !important;
+        }
+        .appt:hover,
+        .btn-primary:hover,
+        .btn-primary:active {
+          transform: none;
+        }
+      }
+      @media (max-width: 1180px) {
+        .workspace {
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-areas:
+            'cal'
+            'side';
+        }
+        .side {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+      }
+      @media (max-width: 900px) {
+        .rail {
+          display: none;
+        }
+        .page {
+          padding: 18px 16px 20px;
+        }
+        .cal {
+          overflow-x: auto;
+        }
+        .cal-inner {
+          min-width: 860px;
+        }
+        .tools {
+          margin-left: 0;
+        }
+      }
+      @media (max-width: 640px) {
+        .side {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <nav class="rail" aria-label="Navegación principal">
+        <span class="brand" aria-hidden="true">O</span>
+        <ul class="rail-list">
+          <li>
+            <button class="rail-btn" type="button" aria-label="Panel">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+            </button>
+          </li>
+          <li>
+            <button class="rail-btn is-active" type="button" aria-label="Calendario" aria-current="page">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+            </button>
+          </li>
+          <li>
+            <button class="rail-btn" type="button" aria-label="Pacientes">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.9-4.8 5.5-4.8s4.9 1.6 5.5 4.8"/><path d="M16 6.2a3 3 0 0 1 0 5.6M17.5 14.6c2 .5 3.2 2 3.5 4.4"/></svg>
+            </button>
+          </li>
+          <li>
+            <button class="rail-btn" type="button" aria-label="Caja">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 11h18M16 15h2"/></svg>
+            </button>
+          </li>
+          <li>
+            <button class="rail-btn" type="button" aria-label="Reportes">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V6M10 20v-7M16 20V9M22 20H2"/></svg>
+            </button>
+          </li>
+        </ul>
+        <div class="rail-foot">
+          <button class="rail-btn" type="button" aria-label="Configuración">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+          </button>
+          <span class="avatar" aria-hidden="true">AR</span>
+        </div>
+      </nav>
+
+      <main class="page">
+        <header class="hero">
+          <div>
+            <p class="eyebrow">16 – 22 de noviembre · 2026</p>
+            <h1>Calendario</h1>
+            <p class="sub">Sede San Isidro · 23 citas esta semana · 4 profesionales</p>
+          </div>
+          <div class="hero-tools">
+            <div class="seg" role="group" aria-label="Vista del calendario">
+              <button class="seg-btn" type="button" aria-pressed="false">Día</button>
+              <button class="seg-btn" type="button" aria-pressed="true">Semana</button>
+              <button class="seg-btn" type="button" aria-pressed="false">Mes</button>
+            </div>
+            <div class="stepper">
+              <button class="icon-btn" type="button" aria-label="Semana anterior">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>
+              </button>
+              <button class="btn-ghost" type="button">Hoy</button>
+              <button class="icon-btn" type="button" aria-label="Semana siguiente">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>
+              </button>
+            </div>
+            <button class="btn-primary" type="button">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Nueva cita
+            </button>
+          </div>
+        </header>
+
+        <div class="filters">
+          <div class="pills" role="group" aria-label="Filtrar citas por estado">
+            <button class="pill is-active" type="button" aria-pressed="true">Todas <span class="pcount">23</span></button>
+            <button class="pill" type="button" aria-pressed="false"><span class="pdot" style="background: var(--g400)" aria-hidden="true"></span>Programadas <span class="pcount">4</span></button>
+            <button class="pill" type="button" aria-pressed="false"><span class="pdot" style="background: var(--steel-500)" aria-hidden="true"></span>Confirmadas <span class="pcount">9</span></button>
+            <button class="pill" type="button" aria-pressed="false"><span class="pdot" style="background: var(--indigo-500)" aria-hidden="true"></span>En sala <span class="pcount">2</span></button>
+            <button class="pill" type="button" aria-pressed="false"><span class="pdot" style="background: var(--green-500)" aria-hidden="true"></span>Completadas <span class="pcount">6</span></button>
+            <button class="pill" type="button" aria-pressed="false"><span class="pdot" style="background: var(--red-500)" aria-hidden="true"></span>Canceladas <span class="pcount">1</span></button>
+            <button class="pill" type="button" aria-pressed="false"><span class="pdot" style="background: var(--orange-500)" aria-hidden="true"></span>No asistió <span class="pcount">1</span></button>
+          </div>
+          <div class="tools">
+            <button class="btn-ghost" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+              Filtros
+            </button>
+            <span class="chip-sillas">4 sillones</span>
+          </div>
+        </div>
+
+        <div class="workspace">
+          <section class="cal" aria-label="Semana del 16 al 22 de noviembre de 2026">
+            <div class="cal-inner">
+              <div class="cal-head">
+                <div class="corner" aria-hidden="true">HORA</div>
+                <div class="dhead" role="group" aria-label="Lunes 16 de noviembre, 4 citas">
+                  <p class="dw">Lun</p>
+                  <p class="dn num">16</p>
+                  <p class="dc">4 citas</p>
+                </div>
+                <div class="dhead" role="group" aria-label="Martes 17 de noviembre, 4 citas">
+                  <p class="dw">Mar</p>
+                  <p class="dn num">17</p>
+                  <p class="dc">4 citas</p>
+                </div>
+                <div class="dhead is-today" role="group" aria-current="date" aria-label="Miércoles 18 de noviembre, hoy, 4 citas">
+                  <p class="dw">Mié</p>
+                  <p class="dn num">18 <span class="today-chip">HOY</span></p>
+                  <p class="dc">4 citas</p>
+                </div>
+                <div class="dhead" role="group" aria-label="Jueves 19 de noviembre, 3 citas">
+                  <p class="dw">Jue</p>
+                  <p class="dn num">19</p>
+                  <p class="dc">3 citas</p>
+                </div>
+                <div class="dhead" role="group" aria-label="Viernes 20 de noviembre, 3 citas">
+                  <p class="dw">Vie</p>
+                  <p class="dn num">20</p>
+                  <p class="dc">3 citas</p>
+                </div>
+                <div class="dhead" role="group" aria-label="Sábado 21 de noviembre, 2 citas">
+                  <p class="dw">Sáb</p>
+                  <p class="dn num">21</p>
+                  <p class="dc">2 citas</p>
+                </div>
+                <div class="dhead" role="group" aria-label="Domingo 22 de noviembre, sin citas">
+                  <p class="dw">Dom</p>
+                  <p class="dn num">22</p>
+                  <p class="dc">0 citas</p>
+                </div>
+              </div>
+
+              <div class="cal-body">
+                <div class="gutter" aria-hidden="true">
+                  <span class="is-first" style="top: 1px">08:00</span>
+                  <span style="top: 72px">09:00</span>
+                  <span style="top: 144px">10:00</span>
+                  <span style="top: 216px">11:00</span>
+                  <span style="top: 288px">12:00</span>
+                  <span style="top: 360px">13:00</span>
+                  <span style="top: 432px">14:00</span>
+                  <span style="top: 504px">15:00</span>
+                  <span style="top: 576px">16:00</span>
+                </div>
+
+                <div class="cols">
+                  <div class="col">
+                    <button class="appt" type="button" data-state="completed" style="--top: 0px; --h: 72px; --status: var(--green-500)" aria-label="Lunes 16, 08:00, Ana Torres Quispe, control de ortodoncia, sillón 2, completada">
+                      <span class="appt-top"><span class="appt-t num">08:00</span><span class="chair">S2</span></span>
+                      <span class="appt-p">Ana Torres Quispe</span>
+                      <span class="appt-x">Control de ortodoncia</span>
+                    </button>
+                    <button class="appt" type="button" data-state="confirmed" style="--top: 108px; --h: 72px; --status: var(--steel-500)" aria-label="Lunes 16, 09:30, Luis Ramírez Ccahuana, endodoncia pieza 36, sillón 1, confirmada">
+                      <span class="appt-top"><span class="appt-t num">09:30</span><span class="chair">S1</span></span>
+                      <span class="appt-p">Luis Ramírez Ccahuana</span>
+                      <span class="appt-x">Endodoncia 36</span>
+                    </button>
+                    <button class="appt" type="button" data-state="scheduled" style="--top: 216px; --h: 72px; --status: var(--g400)" aria-label="Lunes 16, 11:00, Rosa Huamán Vega, rehabilitación oral, sillón 3, programada">
+                      <span class="appt-top"><span class="appt-t num">11:00</span><span class="chair">S3</span></span>
+                      <span class="appt-p">Rosa Huamán Vega</span>
+                      <span class="appt-x">Rehabilitación oral</span>
+                    </button>
+                    <button class="appt" type="button" data-state="confirmed" style="--top: 432px; --h: 72px; --status: var(--steel-500)" aria-label="Lunes 16, 14:00, Milagros Chávez Ríos, cirugía guiada, sillón 1, confirmada">
+                      <span class="appt-top"><span class="appt-t num">14:00</span><span class="chair">S1</span></span>
+                      <span class="appt-p">Milagros Chávez Ríos</span>
+                      <span class="appt-x">Cirugía guiada</span>
+                    </button>
+                  </div>
+
+                  <div class="col">
+                    <button class="appt" type="button" data-state="completed" style="--top: 18px; --h: 72px; --status: var(--green-500)" aria-label="Martes 17, 08:15, Mateo Ríos Salas, profilaxis, sillón 4, completada">
+                      <span class="appt-top"><span class="appt-t num">08:15</span><span class="chair">S4</span></span>
+                      <span class="appt-p">Mateo Ríos Salas</span>
+                      <span class="appt-x">Profilaxis</span>
+                    </button>
+                    <button class="appt" type="button" data-state="confirmed" style="--top: 144px; --h: 72px; --status: var(--steel-500)" aria-label="Martes 17, 10:00, Jorge Salazar Paredes, exodoncia pieza 38, sillón 1, confirmada">
+                      <span class="appt-top"><span class="appt-t num">10:00</span><span class="chair">S1</span></span>
+                      <span class="appt-p">Jorge Salazar Paredes</span>
+                      <span class="appt-x">Exodoncia 38</span>
+                    </button>
+                    <button class="appt" type="button" data-state="confirmed" style="--top: 288px; --h: 72px; --status: var(--steel-500)" aria-label="Martes 17, 12:00, Ana Torres Quispe, blanqueamiento, sillón 4, confirmada">
+                      <span class="appt-top"><span class="appt-t num">12:00</span><span class="chair">S4</span></span>
+                      <span class="appt-p">Ana Torres Quispe</span>
+                      <span class="appt-x">Blanqueamiento</span>
+                    </button>
+                    <button class="appt" type="button" data-state="scheduled" style="--top: 504px; --h: 72px; --status: var(--g400)" aria-label="Martes 17, 15:00, Katherine Rojas Palomino, retiro de aparato, sillón 2, programada">
+                      <span class="appt-top"><span class="appt-t num">15:00</span><span class="chair">S2</span></span>
+                      <span class="appt-p">Katherine Rojas Palomino</span>
+                      <span class="appt-x">Retiro de aparato</span>
+                    </button>
+                  </div>
+
+                  <div class="col is-today">
+                    <button class="appt" type="button" data-state="arrived" style="--top: 36px; --h: 72px; --status: var(--indigo-500)" aria-label="Miércoles 18, 08:30, Diego Fernández Loayza, limpieza dental, sillón 4, en sala desde hace 4 minutos">
+                      <span class="appt-top"><span class="appt-t num">08:30</span><span class="chair">S4</span></span>
+                      <span class="appt-p">Diego Fernández Loayza</span>
+                      <span class="appt-x">Limpieza dental</span>
+                      <span class="state" data-s="arrived"><span class="sdot"></span>En sala · 4 min</span>
+                    </button>
+                    <button class="appt half" type="button" data-state="in_consultation" style="--top: 108px; --h: 90px; --status: var(--yellow-500)" aria-label="Miércoles 18, 09:30, Luis Ramírez Ccahuana, endodoncia pieza 36, sillón 1, en consulta desde hace 42 minutos">
+                      <span class="appt-top"><span class="appt-t num">09:30</span><span class="chair">S1</span></span>
+                      <span class="appt-p">Luis Ramírez Ccahuana</span>
+                      <span class="state" data-s="in_consultation"><span class="sdot"></span>En consulta</span>
+                    </button>
+                    <button class="appt half is-right" type="button" data-state="confirmed" style="--top: 108px; --h: 72px; --status: var(--steel-500)" aria-label="Miércoles 18, 09:30, Katherine Rojas Palomino, control de ortodoncia, sillón 2, confirmada">
+                      <span class="appt-top"><span class="appt-t num">09:30</span><span class="chair">S2</span></span>
+                      <span class="appt-p">Katherine Rojas Palomino</span>
+                    </button>
+                    <button class="appt" type="button" data-state="confirmed" style="--top: 360px; --h: 72px; --status: var(--steel-500)" aria-label="Miércoles 18, 13:00, Rosa Huamán Vega, cementado de corona, sillón 3, confirmada">
+                      <span class="appt-top"><span class="appt-t num">13:00</span><span class="chair">S3</span></span>
+                      <span class="appt-p">Rosa Huamán Vega</span>
+                      <span class="appt-x">Cementado de corona</span>
+                    </button>
+                  </div>
+
+                  <div class="col">
+                    <button class="appt" type="button" data-state="confirmed" style="--top: 72px; --h: 72px; --status: var(--steel-500)" aria-label="Jueves 19, 09:00, Carlos Mendoza Ataucuri, prueba de estructura, sillón 3, confirmada">
+                      <span class="appt-top"><span class="appt-t num">09:00</span><span class="chair">S3</span></span>
+                      <span class="appt-p">Carlos Mendoza Ataucuri</span>
+                      <span class="appt-x">Prueba de estructura</span>
+                    </button>
+                    <button class="appt" type="button" data-state="cancelled" style="--top: 252px; --h: 72px; --status: var(--red-500)" aria-label="Jueves 19, 11:30, Ana Torres Quispe, ajuste de arco, sillón 2, cancelada">
+                      <span class="appt-top"><span class="appt-t num">11:30</span><span class="chair">S2</span></span>
+                      <span class="appt-p">Ana Torres Quispe</span>
+                      <span class="appt-x">Ajuste de arco</span>
+                    </button>
+                    <button class="appt" type="button" data-state="scheduled" style="--top: 468px; --h: 72px; --status: var(--g400)" aria-label="Jueves 19, 14:30, Valentina Chávez Ruda, limpieza dental, sillón 4, programada">
+                      <span class="appt-top"><span class="appt-t num">14:30</span><span class="chair">S4</span></span>
+                      <span class="appt-p">Valentina Chávez Ruda</span>
+                      <span class="appt-x">Limpieza dental</span>
+                    </button>
+                  </div>
+
+                  <div class="col">
+                    <button class="appt" type="button" data-state="confirmed" style="--top: 0px; --h: 72px; --status: var(--steel-500)" aria-label="Viernes 20, 08:00, Jorge Salazar Paredes, rehabilitación oral, sillón 3, confirmada">
+                      <span class="appt-top"><span class="appt-t num">08:00</span><span class="chair">S3</span></span>
+                      <span class="appt-p">Jorge Salazar Paredes</span>
+                      <span class="appt-x">Rehabilitación oral</span>
+                    </button>
+                    <button class="appt" type="button" data-state="scheduled" style="--top: 180px; --h: 72px; --status: var(--g400)" aria-label="Viernes 20, 10:30, Diego Fernández Loayza, retiro de puntos, sillón 1, programada">
+                      <span class="appt-top"><span class="appt-t num">10:30</span><span class="chair">S1</span></span>
+                      <span class="appt-p">Diego Fernández Loayza</span>
+                      <span class="appt-x">Retiro de puntos</span>
+                    </button>
+                    <button class="appt" type="button" data-state="confirmed" style="--top: 540px; --h: 72px; --status: var(--steel-500)" aria-label="Viernes 20, 15:30, Mateo Ríos Salas, control de higiene, sillón 4, confirmada">
+                      <span class="appt-top"><span class="appt-t num">15:30</span><span class="chair">S4</span></span>
+                      <span class="appt-p">Mateo Ríos Salas</span>
+                      <span class="appt-x">Control de higiene</span>
+                    </button>
+                  </div>
+
+                  <div class="col">
+                    <button class="appt" type="button" data-state="confirmed" style="--top: 72px; --h: 72px; --status: var(--steel-500)" aria-label="Sábado 21, 09:00, Milagros Chávez Ríos, impresión digital, sillón 3, confirmada">
+                      <span class="appt-top"><span class="appt-t num">09:00</span><span class="chair">S3</span></span>
+                      <span class="appt-p">Milagros Chávez Ríos</span>
+                      <span class="appt-x">Impresión digital</span>
+                    </button>
+                    <button class="appt" type="button" data-state="scheduled" style="--top: 216px; --h: 72px; --status: var(--g400)" aria-label="Sábado 21, 11:00, Valentina Chávez Ruda, sellantes, sillón 4, programada">
+                      <span class="appt-top"><span class="appt-t num">11:00</span><span class="chair">S4</span></span>
+                      <span class="appt-p">Valentina Chávez Ruda</span>
+                      <span class="appt-x">Sellantes</span>
+                    </button>
+                  </div>
+
+                  <div class="col">
+                    <p class="off">Sin atención</p>
+                  </div>
+                </div>
+
+                <div class="now" aria-hidden="true"><span class="now-pill num">10:12</span></div>
+              </div>
+            </div>
+          </section>
+
+          <aside class="side" aria-label="Contexto de la semana">
+            <section class="panel" aria-label="Mini calendario de noviembre de 2026">
+              <div class="mm-head">
+                <h2>Noviembre 2026</h2>
+                <div class="mm-nav">
+                  <button class="mini-icon" type="button" aria-label="Mes anterior">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>
+                  </button>
+                  <button class="mini-icon" type="button" aria-label="Mes siguiente">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>
+                  </button>
+                </div>
+              </div>
+              <ul class="mm-week" aria-hidden="true">
+                <li>L</li>
+                <li>M</li>
+                <li>M</li>
+                <li>J</li>
+                <li>V</li>
+                <li>S</li>
+                <li>D</li>
+              </ul>
+              <ul class="mm-grid">
+                <li aria-hidden="true"></li>
+                <li aria-hidden="true"></li>
+                <li aria-hidden="true"></li>
+                <li aria-hidden="true"></li>
+                <li aria-hidden="true"></li>
+                <li aria-hidden="true"></li>
+                <li>
+                  <button class="mday" type="button" aria-label="Domingo 1 de noviembre"><span class="mn">1</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Lunes 2 de noviembre"><span class="mn">2</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Martes 3 de noviembre"><span class="mn">3</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Miércoles 4 de noviembre"><span class="mn">4</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Jueves 5 de noviembre"><span class="mn">5</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Viernes 6 de noviembre"><span class="mn">6</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Sábado 7 de noviembre"><span class="mn">7</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Domingo 8 de noviembre"><span class="mn">8</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Lunes 9 de noviembre"><span class="mn">9</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Martes 10 de noviembre"><span class="mn">10</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Miércoles 11 de noviembre"><span class="mn">11</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Jueves 12 de noviembre"><span class="mn">12</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Viernes 13 de noviembre"><span class="mn">13</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Sábado 14 de noviembre"><span class="mn">14</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Domingo 15 de noviembre"><span class="mn">15</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Lunes 16 de noviembre"><span class="mn">16</span><span class="mdot" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Martes 17 de noviembre"><span class="mn">17</span><span class="mdot" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday is-today" type="button" aria-current="date" aria-label="Miércoles 18 de noviembre, hoy"><span class="mn">18</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Jueves 19 de noviembre"><span class="mn">19</span><span class="mdot" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Viernes 20 de noviembre"><span class="mn">20</span><span class="mdot" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Sábado 21 de noviembre"><span class="mn">21</span><span class="mdot" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Domingo 22 de noviembre"><span class="mn">22</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Lunes 23 de noviembre"><span class="mn">23</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Martes 24 de noviembre"><span class="mn">24</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Miércoles 25 de noviembre"><span class="mn">25</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Jueves 26 de noviembre"><span class="mn">26</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Viernes 27 de noviembre"><span class="mn">27</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Sábado 28 de noviembre"><span class="mn">28</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Domingo 29 de noviembre"><span class="mn">29</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li>
+                  <button class="mday" type="button" aria-label="Lunes 30 de noviembre"><span class="mn">30</span><span class="mdot is-idle" aria-hidden="true"></span></button>
+                </li>
+                <li aria-hidden="true"></li>
+                <li aria-hidden="true"></li>
+                <li aria-hidden="true"></li>
+                <li aria-hidden="true"></li>
+                <li aria-hidden="true"></li>
+                <li aria-hidden="true"></li>
+              </ul>
+            </section>
+
+            <section class="panel" aria-label="Profesionales visibles">
+              <h2>Profesionales</h2>
+              <ul class="pros">
+                <li>
+                  <label class="pro">
+                    <span class="pdot" style="background: var(--indigo-500)" aria-hidden="true"></span>
+                    <span class="pname">Dra. Núñez</span>
+                    <span class="pcount">4</span>
+                    <input class="pcheck" type="checkbox" checked aria-label="Mostrar a la Dra. Núñez" />
+                    <span class="mark" aria-hidden="true">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+                    </span>
+                  </label>
+                </li>
+                <li>
+                  <label class="pro">
+                    <span class="pdot" style="background: var(--accent)" aria-hidden="true"></span>
+                    <span class="pname">Dr. Paredes</span>
+                    <span class="pcount">5</span>
+                    <input class="pcheck" type="checkbox" checked aria-label="Mostrar al Dr. Paredes" />
+                    <span class="mark" aria-hidden="true">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+                    </span>
+                  </label>
+                </li>
+                <li>
+                  <label class="pro">
+                    <span class="pdot" style="background: var(--steel-500)" aria-hidden="true"></span>
+                    <span class="pname">Dr. Salazar</span>
+                    <span class="pcount">5</span>
+                    <input class="pcheck" type="checkbox" checked aria-label="Mostrar al Dr. Salazar" />
+                    <span class="mark" aria-hidden="true">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+                    </span>
+                  </label>
+                </li>
+                <li>
+                  <label class="pro">
+                    <span class="pdot" style="background: var(--purple-500)" aria-hidden="true"></span>
+                    <span class="pname">Dra. Ríos</span>
+                    <span class="pcount">6</span>
+                    <input class="pcheck" type="checkbox" checked aria-label="Mostrar a la Dra. Ríos" />
+                    <span class="mark" aria-hidden="true">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+                    </span>
+                  </label>
+                </li>
+              </ul>
+            </section>
+
+            <section class="panel" aria-label="Ocupación de hoy">
+              <div class="occ-top">
+                <p class="occ-label">Ocupación hoy</p>
+                <p class="occ-num num">78%</p>
+              </div>
+              <div class="occ-bar"><span style="width: 78%"></span></div>
+              <p class="occ-cap">Sobre 4 sillones · 08:00 – 16:00</p>
+            </section>
+          </aside>
+        </div>
+
+        <div class="footband">
+          <p>3 atenciones cerradas sin cobrar</p>
+          <div class="right">
+            <button class="btn-secondary" type="button">Ver listos para facturar</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
