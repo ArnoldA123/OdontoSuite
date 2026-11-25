@@ -13,6 +13,8 @@ class EndodonticsRecord extends Model
     protected $fillable = [
         'patient_id',
         'appointment_id',
+        'clinical_encounter_id',
+        'treatment_plan_item_id',
         'procedure_id',
         'dental_piece_id',
         'created_by',
@@ -54,6 +56,21 @@ class EndodonticsRecord extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    /**
+     * Slice 1 of «Registros de especialidad integrados a la atención y la
+     * historia»: the act that produced this record and the plan line it
+     * executed. Both are nullable because a manual record has neither.
+     */
+    public function clinicalEncounter(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalEncounter::class);
+    }
+
+    public function treatmentPlanItem(): BelongsTo
+    {
+        return $this->belongsTo(TreatmentPlanItem::class);
     }
 
     /**

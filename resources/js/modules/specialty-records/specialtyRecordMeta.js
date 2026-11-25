@@ -692,3 +692,157 @@ export function formFields(definition, section) {
 
   return definition.formFields.filter(field => (field.section ?? 'clinical') === section)
 }
+
+/**
+ * Slice 1 of «Registros de especialidad integrados a la atención y la
+ * historia»: one list out of the grouped `/patient/{id}/all` payload.
+ *
+ * The aggregate answers `{implantologia: [...], ortodoncia: [...]}`, which is
+ * what the five tabs of the specialty page want and the opposite of what a
+ * reader of the history or of a plan needs. Every row carries the key and the
+ * label of the specialty it came from, so a consumer never re-derives them.
+ */
+export function flattenSpecialtyRecords(grouped) {
+  if (!grouped || typeof grouped !== 'object') return []
+
+  return SPECIALTY_RECORD_DEFINITIONS.flatMap(definition => {
+    const group = grouped[definition.key]
+
+    if (!Array.isArray(group)) return []
+
+    return group.map(record => ({
+      ...record,
+      specialtyKey: definition.key,
+      specialtyLabel: definition.label
+    }))
+  }).sort((left, right) => {
+    const leftStamp = Date.parse(left?.created_at ?? '') || 0
+    const rightStamp = Date.parse(right?.created_at ?? '') || 0
+
+    return rightStamp - leftStamp
+  })
+}
+
+const numberOrNull = value => {
+  if (value === null || value === undefined || value === '') return null
+
+  const numeric = Number(value)
+
+  return Number.isInteger(numeric) ? numeric : null
+}
+
+/**
+ * Where a record's act and plan line live in the SPA.
+ *
+ * The encounter has no page of its own: the act is read inside the patient's
+ * clinical history, so that is its way back. The plan line travels with its
+ * plan id so the plans index receives the same deep link it already accepts
+ * for the patient, and gains the line when the index learns to honour it.
+ */
+export function recordLinks(record) {
+  const patientId = numberOrNull(record?.patient_id ?? record?.patient?.id)
+  const encounterId = numberOrNull(record?.clinical_encounter_id)
+  const planItemId = numberOrNull(record?.treatment_plan_item_id)
+  const planId = numberOrNull(record?.treatment_plan_item?.treatment_plan_id)
+
+  return {
+    encounter: encounterId
+      ? {
+          id: encounterId,
+          label: `Atención #${encounterId}`,
+          to: patientId
+            ? { path: '/medical-records', query: { patient_id: String(patientId) } }
+            : null
+        }
+      : null,
+    plan: planItemId
+      ? {
+          id: planItemId,
+          planId,
+          label: planId ? `Plan #${planId}` : 'Plan de tratamiento',
+          to: {
+            path: '/treatment-plans',
+            query: {
+              ...(patientId ? { patient_id: String(patientId) } : {}),
+              ...(planId ? { plan_id: String(planId) } : {})
+            }
+          }
+        }
+      : null
+  }
+}
+
+/**
+ * The deep link the specialty module already answers (#400): patient,
+ * specialty and record. Used by the places that read a record and offer to
+ * open it where it can be edited.
+ */
+export function specialtyRecordLink(specialtyKey, record) {
+  const patientId = numberOrNull(record?.patient_id ?? record?.patient?.id)
+  const recordId = numberOrNull(record?.id)
+
+  if (!patientId || !recordId || !getSpecialtyDefinition(specialtyKey)) return null
+
+  return {
+    path: '/specialty-records',
+    query: {
+      patient_id: String(patientId),
+      specialty: specialtyKey,
+      record_id: String(recordId)
+    }
+  }
+}
+
+/**
+ * Slice 1: the records of a plan, by line or by catalog procedure.
+ *
+ * A record linked to one of the lines belongs to the plan by identity. A
+ * record that names the same procedure belongs to it by subject — the
+ * acceptance line is `procedure_catalog_id` — and both are what the plan
+ * detail lists.
+ */
+export function recordsForPlan(records, items) {
+  const lineIds = new Set()
+  const procedureIds = new Set()
+
+  for (const item of Array.isArray(items) ? items : []) {
+    const lineId = numberOrNull(item?.id)
+    const procedureId = numberOrNull(item?.procedure_catalog_id)
+
+    if (lineId !== null) lineIds.add(lineId)
+    if (procedureId !== null) procedureIds.add(procedureId)
+  }
+
+  if (lineIds.size === 0 && procedureIds.size === 0) return []
+
+  return (Array.isArray(records) ? records : []).filter(record => {
+    const lineId = numberOrNull(record?.treatment_plan_item_id)
+    const procedureId = numberOrNull(record?.procedure_id)
+
+    return (
+      (lineId !== null && lineIds.has(lineId)) ||
+      (procedureId !== null && procedureIds.has(procedureId))
+    )
+  })
+}
+
+/**
+ * One line that says what the record is, for the readers outside the specialty
+ * module (the history workspace and the plan detail). Empty when the specialty
+ * is unknown or the record captured nothing yet.
+ */
+export function describeSpecialtyRecord(record) {
+  const definition = getSpecialtyDefinition(record?.specialtyKey)
+
+  if (!definition) return ''
+
+  const values = summaryFields(definition, record)
+    .map(entry => entry.value)
+    .filter(Boolean)
+
+  if (values.length > 0) return values.join(' · ')
+
+  const date = primaryDate(definition, record)
+
+  return date ? `${date.label}: ${date.value}` : ''
+}

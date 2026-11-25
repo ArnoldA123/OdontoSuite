@@ -19,6 +19,26 @@
         <UiStatusBadge v-if="statusText" :variant="badgeVariant" :label="statusText" size="sm" />
       </div>
 
+      <!-- Slice 1: the act and the plan line the record belongs to, each one
+           with its way back. -->
+      <section v-if="links.length" data-detail-section="links" class="space-y-3">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">Origen</h3>
+        <ul class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <li
+            v-for="link in links"
+            :key="link.key"
+            :data-detail-link="link.key"
+            class="inline-flex min-w-0 items-center rounded-full px-3 py-1 text-xs font-medium"
+            style="border: 1px solid var(--color-hairline)"
+          >
+            <RouterLink v-if="link.to" :to="link.to" class="truncate text-accent hover:underline">
+              {{ link.label }}
+            </RouterLink>
+            <span v-else class="truncate text-theme-secondary">{{ link.label }}</span>
+          </li>
+        </ul>
+      </section>
+
       <section
         v-for="section in sections"
         :key="section.id"
@@ -54,6 +74,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import { usePermissions } from '@/composables/usePermissions'
 import UiButton from '@/components/ui/Button.vue'
 import UiModal from '@/components/ui/Modal.vue'
@@ -63,6 +84,7 @@ import {
   formatRecordDate,
   getSpecialtyDefinition,
   primaryDate,
+  recordLinks,
   statusLabel,
   statusVariant
 } from '../specialtyRecordMeta'
@@ -112,4 +134,16 @@ const badgeVariant = computed(() =>
 )
 
 const createdLabel = computed(() => formatRecordDate(props.record?.created_at))
+
+/**
+ * The two links the record declares. A manual record has neither and the block
+ * does not render at all — the detail never invents an act.
+ */
+const links = computed(() => {
+  const resolved = recordLinks(props.record)
+
+  return ['encounter', 'plan']
+    .map(key => ({ key, ...resolved[key] }))
+    .filter(link => Boolean(link.id))
+})
 </script>

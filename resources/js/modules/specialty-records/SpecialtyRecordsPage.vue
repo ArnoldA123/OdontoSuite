@@ -264,6 +264,8 @@
       :specialty="selectedRecordSpecialty"
       :patient="selectedPatient"
       :is-edit="isEdit"
+      :encounter="pendingLinks.encounter"
+      :plan-item="pendingLinks.planItem"
       @close="closeForm"
       @saved="onSaved"
     />
@@ -334,6 +336,10 @@ const showDetail = ref(false)
 const showPatientModal = ref(false)
 const isEdit = ref(false)
 const loadError = ref(false)
+// Slice 1 of «Registros de especialidad integrados a la atención y la
+// historia»: the act and the plan line a deep link resolved. They prefill the
+// create form and travel with the record once it is saved.
+const pendingLinks = ref({ encounter: null, planItem: null })
 // #452 (U11, states): the deep link is a real read before the workspace can
 // say «Selecciona un paciente», so that frame is a placeholder, not a promise
 // the page had already broken.
@@ -411,6 +417,7 @@ const loadRecords = async () => {
 const onPatientSelected = patient => {
   selectedPatient.value = patient ?? null
   showPatientModal.value = false
+  pendingLinks.value = { encounter: null, planItem: null }
 
   if (!selectedPatient.value) return
 
@@ -418,25 +425,120 @@ const onPatientSelected = patient => {
   loadRecords()
 }
 
+const asId = value => {
+  const numeric = Number(value)
+
+  return Number.isInteger(numeric) && numeric > 0 ? numeric : null
+}
+
+const loadPatient = async patientId => {
+  const response = await get(`/api/patients/${patientId}`)
+
+  return response?.data ?? null
+}
+
 /**
- * #400: the patient drawer opens this page with the patient, the specialty and
- * the record already chosen (`?patient_id=&specialty=&record_id=[&edit=true]`),
- * so «Ver» and «Editar» land on a route the router actually matches. Legacy
- * links without a patient keep the previous «choose a patient» start.
+ * The act a record belongs to, as the create form needs it. `GET
+ * /api/encounters/{id}` publishes the patient and the agreement row, which are
+ * the two facts the write contract checks against.
+ */
+const resolveEncounter = async encounterId => {
+  const response = await get(`/api/encounters/${encounterId}`)
+  const encounter = response?.data ?? null
+
+  if (!encounter?.id) return null
+
+  return {
+    id: encounter.id,
+    patient_id: encounter.patient_id,
+    appointment_id: encounter.appointment_id,
+    mode: encounter.mode,
+    opened_at: encounter.opened_at,
+    patient: encounter.patient ?? null
+  }
+}
+
+/**
+ * The plan line a record executes. The link carries the plan when the caller
+ * knows it (the plan detail does); otherwise the patient's plans publish their
+ * items (#417) and the line is found among them.
+ */
+const resolvePlanItem = async (planItemId, patientId, planId) => {
+  const pickItem = (plan, id) => {
+    const items = Array.isArray(plan?.items) ? plan.items : []
+    const item = items.find(entry => Number(entry.id) === id)
+
+    return item
+      ? {
+          ...item,
+          treatment_plan_id: plan.id ?? planId ?? null,
+          patient_id: plan.patient_id ?? patientId ?? null
+        }
+      : null
+  }
+
+  if (planId) {
+    const response = await get(`/api/treatment-plans/${planId}`)
+
+    return pickItem(response?.data ?? null, planItemId)
+  }
+
+  if (!patientId) return null
+
+  const response = await get(`/api/treatment-plans?patient_id=${patientId}&per_page=100`)
+  const plans = Array.isArray(response?.data) ? response.data : []
+
+  for (const plan of plans) {
+    const item = pickItem(plan, planItemId)
+
+    if (item) return item
+  }
+
+  return null
+}
+
+/**
+ * #400 opens this page with the patient, the specialty and the record already
+ * chosen. Slice 1 adds the two links of the record: `?encounter_id=` and
+ * `?treatment_plan_item_id=` resolve the patient (and the procedure, when the
+ * line declares one) and open the create form with them prefilled.
  */
 const openFromQuery = async () => {
-  const patientId = Number(route.query.patient_id)
-  if (!Number.isInteger(patientId) || patientId <= 0) return false
+  const patientId = asId(route.query.patient_id)
+  const encounterId = asId(route.query.encounter_id)
+  const planItemId = asId(route.query.treatment_plan_item_id)
+  const planId = asId(route.query.treatment_plan_id)
+
+  if (!patientId && !encounterId && !planItemId) return false
+
+  let encounter = null
+  let planItem = null
+  let patient = null
 
   try {
-    const response = await get(`/api/patients/${patientId}`)
-    selectedPatient.value = response?.data ?? null
+    if (encounterId) {
+      encounter = await resolveEncounter(encounterId)
+      if (!encounter) return true
+      patient = encounter.patient ?? (await loadPatient(encounter.patient_id))
+    }
+
+    if (planItemId) {
+      planItem = await resolvePlanItem(planItemId, patient?.id ?? patientId, planId)
+    }
+
+    if (!patient) {
+      const targetPatientId = patientId ?? planItem?.patient_id
+      if (targetPatientId) patient = await loadPatient(targetPatientId)
+    }
   } catch (error) {
-    handleError(error, 'No pudimos cargar el paciente')
+    handleError(error, 'No pudimos cargar el origen del registro')
     return true
   }
 
-  if (!selectedPatient.value) return true
+  if (!patient) return true
+
+  selectedPatient.value = patient
+  pendingLinks.value = { encounter, planItem }
 
   const requested = String(route.query.specialty ?? '')
   const definition = availableDefinitions.value.find(item => item.key === requested)
@@ -444,27 +546,36 @@ const openFromQuery = async () => {
 
   await loadRecords()
 
-  const recordId = Number(route.query.record_id)
-  if (!Number.isInteger(recordId) || recordId <= 0) return true
+  const recordId = asId(route.query.record_id)
 
-  const record = recordsFor(activeSpecialty.value).find(item => item.id === recordId)
-  if (!record) return true
+  if (recordId) {
+    const record = recordsFor(activeSpecialty.value).find(item => item.id === recordId)
 
-  selectedRecord.value = record
-  selectedRecordSpecialty.value = activeSpecialty.value
+    if (record) {
+      selectedRecord.value = record
+      selectedRecordSpecialty.value = activeSpecialty.value
 
-  if (String(route.query.edit ?? '') === 'true') {
-    isEdit.value = true
-    showForm.value = true
-  } else {
-    showDetail.value = true
+      if (String(route.query.edit ?? '') === 'true') {
+        isEdit.value = true
+        showForm.value = true
+      } else {
+        showDetail.value = true
+      }
+    }
+
+    return true
   }
+
+  // A link that names its origin is a request to document it.
+  if (encounter || planItem) openCreate({ keepLinks: true })
 
   return true
 }
 
-const openCreate = () => {
+const openCreate = ({ keepLinks = false } = {}) => {
   if (!selectedPatient.value || !activeDefinition.value) return
+
+  if (!keepLinks) pendingLinks.value = { encounter: null, planItem: null }
 
   selectedRecord.value = null
   selectedRecordSpecialty.value = activeSpecialty.value
@@ -490,6 +601,7 @@ const closeForm = () => {
   showForm.value = false
   selectedRecord.value = null
   isEdit.value = false
+  pendingLinks.value = { encounter: null, planItem: null }
 }
 
 const closeDetail = () => {

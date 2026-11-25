@@ -42,6 +42,27 @@
         </div>
       </fieldset>
 
+      <fieldset v-if="links.length" class="space-y-3" data-form-section="links">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Vínculos
+        </legend>
+
+        <ul class="flex flex-wrap gap-2" data-form-links>
+          <li
+            v-for="link in links"
+            :key="link.key"
+            :data-form-link="link.key"
+            class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium text-theme-secondary"
+            style="border: 1px solid var(--color-hairline)"
+          >
+            {{ link.label }}
+          </li>
+        </ul>
+        <p class="text-xs text-theme-secondary">
+          El registro queda ligado a esta atención y a esta línea del plan.
+        </p>
+      </fieldset>
+
       <fieldset v-if="form.specialty" class="space-y-4" data-form-section="procedure">
         <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
           Procedimiento
@@ -209,6 +230,17 @@ const props = defineProps({
   isEdit: {
     type: Boolean,
     default: false
+  },
+  // Slice 1 of «Registros de especialidad integrados a la atención y la
+  // historia»: the act and the plan line the deep link resolved. They are read
+  // only here — the page owns the lookup, the form only carries them.
+  encounter: {
+    type: Object,
+    default: null
+  },
+  planItem: {
+    type: Object,
+    default: null
   }
 })
 
@@ -328,6 +360,26 @@ const buildForm = specialty => {
 
 const form = ref(buildForm(props.specialty))
 
+const links = computed(() => {
+  const entries = []
+
+  if (props.encounter?.id) {
+    entries.push({ key: 'clinical_encounter_id', label: `Atención #${props.encounter.id}` })
+  }
+
+  if (props.planItem?.id) {
+    const plan = props.planItem.treatment_plan_id ?? props.planItem.treatmentPlan?.id
+    const name = props.planItem.procedure_name ?? props.planItem.procedure_catalog?.name ?? ''
+
+    entries.push({
+      key: 'treatment_plan_item_id',
+      label: [plan ? `Plan #${plan}` : 'Plan de tratamiento', name].filter(Boolean).join(' · ')
+    })
+  }
+
+  return entries
+})
+
 const clinicalFields = computed(() => formFields(definition.value, 'clinical'))
 const noteFields = computed(() => formFields(definition.value, 'notes'))
 
@@ -415,6 +467,12 @@ const buildPayload = () => {
   // tables keep it, and edit can correct it.
   if (!props.isEdit) payload.patient_id = patientId.value
 
+  // A link the page resolved travels with the write. On edit the keys are only
+  // sent when present: sending `null` would unlink a record the user is only
+  // correcting.
+  if (props.encounter?.id) payload.clinical_encounter_id = props.encounter.id
+  if (props.planItem?.id) payload.treatment_plan_item_id = props.planItem.id
+
   for (const field of definition.value?.formFields ?? []) {
     if (field.type === 'number' || field.type === 'dental-piece' || field.type === 'procedure') {
       payload[field.key] = toNumberOrNull(form.value[field.key])
@@ -450,6 +508,14 @@ onMounted(() => {
   const needsPieces = formFields(definition.value).some(field => field.type === 'dental-piece')
 
   if (needsPieces) loadDentalPieces()
+
+  // The plan line already names its procedure; a new record of that line
+  // starts with it instead of asking again.
+  const linkedProcedure = props.planItem?.procedure_catalog_id ?? null
+
+  if (!props.isEdit && linkedProcedure !== null && !form.value.procedure_id) {
+    form.value.procedure_id = Number(linkedProcedure)
+  }
 })
 
 const onSubmit = async () => {

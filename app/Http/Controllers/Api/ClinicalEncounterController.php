@@ -6,6 +6,7 @@ use App\Exceptions\Consultation\ConsultationException;
 use App\Exceptions\Encounter\EncounterException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CloseClinicalEncounterRequest;
+use App\Http\Resources\SpecialtyRecordSummaryResource;
 use App\Models\AiImageAnalysis;
 use App\Models\ClinicalAttachment;
 use App\Models\ClinicalEncounter;
@@ -416,6 +417,12 @@ class ClinicalEncounterController extends Controller
                 ])
                 ->values()
                 ->all(),
+            // Slice 1 of «Registros de especialidad integrados a la atención»:
+            // the structured clinical records the act produced. Read-only here —
+            // the specialty module owns their write contract.
+            'specialty_records' => SpecialtyRecordSummaryResource::collection(
+                $encounter->specialtyRecords(),
+            )->resolve(),
         ];
     }
 }

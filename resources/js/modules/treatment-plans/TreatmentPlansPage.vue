@@ -421,6 +421,7 @@
 
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useTreatmentPlans } from '@/composables/useTreatmentPlans'
 import { useEcho } from '@/composables/useEcho'
 import { useToast } from '@/composables/useToast'
@@ -446,6 +447,7 @@ import {
 const OPEN_STATUSES = ['draft', 'proposed', 'approved', 'in_progress']
 
 const { privateChannel, echo } = useEcho()
+const route = useRoute()
 const toast = useToast()
 const { user } = useAuth()
 const { can } = usePermissions()
@@ -463,7 +465,8 @@ const {
   getSummary,
   changeStatus,
   duplicatePlan,
-  deletePlan
+  deletePlan,
+  clearError
 } = useTreatmentPlans()
 
 const showModal = ref(false)
@@ -473,6 +476,7 @@ const isEdit = ref(false)
 const view = ref('list')
 
 const filters = ref({
+  patient_id: '',
   patient_name: '',
   status: '',
   date_from: '',
@@ -641,6 +645,43 @@ const handlePlanSaved = async () => {
   }
 }
 
+/**
+ * Deep link of the specialty record: `/treatment-plans?patient_id=…&plan_id=…`
+ * scopes the index to the patient and opens the plan. Both ids are validated
+ * before they reach the API, so a hand-written URL cannot request `/NaN`.
+ */
+const queryId = value => {
+  const raw = Array.isArray(value) ? value[0] : value
+  const numeric = Number(raw)
+
+  return Number.isInteger(numeric) && numeric > 0 ? numeric : null
+}
+
+const routePlanId = computed(() => queryId(route.query.plan_id))
+const routePatientId = computed(() => queryId(route.query.patient_id))
+
+const applyPatientScope = () => {
+  const patientId = routePatientId.value
+
+  if (!patientId || filters.value.patient_id === patientId) return false
+
+  filters.value.patient_id = patientId
+
+  return true
+}
+
+const openPlanById = async planId => {
+  try {
+    const plan = await getPlan(planId)
+    if (plan) viewPlan(plan)
+  } catch (err) {
+    // The composable shares `error` with the list, so a dead shortcut would
+    // paint the whole index as broken: it is reported and the flag cleared.
+    clearError()
+    toast.error(pickValidationMessage(err.response?.data, 'No se pudo abrir el plan'))
+  }
+}
+
 const clearFilters = () => {
   clearTimeout(debounceTimer)
 
@@ -649,7 +690,13 @@ const clearFilters = () => {
   // down to the one request it issues itself.
   resetting = true
 
-  filters.value = { patient_name: '', status: '', date_from: '', date_to: '' }
+  filters.value = {
+    patient_id: '',
+    patient_name: '',
+    status: '',
+    date_from: '',
+    date_to: ''
+  }
   activeQuick.value = 'all'
   presetParams.value = {}
 
@@ -751,6 +798,13 @@ watch(
   }
 )
 
+// A detail may arrive without remounting the page (same path, new query), and
+// the plan the specialty record points to can change while the index stays put.
+watch([routePlanId, routePatientId], ([planId]) => {
+  if (applyPatientScope()) loadPlans()
+  if (planId) openPlanById(planId)
+})
+
 // Keyboard: N opens the create modal. Escape belongs to each overlay: the plan
 // modal guards its dirty form through UiModal's before-close and the detail
 // dialog owns its own dismissal, so the page must not close them behind their
@@ -769,6 +823,7 @@ const onKeydown = e => {
 let treatmentPlansChannel = null
 
 onMounted(() => {
+  applyPatientScope()
   loadAll()
   document.addEventListener('keydown', onKeydown)
 
@@ -798,6 +853,8 @@ onMounted(() => {
   } catch (err) {
     // Sin WebSocket el kanban sigue operativo vía fetch inicial
   }
+
+  if (routePlanId.value) openPlanById(routePlanId.value)
 })
 
 onUnmounted(() => {

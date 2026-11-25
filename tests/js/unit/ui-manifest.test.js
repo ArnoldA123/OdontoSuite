@@ -152,13 +152,35 @@ describe('ui manifest · tabs, dialogs and actions', () => {
     const { tabs } = surface('/environments/:id')
 
     expect(tabs.map(tab => tab.label)).toEqual(['Información', 'Auditoría'])
-    expect(tabs.map(tab => tab.id)).toEqual(['data', 'audit'])
+    expect(tabs.map(tab => tab.key)).toEqual(['data', 'audit'])
   })
 
-  it('resolves the literal tab list of the clinical history', () => {
-    const labels = surface('/medical-records').tabs.map(tab => tab.label)
+  it('resolves the tab list of a page whose tabs are a computed literal', () => {
+    // The clinical history branches on `manage.specialty_record`: the inventory
+    // publishes every tab a session can render, never only one branch of the
+    // guard, and keeps the id UiTabs binds `v-model` to.
+    const { tabs } = surface('/medical-records')
 
-    expect(labels).toEqual(['Historia general', 'Evoluciones', 'Adjuntos', 'Estadísticas'])
+    expect(tabs.map(tab => tab.label)).toEqual([
+      'Historia general',
+      'Evoluciones',
+      'Adjuntos',
+      'Estadísticas',
+      'Especialidades'
+    ])
+    expect(tabs.map(tab => tab.key)).toEqual([
+      'general',
+      'evolutions',
+      'attachments',
+      'stats',
+      'specialties'
+    ])
+  })
+
+  it('resolves a computed tab list built from a local array and pushes', () => {
+    const labels = surface('/cash-register').tabs.map(tab => tab.label)
+
+    expect(labels).toEqual(['Cobros', 'Transacciones', 'Movimientos', 'Historial', 'Reportes'])
   })
 
   it('attributes a dialog to the surface that imports it, not to its module', () => {
