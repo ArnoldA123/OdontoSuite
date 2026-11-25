@@ -2,8 +2,7 @@
 
 > **Lee este archivo primero antes de tocar el proyecto.** Contiene quickstart,
 > stack, comandos, estructura, convenciones, troubleshooting y planes cerrados.
-> Actualizado al 2026-10-21 tras el fix de #21 (docs drift: §4, §6, §11, §12 con
-> valores medidos).
+> Actualizado al 2026-11-24; la última ola de agenda, datos y UX vive en §12.
 
 ---
 
@@ -39,8 +38,12 @@ composer dev
 
 **Credenciales demo**: ver `CREDENTIALS.md`, **rastreado en git a propósito**
 (contiene credenciales DEMO generadas por un seeder público, no secretos). Todos
-los usuarios con password `password123`, dominio `@test.com` (15 usuarios
-seedados por `RoleBasedUsersSeeder`).
+los usuarios con password `password123`, dominio `@test.com` (9 usuarios
+seedados por `RoleBasedUsersSeeder`). La base demo se limpió el 2026-11-24 con
+`demo:prune-test-users`: se retiraron las seis cuentas `*_test` y el
+administrador duplicado, se reasignaron 377 dependencias y quedaron 9 cuentas,
+100 pacientes y 119 citas completas, sin huérfanos. El comando es idempotente y
+`--dry-run` no escribe.
 
 `tests/Unit/Documentation/CredentialsDocumentationTest.php` verifica el
 documento **contra el seeder y en ambas direcciones**: ningún usuario sembrado
@@ -119,12 +122,12 @@ resources/js/
     layout/                # AppLayout, MobileMenu, FloatingActionButton
     procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ProcedureSiteFields,
                            #   ImportCsvModal
-  modules/                 # 25 módulos de dominio (ver §5)
+  modules/                 # 26 módulos de dominio (ver §5)
   router/auth.js           # requireAuth, requireGuest (localStorage)
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 158 migraciones
+  migrations/              # 162 migraciones
   seeders/                 # 18 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, DiagnosisCatalogSeeder,
                            #   AppointmentTypeSeeder, EnvironmentSeeder, ProcedureCatalogSeeder,
@@ -149,11 +152,12 @@ docs/
 
 ---
 
-## 5. Módulos del frontend (25 módulos, 25 páginas)
+## 5. Módulos del frontend (26 módulos, 26 páginas)
 
 | Módulo                    | Ruta                         | Roles                                 |
 | ------------------------- | ---------------------------- | ------------------------------------- |
 | Dashboard                 | `/dashboard`                 | todos                                 |
+| Catálogos                 | `/catalogs`                  | admin                                 |
 | Mi día                    | `/my-day`                    | admin, todos los clínicos             |
 | Calendario                | `/calendar`                  | todos los clínicos                    |
 | Pacientes                 | `/patients`                  | todos                                 |
@@ -608,6 +612,67 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-11-24 (notificaciones en un solo riel, reserva de citas y datos demo
+  reducidos)** — Los avisos del shell se apilan en un único riel arriba a la
+  derecha. La reserva de cita deja de compartir puerta con la agenda:
+  `create.appointment` queda solo en `administrador` y `recepcionista`,
+  `POST /api/appointments` y `AppointmentPolicy::create` la exigen y
+  `usePermissions.createAppointment` la deriva del catálogo (fixture de smoke
+  regenerado). El profesional conserva `manage.appointment`: lee y opera sus
+  propias citas —estado, llegada, anuncio, inicio y cierre, reprogramación— y
+  deja de crear o reagendar las ajenas; `docs/architecture/desks.md` publica el
+  corte entre agenda y reserva. Los datos demo quedan en las 9 cuentas de
+  `RoleBasedUsersSeeder`: la limpieza retiró seis cuentas `*_test` y el
+  administrador duplicado, reasignó 377 dependencias, eliminó 20 tokens
+  personales y conservó 100 pacientes/119 citas completas sin huérfanos;
+  `demo:prune-test-users` es idempotente y `--dry-run` no escribe. Verificación:
+  **3176 pruebas / 19429 aserciones** en PHP, **202 archivos / 1875 pruebas** en
+  JS, Pint **965 archivos**, `doc-drift` 14/14 y `vite build` en verde.
+
+- **2026-11-24 (anuncio clínico, Pendientes agrupado, hub de catálogos y
+  registros ligados a la atención)** — La cita deja de tener un solo anunciador:
+  `POST /api/appointments/{id}/announce` sigue exigiendo `announce.patient` y,
+  además de recepción y administración, el profesional asignado anuncia su
+  propia cita (la puerta autoriza `update` sobre la cita), con
+  `announced_at`/`announced_by` y su fila de custodia. `Pendientes` pasa a una
+  sola tabla agrupada por paciente (`data-continuity-section="pending"`): los
+  controles vencidos, las solicitudes de continuidad y las respuestas
+  comerciales se funden por `patientKey`, cada pendiente conserva su chip y su
+  acción, y el KPI «Pacientes con pendientes» cuenta filas, no fuentes. Nace el
+  hub `/catalogs` con sus primitivas y Especialidades migrada a él; el
+  manifiesto de auditoría publica 37 superficies, 23 entradas de navegación y
+  resuelve las pestañas declaradas como `computed(() => […])`. Los registros de
+  especialidad se ligan a la atención y a la línea del plan
+  (`2026_11_24_120000_link_specialty_records_to_encounter_and_plan`), y el
+  enlace «Plan» a `/treatment-plans?patient_id=&plan_id=` encuentra un índice
+  que ahora honra el query: carga el plan, abre su detalle y conserva la lista
+  cuando el plan no existe o no se puede leer. La agenda actualiza sus citas en
+  sitio (upsert) sin recargar la página. §4 sube a **162 migraciones** y §5 a 26
+  módulos y 26 páginas por el hub `catalogs`. Verificación: las unidades
+  reportan 112, 200 y 91 pruebas PHP en sus archivos focales, 137 pruebas de
+  Vitest, 100 de agenda, 37 del guard de Pendientes y 36 del guard de anuncio;
+  la corrida completa de la ola queda pendiente del cierre del padre.
+
+- **2026-11-24 (citas: privacidad por profesional, sede heredada y anuncio
+  visible)** — La agenda deja de ser una lectura compartida. `AppointmentPolicy`
+  concentra la matriz: administrador y recepcionista ven su sede completa;
+  odontólogo, implantólogo, técnico y asistente solo sus citas, y las puertas de
+  lectura/escritura lo aplican. La cita hereda sede del profesional y luego del
+  ambiente, con backfill de las filas nulas; los seeders crean Trujillo
+  (`SC-TRU-01`) y afilian allí a los usuarios salvo `admin_test`, que conserva
+  alcance de grupo, reparten ambientes por sede y estampan citas/caja. El
+  anuncio guarda `announced_at`/`announced_by` y deja rastro de custodia; el
+  evento de estado y la llegada se difunden, el payload de cita se reduce a
+  cinco claves sin paciente y calendario/Mi día refrescan sin F5. El panel
+  muestra «Anunciado» y «Confirmar». `/environments` gana Sede en alta, edición,
+  lista y detalle; el alta de cita acota profesionales y ambientes a la sede
+  (403 si un actor restringido nombra otra; 422 si el alcance de grupo mezcla
+  sedes) y los seeders dejan datos de prueba utilizables en otra PC.
+  Verificación: suite MySQL **OK (3133 pruebas, 19085 aserciones)**, Vitest
+  **188 archivos / 1780 pruebas**, Pint **958 archivos**, `doc-drift` 14/14 y
+  `vite build` en verde. Sin rutas, permisos, modelos ni composables nuevos: §4
+  sube a **161 migraciones**.
 
 - **2026-11-24 (el hueco del tablero entrega su ambiente, #531)** — Pulsar un
   hueco libre de la vista Día abre el alta con fecha, hora y **el recurso de su

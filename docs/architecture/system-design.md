@@ -475,6 +475,11 @@ scheduled ──check-in (recepción)──► arrived ──announce──► (
 cancelled / no_show  ← PATCH /status (con motivo, cancela recordatorios pendientes)
 ```
 
+El anuncio no es exclusivo de recepción: la puerta autoriza `update` sobre la
+cita, así que el profesional asignado anuncia la suya y recepción sigue
+anunciando toda su sede. El acto no cambia el estado; deja
+`announced_at`/`announced_by` y su fila de custodia.
+
 Cada transición escribe `appointment_custody_logs`. `GET /api/my-day` devuelve
 `waiting`/`attending`/`upcoming` del profesional autenticado, más
 `ready_lab_cases`: es el escritorio, no un reporte.
