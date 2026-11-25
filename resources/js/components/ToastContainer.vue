@@ -1,13 +1,20 @@
 <template>
   <div
     aria-live="assertive"
-    class="pointer-events-none fixed inset-0 flex items-end px-4 py-6 sm:items-start sm:p-6 z-50"
+    class="pointer-events-none fixed inset-x-4 top-20 z-fixed ml-auto flex max-w-sm flex-col sm:inset-x-auto sm:right-6"
+    data-toast-stack
   >
-    <div class="flex w-full flex-col items-center space-y-4 sm:items-end">
+    <div
+      ref="stackEl"
+      class="pointer-events-auto flex max-h-[calc(100dvh-6.5rem)] w-full max-w-sm flex-col overflow-y-auto overscroll-contain"
+    >
       <TransitionGroup
+        tag="div"
+        class="flex w-full max-w-sm flex-col gap-3"
+        data-toast-list
         enter-active-class="transform ease-out duration-300 transition"
-        enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-        enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+        enter-from-class="translate-y-2 opacity-0 sm:translate-y-0"
+        enter-to-class="translate-y-0 opacity-100"
         leave-active-class="transition ease-in duration-100"
         leave-from-class="opacity-100"
         leave-to-class="opacity-0"
@@ -16,7 +23,9 @@
         <div
           v-for="toast in globalToasts"
           :key="toast.id"
-          class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg shadow-lg ring-1 bg-theme-surface-elevated ring-black/5"
+          class="pointer-events-auto relative w-full max-w-sm overflow-hidden rounded-lg bg-theme-surface-elevated shadow-lg ring-1 ring-black/5"
+          :data-toast-id="toast.id"
+          :data-toast-key="toast.key"
         >
           <div class="p-4">
             <div class="flex items-start">
@@ -97,6 +106,7 @@
 
               <div v-if="toast.dismissible" class="ml-4 flex flex-shrink-0">
                 <button
+                  type="button"
                   class="inline-flex rounded-md text-theme-secondary hover:text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500"
                   @click="removeToast(toast.id)"
                 >
@@ -112,6 +122,18 @@
               </div>
             </div>
           </div>
+
+          <!-- Barra de progreso: se reinicia con la revisión del toast, que sube
+               cuando la misma clave actualiza el aviso. -->
+          <div
+            v-if="toast.persistent !== true && Number(toast.duration) > 0"
+            :key="`${toast.id}:${toast.revision ?? 0}`"
+            class="toast-progress"
+            :class="progressClasses(toast.type)"
+            :style="{ animationDuration: `${toast.duration}ms` }"
+            data-toast-progress
+            aria-hidden="true"
+          />
         </div>
       </TransitionGroup>
     </div>
@@ -119,12 +141,82 @@
 </template>
 
 <script setup>
-import { globalToasts } from '../composables/useToast.js'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { globalToasts, useToast } from '../composables/useToast.js'
 
-const removeToast = id => {
-  const index = globalToasts.value.findIndex(toast => toast.id === id)
-  if (index > -1) {
-    globalToasts.value.splice(index, 1)
+const { removeToast, setRailHeight } = useToast()
+
+// El riel es compartido: este alto es el que coloca el aviso persistente
+// debajo de la pila efímera, sin que las dos capas se tapen.
+const stackEl = ref(null)
+let observer = null
+
+const publishRailHeight = () => {
+  // Un mock de `useToast` puede devolver un objeto parcial: el riel es una
+  // mejora de posición, no un requisito de montaje.
+  if (typeof setRailHeight !== 'function') return
+
+  const height = stackEl.value?.getBoundingClientRect?.().height ?? 0
+  setRailHeight(height)
+}
+
+// El mock de un test puede entregar la pila como objeto plano: el getter
+// evita el aviso de "watch source" y sigue observando la misma referencia.
+watch(
+  () => globalToasts?.value,
+  () => nextTick(publishRailHeight),
+  { deep: true }
+)
+
+onMounted(() => {
+  publishRailHeight()
+  if (typeof ResizeObserver !== 'undefined') {
+    observer = new ResizeObserver(publishRailHeight)
+    if (stackEl.value) observer.observe(stackEl.value)
   }
+})
+
+onUnmounted(() => {
+  observer?.disconnect()
+  observer = null
+  if (typeof setRailHeight === 'function') setRailHeight(0)
+})
+
+const progressClasses = type => {
+  const classes = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    warning: 'bg-yellow-500',
+    info: 'bg-accent'
+  }
+  return classes[type] || classes.info
 }
 </script>
+
+<style scoped>
+.toast-progress {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  transform-origin: left center;
+  animation-name: toast-progress-shrink;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes toast-progress-shrink {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-progress {
+    animation: none;
+  }
+}
+</style>

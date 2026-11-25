@@ -1,39 +1,86 @@
-import { formatCurrency, formatDateTime } from '@/composables/useFormatters'
+import { formatCurrency } from '@/composables/useFormatters'
 
 /**
  * Servicio para convertir eventos WebSocket en notificaciones
  */
 export class NotificationService {
   /**
-   * Mapear evento de cita a notificación
+   * Clave estable de una notificación: el hecho (evento) y la entidad que lo
+   * produjo. Dos capas que publican el mismo evento comparten clave y, por
+   * tanto, una sola fila en la pila de avisos.
+   *
+   * El sobre de la difusión no es uniforme —el alta y el cambio llevan el
+   * objeto en `appointment`, el borrado lleva `appointment_id` suelto—, así
+   * que la entidad se resuelve con la misma tolerancia que el resto del
+   * módulo.
+   */
+  static notificationKey(eventName, data) {
+    const entity =
+      data?.appointment ??
+      data?.patient ??
+      data?.treatment_plan ??
+      data?.quotation ??
+      data?.medical_record ??
+      data?.evolution ??
+      data?.attachment ??
+      data?.addendum ??
+      data?.specialty_record ??
+      data?.record ??
+      data?.transaction ??
+      data?.payment ??
+      data?.cash_session ??
+      data
+    const id = entity?.id ?? data?.appointment_id ?? null
+
+    // Sin id no hay hecho identificable: se deja sin clave para no colapsar
+    // eventos distintos bajo el mismo nombre.
+    return id === null || id === undefined || id === '' ? null : `${eventName}:${id}`
+  }
+
+  /**
+   * Mapear evento de cita a notificación.
+   *
+   * citas-privacidad (T1): la difusión de una cita lleva sólo lo operativo
+   * (`id`, `user_id`, `status`, `scheduled_at`, `updated_at`), así que la copia
+   * es neutral por tipo y nunca nombra a un paciente.
    */
   static mapAppointmentEvent(eventName, data) {
     const appointment = data.appointment || data
-    const patientName = appointment.patient?.full_name || appointment.patient?.name || 'Paciente'
 
     const mappings = {
       'appointment.created': {
-        title: 'Nueva cita programada',
-        message: `Cita creada para ${patientName} el ${formatDateTime(appointment.scheduled_at)}`,
+        title: 'Nueva cita agregada',
+        message: 'Cita creada en la agenda.',
         type: 'info',
         category: 'appointments',
         action: () => {
-          // Navegar a la cita si es necesario
-          if (window.router) {
-            window.router.push(`/calendar?date=${appointment.scheduled_at}`)
+          if (window.router && appointment.id) {
+            window.router.push({ path: '/calendar', query: { appointment: appointment.id } })
           }
         }
       },
       'appointment.updated': {
         title: 'Cita actualizada',
-        message: `La cita de ${patientName} ha sido modificada`,
+        message: 'La cita ha sido modificada.',
         type: 'info',
         category: 'appointments'
       },
       'appointment.deleted': {
-        title: 'Cita cancelada',
-        message: `La cita de ${patientName} ha sido cancelada`,
+        title: 'Cita eliminada',
+        message: 'La cita fue eliminada de la agenda.',
         type: 'warning',
+        category: 'appointments'
+      },
+      'appointment.completed': {
+        title: 'Cita completada',
+        message: 'La cita ha sido completada.',
+        type: 'success',
+        category: 'appointments'
+      },
+      'appointment.checked_in': {
+        title: 'Llegada registrada',
+        message: 'La llegada quedó registrada en la agenda.',
+        type: 'info',
         category: 'appointments'
       }
     }
@@ -262,36 +309,40 @@ export class NotificationService {
    * Convertir evento WebSocket a notificación
    */
   static convertEventToNotification(eventName, data) {
+    let notification = null
+
     // Determinar el tipo de evento y mapear
     if (eventName.includes('appointment')) {
-      return this.mapAppointmentEvent(eventName, data)
-    }
-    if (eventName.includes('patient')) {
-      return this.mapPatientEvent(eventName, data)
-    }
-    if (eventName.includes('treatment-plan')) {
-      return this.mapTreatmentPlanEvent(eventName, data)
-    }
-    if (eventName.includes('quotation')) {
-      return this.mapQuotationEvent(eventName, data)
-    }
-    if (eventName.includes('medical-record') || eventName.includes('clinical')) {
-      return this.mapMedicalRecordEvent(eventName, data)
-    }
-    if (eventName.includes('specialty-record')) {
-      return this.mapSpecialtyRecordEvent(eventName, data)
-    }
-    if (eventName.includes('payment') || eventName.includes('cash-session')) {
-      return this.mapPaymentEvent(eventName, data)
+      notification = this.mapAppointmentEvent(eventName, data)
+    } else if (eventName.includes('patient')) {
+      notification = this.mapPatientEvent(eventName, data)
+    } else if (eventName.includes('treatment-plan')) {
+      notification = this.mapTreatmentPlanEvent(eventName, data)
+    } else if (eventName.includes('quotation')) {
+      notification = this.mapQuotationEvent(eventName, data)
+    } else if (eventName.includes('medical-record') || eventName.includes('clinical')) {
+      notification = this.mapMedicalRecordEvent(eventName, data)
+    } else if (eventName.includes('specialty-record')) {
+      notification = this.mapSpecialtyRecordEvent(eventName, data)
+    } else if (eventName.includes('payment') || eventName.includes('cash-session')) {
+      notification = this.mapPaymentEvent(eventName, data)
     }
 
     // Notificación genérica
-    return {
-      title: 'Notificación',
-      message: 'Se ha producido un evento en el sistema',
-      type: 'info',
-      category: 'system'
+    if (!notification) {
+      notification = {
+        title: 'Notificación',
+        message: 'Se ha producido un evento en el sistema',
+        type: 'info',
+        category: 'system'
+      }
     }
+
+    // La clave viaja con el aviso para que el almacén deduplique y reinicie
+    // su temporizador en vez de apilar una copia del mismo hecho.
+    notification.key = this.notificationKey(eventName, data)
+
+    return notification
   }
 
   /**

@@ -1,5 +1,6 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuth } from './useAuth'
 import { useEcho } from './useEcho'
 import { useNotifications } from './useNotifications'
 import { usePermissions } from './usePermissions'
@@ -48,7 +49,33 @@ export function consumeLocalAppointmentEcho(id) {
 }
 
 /** Los eventos de cita cuyo eco propio se descarta. */
-const APPOINTMENT_EVENTS = ['appointment.created', 'appointment.updated']
+const APPOINTMENT_EVENTS = ['appointment.created', 'appointment.updated', 'appointment.deleted']
+
+/**
+ * El sobre de la difusión de una cita: los eventos de alta y cambio llevan el
+ * objeto en `appointment`, el de borrado lleva `appointment_id` y `user_id`
+ * sueltos. Ambos se leen con la misma función.
+ */
+const appointmentEnvelope = data => data?.appointment ?? data
+
+const appointmentIdOf = data => {
+  const envelope = appointmentEnvelope(data)
+  return envelope?.id ?? envelope?.appointment_id ?? null
+}
+
+/**
+ * T2 — la difusión de una cita llega a todo el canal. Un escritorio clínico
+ * sólo opera sus citas (el índice ya acota), así que anunciar la cita de otro
+ * profesional en su panel es ruido: el aviso pertenece a quien la atiende.
+ * Administración y recepción conservan el anuncio porque su alcance es la sede
+ * entera. El payload de cita no trae paciente: el aviso no depende de él.
+ */
+const mayAnnounceAppointment = (data, { clinical, userId }) => {
+  if (!clinical) return true
+  const owner = appointmentEnvelope(data)?.user_id
+  if (owner === null || owner === undefined || owner === '') return false
+  return String(owner) === String(userId ?? '')
+}
 
 /**
  * Composable para escuchar eventos WebSocket globales y generar notificaciones
@@ -56,7 +83,8 @@ const APPOINTMENT_EVENTS = ['appointment.created', 'appointment.updated']
 export function useWebSocketNotifications() {
   const route = useRoute()
   const { privateChannel, echo } = useEcho()
-  const { has } = usePermissions()
+  const { has, isClinical } = usePermissions()
+  const { user } = useAuth()
   const { addNotification } = useNotifications()
   const { error: showErrorToast } = useToast()
 
@@ -108,8 +136,10 @@ export function useWebSocketNotifications() {
       // La cita que esta pestaña acaba de escribir ya se confirmó donde se
       // escribió: su difusión se consume aquí y no publica nada.
       if (APPOINTMENT_EVENTS.includes(eventName)) {
-        const echoed = data?.appointment ?? data
-        if (consumeLocalAppointmentEcho(echoed?.id)) return
+        if (consumeLocalAppointmentEcho(appointmentIdOf(data))) return
+        // T2: una cita ajena no se anuncia en el escritorio clínico.
+        if (!mayAnnounceAppointment(data, { clinical: isClinical.value, userId: user.value?.id }))
+          return
       }
 
       const notificationData = NotificationService.convertEventToNotification(eventName, data)
@@ -123,8 +153,11 @@ export function useWebSocketNotifications() {
         return
       }
 
-      // Crear la notificación
+      // Crear la notificación. La clave viaja desde el mapeo: su forma
+      // (`appointment.created:{id}`) es la misma que usa cualquier otra capa
+      // para el mismo hecho, así que el almacén actualiza en vez de apilar.
       addNotification(notificationData.message, notificationData.type, {
+        key: notificationData.key,
         title: notificationData.title,
         category: notificationData.category,
         action: notificationData.action,

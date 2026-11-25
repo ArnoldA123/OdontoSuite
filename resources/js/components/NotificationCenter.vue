@@ -1,5 +1,9 @@
 <template>
-  <div v-if="isOpen" class="notification-center-overlay" @click.self="close">
+  <div
+    v-if="isOpen"
+    class="notification-center-overlay fixed inset-0 z-backdrop flex items-start justify-end pt-20 pr-4 sm:pr-6"
+    @click.self="close"
+  >
     <div class="notification-center" @click.stop>
       <!-- Header -->
       <div class="notification-center-header">
@@ -231,14 +235,13 @@ watch(
 
 <style scoped>
 .notification-center-overlay {
-  @apply fixed inset-0 z-50 flex items-start justify-end pt-16 pr-4;
   background-color: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(4px);
 }
 
 .notification-center {
   @apply bg-theme-surface-elevated border border-theme rounded-lg shadow-xl;
-  @apply w-full max-w-md max-h-[calc(100vh-5rem)];
+  @apply w-full max-w-md max-h-[calc(100dvh-6rem)];
   @apply flex flex-col;
   animation: slideIn 0.2s ease-out;
 }
